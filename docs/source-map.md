@@ -39,10 +39,10 @@ fixtures in `tests/fixtures/` come from Studio at the commit above
 | `tests/unit/fixtures.ts` (`workout()`) | test helpers | `Workout::new` | Same defaults as the web test helper. |
 | — | `Tests/RowPlayCoreTests/Fixtures/ParityFixture{,Loader}.swift` | `crates/rowplay-fixtures` | `load_json`, `read_bytes`, SHA-256 manifest check. |
 | — | `Library/WorkoutLibraryLoader.swift`, `WorkoutLibrarySnapshot.swift`, `WorkoutLibrarySource.swift` | `rowplay-platform::library` | cache → demo → empty; cache errors propagate. |
-| `src/lib/server/session.ts` (token handling) | `Sync/TokenStore.swift`, `Platform/KeychainTokenStore.swift` | `rowplay-platform::token_store` | Trait + `SecretToken` + in-memory mock; `keyring` in Phase 3. |
-| `src/lib/server/concept2.ts` (client) | `Sync/Concept2Client.swift`, `Concept2/*.swift` | `rowplay-platform::concept2` | Trait + mock; HTTPS client and raw-payload mapper in Phase 3 (Concept2 fixtures vendored now, test ignored). |
-| — (web is stateless) | `Sync/WorkoutCache.swift`, `Storage/SQLiteWorkoutCache.swift` | `rowplay-platform::workout_cache` | Trait + in-memory and failing mocks; `rusqlite` in Phase 3. |
-| — | `Platform/AppPreferences.swift` | `rowplay-platform::preferences` | `Preferences` has no token field by construction. |
+| `src/lib/server/session.ts` (token handling) | `Sync/TokenStore.swift`, `Platform/KeychainTokenStore.swift` | `rowplay-platform::token_store` | Trait + `SecretToken` + in-memory mock; the `keyring` store landed in Phase 3 (see below). |
+| `src/lib/server/concept2.ts` (client) | `Sync/Concept2Client.swift`, `Concept2/*.swift` | `rowplay-platform::concept2` | Trait + mock; the HTTPS client and the raw-payload mapper landed in Phase 3, enabling the mapper parity test. |
+| — (web is stateless) | `Sync/WorkoutCache.swift`, `Storage/SQLiteWorkoutCache.swift` | `rowplay-platform::workout_cache` | Trait + in-memory and failing mocks; the `rusqlite` store landed in Phase 3. |
+| — | `Platform/AppPreferences.swift` | `rowplay-platform::preferences` | `Preferences` has no token field by construction; the JSON file store landed in Phase 3. |
 
 ## Phase 2 — replay core
 
@@ -68,11 +68,27 @@ the web `*.test.ts` and Studio `*Tests.swift` suites, golden fixtures run from
 | `src/lib/replay/sources.ts` | `Replay/ReplayRival*.swift` | `replay::rivals` | `constant_pace_strokes` (per-sport watts), `parse_rival_file` with CSV/TCX/FIT decoders and Studio's bounds + normalisation (see divergences). |
 | `src/lib/replay/replayRenderer.ts` (`RenderQuality`) | `Replay/ReplayRenderQuality.swift` | `replay::quality` | Enum + Studio's portable per-tier budgets and sticky degradation ladder. |
 
+## Phase 3 — platform
+
+Ported into `rowplay-core::concept2` (pure, byte slices in) and the
+`rowplay-platform` services behind the Phase 1 traits.
+
+| Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |
+| --- | --- | --- | --- |
+| `src/lib/server/concept2.ts` (raw shapes, `mapResult`, `mapStrokes`, `mapSplits`, `mapHeartRate`, `mapTargets`, `mapMetadata`, `mapSplitType`, `synthStrokes`, `getWorkout`) | `Concept2/Concept2Models.swift`, `Concept2/Concept2Mapper.swift` | `rowplay-core::concept2` | Wire units normalised exactly as the web does: `time`/`t`/`rest_time` tenths → seconds, `d` decimetres → metres, `p` and target `pace` tenths → sec/500 m with the BikeErg divisor of 2, interval `t`/`d` resets accumulated into offsets, `raw_t`/`raw_d` kept. Payloads are bounded to 25 MiB and fail with an opaque typed error. |
+| `src/lib/server/concept2.ts` (`getWorkout` assembly) | `Concept2/URLSessionConcept2Client.swift` (`fetchWorkoutDetail`) | `rowplay-core::concept2::assemble_detail` | `is_interval` from a non-empty `workout.intervals`, strokes fetched only when `stroke_data` is set, and `synth_strokes` clearing `has_stroke_data` when the timeline is split-derived. |
+| `src/lib/server/concept2.ts` (client, `Accept`, auth header) | `Sync/Concept2Client.swift`, `Concept2/Concept2Endpoint.swift`, `Concept2/Concept2Error.swift`, `Concept2/HTTPTransport.swift`, `Concept2/URLSessionConcept2Client.swift` | `rowplay-platform::concept2::{Concept2HttpClient, HttpUri, redirect_target}` | Blocking `ureq` over rustls instead of `URLSession`. HTTPS only (loopback excepted), bearer token via `SecretToken`, no cookies, no HTTP cache, 30 s / 300 s budgets, 25 MiB body cap, `max_redirects(0)` with a hand-written policy, and Studio's status mapping. |
+| — (the web app is a server; the native app keeps its own cache) | `Sync/WorkoutCache.swift`, `Storage/SQLiteWorkoutCache.swift`, `Storage/SQLiteWorkoutCacheMigration.swift` | `rowplay-platform::workout_cache` | `SqliteWorkoutCache` on `rusqlite` (`bundled`), Studio's `workouts` table shape, `PRAGMA user_version` migrations, `0700`/`0600` on Unix. |
+| — | `Platform/KeychainTokenStore.swift`, `Sync/TokenStore.swift` | `rowplay-platform::token_store` | `KeyringTokenStore` with an explicit native backend per target plus a test that fails if keyring substitutes its mock store. |
+| `src/lib/replay/replayRenderer.ts` (`safeStorage`) | `Platform/AppPreferences.swift` (`UserDefaults`) | `rowplay-platform::preferences` | JSON file, atomic temp-file-and-rename writes, tolerant reads. |
+| `src/lib/server/data.ts` (`SyncState`) | `Sync/WorkoutSyncCoordinator.swift`, `Sync/SyncStateTracker.swift`, `Sync/WorkoutSyncResult.swift`, `Sync/WorkoutSyncError.swift` | `rowplay-platform::sync` | Synchronous and cancellable (`AtomicBool` + progress callback) so Phase 4 can run it on a worker thread. |
+| — | `Platform/Concept2SyncController.defaultCachePath` | `rowplay-platform::paths` | `directories`-based data and config directories with the Unix permission helpers. |
+| `src/lib/server/logger.ts` (levels) | `PrivacySafeLogger` | `privacy::LogLevel` / `PrivacySafeLogger::info` | An informational level was added so a normal fallback (no preferences file yet) is not reported as a warning. |
+
 ## Later phases (mapping only)
 
 | Web source | Swift | Rust target | Phase |
 | --- | --- | --- | --- |
-| `src/lib/server/concept2.ts` (mapping, transport) | `Concept2/Concept2Mapper.swift`, `HTTPTransport.swift`, `URLSessionConcept2Client.swift` | `rowplay-platform::concept2` | 3 |
 | `src/routes/dashboard`, `src/components/*` | `Views/*.swift` | `qml/RowPlay/*.qml` + backend objects in `rowplay-app` | 4 |
 | `src/lib/locales/*.ts` | — | `i18n/*.ts` via `tools/` | 4 |
 | `src/lib/replay/renderer3d.ts`, `renderer3dAssets.ts`, `renderer3dV4Assets.ts` | `Views/Replay3D/*.swift` | `qml/RowPlay/Replay/*.qml`, `assets/*.glb` | 5 |
@@ -86,6 +102,20 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 
 | Area | Web | Swift | Rust | Rationale |
 | --- | --- | --- | --- | --- |
+| Concept2 mapper defaults | absent `workout_type` / `verified` stay `undefined` | `JustRow`, `verified = true` | web | The web keeps the API's `undefined`; Studio's defaults are undocumented. |
+| Concept2 `is_interval` | set by `getWorkout` from a non-empty `workout.intervals`; summaries have none | set in `mapWorkout` from `workout_type` containing "interval" **or** non-empty intervals | web | One rule (the intervals array) for summaries and detail alike; the API's `workout_type` values are not documented as an interval signal. |
+| Detail assembly without per-stroke rows | synthesises a split-derived timeline and clears `hasStrokeData` | returns empty strokes, keeps `hasStrokeData` | web | `hasStrokeData` must go false when the timeline is synthesised, or the pose model renders one cycle per synthesised point (≈4 catches across a 2K instead of ≈221). |
+| Concept2 status mapping | throws a message with the status, no typed cases | `unauthorized` / `forbidden` / `rateLimited` / `httpError(statusCode)` | web's statuses with Studio's typed cases, plus `NotFound(id)` for the in-memory mock only | A 404 from the API maps to `Http { status: 404 }` (the transport's job); `NotFound(id)` stays the mock's domain error. `RateLimited` also carries `Retry-After` seconds when the header is a plain integer (no reference parses it). |
+| `total_pages` fallback | the page it just fetched (`?? page`) | `1` | web | Only observable above page 1, which the sync never requests; the web's rule is kept. |
+| Sync paging bound | running maximum of `total_pages` | assigns the reported value | web | A monotone bound cannot be cut short by a misbehaving page response. |
+| Redirect policy | browser `fetch` follows redirects with cookies/credentials stripped per spec | `URLSession` delegate: HTTPS + host + port must match, everything else blocked | same-origin HTTPS, plus loopback `http` when the request itself is loopback | Studio's rule is strictly HTTPS, which no local test server can exercise without TLS. The loopback exemption is the same one the initial-request rule uses, and a cross-host or downgrade redirect is still always blocked. |
+| Timeouts | 10 s `AbortSignal.timeout` per request | 30 s per request, 300 s per resource | Studio's budgets: 30 s per request (ureq `timeout_per_call`) and 300 s for the whole fetch, redirect chain included, enforced by the client's own deadline because ureq's global timeout is per call. |
+| Transport error text | message includes the failing status | keeps the underlying error but never prints it | a static failure class only | A bearer token is attached to every request; an error string that can echo request detail is a leak vector. The class (`I/O error`, `protocol error`, …) keeps failures diagnosable. |
+| Cache summary rows | — (stateless) | rebuilt from the summary columns | decoded from `detail_json`, columns written in full | Studio's column list silently drops `privacy`, `hr_min`/`hr_max`, `timezone`, `date_utc`, `weight_class`, `rest_time`, `rest_distance`, `targets`, `metadata` and heart-rate detail from every summary, which would break e.g. the fail-closed share check. A test asserts the columns and the JSON agree. |
+| Cache `date` column | — | SQLite `REAL` (a `Date` epoch) | SQLite `TEXT` (the logbook string) | `Workout.date` is the logbook string in every other layer; parsing it into an instant would invent a time zone. Ordering is unaffected (`YYYY-MM-DD HH:MM:SS` sorts chronologically). |
+| Preferences storage | the browser's `safeStorage` | `UserDefaults` keys read one at a time | one JSON file in the config directory | A file is the portable equivalent; unknown fields are ignored and a corrupt file falls back to defaults wholesale (one bad key discards the others, unlike Studio's per-key reads). |
+| Token store backends | server-side session | macOS Keychain only | macOS Keychain, Windows Credential Manager, Linux Secret Service | The port is cross-platform; keyring's backends are named explicitly and a test fails if the crate falls back to its in-memory mock. |
+| Log levels | debug/info/warn/error | info/warn/error | info/warn/error (`info` added for the preferences fallback) | The core logger had only `warn`/`error`; a first-launch fallback is not a warning. |
 | `Sport::from_concept2_type` | exact, case-sensitive | lower-cases first (`"SKI"` → SkiErg) | web | Studio's leniency is undocumented; the API sends lower-case. |
 | `fmt_distance` negative values | `metres >= 1000` → km, else metres (`-1500` → `-1500 m`) | absolute threshold (`-1.50 km`) | web for metric; Studio's absolute threshold for imperial (no web equivalent) | Metric follows the canonical formatter. |
 | Non-finite formatting | prints `NaN m` / `NaN:NaN` | placeholders `--` / `--:--` | placeholders (Studio) | The web output is an unhandled case, not a feature; Studio's stress spec documents the placeholders. |
@@ -117,4 +147,4 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Race finish on the distance axis | last-sample endpoint timestamps | first **interpolated** crossing of the target | interpolated crossing (Studio) | Studio's source map documents this deliberate deviation (also cited in AGENTS.md); sparse traces otherwise decide wrongly. |
 | Rival parsers | browser `DOMParser`/`DataView`, unbounded, no normalisation | 25 MiB / 200 k sample bounds, quoted CSV, DOCTYPE rejection, validated FIT, origin-rebased normalisation | Studio's hardened shape (bounds, quoted CSV streaming, TCX element-stack scanner with DOCTYPE rejection, FIT header/architecture/compressed-timestamp validation, sort + one-per-timestamp + no-backward-distance + zero-based time) | Accepted inputs parse identically; the hardening is a privacy/security invariant (bounded scanning, no entity expansion). The Rust TCX probe reads UTF-8/Latin-1 (not Studio's UTF-16 probe) — a documented simplification, and derived watts stay `f64` (web) instead of Studio's integer rounding. |
 | Constant-pace ghost watts | `paceToWatts` (RowErg basis, divisor 2.8) | `paceToWattsForSport` (BikeErg divisor 8) | per-sport via `constant_pace_strokes`; `constant_pace_ghost` keeps the web rower-basis name | The golden fixture expects the bike divisor; the web helper has no sport parameter. |
-| Quality budgets | `renderer3d.ts` `QUALITY` mixes portable counts with browser fields (`dprCap`, `antialias`, `shadowMapSize`, `bodySegments`) | portable entity budgets only (48/24/0/0/0/12/30 … 144/96/44/72/6/28/60) | Studio's portable budgets + sticky degradation ladder | Browser/three.js fields have no meaning until Phase 5 maps them onto Qt Quick 3D; renderer/quality *persistence* (web `safeStorage`) lands in Phase 3 with the preferences store. |
+| Quality budgets | `renderer3d.ts` `QUALITY` mixes portable counts with browser fields (`dprCap`, `antialias`, `shadowMapSize`, `bodySegments`) | portable entity budgets only (48/24/0/0/0/12/30 … 144/96/44/72/6/28/60) | Studio's portable budgets + sticky degradation ladder | Browser/three.js fields have no meaning until Phase 5 maps them onto Qt Quick 3D; renderer/quality *persistence* (web `safeStorage`) arrived in Phase 3 with the preferences store. |

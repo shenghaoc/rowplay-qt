@@ -25,12 +25,21 @@ recorded as ADRs in [`docs/decisions/`](docs/decisions/README.md).
 
 ## Status
 
-Phase 0 (bootstrap) and Phase 1 (core parity foundation) are done: the
-workspace, the stack smoke test (Rust backend → QML → Qt Quick 3D scene lit by
-a procedural sky), CI, and the pure-Rust ports of the web app's models,
-formatting, datetime, pace input, privacy redaction, analytics, personal bests,
-performance predictor, workout query, tags and deterministic demo library, all
-with parity tests. The app itself only shows the smoke scene so far. See
+Phases 0–3 are done.
+
+- **Phase 1–2 — `rowplay-core`:** the pure ports of the web app's models,
+  formatting, datetime, pace input, privacy redaction, analytics, personal
+  bests, performance predictor, workout query, tags and deterministic demo
+  library, plus the whole replay core (engine, motion, stroke model, motion
+  graph, 2D kinematics, ghost pick, race gap / result, rival parsers and the
+  quality budgets), all with parity tests.
+- **Phase 3 — `rowplay-platform`:** the Concept2 raw-payload mapper, the
+  blocking `ureq` HTTPS client (HTTPS-only, same-origin redirects only, strict
+  timeouts, 25 MiB body cap), the OS-keychain token store, the `rusqlite`
+  workout cache, the JSON preferences store and the synchronous cancellable
+  sync coordinator.
+
+The app itself only shows the smoke scene so far. See
 [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
@@ -38,6 +47,10 @@ with parity tests. The app itself only shows the smoke scene so far. See
 ## Requirements
 
 - Rust ≥ 1.87 (stable toolchain with `rustfmt` and `clippy`).
+- Linux only, for the keyring Secret Service backend, the `libdbus-1` headers
+  at build time: `libdbus-1-dev` and `pkg-config` on Debian/Ubuntu, `dbus-devel`
+  and `pkgconf` on RHEL/Fedora. macOS (Keychain) and Windows (Credential
+  Manager) use system frameworks and need nothing extra.
 - For the app: Qt 6.11 with the Quick 3D, Shader Tools, Quick Timeline and
   Graphs modules, a C++ toolchain, and `qmake` on `PATH` (or `QMAKE` set).
   Qt-free crates build without any of that.
@@ -48,6 +61,15 @@ with parity tests. The app itself only shows the smoke scene so far. See
 cargo test                          # core + platform + fixtures, no Qt needed
 cargo build -p rowplay-app          # needs Qt
 cargo run -p rowplay-app            # Phase 0 smoke window
+```
+
+No test in the default run touches the network or a real credential store: the
+HTTP rules are exercised against a local `TcpListener` server and every service
+has an in-memory mock. The round trip against the real OS keychain is opt-in,
+because CI has no Secret Service and macOS prompts:
+
+```bash
+ROWPLAY_KEYRING_TESTS=1 cargo test -p rowplay-platform
 ```
 
 Headless screenshot test on Linux (Xvfb + Mesa):
