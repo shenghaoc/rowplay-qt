@@ -19,11 +19,12 @@ Concept2 trademarks and stay untranslated.
 ```
 crates/rowplay-core/       # pure domain logic; no Qt, no I/O beyond parsing byte slices
 crates/rowplay-platform/   # services behind traits with mocks: token store, cache, Concept2 client, preferences, sync, paths
-crates/rowplay-app/        # the binary: qtbridge backend objects, QML shell, Qt Quick 3D (build.rs runs rcc)
+crates/rowplay-viewmodel/  # Qt-free UI logic: navigation state, locale date display, settings options, screen view models
+crates/rowplay-app/        # the binary: qtbridge backend objects, QML shell, Qt Quick 3D (build.rs runs rcc + lrelease)
 crates/rowplay-fixtures/   # dev-only loader for tests/fixtures
-qml/                       # QML modules (RowPlay/qmldir, Main.qml, scenes) + rowplay.qrc
+qml/                       # QML modules (RowPlay/qmldir, Main.qml, Theme/Tr singletons, screens) + rowplay.qrc + qtquickcontrols2.conf
 assets/                    # vendored .glb / textures with provenance (ASSET_PROVENANCE.md)
-i18n/                      # Qt .ts files generated from the web locales (Phase 4)
+i18n/                      # generated ID-based Qt .ts catalogues (never hand-edited; see "Internationalisation")
 tools/                     # asset / locale / fixture pipeline scripts (Python, Node, Blender)
 tests/fixtures/            # golden parity JSON from rowplay-studio + manifest.json + PROVENANCE.md
 docs/                      # roadmap.md, source-map.md, qt-bridges-notes.md, decisions/ (ADRs)
@@ -46,27 +47,37 @@ copy only what you need, with provenance (source repo, path, commit, SHA-256).
 ## Build, test and development commands
 
 ```bash
-cargo build                                   # Qt-free default members (core, platform, fixtures)
-cargo test                                    # unit + parity tests without Qt
+cargo build                                   # Qt-free default members (core, platform, viewmodel, fixtures)
+cargo test                                    # unit + parity + i18n tests without Qt
 cargo test --workspace                        # also the app crate (needs Qt 6.11)
 ROWPLAY_KEYRING_TESTS=1 cargo test -p rowplay-platform   # opt-in OS keychain round trip
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings     # add --workspace where Qt is installed
 cargo build -p rowplay-app                    # needs qmake on PATH (or QMAKE=/path/to/qmake)
-cargo run -p rowplay-app                      # Phase 0 smoke window
-# headless screenshot test (Linux, Mesa):
+cargo run -p rowplay-app                      # the Phase 4 shell (demo data by default)
+cargo test -p rowplay-app --test qml_runtime_gate        # QML runtime-error gate (any QPA)
+# headless screenshot + gate test (Linux, Mesa):
 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
   ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   xvfb-run -a cargo test -p rowplay-app
+# on a Wayland desktop the same tests run without Xvfb:
+QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts cargo test -p rowplay-app
 git diff --check
 ```
 
-Set `LANG=C.UTF-8` when Qt warns about the C locale. `ROWPLAY_RCC` overrides
-the `rcc` executable found through `qmake`.
+Set `LANG=C.UTF-8` when Qt warns about the C locale. `ROWPLAY_RCC` /
+`ROWPLAY_LRELEASE` override the `rcc` / `lrelease` executables found through
+`qmake`. Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
+and exits, `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic mock
+client (no token), `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the palette,
+`ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk.
 
 ## Architecture boundaries
 
-Dependency direction is **app → platform → core** (ADR 0006).
+Dependency direction is **app → viewmodel → platform → core** (ADR 0006,
+extended by the Phase 4 view-model crate).
 
 - **rowplay-core** — pure domain logic. It may use `serde`, `serde_json`,
   `regex`, `chrono` and `chrono-tz`; it must not depend on Qt, perform file or
@@ -82,10 +93,22 @@ Dependency direction is **app → platform → core** (ADR 0006).
   are the ones ADR 0007 names — `ureq`, `keyring`, `rusqlite`, `directories`
   and, for tests, `tempfile`. Do not add a dependency that the platform layer
   does not strictly need (ADR 0007 explains why `url` was left out).
-- **rowplay-app** — the only crate that links Qt. Backend objects are thin:
-  QML drives per-frame work with `FrameAnimation` calling one `tick(dt)` slot
-  and reads a compact result; measure bridge crossings per frame before adding
-  more.
+- **rowplay-viewmodel** — all UI logic, Qt-free and unit-testable: filtering,
+  sorting, summary tiles, PB lists, display strings (via `rowplay-core`
+  formatting), locale date display (`dates`, golden-tested against the web's
+  `Intl` output), chart series building, settings validation and the
+  `DetailNavigationState` port (`nav`). It may use `serde`, `serde_json`,
+  `chrono`/`chrono-tz` and `thiserror`; no Qt, no I/O. All user-visible
+  numbers and dates are formatted here or in core — **never in QML** (no
+  `toFixed`, `toLocaleString` or JS `Date` for data values).
+- **rowplay-app** — the only crate that links Qt. Backend objects are thin
+  adapters over the view-model with no logic of their own: the `Library`,
+  `Detail`, `Settings` and `Sync` QML singletons (registered under the
+  `RowPlay` URI with the qt-bridges-notes #1 workaround). QML drives per-frame
+  work with `FrameAnimation` calling one `tick(dt)` slot and reads a compact
+  result; measure bridge crossings per frame before adding more. Sync and
+  HTTP run on a `std::thread` worker; events come back over `mpsc` plus
+  qtbridge's `QmlMethodInvoker` (50 ms QML timer as a safety net).
 
 **No hand-written C++.** If something needs a C++-only Qt API (subclassing
 `QQuick3DGeometry`, `QQuick3DTextureData`, …), stop and write an ADR with
@@ -159,9 +182,31 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `workout_local_day_key`) so `docs/source-map.md` stays greppable.
 - Every source file (Rust, QML, scripts, workflows, qrc) starts with
   `SPDX-License-Identifier: GPL-3.0-or-later`.
-- QML: one module per directory with a `qmldir`; strings through `qsTr`
-  (Phase 4 adds the locale pipeline); no inline per-frame arithmetic that
-  belongs in Rust.
+- QML: one module per directory with a `qmldir`; strings through
+  `Tr.t("dotted.web.key", { vars })` (never `qsTr` with inline English, never
+  hardcoded user-visible text); Fusion style coloured from `Theme.qml`;
+  `Accessible.name` on every control and tile; no metric formatting and no
+  inline per-frame arithmetic that belongs in Rust.
+
+## Internationalisation
+
+The six web locales are the only string source. `tools/convert-locales.mjs`
+(Node ≥ 23.6, no dependencies) regenerates the ID-based Qt catalogues in
+`i18n/` from `reference/rowplay/src/lib/locales/*.ts`; the committed `.ts`
+files are build inputs (`build.rs` runs `lrelease` and bundles
+`qml_<lang>.qm` into the rcc at `:/qt/qml/RowPlay/i18n/`). Rules:
+
+- The message id is the web's dotted key; `<source>` must stay **empty** (a
+  non-empty source silently breaks `qsTrId` lookup — qt-bridges-notes #12);
+  the English text lives in `<oldsource>`.
+- Never hand-edit `i18n/*.ts`; re-run the generator and commit the result.
+  `cargo test -p rowplay-viewmodel --test i18n_parity` fails on stale files
+  (when `reference/` exists), on key-set drift, on extra placeholders and on
+  any `Tr.t("…")` id in `qml/` that is not a web key.
+- The language preference drives `Qt.uiLanguage`; `QQmlApplicationEngine`
+  reloads the catalogues live. New UI strings need a web key first — if the
+  web has none, record the substitution in `docs/source-map.md` instead of
+  inventing an id.
 
 ## Review priorities
 

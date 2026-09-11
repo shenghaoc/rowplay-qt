@@ -7,45 +7,45 @@ Spec first, then one small commit per deliverable. Two stacked PRs: 4a on
 
 - [x] Write the Phase 4 spec (requirements, design, tasks) and commit it before
       any code.
-- [ ] `crates/rowplay-viewmodel`: crate skeleton (forbid unsafe, pedantic
+- [x] `crates/rowplay-viewmodel`: crate skeleton (forbid unsafe, pedantic
       lints, SPDX headers), added to `default-members` and the Qt-free CI job.
-- [ ] `viewmodel::nav`: `DetailNavigationState` port with unit tests
+- [x] `viewmodel::nav`: `DetailNavigationState` port with unit tests
       (re-expressed from Studio's `ReplayNavigationTests`).
-- [ ] `viewmodel::dates`: six-language month/day-name tables + `fmt_date_short`
+- [x] `viewmodel::dates`: six-language month/day-name tables + `fmt_date_short`
       / `fmt_date_full` / `fmt_time_of_day` on core datetime, with tests.
-- [ ] `viewmodel::settings`: language list, grouped timezone list (chrono-tz),
+- [x] `viewmodel::settings`: language list, grouped timezone list (chrono-tz),
       unit mapping and validation, with tests.
-- [ ] `rowplay-platform::preferences`: add the `language` preference
+- [x] `rowplay-platform::preferences`: add the `language` preference
       (default `en`), round-trip test.
-- [ ] Theme: `qml/RowPlay/Theme.qml` singleton porting `DesignTokens.swift` +
+- [x] Theme: `qml/RowPlay/Theme.qml` singleton porting `DesignTokens.swift` +
       `DESIGN.md` (palette light/dark via `Qt.styleHints.colorScheme`, metric
       colours, spacing, radii, typography scale, delta-colour helper).
-- [ ] Fusion style: `qtquickcontrols2.conf` in the qrc; palette coloured from
+- [x] Fusion style: `qtquickcontrols2.conf` in the qrc; palette coloured from
       `Theme.qml`.
-- [ ] Backend singletons: `Settings` and `Sync` (thin adapters; `hasToken`
+- [x] Backend singletons: `Settings` and `Sync` (thin adapters; `hasToken`
       only; keyring save/disconnect; preferences persistence).
-- [ ] Sync worker thread: `std::thread` + `mpsc` + `QmlMethodInvoker`
+- [x] Sync worker thread: `std::thread` + `mpsc` + `QmlMethodInvoker`
       (`pumpEvents` slot), cancel via the coordinator `AtomicBool`; findings
       recorded in `docs/qt-bridges-notes.md`.
-- [ ] App shell: `Main.qml` `ApplicationWindow` (title, 1000×680 minimum),
+- [x] App shell: `Main.qml` `ApplicationWindow` (title, 1000×680 minimum),
       split view with sidebar/detail placeholders, toolbar (sport filter,
       reload, settings), keyboard shortcuts, empty state.
-- [ ] Settings screen: token section (password field, save, disconnect with
+- [x] Settings screen: token section (password field, save, disconnect with
       confirmation), preferences (units, timezone, language), demo-mode
       toggle, sync section (progress, cancel, last result).
-- [ ] i18n: `tools/convert-locales.mjs` (six locales → ID-based `.ts`, English
+- [x] i18n: `tools/convert-locales.mjs` (six locales → ID-based `.ts`, English
       fill, `--check` mode); committed `i18n/rowplay_*.ts`.
-- [ ] i18n: `Tr.qml` (`t(id, vars)` = `qsTrId` + web-`interpolate` parity);
+- [x] i18n: `Tr.qml` (`t(id, vars)` = `qsTrId` + web-`interpolate` parity);
       every QML string in 4a through `Tr.t`.
-- [ ] i18n: `build.rs` runs `lrelease` and bundles `qml_<lang>.qm` into the
+- [x] i18n: `build.rs` runs `lrelease` and bundles `qml_<lang>.qm` into the
       rcc under `:/qt/qml/RowPlay/i18n/`; `Qt.uiLanguage` bound to the
       language preference; live switch verified by hand in all six languages.
-- [ ] i18n parity tests (Qt-free, in CI): identical id sets (908), QML id
+- [x] i18n parity tests (Qt-free, in CI): identical id sets (908), QML id
       scan, regeneration check when `reference/` exists.
-- [ ] QML runtime-error gate: smoke mode walks the shell screens; test fails
+- [x] QML runtime-error gate: smoke mode walks the shell screens; test fails
       on `TypeError` / `ReferenceError` / `Binding loop` / `Unable to assign`
       / `is not defined`; wired into CI next to the smoke screenshot.
-- [ ] Docs: roadmap, source-map rows + divergences, qt-bridges-notes (new
+- [x] Docs: roadmap, source-map rows + divergences, qt-bridges-notes (new
       findings incl. no QTranslator/engine access on QApp), AGENTS.md (new
       crate + i18n workflow), README (RHEL recipe corrections: pip→uv/pipx,
       Wayland smoke without Xvfb).

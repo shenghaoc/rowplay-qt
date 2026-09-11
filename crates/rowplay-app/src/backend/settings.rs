@@ -35,6 +35,7 @@ pub struct SettingsBackend {
     gate_mode: bool,
     screenshot_dir: String,
     color_scheme_override: String,
+    sync_mock_mode: bool,
 }
 
 impl Default for SettingsBackend {
@@ -97,6 +98,7 @@ impl Default for SettingsBackend {
             gate_mode: std::env::var_os("ROWPLAY_SMOKE_GATE").is_some(),
             screenshot_dir: std::env::var("ROWPLAY_SMOKE_SCREENSHOT_DIR").unwrap_or_default(),
             color_scheme_override: std::env::var("ROWPLAY_FORCE_COLOR_SCHEME").unwrap_or_default(),
+            sync_mock_mode: std::env::var_os("ROWPLAY_SYNC_MOCK").is_some(),
         }
     }
 }
@@ -167,6 +169,10 @@ impl SettingsBackend {
         Member = color_scheme_override,
         Constant
     );
+    // True under ROWPLAY_SYNC_MOCK=1: syncs run against the deterministic
+    // MockConcept2Client (demo details) instead of the live Logbook, with no
+    // token required. Lets CI exercise the whole worker-thread sync path.
+    qproperty!("syncMockMode", Member = sync_mock_mode, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
@@ -257,6 +263,18 @@ impl SettingsBackend {
                 String::new()
             }
             Err(_) => "token.rejected".to_owned(),
+        };
+        self.settings_changed();
+    }
+
+    /// Removes every cached workout (web `settings.deleteAction`; also used
+    /// by the CI gate to leave no mock-synced data behind).
+    #[qslot]
+    fn clear_cached_workouts(&mut self) {
+        let state = AppState::get();
+        self.status_text_id = match state.cache.clear() {
+            Ok(()) => "settings.deleteDone".to_owned(),
+            Err(_) => "settings.deleteFailed".to_owned(),
         };
         self.settings_changed();
     }

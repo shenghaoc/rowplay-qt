@@ -112,11 +112,14 @@ jobs:
         run: cargo build -p rowplay-app
       - name: Clippy app
         run: cargo clippy -p rowplay-app --all-targets -- -D warnings
-      - name: Headless smoke screenshot (Xvfb + Mesa)
+      - name: Headless smoke screenshot and runtime-error gate (Xvfb + Mesa)
         if: runner.os == 'Linux'
         env:
           ROWPLAY_QT_SMOKE: '1'
           ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts
+          # The gate walk saves per-screen PNGs (dashboard, settings, detail)
+          # next to the smoke screenshot.
+          ROWPLAY_SMOKE_SCREENSHOT_DIR: ${{ github.workspace }}/artifacts
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: '1'
@@ -130,10 +133,14 @@ jobs:
           # fall back to the installed frameworks.
           DYLD_FALLBACK_FRAMEWORK_PATH: ${{ env.QT_ROOT_DIR }}/lib
         run: cargo test -p rowplay-app
-      - name: Upload smoke screenshot
+      - name: Upload smoke and shell screenshots
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
-          name: smoke-screenshot
-          path: artifacts/smoke.png
+          name: screenshots
+          path: |
+            artifacts/smoke.png
+            artifacts/dashboard.png
+            artifacts/settings.png
+            artifacts/detail.png
           if-no-files-found: error
