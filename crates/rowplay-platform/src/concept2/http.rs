@@ -212,40 +212,62 @@ impl HttpUri {
     /// Resolve a `Location` header value against this URI.
     ///
     /// Handles absolute URLs, protocol-relative (`//host/…`) URLs, absolute
-    /// paths and relative paths. Anything containing whitespace or control
-    /// characters, or a userinfo component, is rejected.
+    /// paths and relative paths.
+    ///
+    /// Fail closed on the shapes other URL parsers read differently, because a
+    /// disagreement here is a token-leak vector:
+    ///
+    /// - whitespace and control characters are rejected;
+    /// - a backslash is rejected — WHATWG parsers fold it to `/`, so
+    ///   `https:\\evil.example` is `https://evil.example` to a browser;
+    /// - an at-sign is rejected anywhere, since it can be read as userinfo;
+    /// - a resolved path with a `..` segment or an interior `//` is rejected
+    ///   rather than normalised, because a server or proxy may re-read it as an
+    ///   authority.
     pub fn resolve(&self, location: &str) -> Result<HttpUri, Concept2Error> {
         let location = location.trim();
         if location.is_empty()
             || location.chars().any(char::is_whitespace)
             || location.chars().any(char::is_control)
+            || location.contains(['\\', '@'])
         {
             return Err(Concept2Error::InvalidUrl);
         }
-        if let Some(rest) = location.strip_prefix("//") {
-            return HttpUri::parse(&format!("{}://{rest}", self.scheme));
-        }
-        if location.contains("://") {
-            return HttpUri::parse(location);
-        }
 
-        let base_path = self.path_and_query.split(['?', '#']).next().unwrap_or("/");
-        let mut path_and_query = if location.starts_with('/') {
-            location.to_owned()
+        let candidate = if let Some(rest) = location.strip_prefix("//") {
+            HttpUri::parse(&format!("{}://{rest}", self.scheme))?
+        } else if location.contains("://") {
+            HttpUri::parse(location)?
         } else {
-            let dir = match base_path.rfind('/') {
-                Some(index) => &base_path[..=index],
-                None => "/",
+            let base_path = self.path_and_query.split(['?', '#']).next().unwrap_or("/");
+            let mut path_and_query = if location.starts_with('/') {
+                location.to_owned()
+            } else {
+                let dir = match base_path.rfind('/') {
+                    Some(index) => &base_path[..=index],
+                    None => "/",
+                };
+                format!("{dir}{location}")
             };
-            format!("{dir}{location}")
+            if let Some(hash) = path_and_query.find('#') {
+                path_and_query.truncate(hash);
+            }
+
+            let mut uri = self.clone();
+            uri.path_and_query = path_and_query;
+            uri
         };
-        if let Some(hash) = path_and_query.find('#') {
-            path_and_query.truncate(hash);
+
+        let path = candidate
+            .path_and_query
+            .split(['?', '#'])
+            .next()
+            .unwrap_or("/");
+        if path.contains("//") || path.split('/').any(|segment| segment == "..") {
+            return Err(Concept2Error::InvalidUrl);
         }
 
-        let mut uri = self.clone();
-        uri.path_and_query = path_and_query;
-        Ok(uri)
+        Ok(candidate)
     }
 }
 
@@ -936,6 +958,90 @@ mod tests {
             );
         }
         assert!(Concept2HttpClient::new(token).is_ok());
+    }
+
+    #[test]
+    fn redirect_policy_rejects_locations_other_parsers_read_differently() {
+        let secure = HttpUri::parse("https://log.concept2.com/api").unwrap();
+
+        // Each of these stays on our host as far as `HttpUri` is concerned, so
+        // only the "reject what we cannot classify" rule keeps them out. A
+        // WHATWG parser folds `\` to `/` and reads `https:\\evil.example` and
+        // `\/\/evil.example` as *that* host.
+        for location in [
+            // Backslash folding: a browser sees another host entirely.
+            "https:\\\\evil.example",
+            "https:\\/evil.example",
+            "\\/\\/evil.example/next",
+            "/next\\..\\..\\evil.example",
+            // An at-sign anywhere is a userinfo question, so it is refused.
+            "https://log.concept2.com#@evil.example",
+            "/next#@evil.example",
+            // Path confusion: `..` and an interior `//` are what a proxy may
+            // re-read as an authority.
+            "https://log.concept2.com/../..//evil.example",
+            "/../..//evil.example",
+            "//third-party.example/next",
+        ] {
+            assert_eq!(
+                redirect_target(&secure, location),
+                Err(Concept2Error::InsecureRedirectBlocked),
+                "{location} must be blocked"
+            );
+        }
+
+        // A trailing dot and a percent-encoded host are different names to the
+        // origin comparison even before any character rule applies.
+        for location in [
+            "https://log.concept2.com./next",
+            "https://log.concept2.com%2e.evil.com/next",
+            "https://evil%2ecom/next",
+            "https://log.concept2.com.:443/next",
+        ] {
+            assert_eq!(
+                redirect_target(&secure, location),
+                Err(Concept2Error::InsecureRedirectBlocked),
+                "{location} must be blocked"
+            );
+        }
+
+        // The plain forms keep working, including a protocol-relative URL that
+        // names our own host and a path-only redirect.
+        for location in [
+            "/api/users/me/results?page=2",
+            "results?page=2",
+            "//log.concept2.com/next",
+            "https://LOG.concept2.com/next",
+        ] {
+            assert!(
+                redirect_target(&secure, location).is_ok(),
+                "{location} should be allowed"
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_keeps_the_authority_it_started_with() {
+        let base = HttpUri::parse("https://log.concept2.com/api/users/me/results?page=1").unwrap();
+        // Whatever the shape of the Location, the host and port are ours.
+        for location in [
+            "/next",
+            "next",
+            "?page=2",
+            "https://log.concept2.com/next",
+            "//log.concept2.com/next",
+        ] {
+            let resolved = base.resolve(location).unwrap_or_else(|error| {
+                panic!("{location}: {error}");
+            });
+            assert_eq!(resolved.host(), "log.concept2.com", "{location}");
+            assert_eq!(resolved.port(), 443, "{location}");
+            assert!(resolved.is_secure(), "{location}");
+            // The resolved URL never carries the original host in a position a
+            // peer could re-parse as an authority.
+            assert!(!resolved.as_url().contains('@'), "{location}");
+            assert!(!resolved.as_url().contains('\\'), "{location}");
+        }
     }
 
     #[test]
