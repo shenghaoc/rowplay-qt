@@ -83,11 +83,14 @@ re-expressed from the web and Studio suites:
   `comparability` + ghost pick, `race_gap` / `race_result` (interpolated
   finish crossing), rival CSV / TCX / FIT parsers with Studio's bounds and
   normalisation, and the quality budgets + degradation ladder.
-- `warpStrokePhase` is **C1-continuous** (in fact C2) at the drive/recovery
-  seam and the cycle boundary via per-segment quintic smootherstep — the
-  web/Studio piecewise-linear map is only C0 and caused visible speed jumps
-  on SkiErg. `warp_stroke_phase_rate` exposes the analytic derivative and a
-  derivative-continuity test guards the seam.
+- `warpStrokePhase` is **C1-continuous and periodic** at the drive/recovery
+  seam and the cycle boundary via a per-segment cubic Hermite ramp with unit
+  slope at every knot (`dw/du = 1` at the catch, the finish and both sides of
+  the seam) — the web/Studio piecewise-linear map is only C0 and caused
+  visible speed jumps on SkiErg. It is monotonic for every sanitised drive
+  fraction, degenerates to the identity at `f = 0.5` like the web version,
+  and `warp_stroke_phase_rate` exposes the analytic derivative with
+  derivative-continuity tests guarding the seam.
 - The six `#[ignore]`d parity tests are enabled and pass:
   `stroke-pose-parity.json`, `replay-race-gap-parity.json`,
   `replay-race-result-parity.json`, `replay-rival-sources-parity.json`,

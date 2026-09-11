@@ -37,20 +37,25 @@ The web/Studio `warpStrokePhase` is piecewise linear (slopes `0.5/f` and
 `0.5/(1−f)`), so the athlete's phase velocity jumps by ~2× at the
 drive/recovery seam — visible on SkiErg. The Rust port keeps the contract
 (`warp(0) = 0`, `warp(f·τ) = π mod τ`, monotonic, drive faster on average)
-but composes each half from a quintic smootherstep
-`S(x) = 6x⁵ − 15x⁴ + 10x³`:
+but composes each half from a cubic Hermite ramp
+`h(t, k) = t²(3 − 2t) + k·t(1 − t)(1 − 2t)` with the endpoint slope chosen
+as twice the half's width:
 
 ```
-w(u) = 0.5 · S(u / f)                  for u < f        (drive)
-     = 0.5 + 0.5 · S((u − f)/(1 − f))  otherwise        (recovery)
+w(u) = 0.5 · h(u / f, 2f)                      for u < f   (drive)
+     = 0.5 + 0.5 · h((u − f)/(1 − f), 2(1−f))  otherwise   (recovery)
 ```
 
-`S` is C2-flat at both ends, so the warp is C2 at the seam *and* at the cycle
-boundary (where `w'` is 0 on both sides), with zero velocity at the catch and
-finish — the physical turnarounds. `warp_stroke_phase_rate` exposes the
-analytic derivative; the derivative test compares left/right numerical
-derivatives at the seam, the cycle boundary and a dense sweep. Recorded as a
-deliberate divergence from both references.
+`h′(0, k) = h′(1, k) = k`, so `dw/du = 1` at the catch, at the finish and on
+both sides of the seam: the warp is C1 at the seam *and periodic across the
+cycle boundary*. The slope bound `k = 2·max(f, 1−f) ≤ 1.98 < 3` (the
+monotone-cubic ceiling) keeps the map monotonic for every sanitised
+`f ∈ [0.01, 0.99]`, and `h(t, 1) = t` makes `f = 0.5` the exact identity,
+like the web version. `warp_stroke_phase_rate` exposes the analytic
+derivative (radians out per radian in); the tests check the identity, the
+unit slope at every knot, and left/right numerical continuity at the seam,
+the cycle boundary and a dense sweep. Recorded as a deliberate divergence
+from both references.
 
 ## Two pose paths
 
