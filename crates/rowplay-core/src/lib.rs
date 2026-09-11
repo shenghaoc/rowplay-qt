@@ -25,6 +25,7 @@ pub mod pace_input;
 pub mod performance_predictor;
 pub mod personal_bests;
 pub mod privacy;
+pub mod replay;
 pub mod workout_query;
 pub mod workout_tag;
 
