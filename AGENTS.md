@@ -18,7 +18,7 @@ Concept2 trademarks and stay untranslated.
 
 ```
 crates/rowplay-core/       # pure domain logic; no Qt, no I/O beyond parsing byte slices
-crates/rowplay-platform/   # services behind traits with mocks: token store, cache, Concept2 client, preferences
+crates/rowplay-platform/   # services behind traits with mocks: token store, cache, Concept2 client, preferences, sync, paths
 crates/rowplay-app/        # the binary: qtbridge backend objects, QML shell, Qt Quick 3D (build.rs runs rcc)
 crates/rowplay-fixtures/   # dev-only loader for tests/fixtures
 qml/                       # QML modules (RowPlay/qmldir, Main.qml, scenes) + rowplay.qrc
@@ -49,6 +49,7 @@ copy only what you need, with provenance (source repo, path, commit, SHA-256).
 cargo build                                   # Qt-free default members (core, platform, fixtures)
 cargo test                                    # unit + parity tests without Qt
 cargo test --workspace                        # also the app crate (needs Qt 6.11)
+ROWPLAY_KEYRING_TESTS=1 cargo test -p rowplay-platform   # opt-in OS keychain round trip
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings     # add --workspace where Qt is installed
 cargo build -p rowplay-app                    # needs qmake on PATH (or QMAKE=/path/to/qmake)
@@ -67,13 +68,20 @@ the `rcc` executable found through `qmake`.
 
 Dependency direction is **app → platform → core** (ADR 0006).
 
-- **rowplay-core** — pure domain logic. It may use `serde`, `regex`, `chrono`
-  and `chrono-tz`; it must not depend on Qt, perform file or network I/O, or
-  read the clock beyond `datetime::now_*`. Everything with a web equivalent has
-  a parity test.
+- **rowplay-core** — pure domain logic. It may use `serde`, `serde_json`,
+  `regex`, `chrono` and `chrono-tz`; it must not depend on Qt, perform file or
+  network I/O, or read the clock beyond `datetime::now_*`. Everything with a
+  web equivalent has a parity test. `serde_json` is there for the Concept2
+  payload mapper (`concept2`), which takes byte slices.
 - **rowplay-platform** — non-UI services as traits with production and mock
-  implementations: `TokenStore` (keyring), `WorkoutCache` (rusqlite),
-  `Concept2Client`, `PreferencesStore`, `load_library`, log sinks. No Qt.
+  implementations: `TokenStore` (`KeyringTokenStore` over the OS keychain),
+  `WorkoutCache` (`SqliteWorkoutCache` over rusqlite), `Concept2Client`
+  (`Concept2HttpClient` over ureq), `PreferencesStore`
+  (`FilePreferencesStore`, JSON), the sync coordinator and state tracker,
+  `load_library`, `paths` and log sinks. No Qt, no tokio. Its only extra crates
+  are the ones ADR 0007 names — `ureq`, `keyring`, `rusqlite`, `directories`
+  and, for tests, `tempfile`. Do not add a dependency that the platform layer
+  does not strictly need (ADR 0007 explains why `url` was left out).
 - **rowplay-app** — the only crate that links Qt. Backend objects are thin:
   QML drives per-frame work with `FrameAnimation` calling one `tick(dt)` slot
   and reads a compact result; measure bridge crossings per frame before adding
@@ -123,7 +131,16 @@ port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
   logbook timestamps, redaction).
 - Share / export strips hardware-identifying metadata (`serial_number`, `device`).
 - Network clients (Phase 3) are HTTPS-only, allow same-host redirects only,
-  use an ephemeral session and strict timeouts.
+  use an ephemeral session and strict timeouts. In the Rust port
+  (`Concept2HttpClient`, ADR 0007): plain `http` is accepted only for
+  `localhost`, `127.0.0.1` and `::1`; automatic redirects are off and at most
+  three same-origin ones are followed by hand; a cross-host redirect or an
+  HTTPS→HTTP downgrade is a typed `InsecureRedirectBlocked` failure and the
+  token is never sent anywhere else; timeouts are 30 s per request and 300 s
+  overall; a response body over 25 MiB is rejected. It is bring-your-own-token
+  only — there is no OAuth flow.
+- keyring's native backend is named explicitly for every target and a test
+  fails if the crate's default credential store is keyring's in-memory mock.
 
 ## Deterministic demo mode
 

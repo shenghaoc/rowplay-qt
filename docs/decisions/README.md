@@ -11,3 +11,4 @@ links back. Format: context, decision, consequences.
 | [0004](0004-procedural-sky-image-based-lighting.md) | Procedural sky radiance for IBL; no downloaded, imported or scanned HDRI |
 | [0005](0005-bake-venues-do-not-port-the-environment-builder.md) | Bake venues to `.glb` with the web exporter; do not port `renderer3dEnvironment.ts` |
 | [0006](0006-rust-core-first-layering.md) | Rust core first: app → platform → core, nothing testable depends on Qt |
+| [0007](0007-platform-libraries.md) | Platform libraries: `ureq` (rustls, blocking), `keyring` 3 with explicit native backends, `rusqlite` (bundled), `directories`; no `url`, no tokio |

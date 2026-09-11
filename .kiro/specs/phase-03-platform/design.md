@@ -86,6 +86,9 @@ Agent::config_builder()
 
 No cookies (the `cookies` feature is off) and no HTTP cache (ureq has none; the
 old response cache was removed upstream). TLS is rustls, the default provider.
+Everything above lives in `HttpOptions`, whose `Default` is the production
+contract; tests narrow the timeouts, the redirect budget and the body cap so no
+test waits 30 s, follows a real redirect chain or moves 25 MiB.
 
 A fetch is: build the URI → check scheme → until the redirect budget is spent,
 call the agent, and on a 3xx read `Location` and re-check the target. The body
@@ -146,7 +149,9 @@ port, case-insensitive) rather than RFC 6454's full origin.
 | `Decode` / `Transport` | payload and transport failures, redacted text |
 | `NotFound(i64)` | domain "unknown result id" (mock) |
 
-`Display` for `Transport`/`Decode` carries redacted text only; `SecretToken` has
+`Display` for `Transport` carries a coarse static class and `Decode` a fixed
+message — never request detail, because every request carries the bearer token.
+`SecretToken` has
 no `Display` and a `REDACTED` `Debug`, the request URL never contains the token
 (it is a header), and the client logs through `PrivacySafeLogger`.
 
@@ -236,12 +241,18 @@ CREATE TABLE IF NOT EXISTS workouts (
 CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts (date DESC);
 ```
 
-The summary columns exist so `list_workouts` never has to decode JSON; a test
-round-trips details and asserts the columns and the JSON agree. `save_details`
-upserts (`INSERT … ON CONFLICT(id) DO UPDATE`) inside one transaction.
-Migrations run in a transaction and are recorded with
-`PRAGMA user_version = 1`; running them twice is a no-op, and a zero-byte file
-migrates cleanly.
+Deliberate divergence: `list_workouts` decodes `detail_json` rather than
+rebuilding the summary from the columns, because Studio's column list silently
+drops `privacy`, `hr_min`/`hr_max`, `timezone`, `date_utc`, `weight_class`,
+`rest_time`, `rest_distance`, `targets`, `metadata` and the heart-rate detail —
+and a dropped `privacy` would break the fail-closed share check. The columns are
+still written in full for schema parity and Phase 4's SQL filtering, and a test
+asserts they agree with the JSON. `save_details` upserts (`INSERT OR REPLACE`,
+like Studio) inside one transaction. Migrations run in a transaction and are
+recorded with `PRAGMA user_version = 1`; running them twice is a no-op, and a
+zero-byte file migrates cleanly. `migrate` is explicit, as the Phase 1 trait
+documented: callers (`library::load_library`, the sync coordinator) migrate
+before their first read or write.
 
 Files and directories come from `paths`: `directories::ProjectDirs` data
 directory, `workouts.sqlite`, created with mode `0700` for the directory and

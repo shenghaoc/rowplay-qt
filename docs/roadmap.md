@@ -103,11 +103,36 @@ beyond the smoke window; every divergence documented.
 
 ### Phase 3 — Platform
 
-- Keyring token store (`keyring`), rusqlite workout cache, Concept2 client
-  (HTTPS only, same-host redirects only, ephemeral session, strict timeouts),
-  preferences and sync, each behind the existing traits with mocks.
-- Concept2 raw-payload mapper validated by `tests/fixtures/Concept2/*.fixture.json`
-  (enables the `#[ignore]`d mapper test).
+Status: delivered (this PR).
+
+- `rowplay-core::concept2`: the Logbook raw payload types and the mapper
+  (`map_workout`, `map_strokes`, `map_splits`, heart rate, targets, metadata,
+  split synthesis, detail assembly) behind a bounded byte-slice API — tenths of
+  a second, decimetres, the BikeErg pace divisor and the interval `t`/`d`
+  offset accumulation.
+- `rowplay-platform::concept2`: the `ureq` (rustls) Concept2 client — HTTPS
+  only (loopback excepted), bring-your-own-token, no cookies and no HTTP cache,
+  30 s per request / 300 s overall, a 25 MiB body cap, at most three redirects
+  followed by hand and only same-origin ones; cross-host redirects and
+  HTTPS→HTTP downgrades are typed failures and the token never leaves its host.
+- `rowplay-platform::token_store`: the `keyring` store with an explicit native
+  backend per target (macOS Keychain, Windows Credential Manager, Linux Secret
+  Service), a default-run test that fails if keyring falls back to its mock
+  store, and an opt-in live round trip (`ROWPLAY_KEYRING_TESTS=1`).
+- `rowplay-platform::workout_cache`: `SqliteWorkoutCache` on `rusqlite`
+  (`bundled`) with Studio's schema, `PRAGMA user_version` migrations and
+  `0700`/`0600` files, plus `paths` on the `directories` crate.
+- `rowplay-platform::preferences`: the atomic JSON file store (temp file +
+  rename), tolerant reads and never-fatal corrupt-file fallback.
+- `rowplay-platform::sync`: the synchronous, cancellable
+  `WorkoutSyncCoordinator` (page all summaries, then fetch and save details;
+  per-item failures counted, 401/403/429 abort) and `SyncStateTracker`.
+- The `#[ignore]`d Concept2 mapper parity test is enabled for all four fixtures
+  in `tests/fixtures/Concept2/`; ADR 0007 records the library choices.
+
+Exit criteria: the Qt-free workspace passes fmt / clippy / test; the mapper
+parity fixtures pass; no default-run test touches the network or a credential
+store; every divergence documented in `docs/source-map.md`.
 
 ### Phase 4 — QML shell
 
