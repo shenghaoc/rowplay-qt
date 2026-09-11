@@ -130,8 +130,15 @@ fn in_timezone(epoch_ms: f64, timezone: Option<&str>) -> Option<NaiveDateTime> {
     }
 }
 
+/// Short locale date from already-parsed parts — the hot path for list rows
+/// (avoids re-parsing the same logbook string per field).
+#[must_use]
+pub fn fmt_short_date(year: i32, month: u32, day: u32, language: Language) -> String {
+    fmt_short_date_patterns(year, month, day, language)
+}
+
 /// `Intl` `{year numeric, month short, day numeric}` patterns, golden-tested.
-fn fmt_short_date(year: i32, month: u32, day: u32, language: Language) -> String {
+fn fmt_short_date_patterns(year: i32, month: u32, day: u32, language: Language) -> String {
     let idx = month_index(month);
     match language {
         Language::En => format!("{} {}, {}", EN_MONTHS[idx], day, year),

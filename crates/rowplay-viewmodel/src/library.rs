@@ -10,14 +10,14 @@
 
 use std::collections::BTreeSet;
 
-use rowplay_core::datetime::workout_local_day_key;
+use rowplay_core::datetime::{parse_logbook_date_time, workout_local_day_key};
 use rowplay_core::formatting::{fmt_distance_in, fmt_pace};
 use rowplay_core::models::{DistanceUnit, Sport, Workout};
 use rowplay_core::workout_query::{
     SortDir, WorkoutListQuery, WorkoutSortField, filter_and_sort_workouts,
 };
 
-use crate::dates::{fmt_date, fmt_time_of_day};
+use crate::dates::{fmt_date, fmt_short_date, fmt_time_of_day};
 use crate::settings::Language;
 
 /// One sidebar row, fully rendered.
@@ -43,7 +43,7 @@ pub struct SidebarRow {
     pub is_pb: bool,
     /// `YYYY-MM-DD` day key (home-zone bucketing).
     pub section: String,
-    /// Locale header for `section`.
+    /// Locale header for `section`; only set on the section's first row.
     pub section_text: String,
     /// True on the first row of its section (QML draws the header here).
     pub is_section_start: bool,
@@ -65,15 +65,27 @@ pub fn sidebar_rows(
     home_timezone: Option<&str>,
 ) -> Vec<SidebarRow> {
     let filtered = filter_and_sort_workouts(workouts, query, Some(pb_ids));
+    // Day sections repeat heavily (5k workouts ≈ 1.4k sections); cache the
+    // rendered header per day key instead of formatting per row.
+    let mut section_texts: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let mut rows: Vec<SidebarRow> = filtered
         .iter()
         .map(|workout| sidebar_row(workout, pb_ids, unit, language, home_timezone))
         .collect();
-    let mut previous_key: Option<String> = None;
+    // Mark section starts and render each day header exactly once (only the
+    // starting row carries the text — 5k rows reuse ~1.4k sections).
+    let mut previous_key: Option<&str> = None;
     for row in &mut rows {
-        let start = previous_key.as_deref() != Some(row.section.as_str());
+        let start = previous_key != Some(row.section.as_str());
         row.is_section_start = start;
-        previous_key = Some(row.section.clone());
+        if start {
+            let text = section_texts
+                .entry(row.section.clone())
+                .or_insert_with_key(|key| fmt_date(key, language, home_timezone));
+            row.section_text.clone_from(text);
+        }
+        previous_key = Some(row.section.as_str());
     }
     rows
 }
@@ -86,13 +98,22 @@ fn sidebar_row(
     home_timezone: Option<&str>,
 ) -> SidebarRow {
     let section = workout_local_day_key(&workout.date, workout.timezone.as_deref(), home_timezone);
-    let section_text = fmt_date(&section, language, home_timezone);
     let title = workout
         .workout_type
         .clone()
         .unwrap_or_else(|| workout.sport.display_name().to_owned());
-    let date_text = fmt_date(&workout.date, language, home_timezone);
-    let time_text = fmt_time_of_day(&workout.date);
+    // One parse per row: logbook strings carry both the display date and the
+    // monitor-local time; anything else falls back to the full dispatch.
+    let (date_text, time_text) = match parse_logbook_date_time(&workout.date) {
+        Some(parts) => (
+            fmt_short_date(parts.year, parts.month, parts.day, language),
+            format!("{:02}:{:02}", parts.hour, parts.minute),
+        ),
+        None => (
+            fmt_date(&workout.date, language, home_timezone),
+            fmt_time_of_day(&workout.date),
+        ),
+    };
     let distance_text = fmt_distance_in(workout.distance, unit);
     let pace_text = fmt_pace(workout.pace);
     let is_pb = pb_ids.contains(&workout.id);
@@ -118,7 +139,7 @@ fn sidebar_row(
         sport_name: workout.sport.display_name(),
         is_pb,
         section,
-        section_text,
+        section_text: String::new(),
         is_section_start: false,
         accessible_text,
     }

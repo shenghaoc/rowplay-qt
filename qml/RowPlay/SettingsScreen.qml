@@ -198,9 +198,11 @@ Pane {
 
                     Label {
                         visible: Sync.isRunning
+                        // The counts/remaining text is rendered in Rust
+                        // (sync worker); QML only prefixes the translated
+                        // status.
                         text: Sync.progressTotal > 0
-                              ? Tr.t("sync.inProgress") + " " + Sync.progressCompleted
-                                + "/" + Sync.progressTotal
+                              ? Tr.t("sync.inProgress") + " " + Sync.progressText
                               : Tr.t("sync.loading")
                         font: Theme.metricLabel
                         color: Theme.textSecondary
