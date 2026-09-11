@@ -29,5 +29,6 @@ pub mod library;
 pub mod logging;
 pub mod paths;
 pub mod preferences;
+pub mod sync;
 pub mod token_store;
 pub mod workout_cache;
