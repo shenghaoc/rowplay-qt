@@ -1198,6 +1198,7 @@ dependencies = [
  "qtbridge-interfaces",
  "qtbridge-runtime",
  "qtbridge-type-lib",
+ "serde_json",
 ]
 
 [[package]]
@@ -1260,6 +1261,7 @@ dependencies = [
  "cxx-build",
  "qtbridge-build-utils",
  "qtbridge-type-lib",
+ "serde_json",
 ]
 
 [[package]]
@@ -1378,9 +1380,12 @@ dependencies = [
 name = "rowplay-app"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "qtbridge",
  "rowplay-core",
  "rowplay-platform",
+ "rowplay-viewmodel",
+ "serde_json",
 ]
 
 [[package]]
@@ -1427,6 +1432,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-tz",
+ "regex",
  "rowplay-core",
  "serde",
  "serde_json",
