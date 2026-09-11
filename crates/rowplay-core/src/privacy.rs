@@ -142,7 +142,11 @@ impl LogLevel {
 
 /// Destination for already-redacted log lines. The core crate performs no I/O;
 /// the platform crate supplies the real sink.
-pub trait LogSink {
+///
+/// Sinks are shared across threads (a backend object logs from whichever thread
+/// drives it), so implementations must be `Send + Sync`. Both the stderr sink
+/// and the in-memory test sink are.
+pub trait LogSink: Send + Sync {
     /// Receive one redacted line.
     fn write(&self, level: LogLevel, category: &str, message: &str);
 }

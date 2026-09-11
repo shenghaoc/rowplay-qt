@@ -12,10 +12,16 @@ authors.workspace = true
 [dependencies]
 rowplay-core.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
+chrono.workspace = true
+ureq.workspace = true
+keyring.workspace = true
+rusqlite.workspace = true
+directories.workspace = true
 
 [dev-dependencies]
-serde_json.workspace = true
+tempfile.workspace = true
 
 [lints]
 workspace = true
