@@ -20,7 +20,18 @@ QtObject {
 
     // Follows the system colour scheme; Qt.ColorScheme.Unknown (no portal /
     // platform support) resolves to light, DESIGN.md's default aesthetic.
-    readonly property bool dark: Qt.styleHints.colorScheme === Qt.Dark
+    // ROWPLAY_FORCE_COLOR_SCHEME (Settings.colorSchemeOverride) pins the
+    // scheme for tests and CI screenshots.
+    readonly property bool dark: {
+        const forced = Settings.colorSchemeOverride
+        if (forced === "dark") {
+            return true
+        }
+        if (forced === "light") {
+            return false
+        }
+        return Qt.styleHints.colorScheme === Qt.Dark
+    }
 
     // MARK: - Colour palette (DESIGN.md "The PM5 Palette")
 
