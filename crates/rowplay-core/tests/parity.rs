@@ -7,6 +7,7 @@
 use std::collections::BTreeMap;
 
 use rowplay_core::analytics::duration_band;
+use rowplay_core::concept2::{DetailResponse, StrokesResponse, assemble_detail};
 use rowplay_core::formatting::pace_to_watts_for_sport;
 use rowplay_core::models::{Sport, Stroke, Workout};
 use rowplay_core::performance_predictor::{
@@ -212,9 +213,105 @@ fn concept2_fixtures_are_redacted_and_well_formed() {
 }
 
 #[test]
-#[ignore = "Phase 3 (platform): Concept2 mapper (tenths, decimetres, BikeErg pace divisor, interval offsets)"]
 fn concept2_mapper_matches_fixture_expectations() {
-    unreachable!("enable once rowplay_platform::concept2 maps raw results and strokes");
+    // The fixtures were computed by hand from the documented wire units
+    // (tenths of a second, decimetres, the BikeErg per-1000m stroke pace), so
+    // every value below is an exact quotient; 1e-9 only absorbs float noise.
+    const TOLERANCE: f64 = 1e-9;
+
+    for name in CONCEPT2_FIXTURES {
+        let fixture: Concept2Fixture = load_json(name).expect(name);
+
+        // Drive the real byte-slice parsers by re-wrapping the fixture's raw
+        // values in the API's response envelopes.
+        let detail_bytes =
+            serde_json::to_vec(&serde_json::json!({ "data": fixture.raw_result })).expect(name);
+        let detail = DetailResponse::from_slice(&detail_bytes).expect(name);
+
+        let strokes_bytes =
+            serde_json::to_vec(&serde_json::json!({ "data": fixture.raw_strokes })).expect(name);
+        let raw_strokes = StrokesResponse::from_slice(&strokes_bytes).expect(name);
+
+        let mapped = assemble_detail(&detail, Some(&raw_strokes.data));
+
+        let expected = &fixture.expected;
+        let result = &expected["result"];
+
+        assert_eq!(
+            mapped.workout.sport.as_str(),
+            result["sport"].as_str().expect(name),
+            "{name}: sport"
+        );
+        for (field, actual) in [
+            ("time", mapped.workout.time),
+            ("distance", mapped.workout.distance),
+            ("pace", mapped.workout.pace),
+        ] {
+            let want = result[field]
+                .as_f64()
+                .unwrap_or_else(|| panic!("{name}: expected.result.{field}"));
+            assert!(
+                (actual - want).abs() <= TOLERANCE,
+                "{name}: {field}: {actual} != {want}"
+            );
+        }
+
+        let expected_strokes = expected["strokes"].as_array().expect(name);
+        assert_eq!(
+            mapped.strokes.len(),
+            fixture.raw_strokes.len(),
+            "{name}: stroke count"
+        );
+        assert!(
+            mapped.workout.has_stroke_data,
+            "{name}: a fixture with strokes keeps stroke data"
+        );
+        for entry in expected_strokes {
+            let index = entry["_index"].as_u64().expect(name) as usize;
+            let stroke = &mapped.strokes[index];
+            for (field, actual) in [("t", stroke.t), ("d", stroke.d), ("pace", stroke.pace)] {
+                let want = entry[field]
+                    .as_f64()
+                    .unwrap_or_else(|| panic!("{name}: expected.strokes[{index}].{field}"));
+                assert!(
+                    (actual - want).abs() <= TOLERANCE,
+                    "{name}: strokes[{index}].{field}: {actual} != {want}"
+                );
+            }
+            // The interval fixture also pins the as-logged values behind the
+            // cumulative offsets.
+            for (field, actual) in [("rawT", stroke.raw_t), ("rawD", stroke.raw_d)] {
+                if let Some(want) = entry.get(field).and_then(serde_json::Value::as_f64) {
+                    let actual = actual
+                        .unwrap_or_else(|| panic!("{name}: strokes[{index}].{field} missing"));
+                    assert!(
+                        (actual - want).abs() <= TOLERANCE,
+                        "{name}: strokes[{index}].{field}: {actual} != {want}"
+                    );
+                }
+            }
+        }
+
+        let expected_splits = expected["splits"].as_array().expect(name);
+        assert_eq!(mapped.splits.len(), expected_splits.len(), "{name}: splits");
+        for entry in expected_splits {
+            let index = entry["_index"].as_u64().expect(name) as usize;
+            let split = &mapped.splits[index];
+            for (field, actual) in [
+                ("time", split.time),
+                ("distance", split.distance),
+                ("pace", split.pace),
+            ] {
+                let want = entry[field]
+                    .as_f64()
+                    .unwrap_or_else(|| panic!("{name}: expected.splits[{index}].{field}"));
+                assert!(
+                    (actual - want).abs() <= TOLERANCE,
+                    "{name}: splits[{index}].{field}: {actual} != {want}"
+                );
+            }
+        }
+    }
 }
 
 #[test]
