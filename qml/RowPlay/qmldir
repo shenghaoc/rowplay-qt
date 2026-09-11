@@ -1,0 +1,4 @@
+module RowPlay
+prefer :/qt/qml/RowPlay/
+Main 1.0 Main.qml
+SmokeScene 1.0 SmokeScene.qml
