@@ -43,8 +43,11 @@ fn shell_walk_produces_no_qml_runtime_errors() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
+    // Qt routes QML console.log to stderr on Linux/macOS but to stdout on
+    // Windows; scan both streams for everything.
+    let combined = format!("{stdout}\n{stderr}");
     for pattern in FORBIDDEN_PATTERNS {
-        for line in stderr.lines().chain(stdout.lines()) {
+        for line in combined.lines() {
             assert!(
                 !line.contains(pattern),
                 "QML runtime error ({pattern}) during the gate walk:\n{line}\n\n\
@@ -57,25 +60,24 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "gate walk exited with {}\nstderr:\n{stderr}",
         output.status
     );
-    // The gate logs its language probes (QML console.log goes to stderr);
-    // their presence proves the walk ran and that translations loaded and
-    // retranslated live instead of falling back to message ids.
+    // The gate logs its language probes; their presence proves the walk ran
+    // and that translations loaded and retranslated live instead of falling
+    // back to message ids.
     assert!(
-        stderr.contains("gate i18n en: Dashboard"),
-        "translations did not load (qsTrId fell back to ids)\nstderr:\n{stderr}"
+        combined.contains("gate i18n en: Dashboard"),
+        "translations did not load (qsTrId fell back to ids)\noutput:\n{combined}"
     );
     assert!(
-        stderr.contains("gate i18n zh:") && !stderr.contains("gate i18n zh: nav.dashboard"),
-        "live language switch to zh did not retranslate\nstderr:\n{stderr}"
+        combined.contains("gate i18n zh:") && !combined.contains("gate i18n zh: nav.dashboard"),
+        "live language switch to zh did not retranslate\noutput:\n{combined}"
     );
     // The mock sync must complete and land in the cache, not the demo data.
     assert!(
-        stderr.contains("gate sync: sync.done"),
-        "end-to-end mock sync did not complete\nstderr:\n{stderr}"
+        combined.contains("gate sync: sync.done"),
+        "end-to-end mock sync did not complete\noutput:\n{combined}"
     );
     assert!(
-        stderr.contains("library 17 cache"),
-        "mock sync did not populate the cache with the 17 demo workouts\nstderr:\n{stderr}"
+        combined.contains("library 17 cache"),
+        "mock sync did not populate the cache with the 17 demo workouts\noutput:\n{combined}"
     );
-    let _ = stdout;
 }
