@@ -33,6 +33,8 @@ pub struct SettingsBackend {
     home_timezone_index: i32,
     status_text_id: String,
     gate_mode: bool,
+    screenshot_dir: String,
+    color_scheme_override: String,
 }
 
 impl Default for SettingsBackend {
@@ -93,6 +95,8 @@ impl Default for SettingsBackend {
             home_timezone_index,
             status_text_id: String::new(),
             gate_mode: std::env::var_os("ROWPLAY_SMOKE_GATE").is_some(),
+            screenshot_dir: std::env::var("ROWPLAY_SMOKE_SCREENSHOT_DIR").unwrap_or_default(),
+            color_scheme_override: std::env::var("ROWPLAY_FORCE_COLOR_SCHEME").unwrap_or_default(),
         }
     }
 }
@@ -154,6 +158,15 @@ impl SettingsBackend {
     );
     // True under the CI runtime-error gate (`ROWPLAY_SMOKE_GATE=1`).
     qproperty!("gateMode", Member = gate_mode, Constant);
+    // Where the gate saves per-screen PNGs ("" = off).
+    qproperty!("screenshotDir", Member = screenshot_dir, Constant);
+    // Test/CI override for the palette: "", "dark" or "light"
+    // (ROWPLAY_FORCE_COLOR_SCHEME); empty follows the system.
+    qproperty!(
+        "colorSchemeOverride",
+        Member = color_scheme_override,
+        Constant
+    );
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
