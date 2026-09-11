@@ -1,0 +1,35 @@
+{
+	"description": "SkiErg 6000 m steady — paceDiv=1 (no halving, same as rower; per-500m wire pace)",
+	"rawResult": {
+		"id": 9003,
+		"date": "2026-05-17 09:15:00",
+		"type": "ski",
+		"distance": 6000,
+		"time": 14400,
+		"stroke_rate": 30,
+		"stroke_count": 520,
+		"stroke_data": true,
+		"workout_type": "ski"
+	},
+	"rawStrokes": [
+		{ "t": 0, "d": 0, "p": 1440, "spm": 30 },
+		{ "t": 18, "d": 95, "p": 1435, "spm": 30 },
+		{ "t": 36, "d": 190, "p": 1430, "spm": 31 },
+		{ "t": 54, "d": 285, "p": 1428, "spm": 31 },
+		{ "t": 72, "d": 380, "p": 1432, "spm": 30 },
+		{ "t": 90, "d": 475, "p": 1450, "spm": 29 }
+	],
+	"expected": {
+		"result": {
+			"sport": "skierg",
+			"time": 1440,
+			"distance": 6000,
+			"pace": 120
+		},
+		"strokes": [
+			{ "_index": 0, "t": 0, "d": 0, "pace": 144 },
+			{ "_index": 5, "t": 9, "d": 47.5, "pace": 145 }
+		],
+		"splits": []
+	}
+}

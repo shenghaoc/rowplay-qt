@@ -1,0 +1,35 @@
+{
+	"description": "BikeErg 4000 m steady — paceDiv=2 halves per-1000m stroke pace to sec/500m",
+	"rawResult": {
+		"id": 9002,
+		"date": "2026-05-16 08:00:00",
+		"type": "bike",
+		"distance": 4000,
+		"time": 9600,
+		"stroke_rate": 28,
+		"stroke_count": 380,
+		"stroke_data": true,
+		"workout_type": "bike"
+	},
+	"rawStrokes": [
+		{ "t": 0, "d": 0, "p": 2000, "spm": 28 },
+		{ "t": 15, "d": 120, "p": 1980, "spm": 28 },
+		{ "t": 30, "d": 240, "p": 1960, "spm": 29 },
+		{ "t": 45, "d": 360, "p": 1940, "spm": 29 },
+		{ "t": 60, "d": 480, "p": 1920, "spm": 30 },
+		{ "t": 75, "d": 600, "p": 1800, "spm": 30 }
+	],
+	"expected": {
+		"result": {
+			"sport": "bike",
+			"time": 960,
+			"distance": 4000,
+			"pace": 120
+		},
+		"strokes": [
+			{ "_index": 0, "t": 0, "d": 0, "pace": 100 },
+			{ "_index": 5, "t": 7.5, "d": 60, "pace": 90 }
+		],
+		"splits": []
+	}
+}

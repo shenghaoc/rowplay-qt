@@ -1,0 +1,156 @@
+{
+  "schema": "rowplay-qt.fixtures.manifest.v1",
+  "description": "Golden parity fixtures vendored from rowplay-studio. Regenerate with tools/vendor-fixtures.py.",
+  "fixtures": [
+    {
+      "path": "Concept2/REDACTION.md",
+      "bytes": 1765,
+      "sha256": "53d8eca59e87720aabc797b840658c342813ef7d47bf8b30b4e23e49682d7e91",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/Concept2/REDACTION.md"
+      }
+    },
+    {
+      "path": "Concept2/bike-steady.fixture.json",
+      "bytes": 855,
+      "sha256": "f1dba05f05bc41273d2625c604bffb7be1fb27ecba065c6c8b87029aaf24232b",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/Concept2/bike-steady.fixture.json"
+      }
+    },
+    {
+      "path": "Concept2/rower-interval.fixture.json",
+      "bytes": 1632,
+      "sha256": "c74f5eac23949cb18c3c2b5cd7468183e41f5948f767ed29f2db0b0ec8ec8ef9",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/Concept2/rower-interval.fixture.json"
+      }
+    },
+    {
+      "path": "Concept2/rower-steady.fixture.json",
+      "bytes": 1059,
+      "sha256": "ddcc58c3f1796a17b8b289b3e7c2581c61c7d49ec6973e9836a84a08aebd9d41",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/Concept2/rower-steady.fixture.json"
+      }
+    },
+    {
+      "path": "Concept2/ski-steady.fixture.json",
+      "bytes": 863,
+      "sha256": "07f2a8170f7570e7b84b4722b97f5e96dc2d41c76fe9355006341d5dadb28db0",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/Concept2/ski-steady.fixture.json"
+      }
+    },
+    {
+      "path": "duration-band-parity.json",
+      "bytes": 6120,
+      "sha256": "b25819daecb6458eb1a32d226965aeeb66335d2166028dfdbfaca8cb4d918ee4",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/duration-band-parity.json"
+      }
+    },
+    {
+      "path": "performance-predictor-parity.json",
+      "bytes": 1304,
+      "sha256": "46cdec99696325feacdd1bd1df89409fdc5704b2fefc2bf34f995ecc2343712d",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/performance-predictor-parity.json"
+      }
+    },
+    {
+      "path": "replay-current-main-2d.json",
+      "bytes": 112327,
+      "sha256": "407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-current-main-2d.json"
+      }
+    },
+    {
+      "path": "replay-current-main-equipment.json",
+      "bytes": 61418,
+      "sha256": "d403eb47c835dc2c8766ac13f235c7a6313962f2157bf5854e37932921f9d865",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-current-main-equipment.json"
+      }
+    },
+    {
+      "path": "replay-current-main-grips.json",
+      "bytes": 55216,
+      "sha256": "50940759fe637d35267a3b20eb60f92fb8bc5debff6ce7f43c087b39563b962b",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-current-main-grips.json"
+      }
+    },
+    {
+      "path": "replay-current-main-motion.json",
+      "bytes": 482320,
+      "sha256": "e47ffdf5e2332ce86911bda2b8b963f5b3ec559f252feee8aa8aaf9bbfdee230",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-current-main-motion.json"
+      }
+    },
+    {
+      "path": "replay-race-gap-parity.json",
+      "bytes": 3283,
+      "sha256": "e526bd38de15812967d573645f6177945a91b7f4ab048cd3378355c7b90987b8",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-race-gap-parity.json"
+      }
+    },
+    {
+      "path": "replay-race-result-parity.json",
+      "bytes": 6401,
+      "sha256": "98558fd0dbaa9c73f1467e3e7479a23495d226734d1ed01fc38d52b9e2df5ff7",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-race-result-parity.json"
+      }
+    },
+    {
+      "path": "replay-rival-sources-parity.json",
+      "bytes": 5404,
+      "sha256": "35e252dcd69a3df8d40fbaa4855ba059f2e1571d25495bf525a256c34f05e04d",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/replay-rival-sources-parity.json"
+      }
+    },
+    {
+      "path": "stroke-pose-parity.json",
+      "bytes": 2385,
+      "sha256": "b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay-studio",
+        "commit": "3d406a5b7677372de35fb0817c7133a2589c6564",
+        "path": "Tests/RowPlayCoreTests/Fixtures/stroke-pose-parity.json"
+      }
+    }
+  ]
+}

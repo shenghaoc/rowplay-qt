@@ -1,0 +1,254 @@
+[
+  {
+    "name": "standard-60s-exact",
+    "inputSeconds": 60,
+    "expectedKey": "60",
+    "expectedLabel": "1 min",
+    "expectedNominalSeconds": 60
+  },
+  {
+    "name": "standard-60s-lower-boundary-54s",
+    "inputSeconds": 54,
+    "expectedKey": "60",
+    "expectedLabel": "1 min",
+    "expectedNominalSeconds": 60
+  },
+  {
+    "name": "standard-60s-upper-boundary-66s",
+    "inputSeconds": 66,
+    "expectedKey": "60",
+    "expectedLabel": "1 min",
+    "expectedNominalSeconds": 60
+  },
+  {
+    "name": "standard-240s-exact",
+    "inputSeconds": 240,
+    "expectedKey": "240",
+    "expectedLabel": "4 min",
+    "expectedNominalSeconds": 240
+  },
+  {
+    "name": "standard-240s-lower-boundary-216s",
+    "inputSeconds": 216,
+    "expectedKey": "240",
+    "expectedLabel": "4 min",
+    "expectedNominalSeconds": 240
+  },
+  {
+    "name": "standard-240s-upper-boundary-264s",
+    "inputSeconds": 264,
+    "expectedKey": "240",
+    "expectedLabel": "4 min",
+    "expectedNominalSeconds": 240
+  },
+  {
+    "name": "standard-1200s-exact",
+    "inputSeconds": 1200,
+    "expectedKey": "1200",
+    "expectedLabel": "20 min",
+    "expectedNominalSeconds": 1200
+  },
+  {
+    "name": "standard-1200s-lower-boundary-1080s",
+    "inputSeconds": 1080,
+    "expectedKey": "1200",
+    "expectedLabel": "20 min",
+    "expectedNominalSeconds": 1200
+  },
+  {
+    "name": "standard-1200s-upper-boundary-1320s",
+    "inputSeconds": 1320,
+    "expectedKey": "1200",
+    "expectedLabel": "20 min",
+    "expectedNominalSeconds": 1200
+  },
+  {
+    "name": "standard-1800s-exact",
+    "inputSeconds": 1800,
+    "expectedKey": "1800",
+    "expectedLabel": "30 min",
+    "expectedNominalSeconds": 1800
+  },
+  {
+    "name": "standard-1800s-lower-boundary-1620s",
+    "inputSeconds": 1620,
+    "expectedKey": "1800",
+    "expectedLabel": "30 min",
+    "expectedNominalSeconds": 1800
+  },
+  {
+    "name": "standard-1800s-upper-boundary-1980s",
+    "inputSeconds": 1980,
+    "expectedKey": "1800",
+    "expectedLabel": "30 min",
+    "expectedNominalSeconds": 1800
+  },
+  {
+    "name": "standard-3600s-exact",
+    "inputSeconds": 3600,
+    "expectedKey": "3600",
+    "expectedLabel": "60 min",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "standard-3600s-lower-boundary-3240s",
+    "inputSeconds": 3240,
+    "expectedKey": "3600",
+    "expectedLabel": "60 min",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "standard-3600s-upper-boundary-3960s",
+    "inputSeconds": 3960,
+    "expectedKey": "3600",
+    "expectedLabel": "60 min",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "outside-60s-lower-falls-to-r0",
+    "inputSeconds": 53,
+    "expectedKey": "r0",
+    "expectedLabel": "<90s",
+    "expectedNominalSeconds": 45
+  },
+  {
+    "name": "outside-60s-upper-falls-to-r0",
+    "inputSeconds": 67,
+    "expectedKey": "r0",
+    "expectedLabel": "<90s",
+    "expectedNominalSeconds": 45
+  },
+  {
+    "name": "outside-240s-lower-falls-to-r90",
+    "inputSeconds": 215,
+    "expectedKey": "r90",
+    "expectedLabel": "90s\u20136m",
+    "expectedNominalSeconds": 135
+  },
+  {
+    "name": "outside-240s-upper-falls-to-r90",
+    "inputSeconds": 265,
+    "expectedKey": "r90",
+    "expectedLabel": "90s\u20136m",
+    "expectedNominalSeconds": 135
+  },
+  {
+    "name": "outside-1200s-lower-falls-to-r900",
+    "inputSeconds": 1079,
+    "expectedKey": "r900",
+    "expectedLabel": "15\u201340m",
+    "expectedNominalSeconds": 1350
+  },
+  {
+    "name": "outside-1200s-upper-falls-to-r900",
+    "inputSeconds": 1321,
+    "expectedKey": "r900",
+    "expectedLabel": "15\u201340m",
+    "expectedNominalSeconds": 1350
+  },
+  {
+    "name": "outside-1800s-lower-falls-to-r900",
+    "inputSeconds": 1619,
+    "expectedKey": "r900",
+    "expectedLabel": "15\u201340m",
+    "expectedNominalSeconds": 1350
+  },
+  {
+    "name": "outside-1800s-upper-falls-to-r900",
+    "inputSeconds": 1981,
+    "expectedKey": "r900",
+    "expectedLabel": "15\u201340m",
+    "expectedNominalSeconds": 1350
+  },
+  {
+    "name": "outside-3600s-lower-falls-to-r2400",
+    "inputSeconds": 3239,
+    "expectedKey": "r2400",
+    "expectedLabel": "40\u201380m",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "outside-3600s-upper-falls-to-r2400",
+    "inputSeconds": 3961,
+    "expectedKey": "r2400",
+    "expectedLabel": "40\u201380m",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "boundary-0s",
+    "inputSeconds": 0,
+    "expectedKey": "r0",
+    "expectedLabel": "<90s",
+    "expectedNominalSeconds": 45
+  },
+  {
+    "name": "boundary-90s",
+    "inputSeconds": 90,
+    "expectedKey": "r90",
+    "expectedLabel": "90s\u20136m",
+    "expectedNominalSeconds": 135
+  },
+  {
+    "name": "boundary-360s",
+    "inputSeconds": 360,
+    "expectedKey": "r360",
+    "expectedLabel": "6\u201315m",
+    "expectedNominalSeconds": 540
+  },
+  {
+    "name": "boundary-900s",
+    "inputSeconds": 900,
+    "expectedKey": "r900",
+    "expectedLabel": "15\u201340m",
+    "expectedNominalSeconds": 1350
+  },
+  {
+    "name": "boundary-2400s",
+    "inputSeconds": 2400,
+    "expectedKey": "r2400",
+    "expectedLabel": "40\u201380m",
+    "expectedNominalSeconds": 3600
+  },
+  {
+    "name": "boundary-4800s",
+    "inputSeconds": 4800,
+    "expectedKey": "r4800",
+    "expectedLabel": "80m+",
+    "expectedNominalSeconds": 7200
+  },
+  {
+    "name": "web-1750-snaps-to-1800",
+    "inputSeconds": 1750,
+    "expectedKey": "1800",
+    "expectedLabel": "30 min",
+    "expectedNominalSeconds": 1800
+  },
+  {
+    "name": "web-600-falls-to-r360",
+    "inputSeconds": 600,
+    "expectedKey": "r360",
+    "expectedLabel": "6\u201315m",
+    "expectedNominalSeconds": 540
+  },
+  {
+    "name": "web-90-boundary-r90",
+    "inputSeconds": 90,
+    "expectedKey": "r90",
+    "expectedLabel": "90s\u20136m",
+    "expectedNominalSeconds": 135
+  },
+  {
+    "name": "web-30-lowest-band-nominal-45",
+    "inputSeconds": 30,
+    "expectedKey": "r0",
+    "expectedLabel": "<90s",
+    "expectedNominalSeconds": 45
+  },
+  {
+    "name": "beyond-all-standards-5000s",
+    "inputSeconds": 5000,
+    "expectedKey": "r4800",
+    "expectedLabel": "80m+",
+    "expectedNominalSeconds": 7200
+  }
+]

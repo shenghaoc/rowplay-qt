@@ -1,0 +1,46 @@
+{
+	"description": "RowErg 2000 m steady piece — time/distance/pace, stroke t/d/p (paceDiv=1), first split",
+	"rawResult": {
+		"id": 9001,
+		"date": "2026-05-15 07:30:00",
+		"type": "rower",
+		"distance": 2000,
+		"time": 4500,
+		"stroke_rate": 32,
+		"stroke_count": 220,
+		"stroke_data": true,
+		"workout_type": "rower",
+		"workout": {
+			"splits": [
+				{
+					"distance": 500,
+					"time": 1125,
+					"stroke_rate": 32
+				}
+			]
+		}
+	},
+	"rawStrokes": [
+		{ "t": 0, "d": 0, "p": 1080, "spm": 32 },
+		{ "t": 12, "d": 85, "p": 1075, "spm": 32 },
+		{ "t": 24, "d": 170, "p": 1070, "spm": 33 },
+		{ "t": 36, "d": 255, "p": 1068, "spm": 33 },
+		{ "t": 48, "d": 340, "p": 1072, "spm": 32 },
+		{ "t": 60, "d": 425, "p": 1085, "spm": 31 }
+	],
+	"expected": {
+		"result": {
+			"sport": "rower",
+			"time": 450,
+			"distance": 2000,
+			"pace": 112.5
+		},
+		"strokes": [
+			{ "_index": 0, "t": 0, "d": 0, "pace": 108 },
+			{ "_index": 5, "t": 6, "d": 42.5, "pace": 108.5 }
+		],
+		"splits": [
+			{ "_index": 0, "time": 112.5, "distance": 500, "pace": 112.5 }
+		]
+	}
+}
