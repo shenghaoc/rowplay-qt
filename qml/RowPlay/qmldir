@@ -1,4 +1,8 @@
 module RowPlay
 prefer :/qt/qml/RowPlay/
+singleton Theme 1.0 Theme.qml
+singleton Tr 1.0 Tr.qml
 Main 1.0 Main.qml
+SmokeMain 1.0 SmokeMain.qml
+SettingsScreen 1.0 SettingsScreen.qml
 SmokeScene 1.0 SmokeScene.qml

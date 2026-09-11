@@ -1,0 +1,278 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! The `Settings` QML singleton: preferences, the keyring token flag and the
+//! picker option lists.
+//!
+//! Privacy: the Concept2 token is written straight into a `SecretToken` and
+//! the OS keychain; QML only ever sees `hasToken`. The password field's text
+//! arrives as a slot argument and is dropped here — it is never stored in a
+//! QML-readable property, echoed back, or logged.
+
+use qtbridge::qobject;
+use qtbridge::qtbridge_runtime::QmlRegister;
+use rowplay_core::models::DistanceUnit;
+use rowplay_platform::token_store::SecretToken;
+use rowplay_viewmodel::settings::{Language, timezone_options, unit_options};
+
+use crate::backend::AppState;
+
+/// Backend for the settings screen (Studio's `SettingsView` state).
+pub struct SettingsBackend {
+    has_token: bool,
+    demo_mode_enabled: bool,
+    reduce_replay_motion: bool,
+    distance_unit_index: i32,
+    language_index: i32,
+    language_code: String,
+    language_codes: Vec<String>,
+    language_names: Vec<String>,
+    unit_labels: Vec<String>,
+    timezone_values: Vec<String>,
+    timezone_labels: Vec<String>,
+    timezone_group_ids: Vec<String>,
+    timezone_group_starts: Vec<i32>,
+    home_timezone_index: i32,
+    status_text_id: String,
+    gate_mode: bool,
+}
+
+impl Default for SettingsBackend {
+    fn default() -> Self {
+        let state = AppState::get();
+        let prefs = state.prefs();
+
+        let languages = Language::all();
+        let language = Language::from_preference(prefs.language.as_deref());
+        let language_index = languages
+            .iter()
+            .position(|candidate| *candidate == language)
+            .unwrap_or(0) as i32;
+
+        let unit_index = unit_options()
+            .iter()
+            .position(|(unit, _)| *unit == prefs.preferred_distance_unit)
+            .unwrap_or(0) as i32;
+
+        let groups = timezone_options();
+        let mut timezone_values = Vec::new();
+        let mut timezone_labels = Vec::new();
+        let mut timezone_group_ids = Vec::new();
+        let mut timezone_group_starts = Vec::new();
+        for group in &groups {
+            timezone_group_ids.push(group.group_id.to_owned());
+            timezone_group_starts.push(timezone_values.len() as i32);
+            for option in &group.options {
+                timezone_values.push(option.value.to_owned());
+                timezone_labels.push(option.label.to_owned());
+            }
+        }
+        // Index 0 is the "UTC (default)" entry (settings.timezoneUtcDefault in
+        // QML); curated zones start at 1.
+        let home_timezone_index = prefs
+            .home_timezone
+            .as_deref()
+            .and_then(|stored| timezone_values.iter().position(|zone| zone == stored))
+            .map_or(0, |index| index as i32 + 1);
+
+        SettingsBackend {
+            has_token: state.has_token(),
+            demo_mode_enabled: prefs.demo_mode_enabled,
+            reduce_replay_motion: prefs.reduce_replay_motion,
+            distance_unit_index: unit_index,
+            language_index,
+            language_code: language.as_str().to_owned(),
+            language_codes: languages.iter().map(|l| l.as_str().to_owned()).collect(),
+            language_names: languages.iter().map(|l| l.endonym().to_owned()).collect(),
+            unit_labels: unit_options()
+                .iter()
+                .map(|(_, label)| (*label).to_owned())
+                .collect(),
+            timezone_values,
+            timezone_labels,
+            timezone_group_ids,
+            timezone_group_starts,
+            home_timezone_index,
+            status_text_id: String::new(),
+            gate_mode: std::env::var_os("ROWPLAY_SMOKE_GATE").is_some(),
+        }
+    }
+}
+
+#[qobject(NoQmlElement, ConvertToCamelCase)]
+impl SettingsBackend {
+    qproperty!("hasToken", Member = has_token, Notify = settings_changed);
+    qproperty!(
+        "demoModeEnabled",
+        Member = demo_mode_enabled,
+        Notify = settings_changed
+    );
+    qproperty!(
+        "reduceReplayMotion",
+        Member = reduce_replay_motion,
+        Notify = settings_changed
+    );
+    qproperty!(
+        "distanceUnitIndex",
+        Member = distance_unit_index,
+        Notify = settings_changed
+    );
+    qproperty!(
+        "languageIndex",
+        Member = language_index,
+        Notify = settings_changed
+    );
+    // The active locale code; `Main.qml` binds `Qt.uiLanguage` to it.
+    qproperty!(
+        "languageCode",
+        Member = language_code,
+        Notify = settings_changed
+    );
+    qproperty!("languageCodes", Member = language_codes, Constant);
+    qproperty!("languageNames", Member = language_names, Constant);
+    qproperty!("unitLabels", Member = unit_labels, Constant);
+    qproperty!("timezoneValues", Member = timezone_values, Constant);
+    qproperty!("timezoneLabels", Member = timezone_labels, Constant);
+    // Locale message ids for the three group headers, parallel to
+    // `timezoneGroupStarts`.
+    qproperty!("timezoneGroupIds", Member = timezone_group_ids, Constant);
+    // First option index of each group (one extra entry: the list length).
+    qproperty!(
+        "timezoneGroupStarts",
+        Member = timezone_group_starts,
+        Constant
+    );
+    // 0 = UTC default, n+1 = `timezoneValues[n]`.
+    qproperty!(
+        "homeTimezoneIndex",
+        Member = home_timezone_index,
+        Notify = settings_changed
+    );
+    // Locale message id of the last save/disconnect outcome ("" = none).
+    qproperty!(
+        "statusTextId",
+        Member = status_text_id,
+        Notify = settings_changed
+    );
+    // True under the CI runtime-error gate (`ROWPLAY_SMOKE_GATE=1`).
+    qproperty!("gateMode", Member = gate_mode, Constant);
+
+    /// Emitted after any preference or token flag changed.
+    #[qsignal]
+    fn settings_changed(&mut self);
+
+    #[qslot]
+    fn set_demo_mode_enabled(&mut self, enabled: bool) {
+        self.apply(|prefs| prefs.demo_mode_enabled = enabled);
+        self.demo_mode_enabled = enabled;
+        self.settings_changed();
+    }
+
+    #[qslot]
+    fn set_reduce_replay_motion(&mut self, enabled: bool) {
+        self.apply(|prefs| prefs.reduce_replay_motion = enabled);
+        self.reduce_replay_motion = enabled;
+        self.settings_changed();
+    }
+
+    #[qslot]
+    fn set_distance_unit_index(&mut self, index: i32) {
+        let options = unit_options();
+        let Some((unit, _)) = options.get(index as usize) else {
+            return;
+        };
+        let unit = *unit;
+        self.apply(|prefs| prefs.preferred_distance_unit = unit);
+        self.distance_unit_index = index;
+        self.settings_changed();
+    }
+
+    #[qslot]
+    fn set_language_index(&mut self, index: i32) {
+        let languages = Language::all();
+        let Some(language) = languages.get(index as usize) else {
+            return;
+        };
+        let code = language.as_str();
+        self.apply(|prefs| prefs.language = Some(code.to_owned()));
+        self.language_index = index;
+        code.clone_into(&mut self.language_code);
+        self.settings_changed();
+    }
+
+    #[qslot]
+    fn set_home_timezone_index(&mut self, index: i32) {
+        let zone = if index <= 0 {
+            None
+        } else {
+            self.timezone_values.get(index as usize - 1).cloned()
+        };
+        let zone_clone = zone.clone();
+        self.apply(move |prefs| prefs.home_timezone = zone_clone);
+        self.home_timezone_index = index;
+        self.settings_changed();
+    }
+
+    /// Stores the token in the OS keychain. The raw string exists only as
+    // this slot's argument; it is dropped here and never echoed back,
+    /// logged or exposed as a property.
+    #[qslot]
+    fn save_token(&mut self, raw: String) {
+        let state = AppState::get();
+        let outcome = match SecretToken::new(&raw) {
+            Err(_) => "token.rejected".to_owned(),
+            Ok(token) => match state.token_store.save(&token) {
+                Ok(()) => {
+                    self.has_token = state.refresh_has_token();
+                    // The web shows no "saved" toast: the header switching to
+                    // the Log-out control is the confirmation. Same here.
+                    String::new()
+                }
+                Err(_) => "token.rejected".to_owned(),
+            },
+        };
+        drop(raw); // the slot argument is the only Rust-side copy; consume it
+        self.status_text_id = outcome;
+        self.settings_changed();
+    }
+
+    /// Removes the stored token (the web header's Log out).
+    #[qslot]
+    fn clear_token(&mut self) {
+        let state = AppState::get();
+        self.status_text_id = match state.token_store.clear() {
+            Ok(()) => {
+                self.has_token = state.refresh_has_token();
+                String::new()
+            }
+            Err(_) => "token.rejected".to_owned(),
+        };
+        self.settings_changed();
+    }
+}
+
+impl SettingsBackend {
+    /// The active distance unit, for other backends (4b detail formatting).
+    #[allow(dead_code)]
+    #[must_use]
+    pub fn unit(&self) -> DistanceUnit {
+        unit_options()
+            .get(self.distance_unit_index as usize)
+            .map_or(DistanceUnit::Metric, |(unit, _)| *unit)
+    }
+
+    fn apply(&mut self, update: impl FnOnce(&mut rowplay_platform::preferences::Preferences)) {
+        if let Err(message) = AppState::get().update_prefs(update) {
+            eprintln!("could not persist preferences: {message}");
+            "settings.deleteFailed".clone_into(&mut self.status_text_id);
+        }
+    }
+}
+
+// qtbridge derives the module URI from the Cargo package name; the manual
+// impl keeps the QML-facing name `RowPlay` (qt-bridges-notes #1).
+impl QmlRegister for SettingsBackend {
+    const URI: &str = "RowPlay";
+    const ELEMENT_NAME: &str = "Settings";
+    const MAJOR_VERSION: u8 = 1;
+    const MINOR_VERSION: u8 = 0;
+    const IS_SINGLETON: bool = true;
+}
