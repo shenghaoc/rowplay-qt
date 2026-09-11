@@ -32,9 +32,9 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy -p rowplay-core -p rowplay-platform -p rowplay-fixtures --all-targets -- -D warnings
+        run: cargo clippy -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures --all-targets -- -D warnings
       - name: Test
-        run: cargo test -p rowplay-core -p rowplay-platform -p rowplay-fixtures
+        run: cargo test -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures
       - name: Whitespace and conflict markers (pull request)
         if: github.event_name == 'pull_request'
         run: git diff --check origin/${{ github.base_ref }}...HEAD
@@ -59,7 +59,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
-      - run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-fixtures --all-targets
+      - run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures --all-targets
 
   app:
     name: App (${{ matrix.os }})
