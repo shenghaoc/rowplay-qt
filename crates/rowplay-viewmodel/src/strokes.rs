@@ -1,323 +1,192 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Workout-detail view model: header, metric strip, splits/intervals table
-//! and the targets read-out.
+//! Stroke-analysis view model: the downsampled chart series behind the
+//! detail screen's "Split Focus" panel.
 //!
-//! Sources: Studio's `WorkoutDetailView` (strip order, `powerText` static,
-//! table shape) with web-canonical values; the table header and section ids
-//! are the web's (`replay.th*`, `replay.splitBreakdown`). Unit suffixes
-//! (W, Cal, bpm, spm/rpm) are untranslated symbols, like the web's axes.
+//! A port of Studio's `WorkoutStrokeAnalysisView` statics:
+//! `downsampleStrokes` (bounded 500-point sample keeping both endpoints),
+//! `computePaceChartDomain` (negated pace, 12% padding with a 3 s floor and
+//! the `-180…-60` placeholder) and `computeSplitBoundaryDistances`
+//! (cumulative split distances excluding the last). Missing strokes are
+//! Studio's empty state; synthesised strokes (mapper fallback that clears
+//! `has_stroke_data`) are charted exactly like recorded ones — the web
+//! replay does the same.
+//!
+//! Series are flat `[x0, y0, x1, y1, …]` vectors so the bridge carries one
+//! `Vec<f64>` per line and Qt Graphs loads it with a single `replace`.
 
-use rowplay_core::formatting::{fmt_distance_in, fmt_pace, fmt_time, pace_to_watts_for_sport};
-use rowplay_core::models::{DistanceUnit, Split, Sport, WorkoutDetail};
+use rowplay_core::analytics::{StrokeSummary, stroke_summary};
+use rowplay_core::formatting::fmt_pace;
+use rowplay_core::models::{DistanceUnit, Split, Stroke};
 
-use crate::dates::{fmt_date, fmt_time_of_day};
-use crate::role::ColorRole;
-use crate::settings::Language;
+/// Studio's chart sample bound.
+pub const STROKE_CHART_LIMIT: usize = 500;
 
-/// The detail header block.
-#[derive(Debug, Clone, PartialEq)]
-pub struct DetailHeader {
-    /// Logbook workout type, else the sport name.
-    pub title: String,
-    /// Untranslated sport display name.
-    pub sport_name: &'static str,
-    /// Locale short date (web `fmtDate`).
-    pub date_text: String,
-    /// Monitor-local `HH:MM`.
-    pub time_text: String,
-    /// Concept2 `source` when present.
-    pub source_text: String,
-    /// Interval piece (splits table title changes).
-    pub is_interval: bool,
-    /// Athlete comments ("" when absent).
-    pub comments: String,
-    /// Screen-reader line: date, time, source, intervals (Studio's header
-    /// accessibility label).
-    pub accessible_text: String,
-}
+/// Metres per mile, shared with the dashboard charts.
+pub use crate::dashboard::{METRES_PER_MILE, distance_axis_label};
 
-/// One metric-strip entry (Studio's `performanceMetric`).
-#[derive(Debug, Clone, PartialEq)]
-pub struct StripMetric {
-    /// Locale message id for the (upper-cased) label.
-    pub label_id: &'static str,
-    /// Rendered value including its unit symbol.
-    pub value_text: String,
-    /// Semantic colour for the value.
-    pub role: ColorRole,
-    /// Override for the accessible label (Studio: "Average Pace").
-    pub accessible_label_id: Option<&'static str>,
-    /// Override for the accessible value (Studio: `fmt_pace` instead of the
-    /// tenths-formatted strip value).
-    pub accessible_value: Option<String>,
-}
-
-/// One splits/intervals table row.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SplitRow {
-    /// Web `Split.index` is 0-based; Studio displays it verbatim.
-    pub index: u32,
-    /// Distance in the preferred unit.
-    pub distance_text: String,
-    /// Elapsed time with tenths.
-    pub time_text: String,
-    /// Split pace.
-    pub pace_text: String,
-    /// Cadence rounded to an integer, "-" when absent (Studio).
-    pub cadence_text: String,
-    /// `power_text` for the split pace, "-" when not derivable.
-    pub power_text: String,
-    /// Average HR as an integer string, "-" when absent (Studio).
-    pub hr_text: String,
-    /// Rest segment of an interval piece.
-    pub is_rest: bool,
-}
-
-/// One targets read-out row.
-#[derive(Debug, Clone, PartialEq)]
-pub struct TargetRow {
-    /// Locale message id (`replay.mTarget*`).
-    pub label_id: &'static str,
-    /// Rendered target value with unit symbol.
-    pub value_text: String,
-}
-
-/// Studio's `powerText(for:pace:)`: watts from pace, bounded and rounded,
-/// "-" for anything unusable.
+/// Studio's `chartDistance`: kilometres or miles.
 #[must_use]
-pub fn power_text(sport: Sport, pace: f64) -> String {
-    if !pace.is_finite() || pace <= 0.0 {
-        return "-".to_owned();
-    }
-    let watts = pace_to_watts_for_sport(sport, pace);
-    if !watts.is_finite() || watts < 0.0 || watts > 100_000.0 {
-        return "-".to_owned();
-    }
-    watts.round().to_string()
-}
-
-/// The detail header for a workout.
-#[must_use]
-pub fn header(
-    detail: &WorkoutDetail,
-    language: Language,
-    home_timezone: Option<&str>,
-) -> DetailHeader {
-    let workout = &detail.workout;
-    let title = workout
-        .workout_type
-        .clone()
-        .unwrap_or_else(|| workout.sport.display_name().to_owned());
-    let date_text = fmt_date(&workout.date, language, home_timezone);
-    let time_text = fmt_time_of_day(&workout.date);
-    let source_text = workout.source.clone().unwrap_or_default();
-
-    let mut parts = vec![date_text.clone(), time_text.clone()];
-    if !source_text.is_empty() {
-        parts.push(source_text.clone());
-    }
-    if workout.is_interval {
-        parts.push("intervals".to_owned());
-    }
-
-    DetailHeader {
-        title,
-        sport_name: workout.sport.display_name(),
-        date_text,
-        time_text,
-        source_text,
-        is_interval: workout.is_interval,
-        comments: workout.comments.clone().unwrap_or_default(),
-        accessible_text: parts.join(", "),
+pub fn chart_distance(metres: f64, unit: DistanceUnit) -> f64 {
+    match unit {
+        DistanceUnit::Metric => metres / 1_000.0,
+        DistanceUnit::Imperial => metres / METRES_PER_MILE,
     }
 }
 
-/// The metric strip in Studio's order: distance, time, pace, cadence, power,
-/// then the optional calories and heart rate.
+/// Studio's `downsampleStrokes`: an even index sweep that retains both
+/// endpoints, returning the sampled strokes.
 #[must_use]
-pub fn metric_strip(detail: &WorkoutDetail, unit: DistanceUnit) -> Vec<StripMetric> {
-    let workout = &detail.workout;
-    let sport = workout.sport;
-    let mut strip = vec![
-        StripMetric {
-            label_id: "dashboard.distance",
-            value_text: fmt_distance_in(workout.distance, unit),
-            role: ColorRole::Distance,
-            accessible_label_id: None,
-            accessible_value: None,
-        },
-        StripMetric {
-            label_id: "dashboard.time",
-            value_text: fmt_time(workout.time, true),
-            role: ColorRole::Neutral,
-            accessible_label_id: None,
-            accessible_value: None,
-        },
-        StripMetric {
-            label_id: "replay.pacePer500m",
-            value_text: fmt_time(workout.pace, true),
-            role: ColorRole::Pace,
-            // Studio reads the pace out as "Average Pace: 1:58" rather than
-            // the tenths-style strip value.
-            accessible_label_id: Some("dashboard.avgPace"),
-            accessible_value: Some(fmt_pace(workout.pace)),
-        },
-        StripMetric {
-            label_id: "dashboard.avgRate",
-            value_text: match workout.stroke_rate {
-                Some(rate) if rate.is_finite() => {
-                    format!("{} {}", rate.round(), sport.cadence_unit())
-                }
-                _ => "-".to_owned(),
-            },
-            role: ColorRole::Cadence,
-            accessible_label_id: None,
-            accessible_value: None,
-        },
-        StripMetric {
-            label_id: "replay.cPower",
-            value_text: match power_text(sport, workout.pace) {
-                watts if watts == "-" => "-".to_owned(),
-                watts => format!("{watts} W"),
-            },
-            role: ColorRole::Watts,
-            accessible_label_id: None,
-            accessible_value: None,
-        },
-    ];
-    if let Some(calories) = workout.calories_total {
-        strip.push(StripMetric {
-            label_id: "replay.mCalories",
-            value_text: format!("{} Cal", calories.round()),
-            role: ColorRole::Neutral,
-            accessible_label_id: None,
-            accessible_value: None,
-        });
+pub fn downsample_strokes(strokes: &[Stroke], limit: usize) -> Vec<Stroke> {
+    if limit == 0 {
+        return Vec::new();
     }
-    if let Some(hr) = workout.heart_rate_avg {
-        strip.push(StripMetric {
-            label_id: "replay.cHeart",
-            value_text: format!("{} bpm", hr.round()),
-            role: ColorRole::HeartRate,
-            accessible_label_id: None,
-            accessible_value: None,
-        });
+    if strokes.len() <= limit {
+        return strokes.to_vec();
     }
-    strip
-}
-
-/// Splits/intervals rows in log order.
-#[must_use]
-pub fn split_rows(detail: &WorkoutDetail, unit: DistanceUnit) -> Vec<SplitRow> {
-    let sport = detail.workout.sport;
-    detail
-        .splits
-        .iter()
-        .map(|split| split_row(split, sport, unit))
+    if limit == 1 {
+        return vec![strokes[0]];
+    }
+    let last_index = strokes.len() - 1;
+    (0..limit)
+        .map(|sample_index| {
+            let stroke_index = sample_index * last_index / (limit - 1);
+            strokes[stroke_index]
+        })
         .collect()
 }
 
-fn split_row(split: &Split, sport: Sport, unit: DistanceUnit) -> SplitRow {
-    // Studio reads `heartRate?.average`; the web mapper also keeps the legacy
-    // scalar `hr`, which the desktop falls back to (source-map divergence).
-    let hr = split
-        .heart_rate
-        .as_ref()
-        .and_then(|detail| detail.average)
-        .or(split.hr);
-    SplitRow {
-        index: split.index,
-        distance_text: fmt_distance_in(split.distance, unit),
-        time_text: fmt_time(split.time, true),
-        pace_text: fmt_pace(split.pace),
-        cadence_text: match split.spm {
-            Some(cadence) if cadence.is_finite() => cadence.round().to_string(),
-            _ => "-".to_owned(),
-        },
-        power_text: power_text(sport, split.pace),
-        hr_text: match hr {
-            Some(average) if average.is_finite() => (average.round() as i64).to_string(),
-            _ => "-".to_owned(),
-        },
-        is_rest: split.is_rest.unwrap_or(false),
+/// Studio's `computePaceChartDomain`: negated pace bounds with 12% padding
+/// (minimum 3 s); `(-180, -60)` when no stroke has a usable pace.
+#[must_use]
+pub fn pace_chart_domain(strokes: &[Stroke]) -> (f64, f64) {
+    let mut fastest = f64::INFINITY;
+    let mut slowest = f64::NEG_INFINITY;
+    let mut has_valid_pace = false;
+    for stroke in strokes {
+        let pace = stroke.pace;
+        if !pace.is_finite() || pace <= 0.0 {
+            continue;
+        }
+        has_valid_pace = true;
+        fastest = fastest.min(pace);
+        slowest = slowest.max(pace);
     }
-}
-
-/// The splits section title id (web `replay.splitBreakdown` /
-/// `replay.intervalBreakdown`).
-#[must_use]
-pub const fn splits_section_id(is_interval: bool) -> &'static str {
-    if is_interval {
-        "replay.intervalBreakdown"
-    } else {
-        "replay.splitBreakdown"
+    if !has_valid_pace {
+        return (-180.0, -60.0);
     }
+    let padding = ((slowest - fastest) * 0.12).max(3.0);
+    (-(slowest + padding), -(fastest - padding))
 }
 
-/// Column header ids for the splits table (web `replay.th*`).
+/// Studio's `computeSplitBoundaryDistances`: cumulative distances of every
+/// split except the last, in chart units; empty for a single split.
 #[must_use]
-pub const fn split_column_ids() -> [&'static str; 7] {
-    [
-        "replay.thNum",
-        "replay.thDist",
-        "replay.thTime",
-        "replay.thPace",
-        "replay.thRate",
-        "replay.cPower",
-        "replay.thHr",
-    ]
-}
-
-/// The targets read-out (web replay gauge set); empty when the logbook entry
-/// carried no targets.
-#[must_use]
-pub fn target_rows(detail: &WorkoutDetail) -> Vec<TargetRow> {
-    let Some(targets) = &detail.workout.targets else {
+pub fn split_boundary_distances(splits: &[Split], unit: DistanceUnit) -> Vec<f64> {
+    if splits.len() <= 1 {
         return Vec::new();
-    };
-    let sport = detail.workout.sport;
-    let mut rows = Vec::new();
-    if let Some(pace) = targets.pace {
-        if pace.is_finite() && pace > 0.0 {
-            rows.push(TargetRow {
-                label_id: "replay.mTargetPace",
-                value_text: fmt_pace(pace),
-            });
+    }
+    let mut cumulative = 0.0;
+    splits[..splits.len() - 1]
+        .iter()
+        .map(|split| {
+            cumulative += split.distance;
+            chart_distance(cumulative, unit)
+        })
+        .collect()
+}
+
+/// Flat `[x, y, …]` pairs of negated pace over chart distance (the line is
+/// drawn fast-up, like Studio).
+#[must_use]
+pub fn pace_series(strokes: &[Stroke], unit: DistanceUnit) -> Vec<f64> {
+    let mut series = Vec::with_capacity(strokes.len() * 2);
+    for stroke in strokes {
+        series.push(chart_distance(stroke.d, unit));
+        series.push(-stroke.pace);
+    }
+    series
+}
+
+/// Flat `[x, y, …]` pairs of watts over chart distance.
+#[must_use]
+pub fn power_series(strokes: &[Stroke], unit: DistanceUnit) -> Vec<f64> {
+    let mut series = Vec::with_capacity(strokes.len() * 2);
+    for stroke in strokes {
+        series.push(chart_distance(stroke.d, unit));
+        series.push(stroke.watts);
+    }
+    series
+}
+
+/// Flat `[x, y, …]` pairs of stroke rate over chart distance.
+#[must_use]
+pub fn rate_series(strokes: &[Stroke], unit: DistanceUnit) -> Vec<f64> {
+    let mut series = Vec::with_capacity(strokes.len() * 2);
+    for stroke in strokes {
+        series.push(chart_distance(stroke.d, unit));
+        series.push(stroke.spm);
+    }
+    series
+}
+
+/// Flat `[x, y, …]` pairs of heart rate over chart distance; strokes without
+/// HR break the line into segments (callers get one series per contiguous
+/// run, so Qt Graphs never plots a fake 0 bpm dip).
+#[must_use]
+pub fn hr_series_segments(strokes: &[Stroke], unit: DistanceUnit) -> Vec<Vec<f64>> {
+    let mut segments: Vec<Vec<f64>> = Vec::new();
+    let mut current: Vec<f64> = Vec::new();
+    for stroke in strokes {
+        match stroke.hr {
+            Some(hr) if hr.is_finite() && hr > 0.0 => {
+                current.push(chart_distance(stroke.d, unit));
+                current.push(hr);
+            }
+            _ => {
+                if current.len() >= 4 {
+                    segments.push(std::mem::take(&mut current));
+                } else {
+                    current.clear();
+                }
+            }
         }
     }
-    if let Some(watts) = targets.watts {
-        if watts.is_finite() && watts > 0.0 {
-            rows.push(TargetRow {
-                label_id: "replay.mTargetWatts",
-                value_text: format!("{} W", watts.round()),
-            });
-        }
+    if current.len() >= 4 {
+        segments.push(current);
     }
-    if let Some(rate) = targets.stroke_rate {
-        if rate.is_finite() && rate > 0.0 {
-            rows.push(TargetRow {
-                label_id: "replay.mTargetRate",
-                value_text: format!("{} {}", rate.round(), sport.cadence_unit()),
-            });
-        }
+    segments
+}
+
+/// The rendered "Split Focus" summary values (QML composes the labels from
+/// locale ids; numbers and unit symbols come from here).
+#[derive(Debug, Clone, PartialEq)]
+pub struct StrokeOverview {
+    /// True when the workout has chartable strokes at all.
+    pub has_strokes: bool,
+    /// Raw stroke count (Studio's accessibility value).
+    pub count: i64,
+    /// Split count for the subtitle ("{n} splits and finishing effort").
+    pub split_count: i64,
+    /// Mean pace over the strokes (`fmt_pace`).
+    pub average_pace_text: String,
+    /// Mean watts, rounded.
+    pub average_watts_text: String,
+    /// Peak watts, rounded.
+    pub peak_watts_text: String,
+}
+
+/// Summary numbers for the panel header and screen readers.
+#[must_use]
+pub fn overview(detail_strokes: &[Stroke], splits: &[Split]) -> StrokeOverview {
+    let summary: StrokeSummary = stroke_summary(detail_strokes);
+    StrokeOverview {
+        has_strokes: !detail_strokes.is_empty(),
+        count: summary.count as i64,
+        split_count: splits.len() as i64,
+        average_pace_text: fmt_pace(summary.average_pace),
+        average_watts_text: summary.average_watts.round().to_string(),
+        peak_watts_text: summary.peak_watts.round().to_string(),
     }
-    if let Some(zone) = targets.heart_rate_zone {
-        if zone.is_finite() && zone > 0.0 {
-            rows.push(TargetRow {
-                label_id: "replay.mTargetHrZone",
-                value_text: zone.round().to_string(),
-            });
-        }
-    }
-    if let Some(calories) = targets.calories {
-        if calories.is_finite() && calories > 0.0 {
-            rows.push(TargetRow {
-                label_id: "replay.mTargetCalories",
-                value_text: format!("{} Cal", calories.round()),
-            });
-        }
-    }
-    rows
 }
 
 #[cfg(test)]
@@ -326,112 +195,125 @@ mod tests {
 
     use super::*;
 
-    fn demo_2000m() -> WorkoutDetail {
-        mock_workout_detail(1001).expect("demo 1001")
+    fn stroke(t: f64, d: f64, pace: f64) -> Stroke {
+        Stroke::new(t, d, pace, 24.0, 200.0)
     }
 
-    /// Studio's `powerText`: rounded core watts, with bounds and non-finite
-    /// inputs falling back to "-".
+    /// Studio's downsampling contract: bounded, endpoints retained.
     #[test]
-    fn power_text_matches_studio() {
-        let rower = pace_to_watts_for_sport(Sport::Rower, 120.0);
-        assert_eq!(power_text(Sport::Rower, 120.0), rower.round().to_string());
-        // BikeErg uses the 8.0 divisor: same nominal pace, different watts.
-        let bike = pace_to_watts_for_sport(Sport::Bike, 120.0);
-        assert_eq!(power_text(Sport::Bike, 120.0), bike.round().to_string());
-        assert_ne!(
-            power_text(Sport::Rower, 120.0),
-            power_text(Sport::Bike, 120.0)
+    fn downsample_keeps_endpoints_and_bound() {
+        let strokes: Vec<Stroke> = (0..2000)
+            .map(|i| stroke(f64::from(i), f64::from(i) * 5.0, 120.0))
+            .collect();
+        let sampled = downsample_strokes(&strokes, STROKE_CHART_LIMIT);
+        assert_eq!(sampled.len(), STROKE_CHART_LIMIT);
+        assert_eq!(sampled.first().unwrap().t, 0.0);
+        assert_eq!(sampled.last().unwrap().t, 1999.0);
+
+        // Below the limit: untouched.
+        let short: Vec<Stroke> = (0..10)
+            .map(|i| stroke(f64::from(i), f64::from(i), 120.0))
+            .collect();
+        assert_eq!(downsample_strokes(&short, STROKE_CHART_LIMIT).len(), 10);
+        // Degenerate limits match Studio.
+        assert!(downsample_strokes(&short, 0).is_empty());
+        assert_eq!(downsample_strokes(&short, 1).len(), 1);
+    }
+
+    /// Studio's domain statics, re-expressed (12% padding, 3 s floor,
+    /// placeholder domain).
+    #[test]
+    fn pace_domain_pads_and_falls_back() {
+        let strokes = vec![stroke(0.0, 0.0, 120.0), stroke(10.0, 50.0, 130.0)];
+        let (low, high) = pace_chart_domain(&strokes);
+        assert!((low - (-133.0)).abs() < 1e-9);
+        assert!((high - (-117.0)).abs() < 1e-9);
+        assert_eq!(pace_chart_domain(&[]), (-180.0, -60.0));
+        // Zero/negative/non-finite paces are skipped.
+        let junk = vec![stroke(0.0, 0.0, 0.0), stroke(1.0, 1.0, f64::NAN)];
+        assert_eq!(pace_chart_domain(&junk), (-180.0, -60.0));
+    }
+
+    #[test]
+    fn split_boundaries_accumulate_except_the_last() {
+        let splits = vec![
+            Split::new(0, 500.0, 120.0, 120.0),
+            Split::new(1, 500.0, 121.0, 121.0),
+            Split::new(2, 1000.0, 122.0, 122.0),
+        ];
+        let metric = split_boundary_distances(&splits, DistanceUnit::Metric);
+        assert_eq!(metric.len(), 2);
+        assert!((metric[0] - 0.5).abs() < 1e-9);
+        assert!((metric[1] - 1.0).abs() < 1e-9);
+        let imperial = split_boundary_distances(&splits, DistanceUnit::Imperial);
+        assert!((imperial[0] - 500.0 / METRES_PER_MILE).abs() < 1e-9);
+        // A single split has no interior boundaries.
+        assert!(split_boundary_distances(&splits[..1], DistanceUnit::Metric).is_empty());
+    }
+
+    #[test]
+    fn flat_series_interleave_axes() {
+        let strokes = vec![stroke(0.0, 0.0, 120.0), stroke(10.0, 500.0, 130.0)];
+        let pace = pace_series(&strokes, DistanceUnit::Metric);
+        assert_eq!(pace, vec![0.0, -120.0, 0.5, -130.0]);
+        let power = power_series(&strokes, DistanceUnit::Metric);
+        assert_eq!(power, vec![0.0, 200.0, 0.5, 200.0]);
+        let rate = rate_series(&strokes, DistanceUnit::Metric);
+        assert_eq!(rate, vec![0.0, 24.0, 0.5, 24.0]);
+    }
+
+    #[test]
+    fn hr_segments_break_on_missing_samples() {
+        let mut strokes = vec![
+            stroke(0.0, 0.0, 120.0),
+            stroke(5.0, 25.0, 120.0),
+            stroke(10.0, 50.0, 120.0),
+        ];
+        strokes[0].hr = Some(140.0);
+        strokes[1].hr = Some(145.0);
+        strokes[2].hr = Some(150.0);
+        let mut gap = stroke(15.0, 75.0, 120.0); // no HR
+        gap.hr = None;
+        strokes.push(gap);
+        let mut after = stroke(20.0, 100.0, 120.0);
+        after.hr = Some(152.0);
+        strokes.push(after);
+        let mut after2 = stroke(25.0, 125.0, 120.0);
+        after2.hr = Some(154.0);
+        strokes.push(after2);
+
+        let segments = hr_series_segments(&strokes, DistanceUnit::Metric);
+        assert_eq!(segments.len(), 2);
+        assert_eq!(segments[0], vec![0.0, 140.0, 0.025, 145.0, 0.05, 150.0]);
+        assert_eq!(segments[1], vec![0.1, 152.0, 0.125, 154.0]);
+        // Without any HR: nothing to draw.
+        assert!(hr_series_segments(&[stroke(0.0, 0.0, 120.0)], DistanceUnit::Metric).is_empty());
+    }
+
+    #[test]
+    fn overview_handles_stroke_less_and_synthesised_workouts() {
+        // Stroke-less demo piece: Studio's "No Stroke Detail" empty state.
+        let strokeless = demo_details()
+            .into_iter()
+            .find(|d| d.strokes.is_empty())
+            .expect("demo piece without strokes");
+        let empty = overview(&strokeless.strokes, &strokeless.splits);
+        assert!(!empty.has_strokes);
+        assert_eq!(empty.count, 0);
+
+        // A normal piece: summary numbers rendered, never formatted in QML.
+        let detail = mock_workout_detail(1001).expect("demo 1001");
+        let summary = overview(&detail.strokes, &detail.splits);
+        assert!(summary.has_strokes);
+        assert!(summary.count > 0);
+        assert!(summary.average_pace_text.contains(':'));
+        assert!(
+            summary
+                .average_watts_text
+                .chars()
+                .all(|c| c.is_ascii_digit())
         );
-        assert_eq!(power_text(Sport::Rower, 0.0), "-");
-        assert_eq!(power_text(Sport::Rower, -5.0), "-");
-        assert_eq!(power_text(Sport::Rower, f64::NAN), "-");
-        assert_eq!(power_text(Sport::Rower, f64::INFINITY), "-");
-    }
-
-    #[test]
-    fn header_renders_the_demo_piece() {
-        let detail = demo_2000m();
-        let header = header(&detail, Language::En, None);
-        assert!(!header.title.is_empty());
-        assert_eq!(header.sport_name, "RowErg");
-        assert!(!header.date_text.is_empty());
-        assert!(header.time_text.contains(':'));
-        assert!(header.accessible_text.contains(&header.date_text));
-    }
-
-    #[test]
-    fn metric_strip_carries_roles_and_optional_entries() {
-        let detail = demo_2000m();
-        let strip = metric_strip(&detail, DistanceUnit::Metric);
-        assert!(strip.len() >= 5);
-        assert_eq!(strip[0].label_id, "dashboard.distance");
-        assert_eq!(strip[0].role, ColorRole::Distance);
-        assert_eq!(strip[2].label_id, "replay.pacePer500m");
-        assert_eq!(
-            strip[2].accessible_value.as_deref(),
-            Some(fmt_pace(detail.workout.pace).as_str())
-        );
-        assert!(strip[4].value_text.ends_with('W') || strip[4].value_text == "-");
-
-        // A demo piece with heart rate and calories gets the extra entries.
-        let with_extras = demo_details()
-            .into_iter()
-            .find(|d| d.workout.heart_rate_avg.is_some() && d.workout.calories_total.is_some())
-            .expect("demo piece with HR and calories");
-        let strip = metric_strip(&with_extras, DistanceUnit::Metric);
-        assert!(strip.iter().any(|m| m.label_id == "replay.mCalories"));
-        let hr = strip
-            .iter()
-            .find(|m| m.label_id == "replay.cHeart")
-            .expect("hr entry");
-        assert!(hr.value_text.ends_with("bpm"));
-        assert_eq!(hr.role, ColorRole::HeartRate);
-    }
-
-    #[test]
-    fn split_rows_render_every_demo_split() {
-        let detail = demo_2000m();
-        let rows = split_rows(&detail, DistanceUnit::Metric);
-        assert_eq!(rows.len(), detail.splits.len());
-        for row in &rows {
-            assert!(row.time_text.contains(':'));
-            assert!(row.pace_text.contains(':') || row.pace_text == "--:--");
-            assert!(!row.distance_text.is_empty());
-        }
-        assert_eq!(splits_section_id(false), "replay.splitBreakdown");
-        assert_eq!(splits_section_id(true), "replay.intervalBreakdown");
-        assert_eq!(split_column_ids().len(), 7);
-    }
-
-    #[test]
-    fn interval_demo_pieces_flag_rest_rows() {
-        let interval = demo_details()
-            .into_iter()
-            .find(|d| d.workout.is_interval)
-            .expect("demo interval piece");
-        let rows = split_rows(&interval, DistanceUnit::Metric);
-        assert!(!rows.is_empty());
-        assert!(rows.iter().any(|r| r.is_rest));
-    }
-
-    #[test]
-    fn targets_render_when_present() {
-        let with_targets = demo_details()
-            .into_iter()
-            .find(|d| d.workout.targets.is_some())
-            .expect("demo piece with targets");
-        let rows = target_rows(&with_targets);
-        assert!(!rows.is_empty());
-        for row in &rows {
-            assert!(row.label_id.starts_with("replay.mTarget"));
-            assert!(!row.value_text.is_empty());
-        }
-        // Without targets: no rows, no crash.
-        let without = demo_details()
-            .into_iter()
-            .find(|d| d.workout.targets.is_none())
-            .expect("demo piece without targets");
-        assert!(target_rows(&without).is_empty());
+        assert_eq!(summary.split_count, detail.splits.len() as i64);
+        assert_eq!(distance_axis_label(DistanceUnit::Metric), "km");
     }
 }

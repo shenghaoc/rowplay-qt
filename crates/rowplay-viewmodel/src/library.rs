@@ -124,6 +124,19 @@ fn sidebar_row(
     }
 }
 
+/// Validates and canonicalises a `YYYY-MM-DD` day-key filter input
+/// (the date-range fields); `None` when the text is empty, and an
+/// unparseable value is reported back to the field as invalid.
+#[must_use]
+pub fn normalize_day_key(text: &str) -> Option<Option<String>> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Some(None);
+    }
+    rowplay_core::datetime::naive_date_from_key(trimmed)
+        .map(|date| Some(date.format("%Y-%m-%d").to_string()))
+}
+
 /// Stable machine key for QML badge styling.
 #[must_use]
 pub const fn sport_key(sport: Sport) -> &'static str {
@@ -313,6 +326,18 @@ mod tests {
         assert_eq!(distance.dir, SortDir::Desc);
         let power = toggle_sort(&q, WorkoutSortField::Power);
         assert_eq!(power.dir, SortDir::Desc);
+    }
+
+    #[test]
+    fn day_key_validation_accepts_canonical_keys_only() {
+        assert_eq!(normalize_day_key(""), Some(None));
+        assert_eq!(normalize_day_key("   "), Some(None));
+        assert_eq!(
+            normalize_day_key("2024-03-05"),
+            Some(Some("2024-03-05".to_owned()))
+        );
+        assert_eq!(normalize_day_key("2024-13-45"), None);
+        assert_eq!(normalize_day_key("yesterday"), None);
     }
 
     #[test]
