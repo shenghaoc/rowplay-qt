@@ -12,7 +12,7 @@
 pub mod http;
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use rowplay_core::models::{Sport, Stroke, Workout, WorkoutDetail};
 
@@ -116,7 +116,7 @@ pub trait Concept2Client: Send + Sync {
 pub struct MockConcept2Client {
     details: BTreeMap<i64, WorkoutDetail>,
     failure: Option<Concept2Error>,
-    calls: Arc<Mutex<Vec<String>>>,
+    calls: Mutex<Vec<String>>,
 }
 
 impl MockConcept2Client {
@@ -126,7 +126,7 @@ impl MockConcept2Client {
         MockConcept2Client {
             details: details.into_iter().map(|d| (d.id(), d)).collect(),
             failure: None,
-            calls: Arc::new(Mutex::new(Vec::new())),
+            calls: Mutex::new(Vec::new()),
         }
     }
 
