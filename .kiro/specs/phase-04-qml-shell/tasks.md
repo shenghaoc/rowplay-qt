@@ -55,28 +55,28 @@ Spec first, then one small commit per deliverable. Two stacked PRs: 4a on
 
 ## PR 4b — screens
 
-- [ ] Backend: `Library` singleton + sidebar `QListModel` (`SidebarRow`
+- [x] Backend: `Library` singleton + sidebar `QListModel` (`SidebarRow`
       `QModelItem` ≤ 15 roles), bulk reset loading; `Detail` singleton
       (header, metric strip, splits model, stroke series).
-- [ ] `viewmodel::library` / `dashboard` / `detail` / `strokes` with tests
+- [x] `viewmodel::library` / `dashboard` / `detail` / `strokes` with tests
       (Studio statics ported: `toggleSort`, `pbLabel`, `powerText`,
       `downsampleStrokes`, chart domains, split boundaries; dashboard summary
       + PB derivations from core analytics).
-- [ ] Sidebar screen: grouped list, sport/date-range/text filters, sort menu,
+- [x] Sidebar screen: grouped list, sport/date-range/text filters, sort menu,
       PB badges, keyboard navigation, `Accessible.name`.
-- [ ] Dashboard screen: metric tiles (`MetricTile.qml`), personal bests,
+- [x] Dashboard screen: metric tiles (`MetricTile.qml`), personal bests,
       period summary, Qt Graphs bar + line charts fed by `replace(...)`.
-- [ ] Detail screen: header, metric strip, splits/intervals table, HR and
+- [x] Detail screen: header, metric strip, splits/intervals table, HR and
       targets display.
-- [ ] Stroke analysis: pace/power charts with split boundaries and average
+- [x] Stroke analysis: pace/power charts with split boundaries and average
       rules, empty-strokes state, handling synthesised strokes like Studio.
-- [ ] Performance: 5,000-workout synthetic library; filter < 50 ms; smooth
+- [x] Performance: 5,000-workout synthetic library; filter < 50 ms; smooth
       sidebar scroll; numbers recorded in the PR.
-- [ ] Runtime-error gate walks every screen; CI screenshots (dashboard,
+- [x] Runtime-error gate walks every screen; CI screenshots (dashboard,
       detail, settings) uploaded as artifacts.
-- [ ] Docs: source-map rows for every ported view, roadmap Phase 4 done,
+- [x] Docs: source-map rows for every ported view, roadmap Phase 4 done,
       README screenshots (demo data), deferred list in the PR.
-- [ ] Validation as 4a, plus manual pass over every screen (light/dark,
+- [x] Validation as 4a, plus manual pass over every screen (light/dark,
       Wayland); open the PR against `phase-4a-shell` (retarget to `main` when
       4a merges).
 

@@ -136,9 +136,9 @@ store; every divergence documented in `docs/source-map.md`.
 
 ### Phase 4 — QML shell
 
-Status: foundation delivered (PR 4a); screens in PR 4b.
+Status: delivered (PRs 4a foundation + 4b screens).
 
-Delivered in 4a:
+Foundation (4a):
 
 - `rowplay-viewmodel`: the Qt-free UI-logic crate (navigation state port,
   six-language locale date display golden-tested against the web's `Intl`,
@@ -165,12 +165,31 @@ Delivered in 4a:
   languages that fails CI on `TypeError` / `ReferenceError` / `Binding loop` /
   `Unable to assign` / `is not defined`, plus per-screen screenshot artifacts.
 
-Remaining for 4b:
+Screens (4b):
 
-- Dashboard (metric tiles, personal bests, Qt Graphs charts with bulk
-  `replace`), library sidebar (grouped list, filters, `QListModel`),
-  workout detail (summary tiles, splits/intervals, heart rate, targets) and
-  stroke analysis; 5,000-workout performance pass (filter < 50 ms).
+- Library sidebar: the `Library` singleton as a qtbridge `QListModel`
+  (`SidebarRowItem`, 13 roles, bulk `reset()`), day-sectioned rows with PB
+  badges, sport / text / date-range filters, the Studio sort menu, and
+  keyboard navigation (arrows select, Enter/Space activate, Escape clears).
+- Dashboard: metric tiles, personal-best cards, and Qt Graphs panels
+  (distance-by-sport bars, recent-pace line with Rust-rendered pace tick
+  labels), all series loaded in bulk with `replace(list<point>)`.
+- Workout detail: header, metric strip with semantic colours, the
+  splits/intervals table (web `replay.th*` headers), targets read-out and
+  comments.
+- Stroke analysis: pace (negated, average rule, split boundaries), power
+  (average-watts rule), stroke rate and heart rate over distance, with
+  Studio's 500-point downsample and the stroke-less empty state.
+- Performance: 5,000-workout synthetic library — filter + sort 2.5–7.7 ms
+  (budget 50 ms), full display-string rebuild ≈ 66 ms, search debounced
+  250 ms (`crates/rowplay-viewmodel/tests/perf_5k.rs`, runs in CI).
+- Deferred and listed in the PRs: replay (Phase 5), live mode (Phase 8),
+  HR import, annotations, comparison panel, file actions/export, rival
+  controls; the reduce-motion toggle waits for the replay UI.
+
+Exit criteria: every screen ports its Studio view with web-canonical values;
+all six languages switch live; the runtime-error gate walks every screen in
+CI on all three OSes; no metric is formatted in QML.
 
 ### Phase 5 — 3D replay
 

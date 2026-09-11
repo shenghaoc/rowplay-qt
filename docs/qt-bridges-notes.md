@@ -130,6 +130,26 @@ Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
 on Apple targets, as it effectively does on Linux.
 
+## 14. `QListModel::reset()` panics before the QObject is attached
+
+`#[qobject(Base = QListModel)]` works well for the 5,000-row sidebar (bulk
+swap the `Vec` in `rebuild`, then `reset()`; role names are the
+`#[derive(QModelItem)]` field idents verbatim — snake_case in QML — and the
+15-role cap is enough at 13). But the generated `QListModelBase` methods
+(`reset`, `push`, …) call `try_get_rust_proxy_ptr().expect("No proxy")`, so
+calling `reset()` from `Default::default()` — i.e. while the singleton is
+being constructed during QML type resolution, before attachment — panics.
+
+Repro: `#[qobject(Singleton, Base = QListModel)]`, call `self.reset()` inside
+`Default::default()`.
+
+Workaround used: `if self.try_get_rust_proxy_ptr().is_some() { self.reset(); }`
+(`crates/rowplay-app/src/backend/library.rs`). Data-only rebuilds before
+attachment need no notification anyway (no view is bound yet).
+
+Suggestion: make the `QListModelBase` notification helpers no-ops (or return
+`bool`) when unattached, and document the construction-order constraint.
+
 ## 11. `qproperty!` rejects doc-comment attributes
 
 `#[qobject]` fails with "Attributes for qproperty! macro are not supported"
@@ -206,6 +226,10 @@ story and currently has to be assembled from three API corners.
   from a worker thread (note 13).
 - Second `rcc --binary` blob for the `lrelease` output registered alongside
   the QML blob through `qresource::register_bytes` — multiple blobs coexist.
+- `#[qobject(Base = QListModel)]` + `#[derive(QModelItem)]` for a 5,000-row
+  `ListView`: bulk `Vec` swap + `reset()` (guarded, note 14), `required
+  property` role access in delegates, smooth scrolling with lazily created
+  delegates. Filtering 5k rows takes 2.5–7.7 ms in the view-model.
 
 ## Not qtbridge, but worth knowing
 
@@ -233,3 +257,15 @@ story and currently has to be assembled from three API corners.
 - ID-based `.ts` catalogues need an empty `<source>` (see note 12); `lupdate`
   writes that shape itself, hand-written files with a non-empty source
   silently break `qsTrId` after `lrelease`.
+- Qt Graphs in Qt 6.11 uses the post-6.9 type names (`LineSeries`,
+  `BarSeries`, `BarSet`, `ValueAxis`, `BarCategoryAxis`, `GraphsView`,
+  `GraphsTheme`); most sample code on the web still shows the 6.8 names
+  (`Lines`, `Bars`, `ValuesAxis`) or the 6.8 camera-based `GraphsView`.
+  Bulk loading is `XYSeries.replace([{x,y}, …])` — one call, object literals
+  or `Qt.point` (flat arrays and pair arrays silently produce (0,0)
+  points); `BarSet.values = [...]` for bars. Custom tick strings go through
+  `AbstractAxis.labelDelegate` (an `Item` with `property string text`).
+  Per-series `axisY` works for multi-scale charts, but the extra axis must
+  NOT be declared as a `GraphsView` child (its default property is
+  `seriesList`, so the axis silently lands there and the series renders
+  nothing). `GraphsTheme.colorScheme` has `Automatic` following the system.
