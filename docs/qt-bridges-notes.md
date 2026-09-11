@@ -97,6 +97,39 @@ The README lists Linux x86_64, Windows x64 and macOS arm64 (experimental).
 Our CI matrix builds on all three; Linux aarch64 and macOS x86_64 are not
 listed. Recorded so that CI failures on those legs are attributed correctly.
 
+## 9. No `.qmltypes` for Rust-registered types, so `qmllint` / `qmlls` cannot see them
+
+`qmllint -I qml qml/RowPlay/Main.qml` reports `Unqualified access` for every
+use of the Rust singleton `Smoke` and marks `import RowPlay` as unused in
+`SmokeScene.qml`, because nothing describes the Rust-registered types to the
+tooling (the README lists QML language-server support as a future plan).
+Every Rust-backed property therefore loses completion, type checking and the
+`unqualified` lint, which is the main guard against typos in QML bindings.
+
+Suggestion: have `#[qobject]` (or a `qtbridge-build-utils` helper) emit a
+`plugins.qmltypes` / `qmldir` `typeinfo` entry per registered type so
+`qmllint` and `qmlls` can resolve them.
+
+## 10. macOS binaries reference Qt frameworks through `@rpath` but no `LC_RPATH` is emitted
+
+On macOS (arm64, Qt 6.11.2 frameworks from aqt), any binary linking
+`qtbridge-runtime` fails at launch with:
+
+```
+dyld[…]: Library not loaded: @rpath/QtCore.framework/Versions/A/QtCore
+  Referenced from: …/target/debug/deps/rowplay_app-…
+  Reason: no LC_RPATH's found
+```
+
+Repro: `cargo test -p rowplay-app` on macOS with `qmake` from a framework
+install on `PATH`; the build succeeds, the test binary aborts before `main`.
+`otool -l <binary>` shows the `@rpath/…` load commands but no `LC_RPATH`.
+
+Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
+(CI sets it for the macOS test step). Suggestion: have the runtime build
+script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
+on Apple targets, as it effectively does on Linux.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -117,3 +150,10 @@ listed. Recorded so that CI failures on those legs are attributed correctly.
   libxcb-shape0 …` installed) or `eglfs` with `QT_QPA_EGLFS_INTEGRATION=eglfs_x11`,
   plus Mesa (`LIBGL_ALWAYS_SOFTWARE=1`, `QSG_RHI_BACKEND=opengl`).
 - Qt warns about the `C` locale; set `LANG=C.UTF-8` in CI.
+- aqtinstall 3.3.0 (latest release) cannot install Qt 6.11.x on Windows: the
+  Windows repository moved to per-arch folders
+  (`qt6_6112/qt6_6112_msvc2022_64/Updates.xml`) and aqt still looks for
+  `qt6_6112/qt6_6112/Updates.xml` (miurahr/aqtinstall#1007, fixed by
+  miurahr/aqtinstall#1000, unreleased). CI installs aqt from the pinned merge
+  commit via `jurplel/install-qt-action`'s `aqtsource` on Windows only; Linux
+  and macOS work with the released 3.3.0.
