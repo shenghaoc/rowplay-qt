@@ -123,10 +123,12 @@ pub fn format_privacy_safe_log_message(message: &str, args: &[&dyn Display]) -> 
 /// Severity of a privacy-safe log line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LogLevel {
-    /// Something failed.
-    Error,
+    /// Something expected happened that is worth recording once.
+    Info,
     /// Something is degraded but recoverable.
     Warn,
+    /// Something failed.
+    Error,
 }
 
 impl LogLevel {
@@ -134,8 +136,9 @@ impl LogLevel {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            LogLevel::Error => "ERROR",
+            LogLevel::Info => "INFO",
             LogLevel::Warn => "WARN",
+            LogLevel::Error => "ERROR",
         }
     }
 }
@@ -171,6 +174,15 @@ impl<'a> PrivacySafeLogger<'a> {
     pub fn error(&self, message: &str, args: &[&dyn Display]) {
         self.sink.write(
             LogLevel::Error,
+            &self.category,
+            &format_privacy_safe_log_message(message, args),
+        );
+    }
+
+    /// Log an informational line with redacted arguments.
+    pub fn info(&self, message: &str, args: &[&dyn Display]) {
+        self.sink.write(
+            LogLevel::Info,
             &self.category,
             &format_privacy_safe_log_message(message, args),
         );
