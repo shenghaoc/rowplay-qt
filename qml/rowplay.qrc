@@ -2,11 +2,20 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- Compiled by crates/rowplay-app/build.rs with rcc in binary mode and
      registered from Rust through qtbridge::qresource::register_bytes. Paths are
-     relative to this file; the prefix places the module at qrc:/qt/qml/RowPlay. -->
+     relative to this file; the prefix places the module at qrc:/qt/qml/RowPlay.
+     The i18n .qm bundles are compiled by build.rs (lrelease) into a second
+     rcc blob under the same prefix. -->
 <RCC version="1.0">
     <qresource prefix="/qt/qml">
         <file>RowPlay/qmldir</file>
         <file>RowPlay/Main.qml</file>
+        <file>RowPlay/SmokeMain.qml</file>
+        <file>RowPlay/SettingsScreen.qml</file>
         <file>RowPlay/SmokeScene.qml</file>
+        <file>RowPlay/Theme.qml</file>
+        <file>RowPlay/Tr.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>qtquickcontrols2.conf</file>
     </qresource>
 </RCC>

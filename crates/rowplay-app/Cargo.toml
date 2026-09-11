@@ -12,7 +12,12 @@ authors.workspace = true
 [dependencies]
 rowplay-core.workspace = true
 rowplay-platform.workspace = true
-qtbridge.workspace = true
+rowplay-viewmodel.workspace = true
+# `serde_json` lets bridge properties carry read-only structured data
+# (qt-bridges-notes #4); the viewmodel builds the values.
+qtbridge = { workspace = true, features = ["serde_json"] }
+serde_json.workspace = true
+chrono.workspace = true
 
 [lints]
 workspace = true
