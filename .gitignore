@@ -17,6 +17,7 @@ Cargo.lock.bak
 *.swp
 
 # Qt tooling caches
+aqtinstall.log
 .qmlls.ini
 *.qmlc
 *.jsc
