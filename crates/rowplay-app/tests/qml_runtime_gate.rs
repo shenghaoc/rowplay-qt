@@ -28,6 +28,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_rowplay-app"));
     command
         .env("ROWPLAY_SMOKE_GATE", "1")
+        // On Windows Qt routes logging to OutputDebugString when stderr is a
+        // pipe, which would blind both the error scan and the walk's own
+        // console.log probes; force stderr everywhere (no-op on Unix).
+        .env("QT_FORCE_STDERR_LOGGING", "1")
         // The walk ends with an end-to-end sync against the deterministic
         // mock client: worker thread, mpsc events, cross-thread invoker,
         // cache writes and the completion path — no token, no network.
@@ -43,8 +47,8 @@ fn shell_walk_produces_no_qml_runtime_errors() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // Qt routes QML console.log to stderr on Linux/macOS but to stdout on
-    // Windows; scan both streams for everything.
+    // Scan both streams: console.log may land on either depending on the
+    // platform and Qt version.
     let combined = format!("{stdout}\n{stderr}");
     for pattern in FORBIDDEN_PATTERNS {
         for line in combined.lines() {
