@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analytics;
+pub mod concept2;
 pub mod datetime;
 pub mod demo;
 pub mod formatting;
