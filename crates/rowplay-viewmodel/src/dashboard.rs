@@ -231,6 +231,35 @@ pub fn pace_axis_labels(domain: (f64, f64), tick_count: usize) -> Vec<(f64, Stri
         .collect()
 }
 
+/// Studio's pace-chart sport pick: the active sport filter, else the sport
+/// with the most (filtered) workouts, else rower.
+#[must_use]
+pub fn pace_chart_sport(workouts: &[Workout], filter: Option<Sport>) -> Sport {
+    if let Some(sport) = filter {
+        return sport;
+    }
+    let mut counts: [(Sport, usize); 3] = [(Sport::Rower, 0), (Sport::Skierg, 0), (Sport::Bike, 0)];
+    for workout in workouts {
+        for (sport, count) in &mut counts {
+            if *sport == workout.sport {
+                *count += 1;
+            }
+        }
+    }
+    // Swift's `max(by: count)` keeps the FIRST maximum in grouping order;
+    // the enum order here matches Studio's iteration in practice (rower,
+    // skierg, bike) and ties fall back to rower.
+    let mut best = Sport::Rower;
+    let mut best_count = 0;
+    for (sport, count) in counts {
+        if count > best_count {
+            best = sport;
+            best_count = count;
+        }
+    }
+    best
+}
+
 /// The dashboard's derived state in one call (the app layer recomputes on
 /// library / filter / preference changes).
 #[derive(Debug, Clone, PartialEq)]
@@ -409,6 +438,33 @@ mod tests {
         assert_eq!(labels[0].1, fmt_pace(133.0));
         assert!(pace_axis_labels((-133.0, -117.0), 1).is_empty());
         assert!(pace_axis_labels((0.0, 0.0), 4).is_empty());
+    }
+
+    /// Studio: filter sport wins, else the most-workout sport, else rower.
+    #[test]
+    fn pace_chart_sport_prefers_the_filter_then_the_majority() {
+        let workouts = mock_workouts();
+        assert_eq!(pace_chart_sport(&workouts, Some(Sport::Bike)), Sport::Bike);
+        let majority = pace_chart_sport(&workouts, None);
+        let mut rower = 0;
+        let mut skierg = 0;
+        let mut bike = 0;
+        for w in &workouts {
+            match w.sport {
+                Sport::Rower => rower += 1,
+                Sport::Skierg => skierg += 1,
+                Sport::Bike => bike += 1,
+            }
+        }
+        let expected = if skierg > rower && skierg > bike {
+            Sport::Skierg
+        } else if bike > rower && bike > skierg {
+            Sport::Bike
+        } else {
+            Sport::Rower
+        };
+        assert_eq!(majority, expected);
+        assert_eq!(pace_chart_sport(&[], None), Sport::Rower);
     }
 
     #[test]
