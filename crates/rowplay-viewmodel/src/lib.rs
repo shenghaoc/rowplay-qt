@@ -14,6 +14,11 @@
 
 #![forbid(unsafe_code)]
 
+pub mod dashboard;
 pub mod dates;
+pub mod detail;
+pub mod library;
 pub mod nav;
+pub mod role;
 pub mod settings;
+pub mod strokes;
