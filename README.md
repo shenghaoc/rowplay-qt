@@ -25,10 +25,15 @@ recorded as ADRs in [`docs/decisions/`](docs/decisions/README.md).
 
 ## Status
 
-Phases 0–3 are done; Phase 4 (the QML shell) is in progress: the foundation
-PR (4a) ships the app shell, theme, settings, translations and the Qt-free
-view-model crate, and the screens PR (4b) adds the sidebar, dashboard, detail
-and stroke analysis.
+Phases 0–4 are done.
+
+- **Phase 4 — QML shell:** the Qt-free `rowplay-viewmodel` crate, the design-token
+  theme (light/dark), the application shell, the settings screen (keyring
+  token, units, home timezone, language, demo mode, threaded sync), the
+  six-language i18n pipeline generated from the web locales, and the screens:
+  day-sectioned library sidebar, dashboard (metric tiles, personal bests,
+  Qt Graphs trend charts), workout detail (metric strip, splits/intervals,
+  targets) and stroke analysis (pace, power, rate and heart-rate charts).
 
 - **Phase 1–2 — `rowplay-core`:** the pure ports of the web app's models,
   formatting, datetime, pace input, privacy redaction, analytics, personal
@@ -52,7 +57,11 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
 
-| Phase 4a settings (light) | Phase 4a settings (dark) |
+| Dashboard (demo data) | Workout detail (demo data) |
+| --- | --- |
+| ![Dashboard](docs/screenshots/phase-04-dashboard.png) | ![Workout detail](docs/screenshots/phase-04-detail.png) |
+
+| Settings (light) | Settings (dark) |
 | --- | --- |
 | ![Settings, light](docs/screenshots/phase-04-settings-light.png) | ![Settings, dark](docs/screenshots/phase-04-settings-dark.png) |
 

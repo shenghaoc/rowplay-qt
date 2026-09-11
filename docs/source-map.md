@@ -88,9 +88,7 @@ Ported into `rowplay-core::concept2` (pure, byte slices in) and the
 ## Phase 4 — QML shell
 
 UI logic lives in the Qt-free `rowplay-viewmodel` crate; the qtbridge objects
-in `rowplay-app/src/backend/` are thin adapters (Phase 4 ground rules). The
-sidebar, dashboard, detail and stroke-analysis *screens* land in PR 4b; the
-rows below cover the 4a foundation and will be extended there.
+in `rowplay-app/src/backend/` are thin adapters (Phase 4 ground rules).
 
 | Web source | Swift (rowplay-studio) | Rust / QML (rowplay-qt) | Notes |
 | --- | --- | --- | --- |
@@ -103,7 +101,10 @@ rows below cover the 4a foundation and will be extended there.
 | — | `Views/DetailNavigationState.swift` (+ `ReplayNavigationTests.swift`) | `rowplay_viewmodel::nav` | Route stack, replay-unavailability policy and invocation-time selection resolution; the Swift tests are re-expressed against the demo library. |
 | `src/routes/settings/+page.svelte`, `src/routes/auth/token/+page.svelte` | `Views/SettingsView.swift` | `qml/RowPlay/SettingsScreen.qml`, `rowplay-app/src/backend/settings.rs` | Token → `SecretToken` → keyring inside Rust; QML sees `hasToken` only. Units / home timezone / language pickers persist through `rowplay-platform::preferences` (new `language` field). Demo-mode toggle; sync disabled in demo mode. |
 | `src/lib/server/data.ts` (sync flow) | `Platform/Concept2SyncController.swift` | `rowplay-app/src/backend/sync.rs` | The Phase 3-deferred composition root: `std::thread` worker runs `WorkoutSyncCoordinator::sync_with`, events flow over `mpsc`, the Qt thread is poked through `QmlMethodInvoker` (+ a 50 ms QML timer safety net), cancel flips the `AtomicBool`. `ROWPLAY_SYNC_MOCK=1` swaps in `MockConcept2Client` so CI exercises the whole path token-free. |
-| — | `Views/MetricTile.swift`, `Views/DashboardView.swift`, `Views/SidebarView.swift`, `Views/WorkoutDetailView.swift`, `Views/WorkoutStrokeAnalysisView.swift` | 4b: `qml/RowPlay/{SidebarPanel,DashboardScreen,MetricTile,DetailScreen,StrokeAnalysisPanel}.qml` + `rowplay_viewmodel::{library,dashboard,detail,strokes}` | Tracked in `.kiro/specs/phase-04-qml-shell/tasks.md` (PR 4b). |
+| `src/lib/workoutQuery.ts` list UI, `src/components/WorkoutList.svelte` | `Views/SidebarView.swift` | `qml/RowPlay/SidebarPanel.qml` + `rowplay_viewmodel::library` + the `Library` `QListModel` | Filter/sort through the core query engine (web canonical); rows pre-rendered in Rust; PB badges from the unfiltered PB set (Studio); day sections are a desktop addition (neither reference groups the list) using `workout_local_day_key`. Search is debounced 250 ms. |
+| `src/routes/dashboard/+page.svelte` (tiles, PB panel, trend charts) | `Views/DashboardView.swift`, `Views/MetricTile.swift` | `qml/RowPlay/{DashboardScreen,MetricTile}.qml` + `rowplay_viewmodel::dashboard` | Tiles via `dashboard_summary` (web), PB cards via `dashboard_personal_bests` with web `distanceBand` labels ("2k", "Half", "Full"), charts via Qt Graphs (`GraphsView` + `LineSeries.replace(list<point>)` bulk loads). The Studio "Challenge" tile is dropped (no web tile, no locale key). |
+| `src/routes/replay/[id]/+page.svelte` (metrics, splits table, targets gauges) | `Views/WorkoutDetailView.swift` | `qml/RowPlay/DetailScreen.qml` + `rowplay_viewmodel::detail` | Strip order and `powerText` from Studio; table/section/target strings from the web (`replay.th*`, `replay.splitBreakdown`, `replay.mTarget*`). Split HR falls back from `heartRate.average` to the legacy scalar `hr`. |
+| `src/lib/replay/*` chart derivations | `Views/WorkoutStrokeAnalysisView.swift` | `qml/RowPlay/{StrokeAnalysisPanel,StrokeChart}.qml` + `rowplay_viewmodel::strokes` | `downsampleStrokes` (500, endpoints kept), pace domain (12% pad, 3 s floor, −180…−60 placeholder) and split boundaries ported verbatim; the Phase 4 brief adds rate and HR charts (HR draws the first gap-free segment). Synthesised strokes chart like recorded ones (web behaviour). |
 
 ## Later phases (mapping only)
 
@@ -179,3 +180,13 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Demo selection at startup | n/a (server data) | `@SceneStorage` starts at the default demo workout | the demo library selects `DEFAULT_WORKOUT_ID` on load and the shell routes to the detail screen | Studio behaviour; the gate screenshots depend on it. |
 | `fmtLogbookDateTime` patterns | `Intl` numeric y/m/d + clock per locale | SwiftUI abbreviated date + shortened time | per-language `Intl`-golden patterns (en 12-hour with AM/PM, fr zero-padded d/m, de `d.M.yyyy`, …) | Golden outputs captured from the pinned web app under Node; see `rowplay_viewmodel::dates` tests. |
 | fr `dashboard.emptyTrend` | drops the `{n}` placeholder ("Une seule séance…") | — | kept verbatim; the parity check only forbids *extra* placeholders in translations | Web parity: `interpolate` tolerates missing placeholders. |
+| Sidebar date format | `fmtDate` → "Mar 5, 2026" | `.dateTime.year(.twoDigits).month(.abbreviated).day()` → "5 Mar 26" | web (`fmt_date`) | Web wins; the two-digit-year Studio format has no web counterpart. |
+| Sidebar day sections | flat list | flat list with a count header | day-sectioned list (`workout_local_day_key`, home-tz aware) | Phase 4 brief asks for grouping by date; section headers use the locale short date. |
+| Sport badge | inline SVG icons (`SportIcon`) | SF Symbols (`figure.rower`, …) | the sport initial on a tonal chip | No SF Symbols or web SVGs on Qt without new assets; the trademark name stays in the accessible text. |
+| Dashboard "Challenge" tile | none (challenge distance only feeds goals/badges) | tile with `challengeDistanceMetres` total | dropped | No web tile and no locale key; `DashboardSummary.challenge_distance` stays available for Phase 5+. |
+| PB card labels | `distanceBand().label` ("2k", "Half", "Full" — hardcoded English in `analytics.ts`) | `pbLabel` ("2k", "Half", "Marathon") | web band labels | Untranslated in the web too; Studio's "Marathon" loses to the web's "Full". |
+| Recent-pace x axis | date scale | date scale | chronological index with locale date tick labels (pre-rendered in Rust) | Qt Graphs `ValueAxis` has no date-scale with custom string ticks; the index axis keeps every label a core-formatted string. |
+| Split HR column | `heartRate.average ?? hr` | `heartRate?.average` | `heartRate.average` with a scalar-`hr` fallback | The web mapper keeps both fields; the fallback avoids "-" rows the web would render. |
+| HR stroke chart with dropouts | belt gaps split the line | not charted | first gap-free segment charted; later segments omitted | Documented 4b limitation; the full segment list is already exported (`hrSegmentsJson`) for Phase 5. |
+| Stroke-chart count | pace/power/rate/HR gauges + charts | pace + power charts | pace, power, rate and HR charts | The Phase 4 brief asks for all four over time. |
+| Progress text | web renders counts in components | Studio status strings | rendered in the sync worker (`fmt_time` remaining estimate) | Keeps "no metric formatting in QML" absolute. |

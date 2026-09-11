@@ -143,4 +143,5 @@ jobs:
             artifacts/dashboard.png
             artifacts/settings.png
             artifacts/detail.png
+            artifacts/detail-full.png
           if-no-files-found: error
