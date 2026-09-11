@@ -4,6 +4,7 @@ resolver = "3"
 members = [
     "crates/rowplay-core",
     "crates/rowplay-platform",
+    "crates/rowplay-app",
     "crates/rowplay-fixtures",
 ]
 # Building the Qt app requires a Qt 6.11 installation (qmake on PATH or QMAKE set).

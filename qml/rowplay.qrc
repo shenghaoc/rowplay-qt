@@ -1,0 +1,12 @@
+<!DOCTYPE RCC>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Compiled by crates/rowplay-app/build.rs with rcc in binary mode and
+     registered from Rust through qtbridge::qresource::register_bytes. Paths are
+     relative to this file; the prefix places the module at qrc:/qt/qml/RowPlay. -->
+<RCC version="1.0">
+    <qresource prefix="/qt/qml">
+        <file>RowPlay/qmldir</file>
+        <file>RowPlay/Main.qml</file>
+        <file>RowPlay/SmokeScene.qml</file>
+    </qresource>
+</RCC>

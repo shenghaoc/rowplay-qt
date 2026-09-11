@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[package]
+name = "rowplay-app"
+description = "rowplay-qt desktop application: Qt Bridges for Rust backend objects, QML shell and Qt Quick 3D replay."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+rowplay-core.workspace = true
+rowplay-platform.workspace = true
+qtbridge.workspace = true
+
+[lints]
+workspace = true
