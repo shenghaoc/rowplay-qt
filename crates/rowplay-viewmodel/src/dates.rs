@@ -86,6 +86,17 @@ pub fn fmt_time_from_epoch_millis(
     clock_text(language, dt.hour(), dt.minute(), dt.second(), true)
 }
 
+/// Wall-clock `HH:MM` of a logbook timestamp, exactly as the monitor logged
+/// it (no zone conversion — the athlete saw this clock). Empty for inputs
+/// without a time part.
+#[must_use]
+pub fn fmt_time_of_day(value: &str) -> String {
+    match parse_logbook_date_time(value) {
+        Some(parts) => format!("{:02}:{:02}", parts.hour, parts.minute),
+        None => String::new(),
+    }
+}
+
 /// The calendar date used for display, resolving the same three input shapes
 /// as the web's `fmtDate`: ISO instant → logbook string → day key.
 fn display_date(value: &str, home_timezone: Option<&str>) -> Option<NaiveDate> {
@@ -376,6 +387,14 @@ mod tests {
             fmt_time_from_epoch_millis(ms, Language::Ja, Some("Asia/Tokyo")),
             "15:07:00"
         );
+    }
+
+    #[test]
+    fn fmt_time_of_day_reads_the_monitor_clock() {
+        assert_eq!(fmt_time_of_day("2026-03-05 06:07:08"), "06:07");
+        assert_eq!(fmt_time_of_day("2026-03-05 23:59:59"), "23:59");
+        assert_eq!(fmt_time_of_day("2026-03-05"), "");
+        assert_eq!(fmt_time_of_day("garbage"), "");
     }
 
     /// ISO instants resolve through the home time zone when one is set
