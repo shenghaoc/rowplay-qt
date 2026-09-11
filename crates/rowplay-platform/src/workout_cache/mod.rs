@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Local workout cache boundary (native-only offline capability; the web app
 //! is stateless).
+//!
+//! [`SqliteWorkoutCache`] is the production implementation (Phase 3);
+//! [`InMemoryWorkoutCache`] and [`FailingWorkoutCache`] stay for tests and demo
+//! mode.
+
+pub mod sqlite;
+
+pub use sqlite::{SCHEMA_VERSION, SqliteWorkoutCache};
 
 use std::collections::BTreeMap;
 use std::sync::Mutex;
@@ -23,6 +31,12 @@ pub enum CacheError {
     #[error("cache row {id} could not be decoded")]
     Decode {
         /// Workout id of the undecodable row.
+        id: i64,
+    },
+    /// A row could not be encoded for storage.
+    #[error("cache row {id} could not be encoded")]
+    Encode {
+        /// Workout id of the unencodable row.
         id: i64,
     },
 }
