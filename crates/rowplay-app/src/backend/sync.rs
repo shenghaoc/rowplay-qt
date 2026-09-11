@@ -19,7 +19,7 @@ use qtbridge::qtbridge_runtime::{QObjectHolder, QmlMethodInvoker, QmlRegister};
 use rowplay_core::privacy::redact;
 use rowplay_platform::concept2::MockConcept2Client;
 use rowplay_platform::concept2::http::Concept2HttpClient;
-use rowplay_platform::sync::{WorkoutSyncCoordinator, WorkoutSyncError};
+use rowplay_platform::sync::{SyncProgress, WorkoutSyncCoordinator, WorkoutSyncError};
 use rowplay_platform::token_store::SecretToken;
 use rowplay_platform::workout_cache::WorkoutCache;
 use rowplay_viewmodel::dates::fmt_date;
@@ -31,6 +31,9 @@ enum SyncEvent {
     Progress {
         completed: usize,
         total: usize,
+        /// Pre-rendered "completed/total · remaining" line (formatting stays
+        /// in Rust; the worker builds it off the Qt thread).
+        text: String,
     },
     Finished {
         outcome: Result<FinishedSync, String>,
@@ -50,6 +53,7 @@ pub struct SyncBackend {
     progress_completed: i64,
     progress_total: i64,
     progress_fraction: f64,
+    progress_text: String,
     /// Locale message id of the status line ("" = none yet).
     status_id: String,
     /// `{added}` for `sync.done`.
@@ -80,6 +84,7 @@ impl Default for SyncBackend {
             progress_completed: 0,
             progress_total: 0,
             progress_fraction: 0.0,
+            progress_text: String::new(),
             status_id: String::new(),
             status_added: 0,
             status_total: total,
@@ -218,7 +223,11 @@ impl SyncBackend {
 
         for event in drained {
             match event {
-                SyncEvent::Progress { completed, total } => {
+                SyncEvent::Progress {
+                    completed,
+                    total,
+                    text,
+                } => {
                     self.progress_completed = completed as i64;
                     self.progress_total = total as i64;
                     self.progress_fraction = if total == 0 {
@@ -226,6 +235,7 @@ impl SyncBackend {
                     } else {
                         (completed as f64 / total as f64).clamp(0.0, 1.0)
                     };
+                    self.progress_text = text;
                     self.sync_changed();
                 }
                 SyncEvent::Finished { outcome } => {
@@ -340,11 +350,14 @@ fn run_coordinator(
     finish: impl FnOnce(Result<FinishedSync, String>),
 ) {
     let coordinator = WorkoutSyncCoordinator::new(client, cache.as_ref());
+    let started = std::time::Instant::now();
     let result = coordinator.sync_with(cancel, &mut |progress| {
+        let text = progress_text(progress, started.elapsed().as_secs_f64());
         if sender
             .send(SyncEvent::Progress {
                 completed: progress.completed,
                 total: progress.total,
+                text,
             })
             .is_ok()
         {
@@ -365,6 +378,21 @@ fn run_coordinator(
         Err(WorkoutSyncError::ClientFailed(message)) => finish(Err(redact(&message))),
         Err(error) => finish(Err(redact(&error.to_string()))),
     }
+}
+
+/// "completed/total · remaining" with the remaining time estimated from the
+/// elapsed rate (core `fmt_time`; QML never formats numbers).
+fn progress_text(progress: SyncProgress, elapsed_secs: f64) -> String {
+    let counts = format!("{}/{}", progress.completed, progress.total);
+    if progress.completed == 0 || progress.total <= progress.completed {
+        return counts;
+    }
+    let per_item = elapsed_secs / progress.completed as f64;
+    let remaining = per_item * (progress.total - progress.completed) as f64;
+    format!(
+        "{counts} · {}",
+        rowplay_core::formatting::fmt_time(remaining, false)
+    )
 }
 
 // Manual registration keeps the `RowPlay` URI (qt-bridges-notes #1).

@@ -124,107 +124,53 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                // Sidebar column (placeholder panel in 4a, the grouped
-                // library list in 4b). Studio: min 260, ideal 320.
-                Pane {
+                // Sidebar column (Studio: min 260, ideal 320).
+                SidebarPanel {
                     id: sidebarColumn
                     SplitView.preferredWidth: 320
                     SplitView.minimumWidth: 260
                     SplitView.maximumWidth: 480
-                    padding: Theme.spacingLarge
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: Theme.spacingMedium
-
-                        Label {
-                            text: Tr.t("workoutList.matching",
-                                       { n: Library.filteredCount })
-                            font: Theme.compactLabel
-                            color: Theme.textTertiary
-                            Accessible.name: text
-                        }
-
-                        TextField {
-                            id: searchField
-                            Layout.fillWidth: true
-                            placeholderText: Tr.t("workoutList.searchComments")
-                            Accessible.name: Tr.t("workoutList.search")
-                            onTextChanged: Library.setSearchText(text)
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            visible: Library.filteredCount === 0
-                            text: Tr.t("workoutList.empty")
-                            color: Theme.textSecondary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            wrapMode: Text.WordWrap
-                            Accessible.name: text
-                        }
-
-                        // Sidebar list placeholder: the 4b QListModel lands here.
-                        Label {
-                            Layout.fillWidth: true
-                            visible: Library.filteredCount > 0
-                            text: Tr.t("nav.dashboard")
-                            color: Theme.textTertiary
-                            horizontalAlignment: Text.AlignHCenter
-                            Accessible.name: text
-                        }
-                    }
                 }
 
-                // Detail column.
+                // Detail column: dashboard | workout detail | settings |
+                // replay route (Phase 5 renders the route itself).
                 StackLayout {
                     id: detailColumn
                     SplitView.fillWidth: true
                     currentIndex: root.screenIndex
 
-                    // Dashboard placeholder (4b ports DashboardView).
-                    Pane {
-                        padding: Theme.spacingXxxLarge
-                        ColumnLayout {
-                            spacing: Theme.spacingLarge
-                            Label {
-                                text: Tr.t("nav.dashboard")
-                                font: Theme.pageTitle
-                                color: Theme.textPrimary
-                                Accessible.name: text
-                            }
-                            Label {
-                                text: Tr.t("dashboard.title")
-                                font: Theme.sectionHeadline
-                                color: Theme.textSecondary
-                                Accessible.name: text
-                            }
-                        }
-                    }
+                    DashboardScreen {}
 
-                    // Workout detail placeholder (4b ports WorkoutDetailView).
-                    Pane {
-                        padding: Theme.spacingXxxLarge
-                        ColumnLayout {
-                            spacing: Theme.spacingLarge
-                            Label {
-                                text: Detail.hasSelection ? Detail.workoutType : ""
-                                font: Theme.pageTitle
-                                color: Theme.textPrimary
-                                Accessible.name: text
-                            }
-                            Label {
-                                text: Detail.dateText + "  " + Detail.sportName
-                                font: Theme.subheadline
-                                color: Theme.textSecondary
-                                Accessible.name: text
-                            }
-                        }
-                    }
+                    DetailScreen {}
 
                     SettingsScreen {
                         onClosed: root.toggleSettings()
+                    }
+
+                    // Replay route placeholder — the navigation policy is
+                    // live (Library.requestReplay); the 3D scene is Phase 5.
+                    Pane {
+                        padding: Theme.spacingXxxLarge
+                        ColumnLayout {
+                            spacing: Theme.spacingLarge
+                            Label {
+                                text: Tr.t("common.replay")
+                                font: Theme.pageTitle
+                                color: Theme.textPrimary
+                                Accessible.name: text
+                            }
+                            Label {
+                                text: Tr.t("common.loading")
+                                font: Theme.body
+                                color: Theme.textSecondary
+                                Accessible.name: text
+                            }
+                            Button {
+                                text: Tr.t("common.dismiss")
+                                onClicked: Library.closeReplay()
+                                Accessible.name: text
+                            }
+                        }
                     }
                 }
             }
@@ -292,12 +238,20 @@ ApplicationWindow {
         target: Library
         function onSelectionChanged() {
             Detail.selectWorkout(Library.selectedWorkoutId)
-            if (root.screenIndex !== 2) {
+            if (root.screenIndex !== 2 && !Library.isReplayPresented) {
                 root.screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
             }
         }
         function onLibraryChanged() {
             Detail.refresh()
+        }
+        // Replay route presentation (Phase 5 renders it; the shell routes).
+        function onIsReplayPresentedChanged() {
+            if (Library.isReplayPresented) {
+                root.screenIndex = 3
+            } else if (root.screenIndex === 3) {
+                root.screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
+            }
         }
     }
     Connections {
@@ -444,6 +398,16 @@ ApplicationWindow {
                     Library.reload()
                 }
                 break
+            case 33: Library.toggleSort(3); break        // pace ascending
+            case 34: Library.setDateRange("2024-01-01", "2024-12-31"); break
+            case 35: Library.setDateRange("nope", ""); break   // rejected
+            case 36: Library.setDateRange("", ""); break       // cleared
+            case 37: Library.toggleSort(0); Library.selectWorkout(9001); break
+            case 38: root.grabScreen("detail-nostrokes"); break
+            case 39: Library.selectWorkout(1005); break
+            case 40: root.grabScreen("detail-full"); break
+            case 41: Library.requestReplay(false); break       // route push
+            case 42: Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

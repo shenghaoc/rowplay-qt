@@ -62,6 +62,20 @@ QtObject {
     readonly property color metricCadence: softPurple
     readonly property color metricSplit: comparisonOrange
 
+    /// Maps a `ColorRole` index (rowplay-viewmodel) to its palette colour
+    /// (the Metric Mapping Rule: one colour per metric domain).
+    function metricColor(role) {
+        switch (role) {
+        case 1: return metricDistance
+        case 2: return metricDuration
+        case 3: return metricPace
+        case 4: return metricWatts
+        case 5: return metricHeartRate
+        case 6: return metricCadence
+        default: return textPrimary
+        }
+    }
+
     /// Green/red for positive/negative deltas with a dead-zone threshold
     /// (DesignTokens.deltaColor). `delta` may be null/undefined; `higherIsBetter`
     /// flips the sign convention (watts/distance vs pace).

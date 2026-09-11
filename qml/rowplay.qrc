@@ -11,6 +11,13 @@
         <file>RowPlay/Main.qml</file>
         <file>RowPlay/SmokeMain.qml</file>
         <file>RowPlay/SettingsScreen.qml</file>
+        <file>RowPlay/SidebarPanel.qml</file>
+        <file>RowPlay/DashboardScreen.qml</file>
+        <file>RowPlay/MetricTile.qml</file>
+        <file>RowPlay/DetailScreen.qml</file>
+        <file>RowPlay/StrokeAnalysisPanel.qml</file>
+        <file>RowPlay/StrokeChart.qml</file>
+        <file>RowPlay/ChartUtils.qml</file>
         <file>RowPlay/SmokeScene.qml</file>
         <file>RowPlay/Theme.qml</file>
         <file>RowPlay/Tr.qml</file>

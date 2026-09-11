@@ -95,6 +95,7 @@ pub struct LibraryBackend {
     sport_bar_labels: Vec<String>,
     sport_bar_values: Vec<f64>,
     pace_series: Vec<f64>,
+    pace_date_texts: Vec<String>,
     pace_domain_low: f64,
     pace_domain_high: f64,
     pace_axis_values: Vec<f64>,
@@ -146,6 +147,7 @@ impl Default for LibraryBackend {
             sport_bar_labels: Vec::new(),
             sport_bar_values: Vec::new(),
             pace_series: Vec::new(),
+            pace_date_texts: Vec::new(),
             pace_domain_low: -180.0,
             pace_domain_high: -60.0,
             pace_axis_values: Vec::new(),
@@ -244,6 +246,12 @@ impl LibraryBackend {
     );
     // Flat [x0,y0,x1,y1,…] pace series for Qt Graphs `replace`.
     qproperty!("paceSeries", Member = pace_series, Notify = library_changed);
+    // Locale short date per pace point (x-axis tick labels).
+    qproperty!(
+        "paceDateTexts",
+        Member = pace_date_texts,
+        Notify = library_changed
+    );
     qproperty!(
         "paceDomainLow",
         Member = pace_domain_low,

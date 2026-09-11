@@ -15,7 +15,8 @@ use rowplay_viewmodel::detail::{
 };
 use rowplay_viewmodel::strokes::{
     STROKE_CHART_LIMIT, distance_axis_label, downsample_strokes, hr_series_segments, overview,
-    pace_chart_domain, pace_series, power_series, rate_series, split_boundary_distances,
+    pace_chart_domain, pace_series, power_series, rate_series, series_max,
+    split_boundary_distances,
 };
 
 use crate::backend::AppState;
@@ -48,9 +49,14 @@ pub struct DetailBackend {
     has_strokes: bool,
     stroke_count: i64,
     split_count: i64,
+    average_pace_rule_y: f64,
     average_pace_text: String,
+    average_watts: f64,
+    peak_watts: f64,
     average_watts_text: String,
     peak_watts_text: String,
+    rate_max: f64,
+    hr_max: f64,
     pace_series: Vec<f64>,
     power_series: Vec<f64>,
     rate_series: Vec<f64>,
@@ -87,9 +93,14 @@ impl Default for DetailBackend {
             has_strokes: false,
             stroke_count: 0,
             split_count: 0,
+            average_pace_rule_y: f64::NAN,
             average_pace_text: String::new(),
+            average_watts: 0.0,
+            peak_watts: 0.0,
             average_watts_text: String::new(),
             peak_watts_text: String::new(),
+            rate_max: 0.0,
+            hr_max: 0.0,
             pace_series: Vec::new(),
             power_series: Vec::new(),
             rate_series: Vec::new(),
@@ -176,6 +187,21 @@ impl DetailBackend {
         Member = peak_watts_text,
         Notify = detail_changed
     );
+    // Negated mean pace for the chart's average rule (NaN when stroke-less).
+    qproperty!(
+        "averagePaceRuleY",
+        Member = average_pace_rule_y,
+        Notify = detail_changed
+    );
+    qproperty!("peakWatts", Member = peak_watts, Notify = detail_changed);
+    qproperty!(
+        "averageWatts",
+        Member = average_watts,
+        Notify = detail_changed
+    );
+    // Single-scale chart maxima (rate/HR panels).
+    qproperty!("rateMax", Member = rate_max, Notify = detail_changed);
+    qproperty!("hrMax", Member = hr_max, Notify = detail_changed);
     // Flat [x0,y0,…] series in chart units (km/mi), downsampled to 500 points.
     qproperty!("paceSeries", Member = pace_series, Notify = detail_changed);
     qproperty!(
@@ -324,14 +350,26 @@ impl DetailBackend {
         self.has_strokes = summary.has_strokes;
         self.stroke_count = summary.count;
         self.split_count = summary.split_count;
+        self.average_pace_rule_y = if summary.has_strokes && summary.average_pace > 0.0 {
+            -summary.average_pace
+        } else {
+            f64::NAN
+        };
+        self.peak_watts = summary.peak_watts;
         self.average_pace_text = summary.average_pace_text;
+        self.average_watts = summary.average_watts;
         self.average_watts_text = summary.average_watts_text;
         self.peak_watts_text = summary.peak_watts_text;
         self.pace_series = pace_series(&sampled, unit);
         self.power_series = power_series(&sampled, unit);
         self.rate_series = rate_series(&sampled, unit);
-        self.hr_segments_json =
-            serde_json::to_value(hr_series_segments(&sampled, unit)).unwrap_or_default();
+        let hr_segments = hr_series_segments(&sampled, unit);
+        self.rate_max = series_max(&self.rate_series);
+        self.hr_max = hr_segments
+            .iter()
+            .map(|segment| series_max(segment))
+            .fold(0.0_f64, f64::max);
+        self.hr_segments_json = serde_json::to_value(hr_segments).unwrap_or_default();
         let domain = pace_chart_domain(&detail.strokes);
         self.pace_domain_low = domain.0;
         self.pace_domain_high = domain.1;
@@ -357,9 +395,14 @@ impl DetailBackend {
         self.has_strokes = false;
         self.stroke_count = 0;
         self.split_count = 0;
+        self.average_pace_rule_y = f64::NAN;
         self.average_pace_text.clear();
+        self.average_watts = 0.0;
         self.average_watts_text.clear();
+        self.peak_watts = 0.0;
         self.peak_watts_text.clear();
+        self.rate_max = 0.0;
+        self.hr_max = 0.0;
         self.pace_series.clear();
         self.power_series.clear();
         self.rate_series.clear();

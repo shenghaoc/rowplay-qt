@@ -157,6 +157,19 @@ pub fn hr_series_segments(strokes: &[Stroke], unit: DistanceUnit) -> Vec<Vec<f64
     segments
 }
 
+/// Largest finite y in a flat `[x, y, …]` series (0 when empty); used to
+/// size the single-scale stroke charts.
+#[must_use]
+pub fn series_max(series: &[f64]) -> f64 {
+    let mut max = 0.0_f64;
+    for value in series.iter().skip(1).step_by(2) {
+        if value.is_finite() && *value > max {
+            max = *value;
+        }
+    }
+    max
+}
+
 /// The rendered "Split Focus" summary values (QML composes the labels from
 /// locale ids; numbers and unit symbols come from here).
 #[derive(Debug, Clone, PartialEq)]
@@ -167,8 +180,14 @@ pub struct StrokeOverview {
     pub count: i64,
     /// Split count for the subtitle ("{n} splits and finishing effort").
     pub split_count: i64,
+    /// Mean pace, seconds/500 m (numeric, for the rule line).
+    pub average_pace: f64,
     /// Mean pace over the strokes (`fmt_pace`).
     pub average_pace_text: String,
+    /// Peak watts (numeric, for chart scaling).
+    pub peak_watts: f64,
+    /// Mean watts (Studio's average-watts rule line).
+    pub average_watts: f64,
     /// Mean watts, rounded.
     pub average_watts_text: String,
     /// Peak watts, rounded.
@@ -183,8 +202,11 @@ pub fn overview(detail_strokes: &[Stroke], splits: &[Split]) -> StrokeOverview {
         has_strokes: !detail_strokes.is_empty(),
         count: summary.count as i64,
         split_count: splits.len() as i64,
+        average_pace: summary.average_pace,
         average_pace_text: fmt_pace(summary.average_pace),
+        average_watts: summary.average_watts,
         average_watts_text: summary.average_watts.round().to_string(),
+        peak_watts: summary.peak_watts,
         peak_watts_text: summary.peak_watts.round().to_string(),
     }
 }
@@ -291,6 +313,13 @@ mod tests {
     }
 
     #[test]
+    fn series_max_scans_the_y_lane() {
+        assert_eq!(series_max(&[]), 0.0);
+        assert_eq!(series_max(&[0.0, 120.0, 1.0, 350.5, 2.0, 90.0]), 350.5);
+        assert_eq!(series_max(&[0.0, f64::NAN, 1.0, -5.0]), 0.0);
+    }
+
+    #[test]
     fn overview_handles_stroke_less_and_synthesised_workouts() {
         // Stroke-less demo piece: Studio's "No Stroke Detail" empty state.
         let strokeless = demo_details()
@@ -306,6 +335,7 @@ mod tests {
         let summary = overview(&detail.strokes, &detail.splits);
         assert!(summary.has_strokes);
         assert!(summary.count > 0);
+        assert!(summary.average_watts > 0.0);
         assert!(summary.average_pace_text.contains(':'));
         assert!(
             summary
