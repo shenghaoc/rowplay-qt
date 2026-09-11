@@ -40,6 +40,9 @@ pub struct Preferences {
     pub preferred_distance_unit: DistanceUnit,
     /// IANA home time zone for calendar bucketing.
     pub home_timezone: Option<String>,
+    /// UI language code (`en`, `zh`, `de`, `es`, `fr`, `ja`). `None` reads as
+    /// the default (`en`), matching the web's stored-language fallback.
+    pub language: Option<String>,
 }
 
 impl Default for Preferences {
@@ -49,6 +52,7 @@ impl Default for Preferences {
             reduce_replay_motion: false,
             preferred_distance_unit: DistanceUnit::Metric,
             home_timezone: None,
+            language: None,
         }
     }
 }
@@ -223,6 +227,7 @@ mod tests {
         assert!(!prefs.reduce_replay_motion);
         assert_eq!(prefs.preferred_distance_unit, DistanceUnit::Metric);
         assert_eq!(prefs.home_timezone, None);
+        assert_eq!(prefs.language, None);
     }
 
     #[test]
@@ -274,6 +279,7 @@ mod tests {
             reduce_replay_motion: true,
             preferred_distance_unit: DistanceUnit::Imperial,
             home_timezone: Some("Asia/Singapore".into()),
+            language: Some("ja".into()),
         };
         store.save(&prefs).unwrap();
         assert_eq!(store.load().unwrap(), prefs);
