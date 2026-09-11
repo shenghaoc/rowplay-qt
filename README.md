@@ -80,6 +80,50 @@ QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
   xvfb-run -a cargo test -p rowplay-app
 ```
 
+On macOS no Xvfb is needed — the app renders through the normal window server
+and writes the same artifacts:
+
+```bash
+ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  cargo test -p rowplay-app
+```
+
+## Installing Qt locally
+
+CI uses `jurplel/install-qt-action`; for a local build `aqtinstall` fetches the
+same archives. Install the modules the app imports and leave the **default
+archives** alone: on Linux the defaults are what bring `qtwayland`, so the app
+runs natively under Wayland (a restricted `--archives` list would drop it).
+
+```bash
+python3 -m venv ~/.venvs/aqtinstall
+~/.venvs/aqtinstall/bin/pip install "aqtinstall==3.3.*"
+
+# Linux — the desktop architecture is linux_gcc_64
+~/.venvs/aqtinstall/bin/aqt install-qt linux desktop 6.11.2 linux_gcc_64 \
+  -m qtquick3d qtshadertools qtquicktimeline qtgraphs --outputdir ~/Qt
+
+# macOS
+~/.venvs/aqtinstall/bin/aqt install-qt mac desktop 6.11.2 clang_64 \
+  -m qtquick3d qtshadertools qtquicktimeline qtgraphs --outputdir ~/Qt
+```
+
+`qmake` must be on `PATH` (or `QMAKE` set) for `build.rs` to find `rcc`:
+
+```bash
+export PATH="$HOME/Qt/6.11.2/macos/bin:$PATH"        # .../gcc_64/bin on Linux
+export QMAKE="$HOME/Qt/6.11.2/macos/bin/qmake"
+cargo build -p rowplay-app
+```
+
+macOS binaries reference Qt through `@rpath` with no `LC_RPATH` emitted, so
+running or testing the app also needs the frameworks on the fallback path
+(see note 10 in [`docs/qt-bridges-notes.md`](docs/qt-bridges-notes.md)):
+
+```bash
+export DYLD_FALLBACK_FRAMEWORK_PATH="$HOME/Qt/6.11.2/macos/lib"
+```
+
 Demo mode is first-class: everything is explorable with deterministic seeded
 data and no Concept2 token.
 
