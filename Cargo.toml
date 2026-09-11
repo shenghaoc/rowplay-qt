@@ -32,6 +32,23 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 chrono-tz = "0.10"
 # Qt Bridges for Rust (public beta). Pinned exactly: the API is still moving.
 qtbridge = "=0.2.0"
+# Platform services (Phase 3). Each backend is target-gated inside its crate, so
+# one declaration covers every target; see docs/decisions/0007-platform-libraries.md.
+# ureq: blocking HTTP over rustls. The `cookies`, `json`, `charset` and proxy
+# features stay off — the Concept2 client wants none of them.
+ureq = { version = "3.4.1", default-features = false, features = ["rustls"] }
+# keyring 3 has NO default features: without a backend feature it silently uses
+# an in-memory mock store, so all three native backends are named explicitly.
+keyring = { version = "3.6.3", default-features = false, features = [
+    "apple-native",
+    "windows-native",
+    "sync-secret-service",
+    "crypto-rust",
+] }
+# `bundled` compiles SQLite, so Windows needs no system library.
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+directories = "6.0.0"
+tempfile = "3.27.0"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
