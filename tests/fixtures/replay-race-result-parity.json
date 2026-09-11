@@ -1,0 +1,184 @@
+{
+  "cases": [
+    {
+      "label": "distance player win",
+      "axis": "distance",
+      "targetDistance": 2000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 130, "cadence": 26, "watts": 160 },
+        { "t": 520, "d": 2000, "pace": 130, "cadence": 26, "watts": 160 }
+      ],
+      "expectOutcome": "playerWon",
+      "expectTimeMargin": 40,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "distance rival win",
+      "axis": "distance",
+      "targetDistance": 2000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 130, "cadence": 26, "watts": 160 },
+        { "t": 520, "d": 2000, "pace": 130, "cadence": 26, "watts": 160 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "rivalWon",
+      "expectTimeMargin": 40,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "distance tie within tolerance",
+      "axis": "distance",
+      "targetDistance": 1000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 240.02, "d": 1000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 240.0, "d": 1000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "tie",
+      "expectTimeMargin": 0,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "distance non-zero timestamp origins",
+      "axis": "distance",
+      "targetDistance": 500,
+      "playerStrokes": [
+        { "t": 1000, "d": 0, "pace": 100, "cadence": 30, "watts": 250 },
+        { "t": 1100, "d": 500, "pace": 100, "cadence": 30, "watts": 250 }
+      ],
+      "rivalStrokes": [
+        { "t": 50, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 170, "d": 500, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "playerWon",
+      "expectTimeMargin": 20,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "distance sparse interpolation",
+      "axis": "distance",
+      "targetDistance": 1000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 150, "cadence": 24, "watts": 120 },
+        { "t": 600, "d": 2000, "pace": 150, "cadence": 24, "watts": 120 }
+      ],
+      "expectOutcome": "playerWon",
+      "expectPlayerFinishTime": 240,
+      "expectRivalFinishTime": 300,
+      "expectTimeMargin": 60,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "distance shorter rival DNF",
+      "axis": "distance",
+      "targetDistance": 2000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 240, "d": 1000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "playerWon",
+      "expectRivalDNF": true,
+      "expectDistanceMargin": 1000
+    },
+    {
+      "label": "distance player never reaches target",
+      "axis": "distance",
+      "targetDistance": 2000,
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 240, "d": 1000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectNil": true
+    },
+    {
+      "label": "time axis player win",
+      "axis": "time",
+      "targetDuration": 300,
+      "workoutType": "FixedTimeIntervals",
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 100, "cadence": 30, "watts": 250 },
+        { "t": 300, "d": 1500, "pace": 100, "cadence": 30, "watts": 250 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 300, "d": 1250, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "playerWon",
+      "expectDistanceMargin": 250,
+      "expectTimeMarginAbsent": true,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "time axis rival win",
+      "axis": "time",
+      "targetDuration": 300,
+      "workoutType": "JustRow",
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 300, "d": 1200, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 100, "cadence": 30, "watts": 250 },
+        { "t": 300, "d": 1500, "pace": 100, "cadence": 30, "watts": 250 }
+      ],
+      "expectOutcome": "rivalWon",
+      "expectDistanceMargin": 300,
+      "expectTimeMarginAbsent": true,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "time axis tie within 0.5m",
+      "axis": "time",
+      "targetDuration": 180,
+      "workoutType": "FixedTimeIntervals",
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 180, "d": 750.2, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 180, "d": 750.0, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectOutcome": "tie",
+      "expectDistanceMargin": 0,
+      "expectTimeMarginAbsent": true,
+      "expectRivalDNF": false
+    },
+    {
+      "label": "non-finite target distance yields nil",
+      "axis": "distance",
+      "targetDistance": "NaN",
+      "playerStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "rivalStrokes": [
+        { "t": 0, "d": 0, "pace": 120, "cadence": 28, "watts": 200 },
+        { "t": 480, "d": 2000, "pace": 120, "cadence": 28, "watts": 200 }
+      ],
+      "expectNil": true
+    }
+  ]
+}

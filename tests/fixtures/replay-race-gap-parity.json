@@ -1,0 +1,100 @@
+{
+  "description": "Parity fixture for ReplayRaceGap helpers. Expected values match the verified web replayGap.ts computations. No user information, tokens, account identifiers, or real workout data.",
+  "cases": [
+    {
+      "label": "player ahead by 42m at 2:00/500m pace",
+      "playerD": 1520,
+      "ghostD": 1478,
+      "expectedGapM": 42,
+      "playerPacePer500m": 120,
+      "expectedGapSec": 10.08
+    },
+    {
+      "label": "player behind by 42m at 2:00/500m pace",
+      "playerD": 1478,
+      "ghostD": 1520,
+      "expectedGapM": -42,
+      "playerPacePer500m": 120,
+      "expectedGapSec": -10.08
+    },
+    {
+      "label": "tied",
+      "playerD": 1500,
+      "ghostD": 1500,
+      "expectedGapM": 0,
+      "playerPacePer500m": 120,
+      "expectedGapSec": 0
+    },
+    {
+      "label": "zero pace produces zero seconds",
+      "playerD": 1600,
+      "ghostD": 1500,
+      "expectedGapM": 100,
+      "playerPacePer500m": 0,
+      "expectedGapSec": 0
+    },
+    {
+      "label": "non-finite player distance",
+      "playerD": "Infinity",
+      "ghostD": 1500,
+      "expectedGapM": -1500,
+      "playerPacePer500m": 120,
+      "expectedGapSec": -360
+    },
+    {
+      "label": "non-finite ghost distance",
+      "playerD": 1500,
+      "ghostD": "Infinity",
+      "expectedGapM": 1500,
+      "playerPacePer500m": 120,
+      "expectedGapSec": 360
+    },
+    {
+      "label": "ghost interpolation midway between samples",
+      "elapsed": 30,
+      "ghostStrokes": [
+        {"t": 10, "d": 100, "pace": 120, "cadence": 30, "heartRate": 140, "watts": 200},
+        {"t": 20, "d": 200, "pace": 120, "cadence": 30, "heartRate": 142, "watts": 200},
+        {"t": 30, "d": 300, "pace": 120, "cadence": 30, "heartRate": 144, "watts": 200},
+        {"t": 40, "d": 400, "pace": 120, "cadence": 30, "heartRate": 146, "watts": 200}
+      ],
+      "expectedGhostDistance": 400
+    },
+    {
+      "label": "clamp before ghost start",
+      "elapsed": -10,
+      "ghostStrokes": [
+        {"t": 10, "d": 100, "pace": 120, "cadence": 30, "heartRate": 140, "watts": 200},
+        {"t": 20, "d": 200, "pace": 120, "cadence": 30, "heartRate": 142, "watts": 200}
+      ],
+      "expectedGhostDistance": 100
+    },
+    {
+      "label": "clamp after ghost finish",
+      "elapsed": 100,
+      "ghostStrokes": [
+        {"t": 10, "d": 100, "pace": 120, "cadence": 30, "heartRate": 140, "watts": 200},
+        {"t": 20, "d": 200, "pace": 120, "cadence": 30, "heartRate": 142, "watts": 200}
+      ],
+      "expectedGhostDistance": 200
+    },
+    {
+      "label": "native non-zero timestamp origin",
+      "elapsed": 15,
+      "ghostStrokes": [
+        {"t": 5, "d": 50, "pace": 120, "cadence": 30, "heartRate": 140, "watts": 200},
+        {"t": 15, "d": 150, "pace": 120, "cadence": 30, "heartRate": 142, "watts": 200},
+        {"t": 25, "d": 250, "pace": 120, "cadence": 30, "heartRate": 144, "watts": 200}
+      ],
+      "expectedGhostDistance": 200
+    },
+    {
+      "label": "relative duration with non-zero timestamp origin",
+      "ghostStrokes": [
+        {"t": 5, "d": 50, "pace": 120, "cadence": 30, "heartRate": 140, "watts": 200},
+        {"t": 65, "d": 650, "pace": 120, "cadence": 30, "heartRate": 144, "watts": 200}
+      ],
+      "expectedRelativeDuration": 60
+    }
+  ]
+}

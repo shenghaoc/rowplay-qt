@@ -1,0 +1,53 @@
+{
+	"description": "2×500 m RowErg interval (minimum case for t/d reset) — two reps with cumulative offset; two interval splits",
+	"_rep2FirstIndex": 5,
+	"_rep1FinalT": 3.2,
+	"_rep1FinalD": 16,
+	"rawResult": {
+		"id": 9004,
+		"date": "2026-05-18 06:45:00",
+		"type": "rower",
+		"distance": 1000,
+		"time": 2250,
+		"stroke_rate": 34,
+		"stroke_count": 180,
+		"stroke_data": true,
+		"workout_type": "rower",
+		"workout": {
+			"intervals": [
+				{ "distance": 500, "time": 1125, "stroke_rate": 34 },
+				{ "distance": 500, "time": 1125, "stroke_rate": 34 }
+			]
+		}
+	},
+	"rawStrokes": [
+		{ "t": 0, "d": 0, "p": 1080, "spm": 34 },
+		{ "t": 8, "d": 40, "p": 1075, "spm": 34 },
+		{ "t": 16, "d": 80, "p": 1070, "spm": 35 },
+		{ "t": 24, "d": 120, "p": 1068, "spm": 35 },
+		{ "t": 32, "d": 160, "p": 1080, "spm": 34 },
+		{ "t": 0, "d": 0, "p": 1090, "spm": 34 },
+		{ "t": 8, "d": 40, "p": 1085, "spm": 35 },
+		{ "t": 16, "d": 80, "p": 1080, "spm": 35 },
+		{ "t": 24, "d": 120, "p": 1078, "spm": 35 },
+		{ "t": 32, "d": 160, "p": 1095, "spm": 34 }
+	],
+	"expected": {
+		"result": {
+			"sport": "rower",
+			"time": 225,
+			"distance": 1000,
+			"pace": 112.5
+		},
+		"strokes": [
+			{ "_index": 0, "t": 0, "d": 0, "rawT": 0, "rawD": 0, "pace": 108 },
+			{ "_index": 4, "t": 3.2, "d": 16, "rawT": 3.2, "rawD": 16, "pace": 108 },
+			{ "_index": 5, "t": 3.2, "d": 16, "rawT": 0, "rawD": 0, "pace": 109 },
+			{ "_index": 9, "t": 6.4, "d": 32, "rawT": 3.2, "rawD": 16, "pace": 109.5 }
+		],
+		"splits": [
+			{ "_index": 0, "time": 112.5, "distance": 500, "pace": 112.5 },
+			{ "_index": 1, "time": 112.5, "distance": 500, "pace": 112.5 }
+		]
+	}
+}

@@ -1,0 +1,70 @@
+[
+  {
+    "expected" : {
+      "1000" : 201.45,
+      "10000" : 2312.9,
+      "2000" : 420,
+      "21097" : 5103.07,
+      "500" : 96.62,
+      "5000" : 1109.34,
+      "6000" : 1345.85
+    },
+    "input" : {
+      "knownDistance" : 2000,
+      "knownSeconds" : 420
+    },
+    "name" : "2000m in 7:00 predicts all distances"
+  },
+  {
+    "expected" : {
+      "1000" : 187.64,
+      "10000" : 2154.44,
+      "2000" : 391.22,
+      "21097" : 4753.44,
+      "500" : 90,
+      "5000" : 1033.34,
+      "6000" : 1253.65
+    },
+    "input" : {
+      "knownDistance" : 500,
+      "knownSeconds" : 90
+    },
+    "name" : "500m sprint in 1:30 predicts all distances"
+  },
+  {
+    "expected" : {
+      "1000" : 219.48,
+      "10000" : 2520,
+      "2000" : 457.61,
+      "21097" : 5560,
+      "500" : 105.27,
+      "5000" : 1208.67,
+      "6000" : 1466.36
+    },
+    "input" : {
+      "knownDistance" : 10000,
+      "knownSeconds" : 2520
+    },
+    "name" : "10000m in 42:00 predicts all distances"
+  },
+  {
+    "expected" : {
+
+    },
+    "input" : {
+      "knownDistance" : 0,
+      "knownSeconds" : 420
+    },
+    "name" : "Zero distance returns empty"
+  },
+  {
+    "expected" : {
+
+    },
+    "input" : {
+      "knownDistance" : 2000,
+      "knownSeconds" : 0
+    },
+    "name" : "Zero seconds returns empty"
+  }
+]

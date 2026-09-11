@@ -1,0 +1,2319 @@
+{
+  "schema": "rowplay.replay.current-main.equipment-parity.v1",
+  "sourceCommit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
+  "generatorVersion": "export_rowplay_native_parity/1.0.0",
+  "sourceFileSha256s": {
+    "src/lib/replay/rowRig.ts": "bde8a76aac46dd71dc068b60287bc0ee891c94c12cac13a170ad734e5b9d25a5",
+    "src/lib/replay/figurePose.ts": "b922ea36c5b720391912204a851dc33a8fd5ba951a6d098c669aa829279d5c89",
+    "src/lib/replay/skiEquipment.ts": "0c98e6bf58139d7448cf92a9c5b8ecb84b0027e901f67306b93f5b0cde1f01b5",
+    "src/lib/replay/handGrip.ts": "36dbc564704e32581a0e02c1b47a02a88f983f5f03df8fa3bd233fbff779fd0e",
+    "src/lib/replay/rigV4.ts": "2d7dd0cd704bc530bb408b3bf6d0e78c50a34e1eea77618effb85fab51d5803e",
+    "src/lib/replay/bikeRig.js": "f511c4b3f7f46df162d6f151e61c10061c52016e1473c4eb9e713c60264c35b3",
+    "src/lib/replay/bikeSaddle.js": "4c0e1c00ee67bb4084e16db69175e38dab9194085ff8593cd9e63d4106a55eb7",
+    "src/lib/replay/sportKinematics.ts": "c977561ec2893de1afe27e2042c9a576b4e352b2c747334478cca14996529c3b",
+    "src/lib/replay/motionGraph.ts": "612e024e048a66514c3190104e39f5656f849f38aaccc56fef926aa1e2ff94b8"
+  },
+  "sampleCount": 253,
+  "row": {
+    "footContact": {
+      "lateral": 0.12,
+      "y": 0.215,
+      "z": 0.75
+    },
+    "stretcher": {
+      "centerY": 0.295,
+      "centerZ": 0.68,
+      "boardRotation": -0.8377580409572782,
+      "shoeCatchPitch": -0.6108652381980153,
+      "shoeFinishPitch": -0.7330382858376184
+    },
+    "scullGrip": {
+      "radius": 0.023,
+      "length": 0.32,
+      "anchorFromEnd": 0.04
+    },
+    "oarlock": {
+      "lateral": 0.88,
+      "y": 0.51,
+      "z": 0.28
+    },
+    "elbowCorridor": {
+      "maxOutboard": 0.11,
+      "maxInboard": 0.05,
+      "maxBehindShoulder": 0.19,
+      "maxOutboardPerRearward": 0.7
+    },
+    "elbowPlane": {
+      "authorityStart": 0.14,
+      "authorityFull": 0.55,
+      "relaxed": {
+        "x": 0.32,
+        "y": -1,
+        "z": -0.12
+      },
+      "drawn": {
+        "x": 0.02,
+        "y": -0.72,
+        "z": -0.69
+      },
+      "drawnOutboardWeight": 0.24,
+      "drawnDownWeight": 0.9707728879609278
+    },
+    "drawFinishFlexion": 2.46,
+    "drawSoftFlexion": 0.32
+  },
+  "ski": {
+    "athleteProportions": {
+      "standingHeight": 1.64,
+      "shoulderHalfWidth": 0.25,
+      "hipHalfWidth": 0.12,
+      "upperArmLength": 0.49,
+      "forearmLength": 0.47,
+      "thighLength": 0.4,
+      "shinLength": 0.39,
+      "skiCenterOffset": 0.15,
+      "skiLength": 1.9,
+      "skiWidth": 0.072,
+      "poleLength": 1.37,
+      "polePlantLateralOffset": 0.46,
+      "polePlantForwardOffset": 0.24
+    },
+    "gripShift": 0.042,
+    "poleGripRadius": 0.016,
+    "poleThumbOppose": 1.75,
+    "equipmentDetail": {
+      "low": {
+        "radialSegments": 8,
+        "topSheet": false,
+        "metalEdges": false,
+        "bindingRails": false,
+        "bootClosures": false,
+        "gripStraps": false,
+        "basketRibs": false
+      },
+      "medium": {
+        "radialSegments": 12,
+        "topSheet": true,
+        "metalEdges": false,
+        "bindingRails": true,
+        "bootClosures": true,
+        "gripStraps": true,
+        "basketRibs": false
+      },
+      "high": {
+        "radialSegments": 16,
+        "topSheet": true,
+        "metalEdges": true,
+        "bindingRails": true,
+        "bootClosures": true,
+        "gripStraps": true,
+        "basketRibs": true
+      },
+      "ultra": {
+        "radialSegments": 20,
+        "topSheet": true,
+        "metalEdges": true,
+        "bindingRails": true,
+        "bootClosures": true,
+        "gripStraps": true,
+        "basketRibs": true
+      }
+    }
+  },
+  "bike": {
+    "rig": {
+      "wheelRadius": 0.31,
+      "tyreTube": 0.025,
+      "frontAxleZ": 0.5393939941366235,
+      "rearAxleZ": -0.45999999999999996,
+      "bottomBracket": [
+        0,
+        0.265,
+        -0.05
+      ],
+      "seatCluster": [
+        0,
+        0.7932352855240201,
+        -0.21745769771663578
+      ],
+      "saddleClamp": [
+        0,
+        0.8506135708818022,
+        -0.235
+      ],
+      "headBottom": [
+        0,
+        0.6849999999999999,
+        0.38238825562609235
+      ],
+      "headTop": [
+        0,
+        0.84,
+        0.335
+      ],
+      "saddle": [
+        0,
+        0.8726135708818022,
+        -0.285
+      ],
+      "saddlePadHalfHeight": 0.022,
+      "handlebar": {
+        "base": [
+          0,
+          0.855,
+          0.42500000000000004
+        ],
+        "grip": {
+          "y": 0.84,
+          "z": 0.51,
+          "halfSpan": 0.2
+        },
+        "hood": {
+          "rotationX": -0.24,
+          "radius": 0.018
+        }
+      },
+      "saddleClampZ": 0.05,
+      "crank": {
+        "lateral": 0.09,
+        "pedalRadius": 0.1725
+      },
+      "rider": {
+        "root": [
+          0,
+          1.0476135708818024,
+          -0.16999999999999998
+        ],
+        "pelvisOffset": [
+          0,
+          0,
+          -0.005
+        ],
+        "sitSurfaceFromHip": [
+          0,
+          -0.158,
+          -0.115
+        ],
+        "perineumFromHipY": -0.1952,
+        "sitNestle": 0.005,
+        "kneeFlexionAtBdc": 0.5235987755982988
+      },
+      "athlete": {
+        "thigh": 0.4915,
+        "shin": 0.4794,
+        "soleDrop": 0.055
+      }
+    },
+    "wheelAxleY": 0.335,
+    "saddleTopY": 0.8946135708818023,
+    "riderHipY": 1.0476135708818022
+  },
+  "saddle": {
+    "stations": [
+      {
+        "z": -0.05,
+        "halfWidth": 0.03,
+        "dropOuter": 0.012,
+        "dropChannel": 0.012,
+        "cutout": 0
+      },
+      {
+        "z": -0.03,
+        "halfWidth": 0.06,
+        "dropOuter": 0.002,
+        "dropChannel": 0.004,
+        "cutout": 0
+      },
+      {
+        "z": -0.015,
+        "halfWidth": 0.073,
+        "dropOuter": 0,
+        "dropChannel": 0.004,
+        "cutout": 0.018
+      },
+      {
+        "z": 0,
+        "halfWidth": 0.075,
+        "dropOuter": 0,
+        "dropChannel": 0.007,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.015,
+        "halfWidth": 0.068,
+        "dropOuter": 0.001,
+        "dropChannel": 0.014,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.028,
+        "halfWidth": 0.056,
+        "dropOuter": 0.002,
+        "dropChannel": 0.021,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.045,
+        "halfWidth": 0.046,
+        "dropOuter": 0.018,
+        "dropChannel": 0.021,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.06,
+        "halfWidth": 0.038,
+        "dropOuter": 0.02,
+        "dropChannel": 0.022,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.08,
+        "halfWidth": 0.032,
+        "dropOuter": 0.024,
+        "dropChannel": 0.026,
+        "cutout": 0.024
+      },
+      {
+        "z": 0.1,
+        "halfWidth": 0.027,
+        "dropOuter": 0.028,
+        "dropChannel": 0.029,
+        "cutout": 0.022
+      },
+      {
+        "z": 0.115,
+        "halfWidth": 0.024,
+        "dropOuter": 0.04,
+        "dropChannel": 0.041,
+        "cutout": 0.014
+      },
+      {
+        "z": 0.13,
+        "halfWidth": 0.022,
+        "dropOuter": 0.046,
+        "dropChannel": 0.046,
+        "cutout": 0
+      },
+      {
+        "z": 0.15,
+        "halfWidth": 0.02,
+        "dropOuter": 0.053,
+        "dropChannel": 0.053,
+        "cutout": 0
+      },
+      {
+        "z": 0.17,
+        "halfWidth": 0.017,
+        "dropOuter": 0.062,
+        "dropChannel": 0.062,
+        "cutout": 0
+      }
+    ],
+    "shellThickness": 0.016,
+    "rearZ": -0.05,
+    "noseZ": 0.17,
+    "length": 0.22000000000000003,
+    "maxHalfWidth": 0.075
+  },
+  "samples": {
+    "oarYaw": [
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            1.05,
+            0.15
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.5,
+          "requestedReach": 0.55,
+          "preferredYaw": -1.1,
+          "forceReachBoundary": true
+        },
+        "output": -3.345085698847356
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.2979162026131172,
+            0.03648299048119932
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.45789473684210524,
+          "requestedReach": 0.5710526315789474,
+          "preferredYaw": -0.9842105263157895,
+          "forceReachBoundary": false
+        },
+        "output": -3.301710595970833
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            0.9861147244932922,
+            -0.2181606284079261
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.41578947368421054,
+          "requestedReach": 0.5921052631578948,
+          "preferredYaw": -0.868421052631579,
+          "forceReachBoundary": false
+        },
+        "output": -3.810656253048588
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            0.8185463294180669,
+            -0.4212216426051183
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.3736842105263158,
+          "requestedReach": 0.6131578947368421,
+          "preferredYaw": -0.7526315789473685,
+          "forceReachBoundary": true
+        },
+        "output": -3.0101727258241517
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            1.1735283377846522,
+            -0.4190275249002441
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.3315789473684211,
+          "requestedReach": 0.6342105263157896,
+          "preferredYaw": -0.636842105263158,
+          "forceReachBoundary": false
+        },
+        "output": 2.3043027464501984
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.2496217781558725,
+            -0.21323873982923391
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.2894736842105263,
+          "requestedReach": 0.6552631578947369,
+          "preferredYaw": -0.5210526315789474,
+          "forceReachBoundary": false
+        },
+        "output": -2.999411246290422
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            0.8750313281016144,
+            0.040407862782790405
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.24736842105263157,
+          "requestedReach": 0.6763157894736842,
+          "preferredYaw": -0.4052631578947369,
+          "forceReachBoundary": true
+        },
+        "output": -2.971867426981897
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            0.8954657219407417,
+            0.1499575909150245
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.20526315789473687,
+          "requestedReach": 0.6973684210526316,
+          "preferredYaw": -0.28947368421052644,
+          "forceReachBoundary": false
+        },
+        "output": 2.383226513689066
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            1.264790453714124,
+            0.032505394359676365
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.1631578947368421,
+          "requestedReach": 0.718421052631579,
+          "preferredYaw": -0.17368421052631589,
+          "forceReachBoundary": false
+        },
+        "output": 2.7672664552623125
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.1491851432826534,
+            -0.22306324612073733
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.12105263157894736,
+          "requestedReach": 0.7394736842105264,
+          "preferredYaw": -0.05789473684210522,
+          "forceReachBoundary": true
+        },
+        "output": -3.1100405937663957
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            0.8096506270301108,
+            -0.4233390785654031
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": -0.07894736842105265,
+          "requestedReach": 0.7605263157894737,
+          "preferredYaw": 0.05789473684210522,
+          "forceReachBoundary": false
+        },
+        "output": 3.0770538725769367
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.0127502435464504,
+            -0.41675734578760826
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": -0.03684210526315784,
+          "requestedReach": 0.7815789473684212,
+          "preferredYaw": 0.17368421052631589,
+          "forceReachBoundary": false
+        },
+        "output": 3.2602121351593905
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            1.2999482250356673,
+            -0.20829897193660044
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": 0.0052631578947368585,
+          "requestedReach": 0.8026315789473685,
+          "preferredYaw": 0.2894736842105263,
+          "forceReachBoundary": true
+        },
+        "output": 2.6885731125993084
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.022840851143981,
+            0.04427890159616321
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": 0.047368421052631615,
+          "requestedReach": 0.8236842105263158,
+          "preferredYaw": 0.405263157894737,
+          "forceReachBoundary": false
+        },
+        "output": 2.6389158177933236
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            0.8070503885640342,
+            0.1498303756503014
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": 0.08947368421052626,
+          "requestedReach": 0.8447368421052632,
+          "preferredYaw": 0.5210526315789472,
+          "forceReachBoundary": false
+        },
+        "output": -2.1381655288417507
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.139764588505542,
+            0.028476198992967605
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": 0.13157894736842113,
+          "requestedReach": 0.8657894736842107,
+          "preferredYaw": 0.6368421052631579,
+          "forceReachBoundary": true
+        },
+        "output": 2.8862583704100477
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            1.269818265412681,
+            -0.22794520686412673
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0.78,
+          "bladeRoll": 0.17368421052631577,
+          "requestedReach": 0.8868421052631579,
+          "preferredYaw": 0.7526315789473683,
+          "forceReachBoundary": false
+        },
+        "output": 3.281952711473047
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            0.9035906650064256,
+            -0.4253792341242879
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": 0.21578947368421053,
+          "requestedReach": 0.9078947368421053,
+          "preferredYaw": 0.868421052631579,
+          "forceReachBoundary": false
+        },
+        "output": 3.1462197349586782
+      },
+      {
+        "input": {
+          "shoulder": [
+            0.25,
+            0.867909808042101,
+            -0.41441174710867035
+          ],
+          "pinX": 0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": 0,
+          "bladeRoll": 0.2578947368421053,
+          "requestedReach": 0.9289473684210527,
+          "preferredYaw": 0.9842105263157896,
+          "forceReachBoundary": true
+        },
+        "output": 0.9842105263157896
+      },
+      {
+        "input": {
+          "shoulder": [
+            -0.25,
+            1.2433319723915552,
+            -0.20334272133693468
+          ],
+          "pinX": -0.88,
+          "pinY": 0.51,
+          "pinZ": 0.28,
+          "signedInboard": -0.78,
+          "bladeRoll": 0.30000000000000004,
+          "requestedReach": 0.9500000000000001,
+          "preferredYaw": 1.1,
+          "forceReachBoundary": false
+        },
+        "output": 3.7960179065686988
+      }
+    ],
+    "elbowFlexion": [
+      {
+        "chordLength": 0.01,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 3.141175891258637
+      },
+      {
+        "chordLength": 0.15,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 2.8305634741849452
+      },
+      {
+        "chordLength": 0.25,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 2.6162972775756317
+      },
+      {
+        "chordLength": 0.38,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 2.32865025182656
+      },
+      {
+        "chordLength": 0.52,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 1.9974294573519469
+      },
+      {
+        "chordLength": 0.65,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 1.6544805930123518
+      },
+      {
+        "chordLength": 0.78,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 1.2450485068194979
+      },
+      {
+        "chordLength": 0.88,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.822465019634528
+      },
+      {
+        "chordLength": 0.94,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.40905043574175304
+      },
+      {
+        "chordLength": 0.97,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.002887378266217766
+      }
+    ],
+    "reachForFlexion": [
+      {
+        "flexion": -0.2,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.96
+      },
+      {
+        "flexion": 0,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.96
+      },
+      {
+        "flexion": 0.32,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.947743548418438
+      },
+      {
+        "flexion": 0.6,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.9171420741779311
+      },
+      {
+        "flexion": 1,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.8425338225156692
+      },
+      {
+        "flexion": 1.5,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.7025535958830073
+      },
+      {
+        "flexion": 2,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.5189631654427761
+      },
+      {
+        "flexion": 2.46,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.32142141715287925
+      },
+      {
+        "flexion": 3,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.07077751101751785
+      },
+      {
+        "flexion": 3.3,
+        "upperArmLength": 0.49,
+        "forearmLength": 0.47,
+        "output": 0.02000575667103895
+      }
+    ],
+    "bikeKneeFlexion": [
+      {
+        "angle": 0,
+        "output": 1.8165269690701722
+      },
+      {
+        "angle": 0.39269908169872414,
+        "output": 1.739014504521551
+      },
+      {
+        "angle": 0.7853981633974483,
+        "output": 1.5894903322846803
+      },
+      {
+        "angle": 1.1780972450961724,
+        "output": 1.3895142948452979
+      },
+      {
+        "angle": 1.5707963267948966,
+        "output": 1.1601177404464391
+      },
+      {
+        "angle": 1.9634954084936207,
+        "output": 0.92128433771828
+      },
+      {
+        "angle": 2.356194490192345,
+        "output": 0.6986768579333682
+      },
+      {
+        "angle": 2.748893571891069,
+        "output": 0.54055183584815
+      },
+      {
+        "angle": 3.141592653589793,
+        "output": 0.5235987755982983
+      },
+      {
+        "angle": 3.5342917352885173,
+        "output": 0.6596834647755196
+      },
+      {
+        "angle": 3.9269908169872414,
+        "output": 0.8744052553657964
+      },
+      {
+        "angle": 4.319689898685965,
+        "output": 1.1124457037156414
+      },
+      {
+        "angle": 4.71238898038469,
+        "output": 1.345363007130289
+      },
+      {
+        "angle": 5.105088062083414,
+        "output": 1.5528328763579664
+      },
+      {
+        "angle": 5.497787143782138,
+        "output": 1.7142211340707185
+      },
+      {
+        "angle": 5.890486225480862,
+        "output": 1.8076697550170457
+      }
+    ],
+    "saddleDrop": {
+      "xs": [
+        -0.08,
+        -0.064,
+        -0.048,
+        -0.032,
+        -0.016,
+        0,
+        0.016,
+        0.032000000000000015,
+        0.048,
+        0.06399999999999999,
+        0.08
+      ],
+      "zs": [
+        -0.06,
+        -0.04285714285714286,
+        -0.02571428571428571,
+        -0.00857142857142857,
+        0.008571428571428577,
+        0.025714285714285717,
+        0.04285714285714286,
+        0.06,
+        0.07714285714285715,
+        0.0942857142857143,
+        0.11142857142857143,
+        0.12857142857142856,
+        0.1457142857142857,
+        0.16285714285714287,
+        0.18
+      ],
+      "drops": [
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          0.008937408399726595,
+          0.009068565922763186,
+          0.009142857142857144,
+          0.009068565922763186,
+          0.008937408399726595,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          0.003353738422714858,
+          0.003675346884758842,
+          0.0038865961095181844,
+          null,
+          0.0038865961095181844,
+          0.003675346884758841,
+          0.003353738422714858,
+          null,
+          null
+        ],
+        [
+          null,
+          0.0036464859202945455,
+          0.004508343802062096,
+          0.005012318012553188,
+          null,
+          null,
+          null,
+          0.005012318012553188,
+          0.004508343802062096,
+          0.003646485920294547,
+          null
+        ],
+        [
+          null,
+          0.007430808529342263,
+          0.009482776807554502,
+          0.010580585650188849,
+          null,
+          null,
+          null,
+          0.010580585650188849,
+          0.009482776807554502,
+          0.007430808529342266,
+          null
+        ],
+        [
+          null,
+          null,
+          0.015556857008429948,
+          0.018744482554323632,
+          null,
+          null,
+          null,
+          0.01874448255432363,
+          0.015556857008429948,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          0.02055572067732834,
+          null,
+          null,
+          null,
+          0.02055572067732834,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          0.02165987392597226,
+          null,
+          null,
+          null,
+          0.02165987392597226,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          0.024625028439952897,
+          null,
+          null,
+          null,
+          0.024625028439952894,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          0.038140468671911815,
+          null,
+          0.038140468671911815,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          0.04550147586114438,
+          null,
+          0.04550147586114438,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          0.0515,
+          0.0515,
+          0.0515,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          0.05878571428571429,
+          0.05878571428571429,
+          0.05878571428571429,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      ]
+    },
+    "skierElbowDirection": [
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0,
+          "warpedPhase": 0,
+          "cycleFrac": 0,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 1,
+          "poleSweep": 0,
+          "elbowLoad": 0,
+          "armExtension": 0,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0
+        },
+        "direction": {
+          "vertical": -0.9709581651495905,
+          "foreAft": 0.23924932921398243
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0.19634954084936207,
+          "warpedPhase": 0.19634954084936207,
+          "cycleFrac": 0.03125,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.09191176470588235,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.16129032258064516,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.03125,
+          "armPress": 0.010577473675942771,
+          "hipHinge": 0.00010202551078902635,
+          "kneeFlex": 0,
+          "poleContact": 1,
+          "poleSweep": 0.040464541605793845,
+          "elbowLoad": 0.14268016127691602,
+          "armExtension": 0,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.03639198128933976
+        },
+        "direction": {
+          "vertical": -0.9778219824035741,
+          "foreAft": 0.20943774905289742
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0.39269908169872414,
+          "warpedPhase": 0.39269908169872414,
+          "cycleFrac": 0.0625,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.1838235294117647,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.3225806451612903,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.0625,
+          "armPress": 0.07053167967409457,
+          "hipHinge": 0.018520816413237107,
+          "kneeFlex": 0.000008762236114318766,
+          "poleContact": 1,
+          "poleSweep": 0.16531440162271807,
+          "elbowLoad": 0.6262649452851894,
+          "armExtension": 0,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.151875940587581
+        },
+        "direction": {
+          "vertical": -0.9858287393477909,
+          "foreAft": -0.16775487079648455
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0.5890486225480862,
+          "warpedPhase": 0.5890486225480862,
+          "cycleFrac": 0.09375,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.275735294117647,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.4838709677419355,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.09375,
+          "armPress": 0.19520470898041475,
+          "hipHinge": 0.09448119200229346,
+          "kneeFlex": 0.017834920882896177,
+          "poleContact": 1,
+          "poleSweep": 0.29208924949290066,
+          "elbowLoad": 0.9744827034876797,
+          "armExtension": 0,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.27399856049205007
+        },
+        "direction": {
+          "vertical": -0.7515856389787495,
+          "foreAft": -0.6596355260906622
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0.7853981633974483,
+          "warpedPhase": 0.7853981633974483,
+          "cycleFrac": 0.125,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.3676470588235294,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.6451612903225806,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.125,
+          "armPress": 0.3723203780539063,
+          "hipHinge": 0.23653295459740467,
+          "kneeFlex": 0.103515625,
+          "poleContact": 1,
+          "poleSweep": 0.4188640973630832,
+          "elbowLoad": 0.9949122299382716,
+          "armExtension": 0.019197250273036787,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.4010285938624616
+        },
+        "direction": {
+          "vertical": -0.46989840492935764,
+          "foreAft": -0.8827205044887342
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 0.9817477042468103,
+          "warpedPhase": 0.9817477042468103,
+          "cycleFrac": 0.15625,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.45955882352941174,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.8064516129032258,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.15625,
+          "armPress": 0.5724456964504623,
+          "hipHinge": 0.42629380097357794,
+          "kneeFlex": 0.26732576608510794,
+          "poleContact": 1,
+          "poleSweep": 0.5456389452332657,
+          "elbowLoad": 0.8890249585376149,
+          "armExtension": 0.21405228758169936,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.5329660406988157
+        },
+        "direction": {
+          "vertical": -0.4535961214255778,
+          "foreAft": -0.8912073600614351
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 1.1780972450961724,
+          "warpedPhase": 1.1780972450961724,
+          "cycleFrac": 0.1875,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.551470588235294,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.967741935483871,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.1875,
+          "armPress": 0.7594523344467132,
+          "hipHinge": 0.6298612314903804,
+          "kneeFlex": 0.48197559833479087,
+          "poleContact": 1,
+          "poleSweep": 0.6724137931034483,
+          "elbowLoad": 0.6285435337849047,
+          "armExtension": 0.41830065359477125,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.6698109010011123
+        },
+        "direction": {
+          "vertical": -0.4535961214255778,
+          "foreAft": -0.8912073600614351
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 1.3744467859455345,
+          "warpedPhase": 1.3744467859455345,
+          "cycleFrac": 0.21875,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.6433823529411764,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.0967741935483871,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.21875,
+          "armPress": 0.9009780906638767,
+          "hipHinge": 0.8092244592209394,
+          "kneeFlex": 0.7006706604238893,
+          "poleContact": 1,
+          "poleSweep": 0.7991886409736308,
+          "elbowLoad": 0.31026531737527696,
+          "armExtension": 0.6225490196078431,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.7125669044035857
+        },
+        "direction": {
+          "vertical": -0.4535961214255778,
+          "foreAft": -0.8912073600614351
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 1.5707963267948966,
+          "warpedPhase": 1.5707963267948966,
+          "cycleFrac": 0.25,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.7352941176470588,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.25806451612903225,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.25,
+          "armPress": 0.9788883596916005,
+          "hipHinge": 0.9336763190809418,
+          "kneeFlex": 0.8751716972848933,
+          "poleContact": 0.9884672052024589,
+          "poleSweep": 0.9259467365685057,
+          "elbowLoad": 0.07641111619163699,
+          "armExtension": 0.826797385620915,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.843507607764342
+        },
+        "direction": {
+          "vertical": -0.4535961214255778,
+          "foreAft": -0.8912073600614351
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 1.7671458676442586,
+          "warpedPhase": 1.7671458676442586,
+          "cycleFrac": 0.28125,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.8272058823529411,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.41935483870967744,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.28125,
+          "armPress": 0.9997375997118123,
+          "hipHinge": 0.9912251769576343,
+          "kneeFlex": 0.9738545818873234,
+          "poleContact": 0.05374214502997532,
+          "poleSweep": 0.9994403970288458,
+          "elbowLoad": 0.0010665693352374106,
+          "armExtension": 0.9968217873287372,
+          "poleLift": 0,
+          "poleFlight": 0,
+          "rebound": 0,
+          "surge": 0.9298019693649003
+        },
+        "direction": {
+          "vertical": -0.4535961214255778,
+          "foreAft": -0.8912073600614351
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 1.9634954084936207,
+          "warpedPhase": 1.9634954084936207,
+          "cycleFrac": 0.3125,
+          "driveFrac": 0.34,
+          "drive": true,
+          "driveProgress": 0.9191176470588235,
+          "recoveryProgress": 0,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.5806451612903226,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.3125,
+          "armPress": 0.9999660026411387,
+          "hipHinge": 1,
+          "kneeFlex": 0.999770237017108,
+          "poleContact": 0,
+          "poleSweep": 0.9996966834560003,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.0012128981722953102,
+          "poleFlight": 0.0393180312196164,
+          "rebound": 0,
+          "surge": 0.9493893664820855
+        },
+        "direction": {
+          "vertical": -0.4539587404177902,
+          "foreAft": -0.8910227056581069
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 2.1598449493429825,
+          "warpedPhase": 2.1598449493429825,
+          "cycleFrac": 0.34375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.0056818181818181455,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.7419354838709677,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.34375,
+          "armPress": 0.9957483541253811,
+          "hipHinge": 0.9991391007987223,
+          "kneeFlex": 0.9999878972616971,
+          "poleContact": 0,
+          "poleSweep": 0.9961390609332067,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.015384128865263117,
+          "poleFlight": 0.3409516559585041,
+          "rebound": 0.0025788259783591666,
+          "surge": 0.9652908835623719
+        },
+        "direction": {
+          "vertical": -0.4582062982694395,
+          "foreAft": -0.8888458742809224
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 2.356194490192345,
+          "warpedPhase": 2.356194490192345,
+          "cycleFrac": 0.375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.053030303030303,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.9032258064516129,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.375,
+          "armPress": 0.9773795084372733,
+          "hipHinge": 0.9855193167144988,
+          "kneeFlex": 0.99144,
+          "poleContact": 0,
+          "poleSweep": 0.9857751466792317,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.05609002747508379,
+          "poleFlight": 0.770772004858697,
+          "rebound": 0.029224293584673926,
+          "surge": 0.9743274352984407
+        },
+        "direction": {
+          "vertical": -0.4705202567694471,
+          "foreAft": -0.8823891930263049
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 2.552544031041707,
+          "warpedPhase": 2.552544031041707,
+          "cycleFrac": 0.40625,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.10037878787878786,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.03225806451612903,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.40625,
+          "armPress": 0.9385295530414279,
+          "hipHinge": 0.9452673749871161,
+          "kneeFlex": 0.9499785706162704,
+          "poleContact": 0,
+          "poleSweep": 0.9661803733979598,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.13070343783415495,
+          "poleFlight": 0.9899653133807371,
+          "rebound": 0.10124183650640174,
+          "surge": 0.8539787816485194
+        },
+        "direction": {
+          "vertical": -0.4935514403725754,
+          "foreAft": -0.8697166065484527
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 2.748893571891069,
+          "warpedPhase": 2.748893571891069,
+          "cycleFrac": 0.4375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.1477272727272727,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.1935483870967742,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.4375,
+          "armPress": 0.8769697187159813,
+          "hipHinge": 0.8730098665613083,
+          "kneeFlex": 0.8640885662595943,
+          "poleContact": 0,
+          "poleSweep": 0.9359577276738655,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.2397634387257589,
+          "poleFlight": 1,
+          "rebound": 0.22533765399518974,
+          "surge": 0.8453811733828462
+        },
+        "direction": {
+          "vertical": -0.528400077382723,
+          "foreAft": -0.8489954995298458
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 2.945243112740431,
+          "warpedPhase": 2.945243112740431,
+          "cycleFrac": 0.46875,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.19507575757575757,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.3548387096774194,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.46875,
+          "armPress": 0.7938503472790861,
+          "hipHinge": 0.7704158277459929,
+          "kneeFlex": 0.7364723913759426,
+          "poleContact": 0,
+          "poleSweep": 0.894618820124722,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.37710394721348894,
+          "poleFlight": 1,
+          "rebound": 0.3930092514568253,
+          "surge": 0.8253580082440984
+        },
+        "direction": {
+          "vertical": -0.5746487919186164,
+          "foreAft": -0.8184001258226166
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 3.141592653589793,
+          "warpedPhase": 3.141592653589793,
+          "cycleFrac": 0.5,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.2424242424242424,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.5161290322580645,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.5,
+          "armPress": 0.6929788593154028,
+          "hipHinge": 0.644453560668681,
+          "kneeFlex": 0.5799644243469982,
+          "poleContact": 0,
+          "poleSweep": 0.8424649555543118,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.5308710168687328,
+          "poleFlight": 1,
+          "rebound": 0.5827691113289037,
+          "surge": 0.793547635554384
+        },
+        "direction": {
+          "vertical": -0.6304588371366662,
+          "foreAft": -0.7762226836908869
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 3.3379421944391554,
+          "warpedPhase": 3.3379421944391554,
+          "cycleFrac": 0.53125,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.2897727272727273,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.6774193548387096,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.53125,
+          "armPress": 0.5800977219025932,
+          "hipHinge": 0.5056474537298863,
+          "kneeFlex": 0.4134455441289808,
+          "poleContact": 0,
+          "poleSweep": 0.7804682031051351,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.685350348187907,
+          "poleFlight": 1,
+          "rebound": 0.7650825712636983,
+          "surge": 0.7502565307268718
+        },
+        "direction": {
+          "vertical": -0.6927667761702652,
+          "foreAft": -0.7211616974262137
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 3.5342917352885173,
+          "warpedPhase": 3.5342917352885173,
+          "cycleFrac": 0.5625,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.3371212121212121,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.8387096774193549,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.5625,
+          "armPress": 0.46216241633781185,
+          "hipHinge": 0.36633480205753743,
+          "kneeFlex": 0.2577576568914739,
+          "poleContact": 0,
+          "poleSweep": 0.7101524664111201,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.8233437634452924,
+          "poleFlight": 1,
+          "rebound": 0.9089991695115411,
+          "surge": 0.6964075799644532
+        },
+        "direction": {
+          "vertical": -0.7576165447611948,
+          "foreAft": -0.6526999089199481
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 3.730641276137879,
+          "warpedPhase": 3.730641276137879,
+          "cycleFrac": 0.59375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.38446969696969696,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 1,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.59375,
+          "armPress": 0.3466194058641978,
+          "hipHinge": 0.23892262796138497,
+          "kneeFlex": 0.1316182226562499,
+          "poleContact": 0,
+          "poleSweep": 0.6334745537503319,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.9287381740045991,
+          "poleFlight": 1,
+          "rebound": 0.9890075392763731,
+          "surge": 0.6334745537503319
+        },
+        "direction": {
+          "vertical": -0.820636620617069,
+          "foreAft": -0.5714503800875426
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 3.9269908169872414,
+          "warpedPhase": 3.9269908169872414,
+          "cycleFrac": 0.625,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.4318181818181818,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.12903225806451613,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.625,
+          "armPress": 0.24068410339736812,
+          "hipHinge": 0.13414450138741563,
+          "kneeFlex": 0.047534781936098724,
+          "poleContact": 0,
+          "poleSweep": 0.552705248197683,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.9888886272496825,
+          "poleFlight": 1,
+          "rebound": 0.9906278394121719,
+          "surge": 0.4949386351602477
+        },
+        "direction": {
+          "vertical": -0.8776244378046554,
+          "foreAft": -0.4793488772992617
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 4.123340357836604,
+          "warpedPhase": 4.123340357836604,
+          "cycleFrac": 0.65625,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.4791666666666667,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.2903225806451613,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.65625,
+          "armPress": 0.15061883925191122,
+          "hipHinge": 0.059317360372256545,
+          "kneeFlex": 0.007719482373649278,
+          "poleContact": 0,
+          "poleSweep": 0.4703103777776426,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.9964741053291748,
+          "poleFlight": 1,
+          "rebound": 0.9135649658779001,
+          "surge": 0.4302581391539982
+        },
+        "direction": {
+          "vertical": -0.9251475241224493,
+          "foreAft": -0.37960776942800073
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 4.319689898685965,
+          "warpedPhase": 4.319689898685965,
+          "cycleFrac": 0.6875,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.5265151515151515,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.45161290322580644,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.6875,
+          "armPress": 0.08101082886787436,
+          "hipHinge": 0.016598331497591268,
+          "kneeFlex": 0.0000036053802006108526,
+          "poleContact": 0,
+          "poleSweep": 0.3888318856169444,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.9505666013780635,
+          "poleFlight": 1,
+          "rebound": 0.7717726646005677,
+          "surge": 0.363244238950539
+        },
+        "direction": {
+          "vertical": -0.9610384827367405,
+          "foreAft": -0.27641460652263605
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 4.516039439535327,
+          "warpedPhase": 4.516039439535327,
+          "cycleFrac": 0.71875,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.5738636363636364,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.6129032258064516,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.71875,
+          "armPress": 0.03405014053726152,
+          "hipHinge": 0.0012415503445648568,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.31076890009729863,
+          "elbowLoad": 0,
+          "armExtension": 1,
+          "poleLift": 0.8567663633184555,
+          "poleFlight": 1,
+          "rebound": 0.5904154295421904,
+          "surge": 0.29633318344761767
+        },
+        "direction": {
+          "vertical": -0.9846685726286356,
+          "foreAft": -0.17443566744644098
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 4.71238898038469,
+          "warpedPhase": 4.71238898038469,
+          "cycleFrac": 0.75,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.6212121212121212,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.7741935483870968,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.75,
+          "armPress": 0.008807663130523835,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.23845880500810024,
+          "elbowLoad": 0,
+          "armExtension": 0.9895924363732373,
+          "poleLift": 0.7263848132888363,
+          "poleFlight": 1,
+          "rebound": 0.40035398755795426,
+          "surge": 0.23199734061433236
+        },
+        "direction": {
+          "vertical": -0.9969344054381124,
+          "foreAft": -0.07824187659915438
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 4.908738521234052,
+          "warpedPhase": 4.908738521234052,
+          "cycleFrac": 0.78125,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.6685606060606061,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.9354838709677419,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.78125,
+          "armPress": 0.0005130738230523235,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.1739583096991386,
+          "elbowLoad": 0,
+          "armExtension": 0.926665961742401,
+          "poleLift": 0.5747872647430288,
+          "poleFlight": 1,
+          "rebound": 0.23131351180103618,
+          "surge": 0.17261153568856463
+        },
+        "direction": {
+          "vertical": -0.9999662861249504,
+          "foreAft": 0.008211370986241638
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 5.105088062083414,
+          "warpedPhase": 5.105088062083414,
+          "cycleFrac": 0.8125,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.7159090909090909,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.06451612903225806,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.8125,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.11892451923330682,
+          "elbowLoad": 0,
+          "armExtension": 0.7945128565861069,
+          "poleLift": 0.41912591183373465,
+          "poleFlight": 1,
+          "rebound": 0.10521373570523136,
+          "surge": 0.10557428288066463
+        },
+        "direction": {
+          "vertical": -0.9966362463496173,
+          "foreAft": 0.0819523792341928
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 5.301437602932776,
+          "warpedPhase": 5.301437602932776,
+          "cycleFrac": 0.84375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.7632575757575757,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.22580645161290322,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.84375,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.07449600453931327,
+          "elbowLoad": 0,
+          "armExtension": 0.6078435513133019,
+          "poleLift": 0.27578539938796753,
+          "poleFlight": 1,
+          "rebound": 0.031139127691451433,
+          "surge": 0.067575085407919
+        },
+        "direction": {
+          "vertical": -0.9899844924333522,
+          "foreAft": 0.141176147919817
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 5.497787143782138,
+          "warpedPhase": 5.497787143782138,
+          "cycleFrac": 0.875,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.8106060606060606,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.3870967741935484,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.875,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.04117387256438665,
+          "elbowLoad": 0,
+          "armExtension": 0.40031964670947207,
+          "poleLift": 0.1579143391297532,
+          "poleFlight": 1,
+          "rebound": 0.0029975004285151593,
+          "surge": 0.03814560064674789
+        },
+        "direction": {
+          "vertical": -0.9826862696611666,
+          "foreAft": 0.18527734729162382
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 5.6941366846315,
+          "warpedPhase": 5.6941366846315,
+          "cycleFrac": 0.90625,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.8579545454545454,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.5483870967741935,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.90625,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.018702836426991,
+          "elbowLoad": 0,
+          "armExtension": 0.21208603868891895,
+          "poleLift": 0.07341216134630486,
+          "poleFlight": 0.9266659617424011,
+          "rebound": 0,
+          "surge": 0.017689263356108906
+        },
+        "direction": {
+          "vertical": -0.9766550451730911,
+          "foreAft": 0.21481369308763212
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 5.890486225480862,
+          "warpedPhase": 5.890486225480862,
+          "cycleFrac": 0.9375,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.9053030303030303,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.7096774193548387,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.9375,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0,
+          "poleSweep": 0.005952285569529536,
+          "elbowLoad": 0,
+          "armExtension": 0.0773030430470385,
+          "poleLift": 0.023667423464113227,
+          "poleFlight": 0.5390173123206621,
+          "rebound": 0,
+          "surge": 0.005744915620655604
+        },
+        "direction": {
+          "vertical": -0.9728377222548423,
+          "foreAft": 0.23148815554582958
+        }
+      },
+      {
+        "pose": {
+          "index": 7,
+          "phase": 6.086835766330224,
+          "warpedPhase": 6.086835766330224,
+          "cycleFrac": 0.96875,
+          "driveFrac": 0.34,
+          "drive": false,
+          "driveProgress": 1,
+          "recoveryProgress": 0.9526515151515151,
+          "strokeSeconds": 1.875,
+          "strokeMeters": 8,
+          "rate": 32,
+          "watts": 200,
+          "intensity": 0.8709677419354839,
+          "amplitude": 1,
+          "fatigue": 0,
+          "real": true
+        },
+        "kinematics": {
+          "cycle": 0.96875,
+          "armPress": 0,
+          "hipHinge": 0,
+          "kneeFlex": 0,
+          "poleContact": 0.4609826876793387,
+          "poleSweep": 0.000797355911061004,
+          "elbowLoad": 0,
+          "armExtension": 0.011678520212594634,
+          "poleLift": 0.0031868805384484005,
+          "poleFlight": 0.11480562848809317,
+          "rebound": 0,
+          "surge": 0.0007850097550187691
+        },
+        "direction": {
+          "vertical": -0.9712135409867311,
+          "foreAft": 0.23821053252116106
+        }
+      }
+    ]
+  }
+}

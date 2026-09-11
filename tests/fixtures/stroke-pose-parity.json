@@ -1,0 +1,65 @@
+{
+  "description": "StrokePose parity fixture — expected outputs from web strokePoseAt() for representative inputs.",
+  "cases": [
+    {
+      "name": "rower-mid-drive",
+      "sport": "rower",
+      "strokes": [
+        { "t": 2, "d": 11, "pace": 120, "cadence": 28, "heartRate": 140, "watts": 160 },
+        { "t": 4, "d": 23, "pace": 120, "cadence": 30, "heartRate": 160, "watts": 220 },
+        { "t": 6, "d": 36, "pace": 120, "cadence": 32, "heartRate": 178, "watts": 280 }
+      ],
+      "context": { "peakWatts": 280, "medianWatts": 220, "medianDPS": 12, "medianHR": 160, "maxHR": 178 },
+      "queryTime": 3.0,
+      "expected": {
+        "index": 1,
+        "cycleFrac": 0.5,
+        "drive": false,
+        "intensityRange": [0.76, 0.77],
+        "fatigueRange": [0.24, 0.25],
+        "amplitudeRange": [1.13, 1.14],
+        "driveFracRange": [0.45, 0.46]
+      }
+    },
+    {
+      "name": "skierg-mid-recovery",
+      "sport": "skierg",
+      "strokes": [
+        { "t": 1.5, "d": 8, "pace": 126, "cadence": 40, "heartRate": 155, "watts": 140 },
+        { "t": 3.0, "d": 17, "pace": 122, "cadence": 42, "heartRate": 165, "watts": 200 },
+        { "t": 4.5, "d": 27, "pace": 118, "cadence": 44, "heartRate": 175, "watts": 260 }
+      ],
+      "context": { "peakWatts": 260, "medianWatts": 200, "medianDPS": 9, "medianHR": 165, "maxHR": 175 },
+      "queryTime": 2.25,
+      "expected": {
+        "index": 1,
+        "cycleFrac": 0.5,
+        "drive": false,
+        "driveFracRange": [0.459, 0.461],
+        "intensityRange": [0.80, 0.81],
+        "fatigueRange": [0.29, 0.30],
+        "amplitudeRange": [1.15, 1.17]
+      }
+    },
+    {
+      "name": "bike-symmetric-drive",
+      "sport": "bike",
+      "strokes": [
+        { "t": 1, "d": 5, "pace": 88, "cadence": 85, "heartRate": 140, "watts": 180 },
+        { "t": 2, "d": 11, "pace": 85, "cadence": 90, "heartRate": 155, "watts": 250 },
+        { "t": 3, "d": 18, "pace": 82, "cadence": 95, "heartRate": 165, "watts": 320 }
+      ],
+      "context": { "peakWatts": 320, "medianWatts": 250, "medianDPS": 6, "medianHR": 155, "maxHR": 165 },
+      "queryTime": 1.5,
+      "expected": {
+        "index": 1,
+        "cycleFrac": 0.5,
+        "drive": false,
+        "driveFrac": 0.5,
+        "intensityRange": [0.74, 0.76],
+        "fatigueRange": [0.28, 0.30],
+        "amplitudeRange": [1.12, 1.14]
+      }
+    }
+  ]
+}

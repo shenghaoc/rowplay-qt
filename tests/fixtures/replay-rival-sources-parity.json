@@ -1,0 +1,151 @@
+{
+  "constantPace": [
+    {
+      "label": "2000m at 2:00",
+      "pacePer500m": 120,
+      "totalDistance": 2000,
+      "sport": "rower",
+      "expectedStrokeCount": 2,
+      "expectedEndTime": 480,
+      "expectedEndDistance": 2000,
+      "expectedPace": 120,
+      "expectPositiveWatts": true
+    },
+    {
+      "label": "zero pace rejected",
+      "pacePer500m": 0,
+      "totalDistance": 2000,
+      "sport": "rower",
+      "expectedStrokeCount": 0
+    },
+    {
+      "label": "negative distance rejected",
+      "pacePer500m": 120,
+      "totalDistance": -100,
+      "sport": "rower",
+      "expectedStrokeCount": 0
+    },
+    {
+      "label": "bike sport watts scaled",
+      "pacePer500m": 120,
+      "totalDistance": 2000,
+      "sport": "bike",
+      "expectedStrokeCount": 2,
+      "expectedEndTime": 480,
+      "expectPositiveWatts": true,
+      "expectBikeWattsDivisor": true
+    }
+  ],
+  "csv": [
+    {
+      "label": "basic csv with pace and hr",
+      "fileName": "workout.csv",
+      "content": "time,distance,pace,stroke_rate,heart_rate\n0,0,2:00,28,140\n10,50,1:58,30,145\n20,100,1:56,32,150\n",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectDerivedPace": false,
+      "expectHr": true,
+      "expectCadence": true
+    },
+    {
+      "label": "csv derives pace from dist/time",
+      "fileName": "no-pace.csv",
+      "content": "time,distance,heart_rate\n0,0,140\n10,50,145\n20,100,150\n",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectDerivedPace": true,
+      "expectDerivedWatts": true,
+      "expectedPaceAtIndex1": 100
+    },
+    {
+      "label": "clock format M:SS",
+      "fileName": "clock.csv",
+      "content": "time,distance\n0:00,0\n0:10,50\n0:20,100\n",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectedTimeAtIndex1": 10
+    },
+    {
+      "label": "clock format H:MM:SS",
+      "fileName": "long.csv",
+      "content": "time,distance\n0:00:00,0\n0:00:10,50\n0:01:00,500\n",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectedTimeAtIndex1": 10,
+      "expectedTimeAtIndex2": 60
+    },
+    {
+      "label": "missing required columns",
+      "fileName": "incomplete.csv",
+      "content": "pace,heart_rate\n2:00,140\n1:58,145\n",
+      "expectSuccess": false
+    },
+    {
+      "label": "header only",
+      "fileName": "empty.csv",
+      "content": "time,distance\n",
+      "expectSuccess": false
+    }
+  ],
+  "tcx": [
+    {
+      "label": "minimal tcx trackpoints",
+      "fileName": "workout.tcx",
+      "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<TrainingCenterDatabase>\n  <Activities>\n    <Activity Sport=\"Other\">\n      <Lap>\n        <Track>\n          <Trackpoint>\n            <Time>2024-01-01T12:00:00Z</Time>\n            <DistanceMeters>0</DistanceMeters>\n            <Cadence>28</Cadence>\n            <HeartRateBpm><Value>140</Value></HeartRateBpm>\n            <Watts>200</Watts>\n          </Trackpoint>\n          <Trackpoint>\n            <Time>2024-01-01T12:00:10Z</Time>\n            <DistanceMeters>50</DistanceMeters>\n            <Cadence>30</Cadence>\n            <HeartRateBpm><Value>145</Value></HeartRateBpm>\n            <Watts>210</Watts>\n          </Trackpoint>\n          <Trackpoint>\n            <Time>2024-01-01T12:00:20Z</Time>\n            <DistanceMeters>100</DistanceMeters>\n            <Cadence>32</Cadence>\n            <HeartRateBpm><Value>150</Value></HeartRateBpm>\n            <Watts>220</Watts>\n          </Trackpoint>\n        </Track>\n      </Lap>\n    </Activity>\n  </Activities>\n</TrainingCenterDatabase>\n",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectedTimeAtIndex0": 0,
+      "expectedTimeAtIndex1": 10,
+      "expectHr": true,
+      "expectCadence": true,
+      "expectWatts": true
+    },
+    {
+      "label": "timezone-less ISO timestamps",
+      "fileName": "naive.tcx",
+      "content": "<?xml version=\"1.0\"?>\n<TrainingCenterDatabase>\n  <Trackpoint>\n    <Time>2024-06-01T08:00:00</Time>\n    <DistanceMeters>0</DistanceMeters>\n  </Trackpoint>\n  <Trackpoint>\n    <Time>2024-06-01T08:00:15</Time>\n    <DistanceMeters>75</DistanceMeters>\n  </Trackpoint>\n</TrainingCenterDatabase>\n",
+      "expectSuccess": true,
+      "minStrokes": 2,
+      "expectedTimeAtIndex0": 0,
+      "expectedTimeAtIndex1": 15
+    }
+  ],
+  "fit": [
+    {
+      "label": "minimal fit records",
+      "fileName": "workout.fit",
+      "base64": "DhAACDYAAAAuRklUAABAAAAUAAT9BIYFBIYGAoQDAQIAQEIPAAAAAABHEIwASkIPAIgTAABHEJEAVEIPABAnAABHEJY=",
+      "expectSuccess": true,
+      "minStrokes": 3,
+      "expectedTimeAtIndex0": 0,
+      "expectedTimeAtIndex1": 10,
+      "expectedDistanceAtIndex1": 50,
+      "expectDerivedPace": true,
+      "expectDerivedWatts": true,
+      "expectHr": true
+    },
+    {
+      "label": "truncated fit rejected",
+      "fileName": "truncated.fit",
+      "base64": "DhAACDYAAAAuRklU",
+      "expectSuccess": false
+    },
+    {
+      "label": "malformed fit signature",
+      "fileName": "bad.fit",
+      "base64": "AAAAAAAAAAAAAAAA",
+      "expectSuccess": false
+    }
+  ],
+  "normalization": [
+    {
+      "label": "non-zero origin times normalize to zero",
+      "fileName": "origin.csv",
+      "content": "time,distance\n100,0\n110,50\n120,100\n",
+      "expectSuccess": true,
+      "expectedTimeAtIndex0": 0,
+      "expectedTimeAtIndex1": 10,
+      "expectedTimeAtIndex2": 20
+    }
+  ]
+}
