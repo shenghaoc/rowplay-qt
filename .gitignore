@@ -1,0 +1,22 @@
+# Rust
+/target/
+**/target/
+Cargo.lock.bak
+
+# Reference checkouts of rowplay and rowplay-studio (never committed; see docs/source-map.md)
+/reference/
+
+# Screenshots and scratch output from the smoke test
+/artifacts/
+*.ppm
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Qt tooling caches
+.qmlls.ini
+*.qmlc
+*.jsc
