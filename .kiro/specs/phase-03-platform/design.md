@@ -112,8 +112,16 @@ struct HttpUri { scheme: String, host: String, port: u16, path_and_query: String
   carry userinfo, IPv6 hosts keep their brackets, and the path is normalised to
   start with `/`.
 - `resolve(location)`: absolute (`scheme://…`), protocol-relative (`//host/…`),
-  absolute path (`/…`) and relative path forms are supported; anything with
-  control characters or whitespace is rejected.
+  absolute path (`/…`) and relative path forms are supported.
+- `resolve` fails closed on everything other parsers read differently, because
+  a disagreement is a token-leak vector: whitespace and control characters are
+  rejected; a **backslash** is rejected (WHATWG parsers fold it to `/`, so
+  `https:\\evil.example` is `https://evil.example` to a browser); an
+  **at-sign** is rejected anywhere, since it can be read as userinfo; and a
+  resolved path carrying a `..` segment or an interior `//` is rejected rather
+  than normalised, because a server or proxy may re-read it as an authority.
+  Origin comparison also refuses a trailing-dot host and a percent-encoded one,
+  which are different names to it by construction.
 - `origin_matches(other)`: lower-cased host equality plus effective port
   equality.
 
