@@ -40,23 +40,20 @@ pub fn damp_factor(rate: f64, dt: f64) -> f64 {
     1.0 - (-rate * dt.max(0.0)).exp()
 }
 
-/// Quintic smootherstep `S(x) = 6x⁵ − 15x⁴ + 10x³` on `[0, 1]`.
+/// Cubic Hermite ramp on `[0, 1]` with unit rise and endpoint slopes `k`:
+/// `h(t, k) = t²(3 − 2t) + k·t(1 − t)(1 − 2t)`.
 ///
-/// `S` and its first two derivatives vanish at both ends, so chaining ramps
-/// stays C2 across knots — the building block of the C1 stroke warp below and
-/// of the motion graph's envelopes.
-fn smootherstep(x: f64) -> f64 {
-    let u2 = x * x;
-    let u3 = u2 * x;
-    let u4 = u3 * x;
-    let u5 = u4 * x;
-    6.0 * u5 - 15.0 * u4 + 10.0 * u3
+/// `h(0, k) = 0`, `h(1, k) = 1` and `h′(0, k) = h′(1, k) = k`, so chaining
+/// two halves with matched slopes is C1 — the building block of the stroke
+/// warp below. (The motion graph keeps its own quintic ramps where C2-flat
+/// endpoints are required.)
+fn hermite(t: f64, k: f64) -> f64 {
+    t * t * (3.0 - 2.0 * t) + k * t * (1.0 - t) * (1.0 - 2.0 * t)
 }
 
-/// Derivative of [`smootherstep`], `30x²(x − 1)²`.
-fn smootherstep_derivative(x: f64) -> f64 {
-    let u2 = x * x;
-    30.0 * u2 * (x - 1.0) * (x - 1.0)
+/// Derivative of [`hermite`], `6t(1 − t) + k(1 − 6t + 6t²)`.
+fn hermite_derivative(t: f64, k: f64) -> f64 {
+    6.0 * t * (1.0 - t) + k * (1.0 - 6.0 * t + 6.0 * t * t)
 }
 
 /// Clamp `driveFrac` the way Studio does before it enters the warp.
@@ -79,20 +76,24 @@ fn sanitized_drive_frac(drive_frac: f64) -> f64 {
 /// **Deliberate divergence (roadmap Phase 2):** the web and Studio versions
 /// are piecewise *linear* — C0 at the drive/recovery seam, where the phase
 /// velocity jumps by ~`0.5/f ÷ 0.5/(1−f)` (≈2× on SkiErg) and the jump is
-/// visible in playback. This port composes each half from a quintic
-/// smootherstep instead:
+/// visible in playback. This port composes each half from a cubic Hermite
+/// ramp instead, with the endpoint slope chosen as twice the half's width:
 ///
 /// ```text
-/// w(u) = 0.5 · S(u / f)                   for u <  f   (drive)
-///      = 0.5 + 0.5 · S((u − f)/(1 − f))   for u ≥ f   (recovery)
+/// w(u) = 0.5 · h(u / f, 2f)                     for u <  f   (drive)
+///      = 0.5 + 0.5 · h((u − f)/(1 − f), 2(1−f)) for u ≥ f   (recovery)
 /// ```
 ///
 /// The contract is unchanged — cycle boundaries map to themselves, the end of
 /// the drive maps to half a cycle, the map is monotonic and the drive is
-/// faster on average — but the warp is now C2 at the seam *and* at the cycle
-/// boundary, with zero phase velocity at the catch and finish (the physical
-/// turnarounds). `warp_stroke_phase_rate` exposes the analytic derivative and
-/// `warp_stroke_phase_is_c1` proves the continuity.
+/// faster on average — and the slope choice buys three extra properties:
+/// `dw/du` equals 1 at the catch and at the finish from both sides, so the
+/// warp is C1 at the seam **and periodic across the cycle boundary**; it is
+/// monotonic for every `f` in `[0.01, 0.99]` because the Hermite endpoint
+/// slopes never exceed `2·0.99 < 3`, the monotone-cubic ceiling; and it
+/// degenerates to the exact identity at `f = 0.5` (since `h(t, 1) = t`), like
+/// the web version. `warp_stroke_phase_rate` exposes the analytic derivative
+/// and the tests prove the continuity.
 #[must_use]
 pub fn warp_stroke_phase(phase: f64, drive_frac: f64) -> f64 {
     if !phase.is_finite() {
@@ -102,15 +103,17 @@ pub fn warp_stroke_phase(phase: f64, drive_frac: f64) -> f64 {
     let u = phase / TAU - cycles; // 0..1 within the cycle
     let f = sanitized_drive_frac(drive_frac);
     let w = if u < f {
-        0.5 * smootherstep(u / f)
+        0.5 * hermite(u / f, 2.0 * f)
     } else {
-        0.5 + 0.5 * smootherstep((u - f) / (1.0 - f))
+        0.5 + 0.5 * hermite((u - f) / (1.0 - f), 2.0 * (1.0 - f))
     };
     (cycles + w) * TAU
 }
 
 /// Analytic derivative of [`warp_stroke_phase`] with respect to the input
-/// phase (output radians per input radian).
+/// phase (output radians per input radian, i.e. `dw/du`). Equals 1 at the
+/// catch, at the finish and on both sides of the drive/recovery seam, which
+/// is what makes the warp C1 and periodic.
 #[must_use]
 pub fn warp_stroke_phase_rate(phase: f64, drive_frac: f64) -> f64 {
     if !phase.is_finite() {
@@ -119,14 +122,15 @@ pub fn warp_stroke_phase_rate(phase: f64, drive_frac: f64) -> f64 {
     let cycles = (phase / TAU).floor();
     let u = phase / TAU - cycles;
     let f = sanitized_drive_frac(drive_frac);
-    // dw/dphase = dw/du · du/dphase, with du/dphase = 1/TAU.
-    let dw_du = if u < f {
-        0.5 * smootherstep_derivative(u / f) / f
+    // d((cycles + w)·TAU)/d(phase) = w′(u), since du/dphase = 1/TAU cancels
+    // the outer TAU; the chain rule folds the half-width into the endpoint
+    // slope: dw/du = h′(·, 2f)/(2f) on the drive and
+    // h′(·, 2(1−f))/(2(1−f)) on recovery.
+    if u < f {
+        hermite_derivative(u / f, 2.0 * f) / (2.0 * f)
     } else {
-        0.5 * smootherstep_derivative((u - f) / (1.0 - f)) / (1.0 - f)
-    };
-    let _ = cycles;
-    dw_du / TAU
+        hermite_derivative((u - f) / (1.0 - f), 2.0 * (1.0 - f)) / (2.0 * (1.0 - f))
+    }
 }
 
 /// Hull surge offset for a warped stroke phase (web `strokeSurge`): the shell
@@ -465,15 +469,83 @@ mod tests {
 
     #[test]
     fn warp_is_monotonic_within_a_cycle() {
-        for f in [0.26, 0.34, 0.38, 0.4, 0.5, 0.48] {
+        // The sanitized range including its extremes: the Hermite endpoint
+        // slope k = 2·max(f, 1−f) never exceeds 1.98 < 3 (the monotone-cubic
+        // ceiling), so every f in [0.01, 0.99] is covered by this set.
+        for f in [0.01, 0.2, 0.3, 0.4, 0.5, 0.8, 0.99] {
             let mut prev = -1.0;
             let mut u = 0.0;
             while u <= 1.0 {
                 let w = warp_stroke_phase(u * TAU, f);
                 assert!(w >= prev, "not monotonic at u={u} f={f}");
                 prev = w;
-                u += 0.01;
+                u += 0.001;
             }
+        }
+    }
+
+    #[test]
+    fn warp_is_the_identity_at_a_symmetric_split() {
+        // h(t, 1) = t, so f = 0.5 reproduces the unwarped phase exactly, like
+        // the web version at its only symmetric split.
+        let mut u = 0.0;
+        while u <= 1.0 {
+            let warped = warp_stroke_phase(u * TAU, 0.5);
+            assert!(
+                (warped - u * TAU).abs() <= 1e-12,
+                "identity drift at u={u}: {warped} != {}",
+                u * TAU
+            );
+            u += 0.001;
+        }
+    }
+
+    #[test]
+    fn warp_rate_is_one_at_the_catch_the_finish_and_the_seam() {
+        // dw/du = h′(0, k)/(half width) = h′(1, k)/(half width) = 1 at u = 0,
+        // u = f (either branch) and u → 1: the warp is C1 and periodic.
+        for f in [0.01, 0.2, 0.3, 0.34, 0.4, 0.5, 0.8, 0.99] {
+            let rate = |phase: f64| warp_stroke_phase_rate(phase, f);
+            // Exact knots: both branch evaluations resolve to 1 exactly.
+            assert!(
+                (rate(0.0) - 1.0).abs() <= 1e-12,
+                "f={f}: dw/du at the catch {}",
+                rate(0.0)
+            );
+            assert!(
+                (rate(f * TAU) - 1.0).abs() <= 1e-9,
+                "f={f}: dw/du at the seam {}",
+                rate(f * TAU)
+            );
+            // Just off the knots the Hermite's second derivative bends the
+            // rate, amplified by 1/half-width² at the sanitized extremes
+            // (≈5e-6 at f = 0.01), so the band is loose here.
+            let h = 1e-9;
+            assert!(
+                (rate(f * TAU - h) - 1.0).abs() <= 1e-4 && (rate(f * TAU + h) - 1.0).abs() <= 1e-4,
+                "f={f}: dw/du beside the seam {} / {}",
+                rate(f * TAU - h),
+                rate(f * TAU + h)
+            );
+            // The finish check shares the loose band: at f = 0.99 the
+            // recovery half is 0.01 wide, so the same 1/half-width²
+            // amplification applies (≈5e-6 at h = 1e-9).
+            assert!(
+                (rate(TAU - h) - 1.0).abs() <= 1e-4,
+                "f={f}: dw/du at 1− {}",
+                rate(TAU - h)
+            );
+        }
+        // Numerical one-sided quotients agree for the mid-range splits.
+        for f in [0.2, 0.3, 0.34, 0.4, 0.5, 0.8] {
+            let seam = f * TAU;
+            let h = 1e-6;
+            let left = (warp_stroke_phase(seam, f) - warp_stroke_phase(seam - h, f)) / h;
+            let right = (warp_stroke_phase(seam + h, f) - warp_stroke_phase(seam, f)) / h;
+            assert!(
+                (left - 1.0).abs() <= 1e-4 && (right - 1.0).abs() <= 1e-4,
+                "f={f}: numeric dw/du at the seam {left} / {right}"
+            );
         }
     }
 
@@ -510,9 +582,9 @@ mod tests {
                 for h in [1e-3, 1e-4, 1e-5, 1e-6] {
                     let left = (warp_stroke_phase(seam, f) - warp_stroke_phase(seam - h, f)) / h;
                     let right = (warp_stroke_phase(seam + h, f) - warp_stroke_phase(seam, f)) / h;
-                    // One-sided quotients carry an O(h²) bias from the
-                    // quintic's third derivative, so the band scales with it.
-                    let tolerance = 1e-6 + 100.0 * h * h;
+                    // One-sided quotients carry an O(h) bias from the
+                    // Hermite's second derivative, so the band scales with it.
+                    let tolerance = 1e-6 + 5.0 * h;
                     assert!(
                         (left - right).abs() < tolerance,
                         "f={f} cycle={cycle} h={h}: d−={left} d+={right}"
@@ -537,7 +609,7 @@ mod tests {
                 let left = (warp_stroke_phase(seam, f) - warp_stroke_phase(seam - h, f)) / h;
                 let right = (warp_stroke_phase(seam + h, f) - warp_stroke_phase(seam, f)) / h;
                 assert!(
-                    (left - right).abs() < 1e-6,
+                    (left - right).abs() < 1e-6 + 100.0 * h,
                     "f={f} cycle={cycle}: d−={left} d+={right}"
                 );
             }
@@ -558,7 +630,7 @@ mod tests {
             let u = (f64::from(i) + 0.5) * dt_u;
             max_jump = max_jump.max((rate_at(u + dt_u) - rate_at(u)).abs());
         }
-        // The derivative itself is bounded by ~0.5·(30/4)/f·(1/TAU) ≈ 1.7;
+        // The per-u derivative peaks around h′(0.5, k)/2f ≈ (1.5−f)/2f ≈ 1.7;
         // any C0 kink would produce a jump comparable to the full range.
         assert!(max_jump < 1e-3, "max derivative jump {max_jump}");
     }
