@@ -3,12 +3,13 @@
 resolver = "3"
 members = [
     "crates/rowplay-core",
+    "crates/rowplay-platform",
     "crates/rowplay-fixtures",
 ]
 # Building the Qt app requires a Qt 6.11 installation (qmake on PATH or QMAKE set).
 # `cargo build` / `cargo test` at the workspace root therefore default to the
 # Qt-free crates; add `-p rowplay-app` (or `--workspace`) when Qt is available.
-default-members = ["crates/rowplay-core", "crates/rowplay-fixtures"]
+default-members = ["crates/rowplay-core", "crates/rowplay-platform", "crates/rowplay-fixtures"]
 
 [workspace.package]
 version = "0.1.0"
@@ -20,6 +21,7 @@ authors = ["shenghaoc"]
 
 [workspace.dependencies]
 rowplay-core = { path = "crates/rowplay-core", version = "0.1.0" }
+rowplay-platform = { path = "crates/rowplay-platform", version = "0.1.0" }
 rowplay-fixtures = { path = "crates/rowplay-fixtures", version = "0.1.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
