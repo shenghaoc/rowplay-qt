@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Pinned so CI and local builds see the same clippy/rustfmt. Bump deliberately,
+# in its own PR (see AGENTS.md).
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]

@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  core:
+    name: Qt-free crates (fmt, clippy, test)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy -p rowplay-core -p rowplay-platform -p rowplay-fixtures --all-targets -- -D warnings
+      - name: Test
+        run: cargo test -p rowplay-core -p rowplay-platform -p rowplay-fixtures
+      - name: Whitespace and conflict markers (pull request)
+        if: github.event_name == 'pull_request'
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
+      - name: Whitespace and conflict markers (push)
+        if: github.event_name == 'push'
+        run: git diff --check HEAD~1 HEAD
+
+  msrv:
+    name: MSRV 1.87 (Qt-free crates)
+    runs-on: ubuntu-24.04
+    env:
+      # Overrides rust-toolchain.toml, which pins the newer CI toolchain.
+      RUSTUP_TOOLCHAIN: 1.87.0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.87
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-fixtures --all-targets
+
+  app:
+    name: App (${{ matrix.os }})
+    needs: core
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26, windows-2025]
+        include:
+          # aqt 3.3.0 cannot parse the Qt 6.11 Windows repository layout
+          # (miurahr/aqtinstall#1007: it looks for qt6_6112/qt6_6112/Updates.xml
+          # but Windows uses qt6_6112/qt6_6112_msvc2022_64/Updates.xml). The fix
+          # (miurahr/aqtinstall#1000) is merged to master but unreleased, so
+          # install aqt from the pinned merge commit on Windows only.
+          - os: windows-2025
+            aqt-source: git+https://github.com/miurahr/aqtinstall@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Qt 6.11
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.*'
+          # aqt 3.3.0 is confirmed to install Qt 6.11.2 with its newer
+          # repository layout on Linux/macOS; older aqt releases may not.
+          aqtversion: '==3.3.*'
+          aqtsource: ${{ matrix.aqt-source }}
+          modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
+          cache: true
+      - name: Linux GL and X11 runtime for the headless smoke test
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1
+      - name: Toolchain report
+        shell: bash
+        run: |
+          rustc --version
+          cargo --version
+          qmake -query QT_VERSION
+      - name: Build app
+        run: cargo build -p rowplay-app
+      - name: Clippy app
+        run: cargo clippy -p rowplay-app --all-targets -- -D warnings
+      - name: Headless smoke screenshot (Xvfb + Mesa)
+        if: runner.os == 'Linux'
+        env:
+          ROWPLAY_QT_SMOKE: '1'
+          ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          LANG: C.UTF-8
+        run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
+      - name: Smoke test binary starts (no display)
+        if: runner.os != 'Linux'
+        env:
+          # The linked binary references Qt as @rpath/QtCore.framework/… but no
+          # LC_RPATH is emitted (docs/qt-bridges-notes.md note 10); let dyld
+          # fall back to the installed frameworks.
+          DYLD_FALLBACK_FRAMEWORK_PATH: ${{ env.QT_ROOT_DIR }}/lib
+        run: cargo test -p rowplay-app
+      - name: Upload smoke screenshot
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-screenshot
+          path: artifacts/smoke.png
+          if-no-files-found: error

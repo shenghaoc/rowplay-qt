@@ -136,6 +136,8 @@ Concept2 token. Cache failures never silently fall back to demo data.
 - Rust 2024 edition, MSRV 1.87; `cargo fmt`; clippy pedantic with the
   workspace allow-list in `Cargo.toml`; `#![forbid(unsafe_code)]`;
   `thiserror` for library errors; `must_use` on pure functions.
+- The Rust toolchain is pinned in `rust-toolchain.toml` and CI; it is bumped
+  deliberately, in its own PR (new clippy lints land with each stable).
 - Snake-case ports keep the web names (`fmt_time`, `pb_workout_ids`,
   `workout_local_day_key`) so `docs/source-map.md` stays greppable.
 - Every source file (Rust, QML, scripts, workflows, qrc) starts with
