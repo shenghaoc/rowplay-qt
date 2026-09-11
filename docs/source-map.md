@@ -44,11 +44,34 @@ fixtures in `tests/fixtures/` come from Studio at the commit above
 | — (web is stateless) | `Sync/WorkoutCache.swift`, `Storage/SQLiteWorkoutCache.swift` | `rowplay-platform::workout_cache` | Trait + in-memory and failing mocks; `rusqlite` in Phase 3. |
 | — | `Platform/AppPreferences.swift` | `rowplay-platform::preferences` | `Preferences` has no token field by construction. |
 
+## Phase 2 — replay core
+
+Ported into `rowplay-core` as `rowplay_core::replay::*`; unit tests re-express
+the web `*.test.ts` and Studio `*Tests.swift` suites, golden fixtures run from
+`crates/rowplay-core/tests/parity.rs`.
+
+| Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |
+| --- | --- | --- | --- |
+| `src/lib/replay/engine.ts` (`sampleAt`, `sampleIndexAt`) | `Replay/ReplaySample.swift` | `replay::engine::{sample_at, sample_index_at, Frame}` | Web math; Studio's non-finite-`t` zero-frame guard kept; HR/watts stay `f64` lerp (web) rather than Studio's integer rounding. |
+| `src/lib/replay/engine.ts` (`ReplayEngine`) | `Replay/ReplayState.swift` | `replay::engine::{ReplayState, ReplaySpeed}` | Tick-driven state machine (Studio): the QML `FrameAnimation` owns the clock, replacing the web's `requestAnimationFrame` loop. |
+| `src/lib/replay/motion.ts` | `Replay/ReplayMotion.swift` | `replay::motion` | `meters_per_cycle`, `clamp_dt`, `damp_factor`, `stroke_surge`, `catch_events`, `ParticlePool`, `PerfGovernor`. |
+| `src/lib/replay/motion.ts` (`warpStrokePhase`) | `Replay/ReplayMotion.swift` | `replay::motion::{warp_stroke_phase, warp_stroke_phase_rate}` | **C1 divergence, mandated by the roadmap** — see the divergences table. |
+| `src/lib/replay/motion.ts` (`PerfGovernor`) | `Replay/ReplayPerformanceGovernor.swift` | `replay::motion::PerfGovernor` | Median calibration capped at 2× floor, EMA sampling, sustained-over window, post-step grace, sticky levels; `reset`/`is_calibrated` accessors from Studio. |
+| `src/lib/replay/strokeModel.ts` | `Replay/ReplayStrokePose.swift`, `ReplayStrokePoseAggregates.swift` | `replay::stroke_model` | Web pipeline (`build_stroke_timeline`, `stroke_pose_at`, `fallback_stroke_pose`, `catch_transitions`) plus Studio's frame-based `compute_at_time` for the fixture (see divergences); `reduced_motion` kept from Studio. |
+| `src/lib/replay/motionGraph.ts` | `Replay/ReplayMotionGraph.swift` | `replay::motion_graph` | Full channel set, timing and curve algebra with the web's evaluation order; golden corpus `replay-current-main-motion.json` matches within 1e-10. The web's `*Into` scratch samplers (a JS GC optimisation) are not ported. |
+| `src/lib/replay/sportKinematics.ts` | `Replay2D` projections | `replay::sport_kinematics` | `solve_rower/skier/bike_kinematics`, `solve_skier_elbow_direction`; corpus `replay-current-main-2d.json` within 1e-10. |
+| `src/lib/replay/renderer.ts` (`COLORS_*`, `VENUES_*`) | — (fixture `palettes` block) | `replay::theme` | Exact web palette strings, asserted against the 2D fixture. |
+| `src/lib/replay/comparabilityGuard.ts` | `Replay/ComparabilityGuard.swift` | `replay::comparability` | `classify_axis`, `are_comparable` via the Phase 1 band helpers. |
+| `src/lib/replay/ghostPick.ts` | `Replay/GhostPick.swift` | `replay::ghost_pick` | Web ranking semantics exactly (see divergences for Studio's hardening). |
+| `src/lib/replay/replayGap.ts` | `Replay/ReplayRaceGap.swift` | `replay::race_gap` | Web helpers + Studio's non-zero-origin helpers (`relative_duration`, `absolute_time`, `ghost_frame`, `ghost_distance`). |
+| `src/lib/replay/replayGap.ts` (finish behaviour) | `Replay/ReplayRaceResult.swift` | `replay::race_result` | Studio's interpolated target crossing, tie tolerances 0.05 s / 0.5 m, DNF handling. |
+| `src/lib/replay/sources.ts` | `Replay/ReplayRival*.swift` | `replay::rivals` | `constant_pace_strokes` (per-sport watts), `parse_rival_file` with CSV/TCX/FIT decoders and Studio's bounds + normalisation (see divergences). |
+| `src/lib/replay/replayRenderer.ts` (`RenderQuality`) | `Replay/ReplayRenderQuality.swift` | `replay::quality` | Enum + Studio's portable per-tier budgets and sticky degradation ladder. |
+
 ## Later phases (mapping only)
 
 | Web source | Swift | Rust target | Phase |
 | --- | --- | --- | --- |
-| `src/lib/replay/engine.ts`, `motion.ts`, `motionGraph.ts`, `ghostPick.ts`, `replayGap.ts`, `sources.ts`, `strokeModel.ts`, `replayRenderer.ts` (`QUALITY`, `PerfGovernor`) | `Replay/ReplaySample.swift`, `ReplayState.swift`, `ReplayMotion.swift`, `ReplayMotionGraph.swift`, `GhostPick.swift`, `ReplayRaceGap.swift`, `ReplayRaceResult.swift`, `ReplayRival*.swift`, `ReplayStrokePose.swift`, `ReplayRenderQuality.swift`, `ReplayPerformanceGovernor.swift` | `rowplay-core::replay::*` | 2 |
 | `src/lib/server/concept2.ts` (mapping, transport) | `Concept2/Concept2Mapper.swift`, `HTTPTransport.swift`, `URLSessionConcept2Client.swift` | `rowplay-platform::concept2` | 3 |
 | `src/routes/dashboard`, `src/components/*` | `Views/*.swift` | `qml/RowPlay/*.qml` + backend objects in `rowplay-app` | 4 |
 | `src/lib/locales/*.ts` | — | `i18n/*.ts` via `tools/` | 4 |
@@ -85,3 +108,13 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Locale date formatting | `Intl.DateTimeFormat` | `Date.FormatStyle` in SwiftUI | not in core; `QLocale` in QML (Phase 4) | Locale formatting belongs to the UI toolkit. |
 | `generateMockWorkout` | `Math.random`-driven live-mode mock | — | deferred to Phase 8 with an injected RNG | Needs the live-mode model first. |
 | Workout tags | `resolveTag` used by the list filter | not ported (badge retired) | ported | Required for `filter_and_sort_workouts` parity. |
+| `warp_stroke_phase` continuity | piecewise **linear**, C0 at the drive/recovery seam (velocity jump ≈ `(1−f)/f`, ~2× on SkiErg) | same piecewise-linear map | **C2** via per-segment quintic smootherstep (`0.5·S(u/f)` / `0.5 + 0.5·S((u−f)/(1−f))`) | Roadmap-mandated divergence: the C0 seam caused visible speed jumps on SkiErg. The contract is unchanged (cycle boundaries fixed, drive end → half cycle, monotonic, drive faster on average); `warp_stroke_phase_rate` exposes the analytic derivative and a derivative-continuity test guards the seam and the cycle boundary. |
+| Playback clock | `ReplayEngine` on `requestAnimationFrame`, emits through a callback | tick-driven `ReplayState` | tick-driven `ReplayState` (Studio) | The QML `FrameAnimation` owns the frame clock; the core stays pure and callback-free (`current_frame()` is polled). |
+| `sample_at` with non-finite `t` | smears `NaN` through the interpolation | zero frame | zero frame (Studio) | The web behaviour is an unhandled case; a non-finite clock must not poison render state. |
+| Frame watts / HR interpolation | `f64` lerp | rounded to `Int` | `f64` lerp (web) | No web equivalent of the rounding; keep the canonical float math. |
+| Stroke pose amplitude / progress | current web: restrained `clamp(0.94 + i·0.12, 0.94, 1.06)`, progress at the bracketing entry's end (`entry.endT/duration`) | livelier `clamp(0.78 + i·0.44 + f·0.08, 0.72, 1.32)`, progress = query time / duration | **both**: web pipeline canonical for renderers; Studio's `compute_at_time` ported alongside | `stroke-pose-parity.json` was exported before the web's 2026-07 rework (#171) and was verified against Studio's frame-based path, so the fixture drives the Studio-semantics entry point. Intensity, fatigue and drive-fraction formulas are identical in both references. |
+| Ghost pick hardening | plain ranking, stable ties | adds `hasStrokeData` filter, non-finite sanitizers, id tie-break | web semantics | Studio's additions are undocumented deviations; the app layer can filter stroke-data availability where it builds the candidate list. |
+| Race finish on the distance axis | last-sample endpoint timestamps | first **interpolated** crossing of the target | interpolated crossing (Studio) | Studio's source map documents this deliberate deviation (also cited in AGENTS.md); sparse traces otherwise decide wrongly. |
+| Rival parsers | browser `DOMParser`/`DataView`, unbounded, no normalisation | 25 MiB / 200 k sample bounds, quoted CSV, DOCTYPE rejection, validated FIT, origin-rebased normalisation | Studio's hardened shape (bounds, quoted CSV streaming, TCX element-stack scanner with DOCTYPE rejection, FIT header/architecture/compressed-timestamp validation, sort + one-per-timestamp + no-backward-distance + zero-based time) | Accepted inputs parse identically; the hardening is a privacy/security invariant (bounded scanning, no entity expansion). The Rust TCX probe reads UTF-8/Latin-1 (not Studio's UTF-16 probe) — a documented simplification, and derived watts stay `f64` (web) instead of Studio's integer rounding. |
+| Constant-pace ghost watts | `paceToWatts` (RowErg basis, divisor 2.8) | `paceToWattsForSport` (BikeErg divisor 8) | per-sport via `constant_pace_strokes`; `constant_pace_ghost` keeps the web rower-basis name | The golden fixture expects the bike divisor; the web helper has no sport parameter. |
+| Quality budgets | `renderer3d.ts` `QUALITY` mixes portable counts with browser fields (`dprCap`, `antialias`, `shadowMapSize`, `bodySegments`) | portable entity budgets only (48/24/0/0/0/12/30 … 144/96/44/72/6/28/60) | Studio's portable budgets + sticky degradation ladder | Browser/three.js fields have no meaning until Phase 5 maps them onto Qt Quick 3D; renderer/quality *persistence* (web `safeStorage`) lands in Phase 3 with the preferences store. |

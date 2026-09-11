@@ -69,16 +69,34 @@ Studio are documented in `docs/source-map.md`; no UI beyond the smoke window.
 
 ### Phase 2 — Replay core
 
-- Port `engine`, `motion`, `motionGraph`, ghost pick, race gap / result, rival
-  CSV / TCX / FIT parsers, stroke pose, quality budgets and the perf governor
-  into `rowplay-core`.
-- `warpStrokePhase` must be **C1-continuous** at the drive / recovery seam.
-  Add a derivative-continuity test (Studio's version is only C0 and causes
-  visible speed jumps on SkiErg).
-- Enable the `#[ignore]`d parity tests: `stroke-pose-parity.json`,
-  `replay-race-gap-parity.json`, `replay-race-result-parity.json`,
-  `replay-rival-sources-parity.json`, `replay-current-main-motion.json`,
-  `replay-current-main-2d.json`.
+Status: delivered (this PR).
+
+Ported into `rowplay-core` as `rowplay_core::replay::*` with unit tests
+re-expressed from the web and Studio suites:
+
+- `engine` (`sample_at`, `sample_index_at`, tick-driven `ReplayState`),
+  `motion` (`clamp_dt`, `damp_factor`, `warp_stroke_phase`, `stroke_surge`,
+  `catch_events`, `ParticlePool`, `PerfGovernor`),
+  `stroke_model` (timeline + pose, web pipeline plus Studio's frame-based
+  path), `motion_graph` (full channel set, evaluation order identical to the
+  web module), `sport_kinematics` + 2D palette `theme`,
+  `comparability` + ghost pick, `race_gap` / `race_result` (interpolated
+  finish crossing), rival CSV / TCX / FIT parsers with Studio's bounds and
+  normalisation, and the quality budgets + degradation ladder.
+- `warpStrokePhase` is **C1-continuous** (in fact C2) at the drive/recovery
+  seam and the cycle boundary via per-segment quintic smootherstep — the
+  web/Studio piecewise-linear map is only C0 and caused visible speed jumps
+  on SkiErg. `warp_stroke_phase_rate` exposes the analytic derivative and a
+  derivative-continuity test guards the seam.
+- The six `#[ignore]`d parity tests are enabled and pass:
+  `stroke-pose-parity.json`, `replay-race-gap-parity.json`,
+  `replay-race-result-parity.json`, `replay-rival-sources-parity.json`,
+  `replay-current-main-motion.json` (1e-10 across 387 samples × 60–78
+  channels), `replay-current-main-2d.json` (1e-10 + exact palettes).
+- Divergences are recorded in `docs/source-map.md`.
+
+Exit criteria: the Qt-free workspace passes fmt / clippy / test; no UI
+beyond the smoke window; every divergence documented.
 
 ### Phase 3 — Platform
 
