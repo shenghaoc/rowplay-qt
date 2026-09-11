@@ -22,6 +22,13 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Secret Service build dependency for keyring (Linux)
+        # keyring's sync-secret-service backend links libdbus-1 through
+        # libdbus-sys. ROWPLAY_KEYRING_TESTS stays unset: CI has no Secret
+        # Service, so those tests skip and only the in-memory store is used.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
       - name: Format
         run: cargo fmt --all -- --check
       - name: Clippy
@@ -45,6 +52,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.87
       - uses: Swatinem/rust-cache@v2
+      - name: Secret Service build dependency for keyring (Linux)
+        # keyring's sync-secret-service backend links libdbus-1 through
+        # libdbus-sys. ROWPLAY_KEYRING_TESTS stays unset: CI has no Secret
+        # Service, so those tests skip and only the in-memory store is used.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
       - run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-fixtures --all-targets
 
   app:
@@ -86,7 +100,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
             libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
-            libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
+            libdbus-1-dev pkg-config
       - name: Toolchain report
         shell: bash
         run: |
