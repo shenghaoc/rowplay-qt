@@ -136,11 +136,41 @@ store; every divergence documented in `docs/source-map.md`.
 
 ### Phase 4 — QML shell
 
-- Dashboard, library sidebar, workout detail, splits and strokes, Qt Graphs charts.
-- Settings and demo mode.
-- Convert the six web locales (en, de, es, fr, ja, zh) into `.ts` files via
-  `tools/`; strings use `qsTr`, plurals use Qt numerus forms. Add a key parity
-  check against the web locales.
+Status: foundation delivered (PR 4a); screens in PR 4b.
+
+Delivered in 4a:
+
+- `rowplay-viewmodel`: the Qt-free UI-logic crate (navigation state port,
+  six-language locale date display golden-tested against the web's `Intl`,
+  settings options). Dependency direction becomes app → viewmodel → platform
+  → core; the qtbridge objects in `rowplay-app` are thin adapters.
+- The `Library`, `Detail`, `Settings` and `Sync` QML singletons under the
+  `RowPlay` URI, the Fusion-styled application shell (split view, toolbar,
+  empty state, shortcuts) and the settings screen: keyring token handling
+  (QML sees only `hasToken`), units / home timezone / language preferences,
+  demo-mode toggle, and sync on a `std::thread` worker (`mpsc` events,
+  `QmlMethodInvoker` pokes, `AtomicBool` cancel, mock-client CI coverage).
+- `Theme.qml`: Studio's `DesignTokens` / `DESIGN.md` ported with light and
+  dark palettes following `Qt.styleHints.colorScheme`.
+- i18n: `tools/convert-locales.mjs` converts the six web locales into
+  ID-based `.ts` catalogues (message id = the web's dotted key, empty
+  `<source>` so `qsTrId` resolves, English fill for the web's per-key
+  fallback); `build.rs` runs `lrelease` and bundles `qml_<lang>.qm` into the
+  rcc; `Tr.t(id, vars)` interpolates `{name}` like the web; `Qt.uiLanguage`
+  drives live retranslation. Qt-free parity tests guard the key set, the
+  placeholders and every `Tr.t` id used in QML. (No numerus forms: the web
+  has no plural rules — superseding the original "plurals use Qt numerus
+  forms" note.)
+- The QML runtime-error gate: a smoke-mode walk over every screen and all six
+  languages that fails CI on `TypeError` / `ReferenceError` / `Binding loop` /
+  `Unable to assign` / `is not defined`, plus per-screen screenshot artifacts.
+
+Remaining for 4b:
+
+- Dashboard (metric tiles, personal bests, Qt Graphs charts with bulk
+  `replace`), library sidebar (grouped list, filters, `QListModel`),
+  workout detail (summary tiles, splits/intervals, heart rate, targets) and
+  stroke analysis; 5,000-workout performance pass (filter < 50 ms).
 
 ### Phase 5 — 3D replay
 

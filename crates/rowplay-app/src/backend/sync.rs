@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex};
 use qtbridge::qobject;
 use qtbridge::qtbridge_runtime::{QObjectHolder, QmlMethodInvoker, QmlRegister};
 use rowplay_core::privacy::redact;
+use rowplay_platform::concept2::MockConcept2Client;
 use rowplay_platform::concept2::http::Concept2HttpClient;
 use rowplay_platform::sync::{WorkoutSyncCoordinator, WorkoutSyncError};
 use rowplay_platform::token_store::SecretToken;
@@ -135,18 +136,23 @@ impl SyncBackend {
             return;
         }
         let state = AppState::get();
-        let token = match state.token_store.load() {
-            Ok(Some(token)) => token,
-            Ok(None) => {
-                "token.empty".clone_into(&mut self.status_id);
-                self.sync_changed();
-                return;
-            }
-            Err(error) => {
-                "sync.failed".clone_into(&mut self.status_id);
-                self.status_message = redact(&error.to_string());
-                self.sync_changed();
-                return;
+        let mock = std::env::var_os("ROWPLAY_SYNC_MOCK").is_some();
+        let token = if mock {
+            None
+        } else {
+            match state.token_store.load() {
+                Ok(Some(token)) => Some(token),
+                Ok(None) => {
+                    "token.empty".clone_into(&mut self.status_id);
+                    self.sync_changed();
+                    return;
+                }
+                Err(error) => {
+                    "sync.failed".clone_into(&mut self.status_id);
+                    self.status_message = redact(&error.to_string());
+                    self.sync_changed();
+                    return;
+                }
             }
         };
 
@@ -288,13 +294,14 @@ impl SyncBackend {
     fn refresh_can_sync(&mut self) {
         let state = AppState::get();
         let prefs = state.prefs();
-        self.can_sync = state.has_token() && !prefs.demo_mode_enabled && !self.is_running;
+        let mock = std::env::var_os("ROWPLAY_SYNC_MOCK").is_some();
+        self.can_sync = (state.has_token() || mock) && !prefs.demo_mode_enabled && !self.is_running;
     }
 }
 
 /// The worker body: blocking Concept2 sync off the Qt thread.
 fn run_sync(
-    token: SecretToken,
+    token: Option<SecretToken>,
     cache: &Arc<dyn WorkoutCache>,
     cancel: &AtomicBool,
     sender: &Sender<SyncEvent>,
@@ -306,14 +313,33 @@ fn run_sync(
         invoker.invoke_method("pumpEvents");
     };
 
-    let client = match Concept2HttpClient::new(token) {
-        Ok(client) => client,
-        Err(error) => {
-            finish(Err(redact(&error.to_string())));
-            return;
-        }
-    };
-    let coordinator = WorkoutSyncCoordinator::new(&client, cache.as_ref());
+    if let Some(token) = token {
+        let client = match Concept2HttpClient::new(token) {
+            Ok(client) => client,
+            Err(error) => {
+                finish(Err(redact(&error.to_string())));
+                return;
+            }
+        };
+        run_coordinator(&client, cache, cancel, sender, invoker, counts, finish);
+    } else {
+        // ROWPLAY_SYNC_MOCK: the deterministic mock serving the demo
+        // library; exercises the full worker path without a token.
+        let client = MockConcept2Client::new(rowplay_core::demo::demo_details());
+        run_coordinator(&client, cache, cancel, sender, invoker, counts, finish);
+    }
+}
+
+fn run_coordinator(
+    client: &dyn rowplay_platform::concept2::Concept2Client,
+    cache: &Arc<dyn WorkoutCache>,
+    cancel: &AtomicBool,
+    sender: &Sender<SyncEvent>,
+    invoker: &QmlMethodInvoker,
+    counts: &Mutex<(i64, Option<String>)>,
+    finish: impl FnOnce(Result<FinishedSync, String>),
+) {
+    let coordinator = WorkoutSyncCoordinator::new(client, cache.as_ref());
     let result = coordinator.sync_with(cancel, &mut |progress| {
         if sender
             .send(SyncEvent::Progress {

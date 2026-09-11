@@ -130,6 +130,60 @@ Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
 on Apple targets, as it effectively does on Linux.
 
+## 11. `qproperty!` rejects doc-comment attributes
+
+`#[qobject]` fails with "Attributes for qproperty! macro are not supported"
+when a `///` doc comment sits directly above a `qproperty!(…)` invocation
+inside the impl block (`qtbridge-gen` parses statement attributes there and
+bails). `///` on `#[qslot]`/`#[qsignal]` functions is fine.
+
+Repro: add `/// doc` above any `qproperty!(…)` in the smoke backend.
+
+Workaround used: plain `//` comments above property macros
+(`crates/rowplay-app/src/backend/*.rs`).
+
+Suggestion: accept (and drop or forward) doc comments on `qproperty!`.
+
+## 12. No `QTranslator` binding and no engine access on `QApp` — but i18n works without them
+
+`QApp` keeps its `QQmlApplicationEngine` private and `qtbridge-type-lib` has
+no `QTranslator`, so a Rust side cannot install translators. That turned out
+not to matter: `QQmlApplicationEngine` itself loads
+`<main-qml-dir>/i18n/qml_<lang>.qm` from the resource system and reloads on
+`Qt.uiLanguage` changes (Qt 6.11 documented behaviour). Setting
+`Qt.uiLanguage` from QML (it is a JS global — a `Binding` element cannot
+target it, assign imperatively) gives live retranslation of every `qsTrId`
+binding with zero Rust involvement.
+
+Caveat found while wiring this up (Qt, not qtbridge): ID-based `.ts` files
+must have an **empty `<source>`** for `lrelease` to emit the id lookup —
+with a non-empty source, `qsTrId` silently misses even though
+`qsTranslate(context, source)` hits. `tools/convert-locales.mjs` generates
+the canonical shape (`<source></source>`, English kept in `<oldsource>`).
+
+Suggestion: still worth exposing the engine (or a `set_ui_language` helper)
+on `QApp` so the startup language can be applied before the first QML
+evaluation instead of in `Component.onCompleted`.
+
+## 13. `QmlMethodInvoker` cross-thread pattern works, with a borrow caveat
+
+The worker-thread pattern from the docs holds up: create the singleton on the
+Qt thread, call `get_qml_method_invoker()` inside a slot (the object is
+attached by then), move the invoker into a `std::thread`, and poke a
+`#[qslot]` (`pumpEvents`) through the queued connection after each
+`mpsc::Sender::send`. Verified with a full Concept2-mock sync
+(`crates/rowplay-app/src/backend/sync.rs`): progress events, completion and
+cancellation all arrive on the Qt thread.
+
+Caveat: the queued call panics if the object is mutably borrowed when it
+runs, and a poke can in principle be lost if the object dies mid-call — the
+app keeps a 50 ms QML `Timer` polling the same slot while a sync runs as a
+safety net.
+
+Suggestion: document the recommended "channel + invoker poke + timer
+fallback" recipe in the qtbridge docs; it is the only safe cross-thread
+story and currently has to be assembled from three API corners.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -141,6 +195,17 @@ on Apple targets, as it effectively does on Linux.
 - `Qt.exit(code)` propagates through `QApp::run()` to the process exit code.
 - Build: `qmake` on `PATH` (or `QMAKE`) is enough; the C++ bridge crates compile
   in about a minute on the first build and are cached afterwards.
+- `#[qobject(NoQmlElement, ConvertToCamelCase)]` plus a manual `QmlRegister`
+  registers four singletons (`Library`, `Detail`, `Settings`, `Sync`) under
+  one custom `RowPlay` URI next to a `qmldir` module of the same name — the
+  note #1 workaround scales.
+- `Vec<String>` / `Vec<i32>` `Constant` properties, `String`/`bool`/`i32`/
+  `f64` `Member` properties with a shared `Notify` signal, and `&mut self`
+  slots called from QML at UI rates with no visible overhead.
+- `get_qml_method_invoker()` inside a slot + `invoke_method("pumpEvents")`
+  from a worker thread (note 13).
+- Second `rcc --binary` blob for the `lrelease` output registered alongside
+  the QML blob through `qresource::register_bytes` — multiple blobs coexist.
 
 ## Not qtbridge, but worth knowing
 
@@ -157,3 +222,14 @@ on Apple targets, as it effectively does on Linux.
   miurahr/aqtinstall#1000, unreleased). CI installs aqt from the pinned merge
   commit via `jurplel/install-qt-action`'s `aqtsource` on Windows only; Linux
   and macOS work with the released 3.3.0.
+- Qt's QML JavaScript engine has no `String.prototype.replaceAll` (ES2021)
+  in 6.11; use `split(…).join(…)`.
+- `ApplicationWindow.contentItem` is C++-created and refuses `grabToImage`
+  ("item has no QML engine"); wrap the shell in a QML `Item` and grab that.
+- `grabToImage` callbacks never fire on the `offscreen` QPA platform (no
+  frames are produced); screenshot CI steps need Xvfb/`xcb` (or a real
+  Wayland session with software GL, which also works:
+  `QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1`).
+- ID-based `.ts` catalogues need an empty `<source>` (see note 12); `lupdate`
+  writes that shape itself, hand-written files with a non-empty source
+  silently break `qsTrId` after `lrelease`.

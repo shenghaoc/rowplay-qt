@@ -28,6 +28,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_rowplay-app"));
     command
         .env("ROWPLAY_SMOKE_GATE", "1")
+        // The walk ends with an end-to-end sync against the deterministic
+        // mock client: worker thread, mpsc events, cross-thread invoker,
+        // cache writes and the completion path — no token, no network.
+        .env("ROWPLAY_SYNC_MOCK", "1")
         // Keep a caller-provided platform (e.g. xcb under Xvfb); default to
         // offscreen, which is enough for the 2D shell.
         .env(
@@ -63,6 +67,15 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     assert!(
         stderr.contains("gate i18n zh:") && !stderr.contains("gate i18n zh: nav.dashboard"),
         "live language switch to zh did not retranslate\nstderr:\n{stderr}"
+    );
+    // The mock sync must complete and land in the cache, not the demo data.
+    assert!(
+        stderr.contains("gate sync: sync.done"),
+        "end-to-end mock sync did not complete\nstderr:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("library 17 cache"),
+        "mock sync did not populate the cache with the 17 demo workouts\nstderr:\n{stderr}"
     );
     let _ = stdout;
 }

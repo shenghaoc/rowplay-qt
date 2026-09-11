@@ -25,7 +25,10 @@ recorded as ADRs in [`docs/decisions/`](docs/decisions/README.md).
 
 ## Status
 
-Phases 0–3 are done.
+Phases 0–3 are done; Phase 4 (the QML shell) is in progress: the foundation
+PR (4a) ships the app shell, theme, settings, translations and the Qt-free
+view-model crate, and the screens PR (4b) adds the sidebar, dashboard, detail
+and stroke analysis.
 
 - **Phase 1–2 — `rowplay-core`:** the pure ports of the web app's models,
   formatting, datetime, pace input, privacy redaction, analytics, personal
@@ -39,10 +42,19 @@ Phases 0–3 are done.
   workout cache, the JSON preferences store and the synchronous cancellable
   sync coordinator.
 
-The app itself only shows the smoke scene so far. See
-[`docs/roadmap.md`](docs/roadmap.md) for every phase.
+- **Phase 4a — shell foundation:** `rowplay-viewmodel` (Qt-free UI logic),
+  `Theme.qml` (Studio's design tokens, light/dark via the system colour
+  scheme), the Fusion-styled application shell, the settings screen (keyring
+  token, units, home timezone, language, demo mode, threaded sync) and the
+  six-language i18n pipeline generated from the web locales.
+
+See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
+
+| Phase 4a settings (light) | Phase 4a settings (dark) |
+| --- | --- |
+| ![Settings, light](docs/screenshots/phase-04-settings-light.png) | ![Settings, dark](docs/screenshots/phase-04-settings-dark.png) |
 
 ## Requirements
 
@@ -98,6 +110,8 @@ runs natively under Wayland (a restricted `--archives` list would drop it).
 ```bash
 python3 -m venv ~/.venvs/aqtinstall
 ~/.venvs/aqtinstall/bin/pip install "aqtinstall==3.3.*"
+# Where python3-pip/venv are not installed (minimal RHEL 10), any pip works:
+# `pipx install aqtinstall` or `uv tool install aqtinstall`.
 
 # Linux — the desktop architecture is linux_gcc_64
 ~/.venvs/aqtinstall/bin/aqt install-qt linux desktop 6.11.2 linux_gcc_64 \
@@ -124,6 +138,12 @@ running or testing the app also needs the frameworks on the fallback path
 export DYLD_FALLBACK_FRAMEWORK_PATH="$HOME/Qt/6.11.2/macos/lib"
 ```
 
+On a Wayland desktop the app runs natively (`QT_QPA_PLATFORM` unset — Qt picks
+`libqwayland`) and the headless tests need no Xvfb:
+`QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1
+ROWPLAY_QT_SMOKE=1 cargo test -p rowplay-app` passes on RHEL 10.2 with Qt
+6.11.2 (verified; Xvfb is not even installed there).
+
 Demo mode is first-class: everything is explorable with deterministic seeded
 data and no Concept2 token.
 
@@ -132,6 +152,7 @@ data and no Concept2 token.
 ```
 crates/rowplay-core       pure domain logic (no Qt, no I/O)
 crates/rowplay-platform   services behind traits with mocks (no Qt)
+crates/rowplay-viewmodel  Qt-free UI logic: navigation, dates, settings, screens
 crates/rowplay-app        qtbridge binary, QML shell, Qt Quick 3D
 crates/rowplay-fixtures   dev-only loader for tests/fixtures
 qml/                      QML modules            tests/fixtures/  golden parity JSON

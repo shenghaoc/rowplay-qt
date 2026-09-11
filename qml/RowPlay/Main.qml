@@ -338,14 +338,24 @@ ApplicationWindow {
     // languages (live retranslation), grab per-screen PNGs when
     // ROWPLAY_SMOKE_SCREENSHOT_DIR is set, and exit. Any QML TypeError /
     // ReferenceError / binding loop on stderr fails the gate test.
+    // grabToImage renders when its callback runs, so the walk must not
+    // advance until the grab landed — otherwise the PNG captures a later
+    // state (observed on Wayland, where frames arrive lazily). The bailout
+    // keeps platforms that never produce frames (offscreen) moving.
+    property bool grabPending: false
+    property int grabWaits: 0
+
     function grabScreen(name) {
         if (Settings.screenshotDir.length === 0) {
             return
         }
+        grabPending = true
+        grabWaits = 0
         shellRoot.grabToImage(function(result) {
             var path = Settings.screenshotDir + "/" + name + ".png"
             console.log("gate screenshot",
                         result.saveToFile(path) ? "saved" : "FAILED", path)
+            root.grabPending = false
         })
     }
 
@@ -355,6 +365,14 @@ ApplicationWindow {
         repeat: true
         running: root.gateMode
         onTriggered: {
+            if (root.grabPending) {
+                root.grabWaits += 1
+                if (root.grabWaits < 20) {
+                    return
+                }
+                console.log("gate screenshot: grab timed out, continuing")
+                root.grabPending = false
+            }
             root.gateStep += 1
             switch (root.gateStep) {
             case 1:
@@ -392,6 +410,40 @@ ApplicationWindow {
             case 21: Library.clearSelection(); break
             case 22: root.showSettings(); break
             case 23: root.screenIndex = 0; break
+            case 24:
+                if (Settings.syncMockMode) {
+                    // End-to-end worker-thread sync against the deterministic
+                    // mock client: demo mode off, start, wait, verify.
+                    Settings.setDemoModeEnabled(false)
+                    Sync.refresh()
+                }
+                break
+            case 25:
+                if (Settings.syncMockMode) {
+                    Sync.start()
+                }
+                break
+            case 26: case 27: case 28: case 29: case 30:
+                break   // let the worker run; the safety-net timer pumps
+            case 31:
+                if (Settings.syncMockMode) {
+                    Library.reload()
+                    console.log("gate sync:", Sync.statusId,
+                                "added", Sync.statusAdded,
+                                "total", Sync.statusTotal,
+                                "library", Library.totalCount,
+                                Library.isDemoLibrary ? "demo" : "cache")
+                }
+                break
+            case 32:
+                if (Settings.syncMockMode) {
+                    // Restore the shipped defaults and wipe the mock-synced
+                    // cache so the next run starts clean.
+                    Settings.setDemoModeEnabled(true)
+                    Settings.clearCachedWorkouts()
+                    Library.reload()
+                }
+                break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
