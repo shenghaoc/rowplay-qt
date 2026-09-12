@@ -1,7 +1,7 @@
 # Qt Bridges for Rust — feedback log
 
 Friction points, bugs and missing features met while building rowplay-qt with
-`qtbridge` 0.2.0 (Qt 6.11.2, Rust 1.94.1, Linux x86_64). Each entry has a
+`qtbridge` 0.2.0 (Qt 6.11.2, Rust 1.98.1, Linux x86_64). Each entry has a
 minimal repro so it can be sent upstream
 (`https://codereview.qt-project.org/q/project:qt/qtbridge-rust`,
 bug tracker `https://qt-project.atlassian.net/browse/QTBRIDGES`).
@@ -227,6 +227,34 @@ Suggestion: document the recommended "channel + invoker poke + timer
 fallback" recipe in the qtbridge docs; it is the only safe cross-thread
 story and currently has to be assembled from three API corners.
 
+## 16. A QML load failure leaves `run()` blocking with no window and no error exit
+
+`load_qml_from_file` returns `&mut Self` and only calls
+`QQmlApplicationEngine::load` (`qtbridge-runtime/src/qapp.rs`); nothing
+checks whether a root object was created, and `run()` is a bare
+`QGuiApplication::exec()`. When the root file fails to load — a missing
+import, a syntax error, an unknown type — Qt logs the error to stderr and the
+event loop then idles with no window: the process never exits and never
+returns a non-zero code. Met repeatedly while wiring the generated
+`RowPlay.ReplayAssets` module (Phase 5a), each time as a silent hang. The
+runtime gate (`crates/rowplay-app/tests/qml_runtime_gate.rs`) launches the app
+through `Command::output()`, so a load failure blocks the test binary too,
+and CI has no step timeout: it would surface as a job time-out, not as a red
+test.
+
+Repro: `QApp::new().load_qml_from_file("qrc:/qt/qml/RowPlay/Main.qml").run()`
+with `import DoesNotExist` added to `Main.qml`; the import error is logged
+and the process runs until it is killed.
+
+Workaround used: gate walks are run by hand under `timeout`, with stdout and
+stderr redirected to a log file and the exit code echoed after it, and the
+log is read before any capture is trusted (no "gate screenshot saved" line
+means the walk never ran).
+
+Suggestion: make `load_qml_from_file` return a `Result` (Qt has
+`QQmlApplicationEngine::objectCreationFailed` and `rootObjects()` to build it
+from), or have `run()` return non-zero when no root object was created.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -253,6 +281,21 @@ story and currently has to be assembled from three API corners.
   `ListView`: bulk `Vec` swap + `reset()` (guarded, note 14), `required
   property` role access in delegates, smooth scrolling with lazily created
   delegates. Filtering 5k rows takes 2.5–7.7 ms in the view-model.
+- A `Vec<f64>` `Member` property with a `Notify` signal (`Replay.sunOffset`,
+  `crates/rowplay-app/src/backend/replay.rs`) reads as a JS array in QML
+  (`Qt.vector3d(Replay.sunOffset[0], …)`).
+- `serde_json::Value` `Constant` properties (the `serde_json` feature) as
+  read-only QML maps and lists: `Replay.meshRoles[node.objectName]` keyed
+  lookup, `Replay.anchors` iterated with `.template` / `.position[0]`, and
+  `Replay.materialSpecs` cross-checking the statically declared role
+  materials in `ReplayScene.qml` against the Rust spec table at startup —
+  structured data crosses the bridge without a `QGadget` (the note #4 ask
+  still stands for typed or writeable values).
+- A `[build-dependencies]` entry on the workspace's own `rowplay-viewmodel`
+  lets `build.rs` validate the vendored V3 pack with the same `validate_v3`
+  the app uses and embed the derived `replay_assets_meta.json` through
+  `include_str!`; the balsam module is a third `rcc --binary` blob
+  (`rowplay_replay.rcc`) registered next to the other two.
 
 ## Not qtbridge, but worth knowing
 
@@ -292,3 +335,147 @@ story and currently has to be assembled from three API corners.
   NOT be declared as a `GraphsView` child (its default property is
   `seriesList`, so the axis silently lands there and the series renders
   nothing). `GraphsTheme.colorScheme` has `Automatic` following the system.
+- Qt Quick 3D's `RuntimeLoader` (6.11.2) exposes only `source`, `status`,
+  `errorString`, `bounds`, `instancing`, `supportedExtensions` and
+  `supportedMimeTypes` (`qquick3druntimeloader_p.h`); the nodes it imports
+  carry no `objectName` and are not reachable through `children` from QML,
+  so neither a material-role walk nor joint posing can address them. Repro:
+  `RuntimeLoader { source: "…/rowplay-rigs-v3.glb" }`, then walk `children`
+  recursively looking for `objectName === "equipment:row:boat-assembly"` —
+  never found. Phase 5a therefore converts the packs with `balsam` at build
+  time (ADR 0008, `build_replay_balsam` in `crates/rowplay-app/build.rs`).
+- `balsam` output (6.11.2): one `PrincipledMaterial` placeholder per pack
+  that every `Model` shares, the glTF `extras` (`replayAsset*`,
+  `replayMaterialRole`) dropped, every node's `objectName` set to its glTF
+  name, the V4 skin as `Skin { joints: [...] }` (51 joints) over `Node`s
+  named after the contract's bones (56 `v4*` names, the four `*Contact`
+  helpers included) and — unless `--removeComponentAnimations` is passed —
+  the three authored clips (`rowplay-v4-row-cycle`, `-ski-cycle`,
+  `-bike-cycle`) as `QtQuick.Timeline` `Timeline`s that are `enabled: true`
+  with a `TimelineAnimation { running: true; loops: Animation.Infinite }`
+  and `KeyframeGroup`s whose keyframes are 58 `.qad` files in an
+  `animations/` directory. Bundled without those `.qad` files, the
+  auto-running timelines flooded one gate walk with 68,145 "Could not find
+  any constructor for value type QQuickQuaternionValueType … Cannot set
+  property "rotation"" and 3,717 "position" warnings; the athlete is posed
+  from Rust in Phase 5b, so `build.rs` strips the animation component (the
+  mesh bytes are identical either way). The generated files need a
+  hand-written `qmldir` and rcc aliases to sit at
+  `/qt/qml/RowPlay/ReplayAssets/` for `import RowPlay.ReplayAssets`.
+- `ProceduralSkyTextureData` lives in `QtQuick3D.Helpers`, and the `Model`
+  shadow property is `receivesShadows` (not `receiveShadows`).
+- Editing a `ProceduralSkyTextureData` in place does not refresh a light
+  probe that has already rendered: with the colour properties rebound per
+  sport, the sky box and the IBL stayed on the first sport's palette (the
+  sky-top pixel read #90acbc in all three captures). Qt 6.11 sources: every
+  setter calls `scheduleTextureUpdate()` → `generateRGBA16FTexture()` →
+  `QQuick3DTextureData::setSize/setFormat/setHasTransparency/setTextureData`
+  (`proceduralskytexturedata.cpp`) with no `update()` of its own; and
+  `QSSGBufferManager::setRhiTexture` (`qssgrenderbuffermanager.cpp`) runs
+  `createEnvironmentMap` only while `texture.m_texture == nullptr`, its
+  later-update path for `MipModeBsdf` (a light probe) re-uploading only a
+  pre-baked `QT_IBL_BAKER_VERSION` file — a regenerated raw image never
+  reaches the existing environment cube map. Assigning a *different*
+  `textureData` object does refresh it (`QQuick3DTexture::setTextureData`
+  sets `TextureDataDirty`, and the manager keys its cache on the data
+  pointer). Workaround
+  (`qml/RowPlay/Replay/ReplayScene.qml`, `rebuildSky`): a `Component`
+  factory creates a new `ProceduralSkyTextureData` whenever the palette key
+  changes, assigns it to the probe `Texture` and destroys the old one; the
+  captures now read #90acbc (row), #6fa7c9 (ski) and #e0e2e3 (bike). The
+  same generator starts the sun at (0, 0, -1) and rotates it about X by
+  `sunLatitude`, then about Y by `sunLongitude`; whether the sky-box shader
+  mirrors X is unverified until the Phase 5b chase camera brings the sun disc
+  into frame.
+- `createObject` of a Quick 3D object with a 2D parent (the `View3D`) logs
+  "QML ProceduralSkyTextureData: Created graphical object was not placed in
+  the graphics scene" and the object never reaches the scene graph; parent
+  it to a `QQuick3DObject` (here the probe `Texture`). The gate now fails on
+  that message.
+- Qt Quick 3D's unit defaults assume a scene about a hundred times larger
+  than a metre scene: `PerspectiveCamera.clipNear` 10 and `clipFar` 10000
+  (`qquick3dperspectivecamera_p.h`), `Light.shadowBias` 10, `pcfFactor` 2.0
+  and `shadowMapFar` 5000 (`qquick3dabstractlight_p.h`). `shadowBias` and
+  `pcfFactor` are documented as world-space approximations ("needs to be
+  tweaked depending on the size of your scene") and with `csmNumSplits` 0 a
+  directional shadow map "covers the bounding box of all shadow casting and
+  receiving objects". In the metre-scale replay scene the defaults clipped
+  everything within 10 m of the camera (the SkiErg and BikeErg cameras sit
+  7–7.5 m from the rigs, so their equipment and athlete vanished) and erased
+  every shadow (a 10 m depth offset, a 2 m blur and one map stretched over
+  the 6 km ground plane). `ReplayScene.qml` sets `clipNear: 0.1`,
+  `shadowBias: 0.02`, `pcfFactor: 0.03`, `shadowMapFar: 60`,
+  `csmNumSplits: 2` and `castsShadows: false` on the ground.
+- `LookAtNode` (`QtQuick3D.Helpers`) points its forward (-Z) axis at
+  `target`: `updateLookAt` (`lookatnode.cpp`) is the camera `lookAt` maths —
+  yaw and pitch from `sourcePosition - targetPosition` — so a child
+  `DirectionalLight` shines at the target. The captures agree: the rower's
+  sun offset at -X/+Z casts shadows towards +X/-Z.
+- The gate's member probe (`checkGateMembers` in `qml/RowPlay/Main.qml`,
+  note 15) only probes singletons named in its registry object; a new
+  Rust singleton (`Replay`) must be added there and to `SINGLETONS` in
+  `crates/rowplay-app/tests/qml_runtime_gate.rs`, or its members are never
+  checked and a missing `qproperty!` again reads as `undefined` in silence.
+- CI (GitHub Actions, `ubuntu-24.04`) runs the app build with no display:
+  `balsam` is a `QGuiApplication`, so it died initialising the default xcb
+  platform plugin ("could not connect to display") before converting
+  anything, failing `build.rs` with exit 101 while the same build passed on
+  a developer Wayland desktop. Conversion needs no window, so `build.rs`
+  passes `QT_QPA_PLATFORM=offscreen` to the balsam invocation; verified
+  headless (`env -u DISPLAY -u WAYLAND_DISPLAY`) against both packs. The
+  workflow's Toolchain report step prints `balsam --version` so a missing
+  binary is visible at a glance.
+- A dynamically created Quick 3D *material* that nothing owns is garbage
+  collected, and the `Model` it was assigned to then drops out of the
+  render entirely — no fallback to the default material, while the shadow
+  pass still draws it (the row boat left only water and its shadow). This
+  is ownership, not dynamic creation: a `PrincipledMaterial` from
+  `Component.createObject(null)` (or `Qt.createQmlObject` with no QML
+  parent) is JavaScript-owned, and a `Model.materials` list is not a
+  JavaScript reference, so the next collection deletes it. Probe (Phase
+  5a, one gate run, `gc()` forced right after assignment): the row hull
+  with a parentless, unreferenced red material vanished (497 red pixels
+  left, the shadow intact); the decks with a parentless green material
+  retained in a `property var` rendered (2,939 pixels); the cockpit tub and
+  gunwales with a blue material parented to a scene `Node` and not retained
+  rendered (1,583 pixels). A second run restored the first
+  implementation — 15 materials from `Qt.createQmlObject` parented to a
+  singleton `QtObject` and kept in a `var` map — and rendered the full
+  lane-painted boat. An earlier version of this note blamed dynamic
+  creation as such; that does not reproduce. Rule for Phase 6 venue
+  materials built per venue at runtime: give every dynamic material a QML
+  parent or hold a reference to it in a property (either is enough).
+  `qml/RowPlay/Replay/ReplayScene.qml` keeps the 15 role materials as
+  static children of the scene (like balsam's inline placeholder) and
+  cross-checks each one's metalness/roughness against the Rust spec table
+  (`Replay.materialSpecs`) at startup — a mismatch calls
+  `Replay.reportError` and shows the error overlay — because static
+  declarations need nothing kept alive, not because dynamic ones cannot
+  work.
+- `grabToImage` composites the last *rendered* frame, and an idle Quick 3D
+  scene renders exactly one frame per change — so a gate that switches
+  sport and grabs on the next timer tick races the renderer: under load or
+  llvmpipe the captures showed the *previous* sport's palette, and mesh
+  buffer uploads (which progress only on rendered frames) were caught
+  half-done as a crumpled hull. Fix in `Main.qml`'s gate: count frames via
+  `onAfterAnimating`, keep a `FrameAnimation` running while a replay hold
+  is active (an idle scene would otherwise never render the second frame),
+  and release the grab only after both N rendered frames and a minimum
+  wall time; the release must `return` without advancing the gate step, or
+  the next sport switch lands before the asynchronous grab callback.
+- `grabToImage`'s `saveToFile` returns `false` with no Qt warning when the
+  target directory does not exist. The gate logged `FAILED` and walked on,
+  so every 2D capture in CI (dashboard, settings, detail) had silently never
+  been written since Phase 4; the upload step looked healthy because the
+  smoke test creates its own artifact directory and `if-no-files-found:
+  error` only fires when nothing at all matches. The walk test now creates
+  `ROWPLAY_SMOKE_SCREENSHOT_DIR` before launching the app and asserts on the
+  files it expects. Rule for later phases: a capture that no test reads back
+  is unverified, whatever the upload step says.
+- A Windows checkout with `core.autocrlf` breaks byte-exact asset hash
+  tests: the V4 contract JSON (835 lines) gained exactly 835 CR bytes and
+  failed `asset_hashes.rs` on the Windows CI leg only (macOS/Linux check
+  out LF). The repo has no `.gitattributes` by default, so one now pins
+  `*.json text eol=lf` plus the binary extensions; `git add --renormalize`
+  must stay a no-op. Hash tests pin bytes, so they cannot be lenient about
+  line endings — the checkout must be.

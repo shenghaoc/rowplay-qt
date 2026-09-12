@@ -40,3 +40,6 @@ opt-in (`ROWPLAY_REPLAY_BENCH=1`) runs 600 ticks per sport per tier, logs
 median/p95 through `PrivacySafeLogger`, and writes
 `artifacts/replay-bench-<gpu>.json`. The PR quotes the file. The renderer
 string is captured from `QQuickWindow`/GL info at startup and included.
+Only hardware-GL Wayland runs on the Intel UHD 630 count as measurements
+(R5.1); the CI llvmpipe run (~2 fps) verifies correctness and its numbers
+are never quoted as timings.

@@ -80,6 +80,21 @@ and surfaces). The pinned rowplay commit is `011e8303b66b4d2265a6f1ec8b3ed9d8ed4
   even where Qt cannot render. The Qt-side loader re-runs the same checks on
   the loaded node tree before any equipment is shown.
 
+Outcome (2026-09-12): the R2.2 balsam path is the one shipped, for every
+build — `build.rs` requires `balsam`, converts both packs with
+`--removeComponentAnimations` into the generated `RowPlay.ReplayAssets`
+module and bundles it as `rowplay_replay.rcc` (ADR 0008). `RuntimeLoader` is
+not used anywhere: its scene is not addressable from QML (no `objectName`,
+no traversable `children`), so neither the material walk nor 5b posing could
+reach it; the GLBs are therefore not in any rcc and the R2.1 rcc path does
+not exist. The reader of R2.5 lives in `rowplay_viewmodel::replay::glb` with
+its defect tests as unit tests in that file (no `tests/asset_contract.rs`).
+R2.5's Qt-side re-check is the build-time validation of exactly the bytes
+`balsam` converts (a drift fails the build with the named slot) plus the
+startup re-validation of the on-disk pack in development
+(`ROWPLAY_REPLAY_ASSETS`, or `assets/replay/` in debug builds;
+`Replay.validationMode` = "startup" or "build").
+
 ## R3 — Materials from Theme.qml, role list in Rust
 
 - R3.1 The 11 `replayMaterialRole` values (`athlete-skin`, `athlete-fabric`,
@@ -122,6 +137,16 @@ and surfaces). The pinned rowplay commit is `011e8303b66b4d2265a6f1ec8b3ed9d8ed4
   (`SmokeScene.qml`) because the bootstrap smoke test pins it.
 - R4.4 Light/dark follows `Theme` (the `Qt.styleHints.colorScheme` binding),
   pinnable with `ROWPLAY_FORCE_COLOR_SCHEME` like the rest of the shell.
+
+Outcome (2026-09-12): the key light follows the web's per-sport `SUN_OFFSETS`
+aimed at `SHADOW_TARGET_HEIGHT` (0.55 m) through a `LookAtNode`, both as
+data in `rowplay_viewmodel::replay::palette`. Shadows required metre-scaled
+Qt parameters (`shadowBias` 0.02, `pcfFactor` 0.03, `shadowMapFar` 60,
+`csmNumSplits` 2 — Qt's defaults assume a scene about a hundred times
+larger), and the camera needs `clipNear: 0.1` for the same reason. The
+procedural sky is rebuilt per palette change because in-place colour edits
+do not refresh the probe. The athlete placeholder is the balsam `Athlete`
+component, unposed at (0, 0, -2.4).
 
 ## R5 — Anchor contract data
 
