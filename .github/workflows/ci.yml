@@ -147,4 +147,7 @@ jobs:
             artifacts/settings.png
             artifacts/detail.png
             artifacts/detail-full.png
+            artifacts/replay-row.png
+            artifacts/replay-ski.png
+            artifacts/replay-bike.png
           if-no-files-found: error

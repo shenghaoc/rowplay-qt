@@ -5,9 +5,11 @@
 //! token, offscreen platform. The shell walks every screen, flips through all
 //! six languages and exercises the preference slots on a timer, then exits 0.
 //! The test fails when stderr contains a QML `TypeError`, `ReferenceError`,
-//! `Binding loop`, `Unable to assign` or `is not defined` — the classes of
-//! silent breakage QML bindings produce at runtime, which the compiler and
-//! `qmllint` (no `.qmltypes` for Rust types, qt-bridges-notes #9) cannot see.
+//! `Binding loop`, `Unable to assign`, `is not defined` or `was not placed in
+//! the graphics scene` — the classes of silent breakage QML bindings and
+//! dynamically created Quick 3D objects produce at runtime, which the
+//! compiler and `qmllint` (no `.qmltypes` for Rust types, qt-bridges-notes
+//! #9) cannot see.
 //!
 //! Unlike the 3D smoke screenshot test this needs no GL: the shell is pure
 //! Qt Quick 2D, so `offscreen` renders it and the gate runs in every
@@ -17,16 +19,21 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const FORBIDDEN_PATTERNS: [&str; 5] = [
+mod common;
+
+const FORBIDDEN_PATTERNS: [&str; 6] = [
     "TypeError",
     "ReferenceError",
     "Binding loop",
     "Unable to assign",
     "is not defined",
+    // A Quick 3D object created with `createObject` under a 2D parent never
+    // reaches the scene graph (Phase 5a: the rebuilt sky texture data).
+    "was not placed in the graphics scene",
 ];
 
 /// The Qt-bridge singletons whose members QML must resolve.
-const SINGLETONS: [&str; 4] = ["Library", "Detail", "Settings", "Sync"];
+const SINGLETONS: [&str; 5] = ["Library", "Detail", "Settings", "Sync", "Replay"];
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -119,6 +126,14 @@ fn referenced_members() -> BTreeSet<String> {
 
 #[test]
 fn shell_walk_produces_no_qml_runtime_errors() {
+    // The walk saves per-screen captures here; on a fresh CI checkout the
+    // (git-ignored) directory does not exist and every grabToImage save
+    // silently fails (saveToFile returns false, the walk logs FAILED and
+    // continues). The smoke test creates its own artifact directory; this
+    // one must too, or the capture assertions below are unrunnable.
+    if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
+        std::fs::create_dir_all(&dir).expect("create screenshot directory");
+    }
     let mut command = Command::new(env!("CARGO_BIN_EXE_rowplay-app"));
     command
         .env("ROWPLAY_SMOKE_GATE", "1")
@@ -232,4 +247,26 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate full: sync.done added 17 skipped 0"),
         "a full re-sync must re-download every detail\noutput:\n{combined}"
     );
+
+    // Phase 5a spec R6.1/R6.2: when this walk ran with a screenshot
+    // directory, each sport's replay capture must be a real render — loaded
+    // equipment, not a blank or single-colour frame. This must live in the
+    // same test as the walk: a separate #[test] runs in its own process
+    // concurrently and reads the directory before the walk has saved the
+    // captures (CI Linux, fresh checkout, fails deterministically).
+    if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
+        for sport in ["row", "ski", "bike"] {
+            let ppm = Path::new(&dir).join(format!("replay-{sport}.ppm"));
+            let bytes = std::fs::read(&ppm).unwrap_or_else(|error| {
+                panic!(
+                    "read {}: {error} — the gate walk must reach the replay route \
+                     and save the per-sport captures\n\napp log:\n{}",
+                    ppm.display(),
+                    common::gate_log_lines(&combined)
+                )
+            });
+            let (width, height, pixels) = common::parse_ppm(&bytes);
+            common::assert_rendered(width, height, pixels, &format!("replay-{sport}"));
+        }
+    }
 }

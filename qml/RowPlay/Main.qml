@@ -299,7 +299,7 @@ ApplicationWindow {
         }
         var objects = {
             "Library": Library, "Detail": Detail,
-            "Settings": Settings, "Sync": Sync
+            "Settings": Settings, "Sync": Sync, "Replay": Replay
         }
         var pairs = Settings.gateMemberCheck.split(",")
         var missing = []
@@ -339,6 +339,55 @@ ApplicationWindow {
     // worker is genuinely idle, so the following step reports real counts
     // instead of a mid-run snapshot (the full re-sync is the slowest).
     property bool gateAwaitingSync: false
+    // Set while the replay scene applies its rules; the walk holds until the
+    // scene reports ready (bounded, so a broken pack cannot hang the gate —
+    // the error is logged and the pixel assertion fails instead).
+    property bool gateAwaitingReplay: false
+    property int gateReplayWaits: 0
+    // A sport switch (or a finished load) changes materials, template
+    // visibility and the rebuilt procedural sky texture, and those land over
+    // one or two *rendered frames*, not instantly. grabToImage composites
+    // the last rendered View3D frame, so grabbing on the next 300 ms tick
+    // can still capture the previous state — observed under llvmpipe and
+    // under load as a row-palette ski frame and a half-uploaded hull. The
+    // walk holds until two frames have rendered since the scene change.
+    property int gateRenderedFrames: 0
+    onAfterAnimating: if (root.gateMode) root.gateRenderedFrames += 1
+    property bool gateAwaitingScene: false
+    property int gateSceneFramesTarget: 0
+    property int gateSceneWaits: 0
+    property int gateSceneTicks: 0
+    property string gateSceneGrabName: ""
+
+    // An idle scene renders exactly one frame per change, so a "+N frames"
+    // settle target is unreachable and mesh-buffer uploads (which only
+    // progress on rendered frames) stall mid-geometry. Driving frames for
+    // as long as a replay hold is active advances both.
+    FrameAnimation {
+        running: root.gateMode
+                 && (root.gateAwaitingReplay || root.gateAwaitingScene)
+    }
+
+    // The release needs frames AND a minimum wall time: under llvmpipe the
+    // big rig pack's vertex buffers upload over several slow frames, and a
+    // grab before they land renders zero-filled geometry as a crumpled ball
+    // around the origin (observed on the row hull while the athlete, whose
+    // buffers had landed, rendered fine).
+    readonly property int gateSceneMinTicks: 15
+    readonly property int gateSceneMaxTicks: 60
+
+    function grabSettledScene(name) {
+        if (Settings.screenshotDir.length === 0) {
+            return
+        }
+        gateAwaitingScene = true
+        gateSceneFramesTarget = gateRenderedFrames + 3
+        gateSceneWaits = 0
+        gateSceneTicks = 0
+        gateSceneGrabName = name
+        console.log("gate scene: settling", name, "from",
+                    gateRenderedFrames, "frames")
+    }
 
     function grabScreen(name) {
         if (Settings.screenshotDir.length === 0) {
@@ -350,6 +399,10 @@ ApplicationWindow {
             var path = Settings.screenshotDir + "/" + name + ".png"
             console.log("gate screenshot",
                         result.saveToFile(path) ? "saved" : "FAILED", path)
+            // A PPM twin (same callback, same pixels) feeds the gate test's
+            // pixel-diversity assertions — uncompressed P6 is trivial to
+            // parse without an image crate.
+            result.saveToFile(Settings.screenshotDir + "/" + name + ".ppm")
             root.grabPending = false
         })
     }
@@ -362,7 +415,9 @@ ApplicationWindow {
         onTriggered: {
             if (root.grabPending) {
                 root.grabWaits += 1
-                if (root.grabWaits < 20) {
+                // A replay grab re-renders the 3D scene into the grab layer;
+                // on a slow software renderer that pass takes seconds.
+                if (root.grabWaits < 40) {
                     return
                 }
                 console.log("gate screenshot: grab timed out, continuing")
@@ -373,6 +428,46 @@ ApplicationWindow {
                     return
                 }
                 root.gateAwaitingSync = false
+            }
+            if (root.gateAwaitingReplay) {
+                if (Replay.loadState === "ready") {
+                    root.gateAwaitingReplay = false
+                } else if (Replay.loadState === "error") {
+                    console.log("gate replay error:", Replay.errorText)
+                    root.gateAwaitingReplay = false
+                } else {
+                    root.gateReplayWaits += 1
+                    if (root.gateReplayWaits < 60) {
+                        return
+                    }
+                    console.log("gate replay: load timed out, continuing")
+                    root.gateAwaitingReplay = false
+                }
+            }
+            if (root.gateAwaitingScene) {
+                // Release and grab, but do NOT advance the step this tick:
+                // grabScreen's callback renders asynchronously, and the next
+                // sport switch must not run before it has — otherwise each
+                // capture shows the following sport's palette. The
+                // grabPending hold above paces the walk from here.
+                root.gateSceneTicks += 1
+                if (root.gateRenderedFrames >= root.gateSceneFramesTarget
+                        && root.gateSceneTicks >= root.gateSceneMinTicks) {
+                    root.gateAwaitingScene = false
+                    console.log("gate scene: settled", root.gateSceneGrabName,
+                                "after", root.gateSceneTicks, "ticks,",
+                                root.gateRenderedFrames, "frames")
+                    root.grabScreen(root.gateSceneGrabName)
+                    return
+                }
+                root.gateSceneWaits += 1
+                if (root.gateSceneWaits < root.gateSceneMaxTicks) {
+                    return
+                }
+                console.log("gate scene: frames never settled, grabbing anyway")
+                root.gateAwaitingScene = false
+                root.grabScreen(root.gateSceneGrabName)
+                return
             }
             root.gateStep += 1
             switch (root.gateStep) {
@@ -479,8 +574,17 @@ ApplicationWindow {
             case 49: root.grabScreen("detail-nostrokes"); break
             case 50: Library.selectWorkout(1005); break
             case 51: root.grabScreen("detail-full"); break
-            case 52: Library.requestReplay(false); break       // route push
-            case 53: Library.closeReplay(); Library.clearSelection(); break
+            case 52:                                 // route push + first sport
+                Library.requestReplay(false)
+                Replay.setSport(0)
+                root.gateAwaitingReplay = true
+                break
+            case 53: root.grabSettledScene("replay-row"); break
+            case 54: Replay.setSport(1); break
+            case 55: root.grabSettledScene("replay-ski"); break
+            case 56: Replay.setSport(2); break
+            case 57: root.grabSettledScene("replay-bike"); break
+            case 58: Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

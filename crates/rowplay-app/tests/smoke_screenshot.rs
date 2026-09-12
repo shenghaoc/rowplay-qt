@@ -17,26 +17,8 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn parse_ppm(bytes: &[u8]) -> (usize, usize, &[u8]) {
-    // P6\n<w> <h>\n255\n<rgb...>
-    let mut fields = Vec::new();
-    let mut i = 0;
-    while fields.len() < 4 && i < bytes.len() {
-        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
-            i += 1;
-        }
-        let start = i;
-        while i < bytes.len() && !bytes[i].is_ascii_whitespace() {
-            i += 1;
-        }
-        fields.push(std::str::from_utf8(&bytes[start..i]).expect("ascii header"));
-    }
-    assert_eq!(fields[0], "P6", "expected a binary PPM");
-    let width: usize = fields[1].parse().expect("width");
-    let height: usize = fields[2].parse().expect("height");
-    assert_eq!(fields[3], "255");
-    (width, height, &bytes[i + 1..])
-}
+mod common;
+use common::parse_ppm;
 
 #[test]
 fn renders_the_smoke_scene_headlessly() {
@@ -73,6 +55,7 @@ fn renders_the_smoke_scene_headlessly() {
 
     let ppm_bytes = std::fs::read(&ppm).expect("screenshot PPM written");
     let (width, height, pixels) = parse_ppm(&ppm_bytes);
+    common::assert_rendered(width, height, pixels, "smoke");
     assert!(
         width >= 320 && height >= 200,
         "unexpected size {width}x{height}"
