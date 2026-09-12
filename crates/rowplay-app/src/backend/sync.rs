@@ -182,7 +182,7 @@ impl SyncBackend {
         }
         self.full_mode = full;
         let state = AppState::get();
-        let mock = std::env::var_os("ROWPLAY_SYNC_MOCK").is_some();
+        let mock = crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some();
         let token = if mock {
             None
         } else {
@@ -357,7 +357,7 @@ impl SyncBackend {
     fn refresh_can_sync(&mut self) {
         let state = AppState::get();
         let prefs = state.prefs();
-        let mock = std::env::var_os("ROWPLAY_SYNC_MOCK").is_some();
+        let mock = crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some();
         self.can_sync = (state.has_token() || mock) && !prefs.demo_mode_enabled && !self.is_running;
     }
 }

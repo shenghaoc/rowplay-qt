@@ -98,11 +98,14 @@ impl Default for SettingsBackend {
             timezone_group_starts,
             home_timezone_index,
             status_text_id: String::new(),
-            gate_mode: std::env::var_os("ROWPLAY_SMOKE_GATE").is_some(),
+            // Debug-only like the other hooks: in a release build this
+            // variable would make the app walk its screens and quit.
+            gate_mode: crate::backend::test_env("ROWPLAY_SMOKE_GATE").is_some(),
             screenshot_dir: std::env::var("ROWPLAY_SMOKE_SCREENSHOT_DIR").unwrap_or_default(),
             color_scheme_override: std::env::var("ROWPLAY_FORCE_COLOR_SCHEME").unwrap_or_default(),
-            sync_mock_mode: std::env::var_os("ROWPLAY_SYNC_MOCK").is_some(),
-            gate_member_check: std::env::var("ROWPLAY_GATE_MEMBER_CHECK").unwrap_or_default(),
+            sync_mock_mode: crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some(),
+            gate_member_check: crate::backend::test_env("ROWPLAY_GATE_MEMBER_CHECK")
+                .unwrap_or_default(),
         }
     }
 }

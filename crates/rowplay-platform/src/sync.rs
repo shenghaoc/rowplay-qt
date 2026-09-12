@@ -147,9 +147,15 @@ impl<'a> WorkoutSyncCoordinator<'a> {
     ///
     /// - **incremental** (`false`): a detail is skipped when the cache already
     ///   holds that id with the same identity stamp
-    ///   ([`SummaryStamp`](crate::workout_cache::SummaryStamp)), and the summary
-    ///   walk stops as soon as a whole page is already cached and unchanged;
+    ///   ([`SummaryStamp`](crate::workout_cache::SummaryStamp)), and the
+    ///   summary walk may stop early — but only when the previous run is
+    ///   known to have completed cleanly, so an interrupted first sync still
+    ///   pages all the way to the end and picks up the older workouts;
     /// - **full** (`true`): every page is walked and every detail re-fetched.
+    ///
+    /// A clean run (every page walked, zero failures, no cancellation) is
+    /// recorded through [`WorkoutCache::set_fully_synced`]; anything else
+    /// clears the flag.
     ///
     /// `progress` is called once per processed detail.
     pub fn sync_with(
@@ -167,21 +173,38 @@ impl<'a> WorkoutSyncCoordinator<'a> {
             WorkoutSyncError::CacheFailed(message)
         })?;
 
-        // 0b. The change-detection baseline (incremental only).
-        let stamps = if full {
-            BTreeMap::new()
+        // 0b. The change-detection baseline (incremental only) and the
+        // checkpoint that makes the early page stop sound.
+        let (stamps, may_stop_early) = if full {
+            (BTreeMap::new(), false)
         } else {
-            self.cache.summary_stamps().map_err(|error| {
+            let stamps = self.cache.summary_stamps().map_err(|error| {
                 let message = redact(&error.to_string());
                 self.logger.warn("could not read cache stamps", &[&message]);
                 WorkoutSyncError::CacheFailed(message)
-            })?
+            })?;
+            let fully_synced = self.cache.is_fully_synced().map_err(|error| {
+                let message = redact(&error.to_string());
+                self.logger
+                    .warn("could not read sync checkpoint", &[&message]);
+                WorkoutSyncError::CacheFailed(message)
+            })?;
+            (stamps, fully_synced)
         };
 
-        // 1. Summaries, page by page (early stop when caught up).
-        let summaries = self.fetch_summaries(cancel, full, &stamps)?;
+        // 1. Summaries, page by page (early stop when caught up *and* the
+        // previous run is known to have finished the job). A paging failure
+        // interrupts the walk, so the cache is no longer known to be complete.
+        let summaries = match self.fetch_summaries(cancel, full, may_stop_early, &stamps) {
+            Ok(summaries) => summaries,
+            Err(error) => {
+                self.record_checkpoint(false);
+                return Err(error);
+            }
+        };
         let total = summaries.len();
         if cancel.load(Ordering::Relaxed) {
+            self.record_checkpoint(false);
             return Ok(outcome(started_at, total, 0, 0, 0, true));
         }
 
@@ -191,6 +214,7 @@ impl<'a> WorkoutSyncCoordinator<'a> {
         let mut failed_count = 0;
         for (completed, summary) in summaries.iter().enumerate() {
             if cancel.load(Ordering::Relaxed) {
+                self.record_checkpoint(false);
                 return Ok(outcome(
                     started_at,
                     total,
@@ -236,6 +260,7 @@ impl<'a> WorkoutSyncCoordinator<'a> {
                     );
                     failed_count += 1;
                     if error.should_abort_sync() {
+                        self.record_checkpoint(false);
                         progress(SyncProgress {
                             completed: completed + 1,
                             total,
@@ -255,6 +280,11 @@ impl<'a> WorkoutSyncCoordinator<'a> {
             });
         }
 
+        // Clean means zero failures and no cancellation. Reaching here also
+        // means the walk either paged to the reported end or stopped early,
+        // and an early stop is only permitted when the cache was already
+        // known to be complete — so both are consistent with a complete cache.
+        self.record_checkpoint(failed_count == 0);
         Ok(outcome(
             started_at,
             total,
@@ -271,14 +301,19 @@ impl<'a> WorkoutSyncCoordinator<'a> {
     /// server that reports fewer pages on a later response cannot cut the walk
     /// short.
     ///
-    /// In incremental mode the walk stops at the end of the first page whose
-    /// every summary is already cached with a matching stamp: the results are
-    /// newest-first, so once a whole page is unchanged everything older is
-    /// too. A full sync pages to the reported end regardless.
+    /// `may_stop_early` allows the walk to end at the first page whose every
+    /// summary is already cached with a matching stamp: the results are
+    /// newest-first, so once a whole page is unchanged *and the previous run
+    /// fetched every page*, everything older is present too.
+    ///
+    /// Without that guarantee — a first sync that was cancelled or hit
+    /// failures — the walk pages all the way to the reported end while still
+    /// skipping unchanged details, which costs only the summary fetches.
     fn fetch_summaries(
         &self,
         cancel: &AtomicBool,
         full: bool,
+        may_stop_early: bool,
         stamps: &BTreeMap<i64, crate::workout_cache::SummaryStamp>,
     ) -> Result<Vec<Workout>, WorkoutSyncError> {
         let mut summaries = Vec::new();
@@ -308,11 +343,26 @@ impl<'a> WorkoutSyncCoordinator<'a> {
             if page > total_pages {
                 break;
             }
-            if !full && page_fully_cached {
+            if !full && may_stop_early && page_fully_cached {
                 break;
             }
         }
         Ok(summaries)
+    }
+}
+
+impl WorkoutSyncCoordinator<'_> {
+    /// Persists whether the cache is now known to hold every page.
+    ///
+    /// A failure here never fails the sync: the worst case is that the next
+    /// incremental run walks the summary pages again instead of stopping
+    /// early, which is the safe direction.
+    fn record_checkpoint(&self, fully_synced: bool) {
+        if let Err(error) = self.cache.set_fully_synced(fully_synced) {
+            let message = redact(&error.to_string());
+            self.logger
+                .warn("could not record sync checkpoint", &[&message]);
+        }
     }
 }
 
@@ -351,6 +401,9 @@ pub struct SyncState {
     pub last_error: Option<String>,
     /// When that failure happened.
     pub last_error_date: Option<DateTime<Utc>>,
+    /// Whether the last completed run walked every page with no failures and
+    /// no cancellation — the precondition for the incremental early page stop.
+    pub fully_synced: bool,
 }
 
 /// Tracks the sync lifecycle for the UI.
@@ -389,10 +442,10 @@ impl<'a> SyncStateTracker<'a> {
         self.state.lock().expect("sync state lock").clone()
     }
 
-    /// Re-read the cached workout count.
+    /// Re-read the cached workout count and the sync checkpoint.
     ///
-    /// A cache failure is logged and leaves the previous count in place: the
-    /// count is a display hint, not a reason to break the sync state machine.
+    /// A cache failure is logged and leaves the previous values in place: they
+    /// are display hints, not a reason to break the sync state machine.
     pub fn refresh_workout_count(&self) {
         match self.cache.list_workouts() {
             Ok(workouts) => {
@@ -402,6 +455,16 @@ impl<'a> SyncStateTracker<'a> {
                 let message = redact(&error.to_string());
                 self.logger
                     .warn("could not count cached workouts", &[&message]);
+            }
+        }
+        match self.cache.is_fully_synced() {
+            Ok(fully_synced) => {
+                self.state.lock().expect("sync state lock").fully_synced = fully_synced;
+            }
+            Err(error) => {
+                let message = redact(&error.to_string());
+                self.logger
+                    .warn("could not read the sync checkpoint", &[&message]);
             }
         }
     }
@@ -445,7 +508,7 @@ mod tests {
     use super::*;
     use crate::concept2::{Concept2Error, ResultsPage};
     use crate::token_store::SecretToken;
-    use crate::workout_cache::{CacheError, InMemoryWorkoutCache};
+    use crate::workout_cache::{CacheError, InMemoryWorkoutCache, SqliteWorkoutCache};
     use rowplay_core::demo::demo_details;
     use rowplay_core::models::{Sport, WorkoutDetail};
     use std::collections::BTreeMap;
@@ -564,6 +627,14 @@ mod tests {
             self.inner.migrate()
         }
 
+        fn is_fully_synced(&self) -> Result<bool, CacheError> {
+            self.inner.is_fully_synced()
+        }
+
+        fn set_fully_synced(&self, fully_synced: bool) -> Result<(), CacheError> {
+            self.inner.set_fully_synced(fully_synced)
+        }
+
         fn list_workouts(&self) -> Result<Vec<Workout>, CacheError> {
             self.inner.list_workouts()
         }
@@ -587,6 +658,14 @@ mod tests {
     impl WorkoutCache for UnmigratableCache {
         fn migrate(&self) -> Result<(), CacheError> {
             Err(CacheError::Migration("bad schema".to_owned()))
+        }
+
+        fn is_fully_synced(&self) -> Result<bool, CacheError> {
+            Ok(false)
+        }
+
+        fn set_fully_synced(&self, _fully_synced: bool) -> Result<(), CacheError> {
+            Ok(())
         }
 
         fn list_workouts(&self) -> Result<Vec<Workout>, CacheError> {
@@ -803,6 +882,142 @@ mod tests {
         assert_eq!(client.calls().len(), 1 + 3);
     }
 
+    /// The blocker case: a cancelled first sync leaves the newest page cached
+    /// and older pages missing, so the next incremental run must *not* stop at
+    /// page 1 — it has to page all the way and fetch the missing older
+    /// details, while still skipping what is already cached.
+    #[test]
+    fn an_incremental_sync_after_a_cancelled_run_fetches_the_missing_pages() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+
+        // First page of five saved, then the user cancels.
+        let cancel = AtomicBool::new(false);
+        let first = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5).sync_with(
+            &cancel,
+            false,
+            &mut |progress| {
+                if progress.completed == 5 {
+                    cancel.store(true, Ordering::Relaxed);
+                }
+            },
+        );
+        let outcome = first.unwrap();
+        assert!(outcome.cancelled);
+        assert_eq!(outcome.result.saved_count, 5);
+        assert_eq!(cache.list_workouts().unwrap().len(), 5);
+        assert!(
+            !cache.is_fully_synced().unwrap(),
+            "a cancelled run must not leave the cache marked complete"
+        );
+        let after_cancel = client.calls().len();
+
+        // Next incremental run: the stamp set says pages 2-4 are missing, so
+        // the walk must continue past page 1.
+        // A fresh cache handle stands in for an app restart: the checkpoint is
+        // persisted, so the guard survives it (the in-memory cache shares its
+        // state by design; SQLite has its own coverage).
+        let second = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(second.saved_count, 12, "the older details are fetched");
+        assert_eq!(second.skipped_count, 5, "page 1 is still skipped");
+        assert_eq!(cache.list_workouts().unwrap().len(), 17);
+        let calls = &client.calls()[after_cancel..];
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|call| call.starts_with("list:"))
+                .count(),
+            4,
+            "an interrupted history must be walked to the end: {calls:?}"
+        );
+        assert!(
+            !calls.contains(&"detail:1001".to_owned()),
+            "the cancelled run's details must not be refetched: {calls:?}"
+        );
+        assert!(cache.is_fully_synced().unwrap(), "and now it is complete");
+    }
+
+    /// A failed detail is retried on the next incremental run, because the
+    /// failure cleared the checkpoint.
+    #[test]
+    fn a_failed_detail_is_refetched_on_the_next_incremental_run() {
+        let client = demo_client().failing_detail(1001, Concept2Error::NotFound(1001));
+        let cache = InMemoryWorkoutCache::default();
+        let first = WorkoutSyncCoordinator::new(&client, &cache)
+            .sync_all()
+            .unwrap();
+        assert_eq!(first.failed_count, 1);
+        assert_eq!(first.skipped_count, 0);
+        assert!(
+            !cache.is_fully_synced().unwrap(),
+            "a run with failures must not be marked complete"
+        );
+
+        // The next run retries that one detail and pages to the end. A fresh
+        // client stands in for the Logbook recovering (the previous one still
+        // has the failure configured).
+        let recovered = demo_client();
+        let second = WorkoutSyncCoordinator::new(&recovered, &cache)
+            .sync_all()
+            .unwrap();
+        assert_eq!(
+            second.saved_count, 1,
+            "only the failed workout is refetched"
+        );
+        assert_eq!(second.skipped_count, 16);
+        assert_eq!(second.failed_count, 0);
+        let calls = recovered.calls();
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|call| call.starts_with("detail:"))
+                .count(),
+            1,
+            "{calls:?}"
+        );
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|call| call.as_str() == "detail:1001")
+                .count(),
+            1
+        );
+        assert!(cache.is_fully_synced().unwrap());
+    }
+
+    /// After one clean run the early stop fires again — and keeps firing.
+    #[test]
+    fn a_clean_run_restores_the_early_stop() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+        WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert!(cache.is_fully_synced().unwrap());
+        let baseline = client.calls().len();
+
+        let second = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(second.fetched_count, 5, "early stop at page 1");
+        assert_eq!(second.skipped_count, 5);
+        assert_eq!(&client.calls()[baseline..], &["list:1"]);
+        assert!(
+            cache.is_fully_synced().unwrap(),
+            "a permitted early stop keeps the cache marked complete"
+        );
+
+        // And it stays cached: a third run behaves identically.
+        let third_baseline = client.calls().len();
+        let third = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(third.fetched_count, 5);
+        assert_eq!(&client.calls()[third_baseline..], &["list:1"]);
+    }
+
     /// The second sync over an unchanged library issues zero detail requests.
     #[test]
     fn an_incremental_resync_skips_every_unchanged_detail() {
@@ -948,6 +1163,8 @@ mod tests {
         let client = demo_client();
         let cache = InMemoryWorkoutCache::default();
         cache.save_details(&demo_details()).unwrap();
+        // A prior clean run, so the early stop applies and the walk is one page.
+        cache.set_fully_synced(true).unwrap();
         let mut seen = Vec::new();
         WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
             .sync_with(&AtomicBool::new(false), false, &mut |progress| {
@@ -970,6 +1187,57 @@ mod tests {
         assert!(!outcome.cancelled);
         assert_eq!(outcome.result.fetched_count, 0);
         assert_eq!(client.calls(), vec!["list:1"]);
+    }
+
+    /// The checkpoint is persisted, so the guard survives an app restart
+    /// between an interrupted first sync and the recovery run. Exercised on
+    /// the real SQLite store; the in-memory runs above share state by design.
+    #[test]
+    fn the_early_stop_guard_survives_a_restart_on_sqlite() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("workouts.sqlite");
+        let client = demo_client();
+
+        // Interrupted first run: cancelled after the first page of five.
+        {
+            let cache = SqliteWorkoutCache::open(&path).unwrap();
+            let cancel = AtomicBool::new(false);
+            let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+                .sync_with(&cancel, false, &mut |progress| {
+                    if progress.completed == 5 {
+                        cancel.store(true, Ordering::Relaxed);
+                    }
+                })
+                .unwrap();
+            assert!(outcome.cancelled);
+            assert!(!cache.is_fully_synced().unwrap());
+        }
+
+        // Restart: reopen the store and sync incrementally.
+        {
+            let cache = SqliteWorkoutCache::open(&path).unwrap();
+            assert!(
+                !cache.is_fully_synced().unwrap(),
+                "the checkpoint is persisted, not in-memory"
+            );
+            let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+                .sync_all()
+                .unwrap();
+            assert_eq!(outcome.saved_count, 12, "older pages are fetched");
+            assert_eq!(outcome.skipped_count, 5);
+            assert_eq!(cache.list_workouts().unwrap().len(), 17);
+            assert!(cache.is_fully_synced().unwrap());
+        }
+
+        // A third run, also reopened, early-stops as usual.
+        {
+            let cache = SqliteWorkoutCache::open(&path).unwrap();
+            let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+                .sync_all()
+                .unwrap();
+            assert_eq!(outcome.fetched_count, 5, "early stop restored");
+            assert_eq!(outcome.skipped_count, 5);
+        }
     }
 
     #[test]

@@ -30,15 +30,22 @@ use crate::paths;
 
 /// Current schema version, stored in `PRAGMA user_version`.
 ///
-/// v2 adds `date_utc`, the second half of the incremental sync's identity
-/// stamp ([`SummaryStamp`](super::SummaryStamp)). Without it the stamp query
-/// would have to decode every row's `detail_json`; with it the change check
-/// is a flat column read. It is an additive divergence from Studio's column
-/// set (see `docs/source-map.md`).
+/// v2 adds `date_utc` — the second half of the incremental sync's identity
+/// stamp ([`SummaryStamp`](super::SummaryStamp)), so the change check is a
+/// flat column read instead of a `detail_json` decode — and the `sync_state`
+/// checkpoint row that gates the incremental early page stop. Both are
+/// additive divergences from Studio's column set (see `docs/source-map.md`).
 pub const SCHEMA_VERSION: i32 = 2;
 
-/// Version 1 of the schema (Studio's column set, with `date` as the logbook
-/// string because the core model keeps it verbatim rather than as an instant).
+/// Version 1 of the schema, frozen: exactly what Phase 3 shipped (Studio's
+/// column set, with `date` as the logbook string because the core model keeps
+/// it verbatim rather than as an instant).
+///
+/// Test-only: production never creates v1. A fresh database is built at
+/// [`CREATE_SCHEMA_V2`] in one step and a real v1 database is upgraded by
+/// [`MIGRATE_V1_TO_V2`]; this literal exists so the upgrade test can build a
+/// genuine v1 file to migrate.
+#[cfg(test)]
 const CREATE_SCHEMA_V1: &str = "
 CREATE TABLE IF NOT EXISTS workouts (
     id INTEGER PRIMARY KEY,
@@ -63,6 +70,58 @@ CREATE TABLE IF NOT EXISTS workouts (
     updated_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts (date DESC);
+";
+
+/// Current schema (v2), applied to a brand-new database: the v1 workouts
+/// table plus the stamp column and the sync checkpoint, created in one pass.
+const CREATE_SCHEMA_V2: &str = "
+CREATE TABLE IF NOT EXISTS workouts (
+    id INTEGER PRIMARY KEY,
+    sport TEXT NOT NULL,
+    date TEXT NOT NULL,
+    date_utc TEXT,
+    workout_type TEXT,
+    distance REAL NOT NULL,
+    time REAL NOT NULL,
+    pace REAL NOT NULL,
+    stroke_rate REAL,
+    stroke_count REAL,
+    heart_rate_avg REAL,
+    calories_total REAL,
+    watt_minutes REAL,
+    drag_factor REAL,
+    comments TEXT,
+    source TEXT,
+    verified INTEGER,
+    has_stroke_data INTEGER NOT NULL DEFAULT 0,
+    is_interval INTEGER NOT NULL DEFAULT 0,
+    detail_json TEXT NOT NULL,
+    updated_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts (date DESC);
+CREATE TABLE IF NOT EXISTS sync_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    fully_synced INTEGER NOT NULL DEFAULT 0
+);
+INSERT OR IGNORE INTO sync_state (id, fully_synced) VALUES (1, 0);
+";
+
+/// Upgrade path for a database created at v1: add the stamp column and the
+/// checkpoint row without touching existing rows.
+const MIGRATE_V1_TO_V2: &str = "
+ALTER TABLE workouts ADD COLUMN date_utc TEXT;
+CREATE TABLE IF NOT EXISTS sync_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    fully_synced INTEGER NOT NULL DEFAULT 0
+);
+INSERT OR IGNORE INTO sync_state (id, fully_synced) VALUES (1, 0);
+";
+
+/// Whether the last run completed cleanly (see `WorkoutCache::is_fully_synced`).
+const SELECT_FULLY_SYNCED: &str = "SELECT fully_synced FROM sync_state WHERE id = 1;";
+const UPSERT_FULLY_SYNCED: &str = "
+INSERT INTO sync_state (id, fully_synced) VALUES (1, ?1)
+ON CONFLICT (id) DO UPDATE SET fully_synced = excluded.fully_synced;
 ";
 
 /// Upsert keyed by the Concept2 result id (`INSERT OR REPLACE`, like Studio).
@@ -152,16 +211,16 @@ impl super::WorkoutCache for SqliteWorkoutCache {
             .transaction()
             .map_err(|error| query_error(&error))?;
         if version < 1 {
+            // A pre-v1 database (or a fresh file): build the current shape
+            // directly.
             transaction
-                .execute_batch(CREATE_SCHEMA_V1)
-                .map_err(|error| CacheError::Migration(format!("schema v1: {error}")))?;
-        }
-        if version < 2 {
-            // v1 shipped without `date_utc`; the column is added for both a
-            // brand-new database (created just above) and an upgraded one.
-            transaction
-                .execute_batch("ALTER TABLE workouts ADD COLUMN date_utc TEXT;")
+                .execute_batch(CREATE_SCHEMA_V2)
                 .map_err(|error| CacheError::Migration(format!("schema v2: {error}")))?;
+        } else if version < 2 {
+            // A real v1 database: additive upgrade only.
+            transaction
+                .execute_batch(MIGRATE_V1_TO_V2)
+                .map_err(|error| CacheError::Migration(format!("schema v1->v2: {error}")))?;
         }
         transaction
             .pragma_update(None, "user_version", SCHEMA_VERSION)
@@ -307,6 +366,26 @@ impl super::WorkoutCache for SqliteWorkoutCache {
             stamps.insert(id, stamp);
         }
         Ok(stamps)
+    }
+
+    fn is_fully_synced(&self) -> Result<bool, CacheError> {
+        let connection = self.lock()?;
+        // A missing row means migration has not run; treat that as "not
+        // known to be current", the safe answer, rather than an error.
+        connection
+            .query_row(SELECT_FULLY_SYNCED, [], |row| row.get::<_, bool>(0))
+            .or_else(|error| match error {
+                rusqlite::Error::QueryReturnedNoRows => Ok(false),
+                other => Err(query_error(&other)),
+            })
+    }
+
+    fn set_fully_synced(&self, fully_synced: bool) -> Result<(), CacheError> {
+        let connection = self.lock()?;
+        connection
+            .execute(UPSERT_FULLY_SYNCED, rusqlite::params![fully_synced])
+            .map_err(|error| query_error(&error))?;
+        Ok(())
     }
 }
 
@@ -566,6 +645,83 @@ mod tests {
         let cache = SqliteWorkoutCache::open(&dir.path().join("workouts.sqlite")).unwrap();
         assert_eq!(cache.summary_stamps().unwrap().len(), details.len());
         assert!(cache.list_workouts().is_err());
+    }
+
+    #[test]
+    fn the_fully_synced_flag_round_trips_and_defaults_to_false() {
+        let (_dir, cache) = cache();
+        cache.migrate().unwrap();
+        assert!(
+            !cache.is_fully_synced().unwrap(),
+            "a fresh cache is not current"
+        );
+        cache.set_fully_synced(true).unwrap();
+        assert!(cache.is_fully_synced().unwrap());
+
+        // A second handle on the same file sees the persisted value.
+        let reopened = SqliteWorkoutCache::open(cache.path()).unwrap();
+        assert!(reopened.is_fully_synced().unwrap());
+
+        cache.set_fully_synced(false).unwrap();
+        assert!(!reopened.is_fully_synced().unwrap());
+    }
+
+    /// A fresh database and an upgraded v1 database must end up with the same
+    /// columns — this is what keeps `CREATE_SCHEMA_V2` and `MIGRATE_V1_TO_V2`
+    /// honest as the schema grows.
+    ///
+    /// The comparison is order-insensitive on purpose: `ALTER TABLE` appends
+    /// its column, and SQLite cannot reorder columns without rebuilding the
+    /// table. Order is not part of the contract here because every statement
+    /// in this module names its columns.
+    #[test]
+    fn a_fresh_v2_database_matches_an_upgraded_v1_one() {
+        let fresh_dir = tempfile::tempdir().unwrap();
+        let fresh = SqliteWorkoutCache::open(&fresh_dir.path().join("workouts.sqlite")).unwrap();
+        fresh.migrate().unwrap();
+
+        let old_dir = tempfile::tempdir().unwrap();
+        let old_path = old_dir.path().join("workouts.sqlite");
+        let connection = Connection::open(&old_path).unwrap();
+        connection.execute_batch(CREATE_SCHEMA_V1).unwrap();
+        connection.pragma_update(None, "user_version", 1).unwrap();
+        drop(connection);
+        let upgraded = SqliteWorkoutCache::open(&old_path).unwrap();
+        upgraded.migrate().unwrap();
+
+        let columns =
+            |path: &Path| -> std::collections::BTreeMap<String, (String, i32, Option<String>)> {
+                let connection = Connection::open(path).unwrap();
+                let mut statement = connection
+                    // `notnull` is a reserved word, so it must be quoted.
+                    .prepare(
+                        "SELECT name, type, \"notnull\", dflt_value \
+                     FROM pragma_table_info('workouts');",
+                    )
+                    .unwrap();
+                let rows = statement
+                    .query_map([], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            (
+                                row.get::<_, String>(1)?,
+                                row.get::<_, i32>(2)?,
+                                row.get::<_, Option<String>>(3)?,
+                            ),
+                        ))
+                    })
+                    .unwrap();
+                rows.map(Result::unwrap).collect()
+            };
+        assert_eq!(
+            columns(&fresh_dir.path().join("workouts.sqlite")),
+            columns(&old_path),
+            "the create path and the upgrade path must agree"
+        );
+
+        // Both expose the checkpoint row.
+        assert!(!fresh.is_fully_synced().unwrap());
+        assert!(!upgraded.is_fully_synced().unwrap());
     }
 
     /// A v1 database (no `date_utc`) upgrades in place, keeping its rows.
