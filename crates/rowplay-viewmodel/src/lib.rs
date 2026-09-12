@@ -19,6 +19,7 @@ pub mod dates;
 pub mod detail;
 pub mod library;
 pub mod nav;
+pub mod replay;
 pub mod role;
 pub mod settings;
 pub mod strokes;

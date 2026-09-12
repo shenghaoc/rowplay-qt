@@ -113,6 +113,43 @@ QtObject {
     readonly property color overlayBackground: dark ? Qt.rgba(0.16, 0.17, 0.18, 0.85)
                                                     : Qt.rgba(1, 1, 1, 0.85)
 
+    // MARK: - Replay materials (Phase 5a)
+    //
+    // The V3/V4 packs ship one neutral placeholder material; product colour
+    // lives here so the 3D scene shares the shell's light/dark palettes.
+    // `rowplay_viewmodel::replay::materials` maps every replayMaterialRole to
+    // one of these tokens (or to the venue palette for lane paint) — QML must
+    // not hardcode material hex values.
+
+    /// Athlete skin (V4 vertex-colour skin regions).
+    readonly property color replaySkin: dark ? "#c98d68" : "#d99a72"
+    /// Race kit fabric (jersey / top).
+    readonly property color replayFabric: dark ? "#2f6fb2" : "#2a62a0"
+    /// Hair cap.
+    readonly property color replayHair: dark ? "#3a2b22" : "#4a372c"
+    /// Footwear soles and uppers.
+    readonly property color replayFootwear: dark ? "#d8d8dc" : "#eceef0"
+    /// Shorts / lower kit.
+    readonly property color replayShorts: dark ? "#23262b" : "#2c3036"
+    /// Kit accents and trims on the athlete.
+    readonly property color replayTrim: dark ? "#ffd60a" : "#b58900"
+    /// Eye whites / iris base.
+    readonly property color replayEye: dark ? "#e8ecef" : "#f4f7f9"
+    /// Brow / lip / nostril detail.
+    readonly property color replayFaceDetail: dark ? "#8a5a44" : "#96604a"
+    /// Dark equipment shells (hull underside, frames).
+    readonly property color replayEquipmentDark: dark ? "#1d2126" : "#23272c"
+    /// Light equipment shells (decks, fairings).
+    readonly property color replayEquipmentLight: dark ? "#c9ced4" : "#e4e8ec"
+    /// Metals: riggers, chains, axles, pole shafts.
+    readonly property color replayEquipmentMetal: dark ? "#9aa3ab" : "#b9c1c8"
+    /// Rubber: tyres, straps, heel cups.
+    readonly property color replayEquipmentRubber: dark ? "#141618" : "#1a1d20"
+    /// Grips: scull handles, pole grips, hoods.
+    readonly property color replayEquipmentGrip: dark ? "#2b2e33" : "#33373c"
+    /// Equipment trim lines and decals.
+    readonly property color replayEquipmentTrim: dark ? "#ff9f0a" : "#9a5700"
+
     // MARK: - Spacing scale (8-point soft grid)
 
     readonly property int spacingXxSmall: 2    // hairline gaps
