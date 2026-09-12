@@ -25,7 +25,18 @@ recorded as ADRs in [`docs/decisions/`](docs/decisions/README.md).
 
 ## Status
 
-Phases 0–4 are done.
+Phases 0–4 are done; Phase 5a is delivered in this PR.
+
+- **Phase 5a — replay assets and scene:** the rowplay V3 rig pack, V4 athlete
+  and Poly Haven environment textures vendored with provenance and a SHA-256
+  pin; a Qt-free V3 contract validator with named-slot errors; the
+  material-role, venue-palette and anchor tables in `rowplay-viewmodel`;
+  `build.rs` converting both packs with Qt's `balsam` into a generated QML
+  module in every build (ADR 0008); and the replay scene — procedural-sky
+  IBL, the web's per-sport key light casting shadows, a palette-tinted ground
+  plane, the current sport's equipment placed at its anchors and the unposed
+  athlete — captured per sport by the runtime-error gate. Playback is
+  Phase 5b.
 
 - **Phase 4 — QML shell:** the Qt-free `rowplay-viewmodel` crate, the design-token
   theme (light/dark), the application shell, the settings screen (keyring
@@ -65,6 +76,14 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 | --- | --- |
 | ![Settings, light](docs/screenshots/phase-04-settings-light.png) | ![Settings, dark](docs/screenshots/phase-04-settings-dark.png) |
 
+| RowErg | SkiErg | BikeErg |
+| --- | --- | --- |
+| ![Replay scene, RowErg](docs/screenshots/phase-05a-replay-row.png) | ![Replay scene, SkiErg](docs/screenshots/phase-05a-replay-ski.png) | ![Replay scene, BikeErg](docs/screenshots/phase-05a-replay-bike.png) |
+
+The same scene follows the dark scheme (`ROWPLAY_FORCE_COLOR_SCHEME=dark`):
+
+![Replay scene, RowErg, dark scheme](docs/screenshots/phase-05a-replay-row-dark.png)
+
 ## Requirements
 
 - Rust ≥ 1.87 (stable toolchain with `rustfmt` and `clippy`).
@@ -74,7 +93,10 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
   Manager) use system frameworks and need nothing extra.
 - For the app: Qt 6.11 with the Quick 3D, Shader Tools, Quick Timeline and
   Graphs modules, a C++ toolchain, and `qmake` on `PATH` (or `QMAKE` set).
-  Qt-free crates build without any of that.
+  `build.rs` also needs Qt's `balsam` tool (part of the Quick 3D module) to
+  convert the replay packs; it is found through `qmake` like `rcc`, and
+  `ROWPLAY_BALSAM` overrides the executable. Qt-free crates build without any
+  of that.
 
 ## Build and run
 

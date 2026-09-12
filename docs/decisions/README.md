@@ -12,3 +12,5 @@ links back. Format: context, decision, consequences.
 | [0005](0005-bake-venues-do-not-port-the-environment-builder.md) | Bake venues to `.glb` with the web exporter; do not port `renderer3dEnvironment.ts` |
 | [0006](0006-rust-core-first-layering.md) | Rust core first: app → platform → core, nothing testable depends on Qt |
 | [0007](0007-platform-libraries.md) | Platform libraries: `ureq` (rustls, blocking), `keyring` 3 with explicit native backends, `rusqlite` (bundled), `directories`; no `url`, no tokio |
+| [0008](0008-balsam-components-not-runtimeloader.md) | Replay packs converted by `balsam` into QML components in every build; `RuntimeLoader` is not used (supersedes the development-time loader consequence of 0003) |
+| [0009](0009-vendored-assets-stay-in-plain-git.md) | Vendored assets stay as plain Git blobs; a 50 MB tripwire under `assets/replay/` forces a deliberate revisit before Phase 6 venues |

@@ -163,7 +163,10 @@ Foundation (4a):
   forms" note.)
 - The QML runtime-error gate: a smoke-mode walk over every screen and all six
   languages that fails CI on `TypeError` / `ReferenceError` / `Binding loop` /
-  `Unable to assign` / `is not defined`, plus per-screen screenshot artifacts.
+  `Unable to assign` / `is not defined`, plus per-screen screenshot artifacts
+  (the CI copies only exist since Phase 5a: until then the walk's grabs failed
+  silently because the artifacts directory did not exist on a fresh checkout;
+  the README's Phase 4 screenshots were always local captures).
 
 Screens (4b):
 
@@ -191,14 +194,104 @@ Exit criteria: every screen ports its Studio view with web-canonical values;
 all six languages switch live; the runtime-error gate walks every screen in
 CI on all three OSes; no metric is formatted in QML.
 
-### Phase 5 — 3D replay
+### Phase 5a — Replay assets and scene
 
-- Load `rowplay-rigs-v3.glb` and `rowplay-athlete-v4.glb`: `RuntimeLoader` in
-  development, `balsam` output for release.
-- Map the rigs' material-role metadata to `PrincipledMaterial`, following
-  `renderer3dAssets.ts`.
-- Procedural-sky IBL and shadows, chase camera, and the low / medium / high /
-  ultra tiers from `ReplayRenderQuality`.
+Status: delivered (this PR).
+
+- Vendored assets: `assets/replay/` holds the V3 rig pack
+  (`rowplay-rigs-v3.glb`), the V4 athlete (`rowplay-athlete-v4.glb` plus its
+  contract JSON) and the 13 Poly Haven environment texture families (three
+  maps each) from rowplay commit `011e8303…` — 42 hash-pinned files plus the
+  environments `README.md` — with their `ASSET_PROVENANCE.md` rows,
+  `tools/vendor-replay-assets.py` (`--emit-rust` regenerates the hash table)
+  and `crates/rowplay-app/tests/asset_hashes.rs`, which pins path, byte
+  count and SHA-256 and fails on any unpinned file.
+- `rowplay_viewmodel::replay::glb`: a bounded glTF JSON-chunk reader and
+  `validate_v3`, the port of `collectReplayAssetTemplateLibrary` (7 template
+  roots, 18 leaf slots, 11 V3 material roles, identity transforms, part
+  counts, declared-vs-actual roles, finite accessor bounds, size bound);
+  every `AssetError` names the slot, template or node path, and
+  `V3Library.mesh_roles` feeds the runtime material walker. Synthesised
+  defects are unit-tested in the module.
+- `rowplay_viewmodel::replay::{materials, palette, anchors}`: the 15
+  `MaterialRole`s (11 V3 plus the four V4-only athlete roles), each with its
+  `Theme.qml` token or the venue lane-paint flag, metalness / roughness and
+  the 0.45 ghost opacity for equipment (a test scans `Theme.qml` for every
+  key); the sky, ground, lane, marker and safety palette from
+  `rowplay_core::replay::theme` plus the web's `SUN_OFFSETS` and
+  `SHADOW_TARGET_HEIGHT` and the derived procedural-sky sun angles; the
+  README anchor table as data.
+- `build.rs` runs Qt's `balsam --removeComponentAnimations` on both packs in
+  every build (ADR 0008), bundles the generated `RowPlay.ReplayAssets` module
+  (`Rigs`, `Athlete`, meshes) as a third `rcc --binary` blob, validates the
+  exact bytes converted with `validate_v3` (a drift fails the build with the
+  named slot) and embeds the name → role map as JSON. The GLBs are not
+  shipped; debug builds (or `ROWPLAY_REPLAY_ASSETS`) re-validate the on-disk
+  pack at startup.
+- The `Replay` QML singleton (constant asset / validation mode, material
+  specs, mesh roles and anchors; notify load state, sport, colour scheme,
+  sky and ground colours, lane paint, sun offset and angles) and
+  `qml/RowPlay/Replay/`: `ReplayScene` declares one `PrincipledMaterial`
+  per role as static children inside the scene, bound to `Theme` tokens and
+  cross-checked against the Rust spec table at startup (a dynamic material
+  needs a parent or a retained reference or it is garbage-collected — bridge
+  notes; no colour literal in replay QML); the scene is a `View3D` with
+  `ExtendedSceneEnvironment` (sky box, MSAA
+  high, filmic), a procedural-sky light probe rebuilt on every palette
+  change, a per-sport camera with `clipNear: 0.1`, the web's per-sport key
+  light aimed through `LookAtNode` and casting two-cascade shadows tuned for
+  a metre scene, a palette-tinted ground plane, the `Rigs` component
+  re-materialled by `objectName` from the role map with the current sport's
+  templates placed at their anchors, and the `Athlete` component unposed
+  (T-pose) behind them on balsam's placeholder material over the pack's
+  vertex colours (the V4 surface roles are applied when 5b poses it).
+- Gate: steps 52–58 push the replay route, switch through the three sports
+  and grab `replay-row` / `replay-ski` / `replay-bike`;
+  `replay_screenshots_render_per_sport` asserts each capture is a real
+  render (≥ 320×200, ≥ 64 distinct colours, top colour < 90 %); "was not
+  placed in the graphics scene" is a forbidden pattern; CI uploads the three
+  PNGs.
+
+Exit criteria: fmt / clippy / test pass across the workspace; the gate
+captures each sport's scene; the scene was run and looked at by hand under
+Wayland (`cargo run -p rowplay-app`).
+
+### Phase 5b — Replay playback
+
+- Transport (play / pause / seek / speed) over `replay::engine::ReplayState`
+  in the `Replay` singleton, driven by one `FrameAnimation` → `tick(dt)` per
+  frame; the whole frame crosses the bridge once as a flat `Vec<f32>` pose
+  plus a HUD string bundle, with a test that counts the crossings.
+- The V4 athlete posed from the motion graph and stroke model (the per-sport
+  clips evaluated in Rust, then the analytic contact pass) through
+  `Skeleton` / `Joint` poses written in one pass; a recorded decision gate
+  falls back to the V3 leaf-slot athlete if a loaded glTF skeleton cannot be
+  retargeted without C++.
+- Equipment cloned onto the README anchors (oarlocks, seat carriage, ski
+  pair, wheels, frame, drivetrain), `InstanceList` where a template repeats,
+  moving parts following the rig contacts.
+- The web's chase camera (per-sport framing, speed FOV gain, damping via
+  `damp_factor`) computed in Rust inside `tick`; a HUD formatted in Rust
+  only; the reduce-motion toggle deferred from Phase 4.
+- Gate: per-sport playback captures at fixed times, plus a camera-target
+  parity test against a web golden.
+
+### Phase 5c — Quality tiers and polish
+
+- `RenderQuality` Low / Medium / High / Ultra mapped to shadow enable and
+  map size, antialiasing, the environment texture sets (Low / Medium bind
+  none; High diffuse + roughness; Ultra adds the normal maps and the
+  SkiErg-only timber terrace) and the `QualityBudgets` instance caps;
+  user-settable in Settings and persisted.
+- The Phase 2 `PerfGovernor` degrading the live tier from frame times
+  measured in `tick`, with a manual override that pins a tier; thresholds
+  stay at the Phase 2 values unless evidence is documented.
+- Ghost athlete and equipment over a second `ReplayState`, ghost pick, the
+  race-gap overlay and finish verdict from Rust strings, rival file import
+  through the Phase 2 parsers.
+- Reduce-motion polish (camera lag, spray / wake) and a developer
+  diagnostics strip; frame times per sport per tier recorded in the PR and
+  in this roadmap's exit note.
 
 ### Phase 6 — Venues
 

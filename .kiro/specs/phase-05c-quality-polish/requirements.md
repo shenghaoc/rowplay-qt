@@ -37,7 +37,11 @@ frame-time measurements.
   measured on this machine (Intel UHD 630, hardware GL) are recorded in the
   PR with the GPU string and the exact env; they may motivate a *documented*
   threshold change with evidence, never a silent retune. Software-GL numbers
-  are labelled as such and never used for tuning.
+  are labelled as such and never used for tuning. In particular the CI run
+  (llvmpipe under Xvfb, `LIBGL_ALWAYS_SOFTWARE=1`) renders the full 5a
+  scene — two-cascade shadows and MSAA High included — inside the strict
+  pixel assertions at roughly 2 fps: it is a correctness check only and is
+  never a source of timings, and 5c adds no adaptive path for it.
 
 ## R3 — Ghosts and race overlays
 
@@ -68,9 +72,12 @@ frame-time measurements.
 
 ## R5 — Measurements and docs
 
-- R5.1 Frame times per sport per tier on this machine (hardware GL), median
-  and p95 over ≥ 600 frames each, recorded in the PR and in
-  `docs/roadmap.md`'s Phase 5c exit note; software-GL figures included but
-  labelled.
+- R5.1 Frame times per sport per tier, median and p95 over ≥ 600 frames
+  each, recorded in the PR and in `docs/roadmap.md`'s Phase 5c exit note.
+  Every measurement comes from a hardware-GL Wayland run on this machine's
+  Intel UHD 630 (`QT_QPA_PLATFORM=wayland`, no `LIBGL_ALWAYS_SOFTWARE`), with
+  the GPU/renderer string and the exact environment recorded alongside the
+  numbers; software-GL figures, if quoted at all, are labelled as such and
+  never feed a threshold (R2.3).
 - R5.2 Source map, roadmap, qtbridge notes updated; every divergence
   recorded; CI green on the three OSes + MSRV.
