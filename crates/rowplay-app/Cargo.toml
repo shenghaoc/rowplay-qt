@@ -23,5 +23,11 @@ chrono.workspace = true
 # SHA-256 for the vendored-asset hash pin (tests/asset_hashes.rs).
 rowplay-fixtures.workspace = true
 
+[build-dependencies]
+# build.rs validates the vendored V3 rig pack against its contract and embeds
+# the name -> material-role map (Phase 5a).
+rowplay-viewmodel.workspace = true
+serde_json.workspace = true
+
 [lints]
 workspace = true

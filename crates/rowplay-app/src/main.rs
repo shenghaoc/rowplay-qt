@@ -22,6 +22,11 @@ static RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay.rcc"
 /// `:/qt/qml/RowPlay/i18n/qml_<lang>.qm`, where `QQmlApplicationEngine`
 /// picks them up when `Qt.uiLanguage` changes.
 static I18N_RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay_i18n.rcc"));
+/// The balsam-converted replay packs (Phase 5a): the generated
+/// `RowPlay.ReplayAssets` module with the rig and athlete components and
+/// their meshes. See `build.rs` for why the scene loads through balsam
+/// instead of `RuntimeLoader`.
+static REPLAY_RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay_replay.rcc"));
 
 fn main() -> ExitCode {
     let mut app = QApp::new();
@@ -34,6 +39,10 @@ fn main() -> ExitCode {
     assert!(
         qtbridge::qresource::register_bytes(I18N_RESOURCES),
         "failed to register the i18n resource bundle"
+    );
+    assert!(
+        qtbridge::qresource::register_bytes(REPLAY_RESOURCES),
+        "failed to register the replay asset bundle"
     );
 
     // The Phase 0 smoke scene keeps its own window so the stack screenshot
