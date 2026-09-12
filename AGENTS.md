@@ -69,7 +69,18 @@ git diff --check
 
 Set `LANG=C.UTF-8` when Qt warns about the C locale. `ROWPLAY_RCC` /
 `ROWPLAY_LRELEASE` override the `rcc` / `lrelease` executables found through
-`qmake`. Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
+`qmake`. The repo root has a committed `.envrc` exporting the local Qt 6.11.2
+paths (`~/Qt/6.11.2/gcc_64`, per the README install recipe); source it (or
+`direnv allow`) before any `rowplay-app` command when qmake is not already on
+`PATH`.
+
+Phase 5 onward requires a local Qt: the replay scene, materials and athlete
+must be run and looked at by hand on this machine (`cargo run -p rowplay-app`
+under Wayland, plus the headless screenshot tests above), never inferred from
+a green CI job alone. Do not proceed with 3D work while `cargo build
+-p rowplay-app` fails locally — fix the environment first.
+
+Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
 and exits, `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic mock
 client (no token), `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the palette,
 `ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk.
