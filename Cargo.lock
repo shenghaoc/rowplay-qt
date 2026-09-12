@@ -1383,6 +1383,7 @@ dependencies = [
  "chrono",
  "qtbridge",
  "rowplay-core",
+ "rowplay-fixtures",
  "rowplay-platform",
  "rowplay-viewmodel",
  "serde_json",

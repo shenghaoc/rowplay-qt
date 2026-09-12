@@ -1,0 +1,835 @@
+{
+  "schema": "rowplay.replay.athlete.v4",
+  "schemaVersion": 1,
+  "canonicalSourceModule": "scripts/build-replay-athlete-v4-blender.py",
+  "canonicalRigModule": "src/lib/replay/rigV4.ts",
+  "webRuntimeArtifact": {
+    "filename": "rowplay-athlete-v4.glb",
+    "byteCount": 4584320,
+    "sha256": "a564a4dbd4922e2ba76ef21a23f5bf0eb1b0180846548f9d7110e55ffd8f760e"
+  },
+  "nativeDerivativeArtifact": {
+    "filename": "rowplay-athlete-v4.usdz",
+    "byteCount": 11565117,
+    "sha256": "cf65202b8360183be57308130226173171ac67d8d900e02f40ba3879569b569a"
+  },
+  "coordinateSystem": {
+    "units": "metres",
+    "upAxis": "+Y",
+    "forwardAxis": "+Z",
+    "handedness": "right-handed",
+    "rootOrientation": {
+      "translation": [0, 0, 0],
+      "rotationQuaternion": [0, 0, 0, 1],
+      "scale": [1, 1, 1]
+    }
+  },
+  "mesh": {
+    "rootName": "rowplay-v4-athlete-root",
+    "meshName": "v4Athlete",
+    "skinnedMeshes": 1,
+    "primitives": 1,
+    "vertices": 57069,
+    "triangles": 106256,
+    "topologyComponents": 28,
+    "continuousCore": true,
+    "connectedCoreBones": [
+      "v4LeftUpperArm",
+      "v4LeftForearm",
+      "v4RightUpperArm",
+      "v4RightForearm",
+      "v4LeftUpperLeg",
+      "v4LeftLowerLeg",
+      "v4RightUpperLeg",
+      "v4RightLowerLeg"
+    ],
+    "skins": 1,
+    "materials": 1,
+    "materialSlots": 1
+  },
+  "materialDetail": {
+    "glbEmbeddedTextures": 0,
+    "uvCoordinateSet": "TEXCOORD_0",
+    "webRuntime": "Process-shared deterministic UV albedo, normal, roughness, and relief maps: 128px Medium, 256px High, 512px Ultra (live+ghost reuse); no external image or texture request."
+  },
+  "bones": {
+    "count": 19,
+    "orderedNames": [
+      "v4Hips",
+      "v4Spine",
+      "v4Chest",
+      "v4Neck",
+      "v4Head",
+      "v4LeftClavicle",
+      "v4LeftUpperArm",
+      "v4LeftForearm",
+      "v4LeftHand",
+      "v4RightClavicle",
+      "v4RightUpperArm",
+      "v4RightForearm",
+      "v4RightHand",
+      "v4LeftUpperLeg",
+      "v4LeftLowerLeg",
+      "v4LeftFoot",
+      "v4RightUpperLeg",
+      "v4RightLowerLeg",
+      "v4RightFoot"
+    ],
+    "semanticCount": 19,
+    "semanticOrderedNames": [
+      "v4Hips",
+      "v4Spine",
+      "v4Chest",
+      "v4Neck",
+      "v4Head",
+      "v4LeftClavicle",
+      "v4LeftUpperArm",
+      "v4LeftForearm",
+      "v4LeftHand",
+      "v4RightClavicle",
+      "v4RightUpperArm",
+      "v4RightForearm",
+      "v4RightHand",
+      "v4LeftUpperLeg",
+      "v4LeftLowerLeg",
+      "v4LeftFoot",
+      "v4RightUpperLeg",
+      "v4RightLowerLeg",
+      "v4RightFoot"
+    ],
+    "totalCount": 51,
+    "helperCount": 32,
+    "helperNames": [
+      "v4LeftFingers",
+      "v4LeftIndexProximal",
+      "v4LeftIndexIntermediate",
+      "v4LeftIndexDistal",
+      "v4LeftMiddleProximal",
+      "v4LeftMiddleIntermediate",
+      "v4LeftMiddleDistal",
+      "v4LeftPinkyProximal",
+      "v4LeftPinkyIntermediate",
+      "v4LeftPinkyDistal",
+      "v4LeftRingProximal",
+      "v4LeftRingIntermediate",
+      "v4LeftRingDistal",
+      "v4LeftThumb",
+      "v4LeftThumbIntermediate",
+      "v4LeftThumbDistal",
+      "v4RightFingers",
+      "v4RightIndexProximal",
+      "v4RightIndexIntermediate",
+      "v4RightIndexDistal",
+      "v4RightMiddleProximal",
+      "v4RightMiddleIntermediate",
+      "v4RightMiddleDistal",
+      "v4RightPinkyProximal",
+      "v4RightPinkyIntermediate",
+      "v4RightPinkyDistal",
+      "v4RightRingProximal",
+      "v4RightRingIntermediate",
+      "v4RightRingDistal",
+      "v4RightThumb",
+      "v4RightThumbIntermediate",
+      "v4RightThumbDistal"
+    ],
+    "hierarchy": [
+      {
+        "name": "v4Hips",
+        "parent": null,
+        "restLocalTransform": {
+          "translation": [0, 1.02, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4Spine",
+        "parent": "v4Hips",
+        "restLocalTransform": {
+          "translation": [0, 0.19, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4Chest",
+        "parent": "v4Spine",
+        "restLocalTransform": {
+          "translation": [0, 0.235, 0.012],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4Neck",
+        "parent": "v4Chest",
+        "restLocalTransform": {
+          "translation": [0, 0.145, 0.018],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4Head",
+        "parent": "v4Neck",
+        "restLocalTransform": {
+          "translation": [0, 0.105, 0.02],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftClavicle",
+        "parent": "v4Chest",
+        "restLocalTransform": {
+          "translation": [-0.18, 0.095, 0.01],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftUpperArm",
+        "parent": "v4LeftClavicle",
+        "restLocalTransform": {
+          "translation": [-0.06, -0.02, 0.006],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftForearm",
+        "parent": "v4LeftUpperArm",
+        "restLocalTransform": {
+          "translation": [-0.365, -0.128, 0.051],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftHand",
+        "parent": "v4LeftForearm",
+        "restLocalTransform": {
+          "translation": [-0.354, -0.108, 0.06],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightClavicle",
+        "parent": "v4Chest",
+        "restLocalTransform": {
+          "translation": [0.18, 0.095, 0.01],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightUpperArm",
+        "parent": "v4RightClavicle",
+        "restLocalTransform": {
+          "translation": [0.06, -0.02, 0.006],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightForearm",
+        "parent": "v4RightUpperArm",
+        "restLocalTransform": {
+          "translation": [0.365, -0.128, 0.051],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightHand",
+        "parent": "v4RightForearm",
+        "restLocalTransform": {
+          "translation": [0.354, -0.108, 0.06],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftUpperLeg",
+        "parent": "v4Hips",
+        "restLocalTransform": {
+          "translation": [-0.13, -0.025, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftLowerLeg",
+        "parent": "v4LeftUpperLeg",
+        "restLocalTransform": {
+          "translation": [0, -0.49, 0.038],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4LeftFoot",
+        "parent": "v4LeftLowerLeg",
+        "restLocalTransform": {
+          "translation": [0, -0.475, 0.065],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightUpperLeg",
+        "parent": "v4Hips",
+        "restLocalTransform": {
+          "translation": [0.13, -0.025, 0],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightLowerLeg",
+        "parent": "v4RightUpperLeg",
+        "restLocalTransform": {
+          "translation": [0, -0.49, 0.038],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      {
+        "name": "v4RightFoot",
+        "parent": "v4RightLowerLeg",
+        "restLocalTransform": {
+          "translation": [0, -0.475, 0.065],
+          "rotationQuaternion": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      }
+    ],
+    "helpers": [
+      {
+        "name": "v4LeftFingers",
+        "parent": "v4LeftHand",
+        "restLocalTransform": {
+          "translation": [-0.04712925610115348, -0.0031301406825878786, 0.010699805639390353],
+          "rotationQuaternion": [
+            -0.3922918076554515, 0.501939468166996, 0.7268620893956582, 0.25658412059601404
+          ],
+          "scale": [0.9999998884701239, 0.9999999976696989, 0.9999998356269841]
+        },
+        "influencedVertices": 533
+      },
+      {
+        "name": "v4LeftIndexProximal",
+        "parent": "v4LeftFingers",
+        "restLocalTransform": {
+          "translation": [-0.03132805973291408, -0.0013562962412834723, 0.014812685549259186],
+          "rotationQuaternion": [
+            0.06969106108284225, -0.024904401655109352, 0.12904590207527042, 0.9888731374351961
+          ],
+          "scale": [0.9999999991096058, 0.9999999392865716, 0.9999999401130225]
+        },
+        "influencedVertices": 253
+      },
+      {
+        "name": "v4LeftIndexIntermediate",
+        "parent": "v4LeftIndexProximal",
+        "restLocalTransform": {
+          "translation": [4.4703483470520666e-8, 0.023843973875045776, -1.3038515822572094e-8],
+          "rotationQuaternion": [
+            -0.09143043589302642, -0.004321129660535288, 0.02008989329558591, 0.9955994171443855
+          ],
+          "scale": [0.9999999404479347, 0.9999998818818497, 0.9999999414385649]
+        },
+        "influencedVertices": 240
+      },
+      {
+        "name": "v4LeftIndexDistal",
+        "parent": "v4LeftIndexIntermediate",
+        "restLocalTransform": {
+          "translation": [-1.0430812824591129e-7, 0.019971728324890137, 2.9802322387695312e-8],
+          "rotationQuaternion": [
+            0.19300732427453582, 0.00884196277950074, -0.08112997745548377, 0.9777974837504251
+          ],
+          "scale": [0.9999999410081355, 1.0000000040329622, 1.0000000034345677]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4LeftMiddleProximal",
+        "parent": "v4LeftFingers",
+        "restLocalTransform": {
+          "translation": [-0.006979417055845261, -0.00021352618932724, 0.008700268343091233],
+          "rotationQuaternion": [
+            0.04581119135005379, -0.01308860447798326, 0.05991043914887023, 0.9970660772791826
+          ],
+          "scale": [1.0000000000490736, 1.0000000000742248, 0.9999998808203326]
+        },
+        "influencedVertices": 240
+      },
+      {
+        "name": "v4LeftMiddleIntermediate",
+        "parent": "v4LeftMiddleProximal",
+        "restLocalTransform": {
+          "translation": [-7.45058070794613e-9, 0.02733732014894502, -5.960464477539063e-8],
+          "rotationQuaternion": [
+            -0.06995571316412516, -0.007656474034742524, 0.031392123150816985, 0.9970266351533131
+          ],
+          "scale": [0.9999999403421292, 0.9999999997002831, 0.999999999747532]
+        },
+        "influencedVertices": 239
+      },
+      {
+        "name": "v4LeftMiddleDistal",
+        "parent": "v4LeftMiddleIntermediate",
+        "restLocalTransform": {
+          "translation": [3.3527612575134924e-8, 0.02284473180770874, 6.705522537231445e-8],
+          "rotationQuaternion": [
+            0.214182996383832, -0.005396462300642295, 0.05782847665060155, 0.9750653257823049
+          ],
+          "scale": [1.0000001187704786, 0.9999999935973944, 0.9999999940286289]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4LeftPinkyProximal",
+        "parent": "v4LeftFingers",
+        "restLocalTransform": {
+          "translation": [0.0268565285950898, 0.00027917325496679135, -0.021289851516485214],
+          "rotationQuaternion": [
+            -0.08225630980333885, 0.07852599036208552, -0.2180540117495234, 0.9692884071808192
+          ],
+          "scale": [1.0000000003107583, 1.000000119523518, 0.9999999404701752]
+        },
+        "influencedVertices": 217
+      },
+      {
+        "name": "v4LeftPinkyIntermediate",
+        "parent": "v4LeftPinkyProximal",
+        "restLocalTransform": {
+          "translation": [1.1175870853752379e-8, 0.022802643477916607, -8.009374141693115e-8],
+          "rotationQuaternion": [
+            -0.0411000813381852, -0.014903938500251936, 0.029234823040316493, 0.9986160328439438
+          ],
+          "scale": [1.0000000000296354, 0.9999998808607231, 0.9999999404479589]
+        },
+        "influencedVertices": 203
+      },
+      {
+        "name": "v4LeftPinkyDistal",
+        "parent": "v4LeftPinkyIntermediate",
+        "restLocalTransform": {
+          "translation": [-1.117587090926353e-8, 0.017080595716834193, 1.043081283569336e-7],
+          "rotationQuaternion": [
+            0.25054954091870585, 0.03640777903832544, -0.13873592977601568, 0.9574193140730485
+          ],
+          "scale": [0.9999999463609203, 1.0000000237839668, 0.9999999589824764]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4LeftRingProximal",
+        "parent": "v4LeftFingers",
+        "restLocalTransform": {
+          "translation": [0.011450774967670385, 0.0012908503413200378, -0.002223227173090203],
+          "rotationQuaternion": [
+            -0.024665102316317616, 0.0007649316088818018, -0.002604653821086488, 0.9996920842868726
+          ],
+          "scale": [0.9999998807906553, 0.999999999995374, 0.9999999403907759]
+        },
+        "influencedVertices": 220
+      },
+      {
+        "name": "v4LeftRingIntermediate",
+        "parent": "v4LeftRingProximal",
+        "restLocalTransform": {
+          "translation": [-6.332993512936369e-8, 0.023730359971523174, -4.097819306103645e-8],
+          "rotationQuaternion": [
+            -0.08568877312311331, -0.02806023804157271, 0.06704792640657448, 0.9936672646144105
+          ],
+          "scale": [0.9999999412228567, 1.0000000018543111, 1.00000000127348]
+        },
+        "influencedVertices": 257
+      },
+      {
+        "name": "v4LeftRingDistal",
+        "parent": "v4LeftRingIntermediate",
+        "restLocalTransform": {
+          "translation": [-3.725290298461914e-8, 0.021799422800541115, 1.0430812813488899e-7],
+          "rotationQuaternion": [
+            0.1622363060354656, 0.013281363323163176, -0.04017479421698773, 0.9858442941468332
+          ],
+          "scale": [1.000000000137197, 1.000000002140599, 0.9999999424257907]
+        },
+        "influencedVertices": 170
+      },
+      {
+        "name": "v4LeftThumb",
+        "parent": "v4LeftHand",
+        "restLocalTransform": {
+          "translation": [0.007639748726286477, -0.007113055973408722, 0.02936437821521229],
+          "rotationQuaternion": [
+            -0.10548482823289482, 0.7207671413098471, 0.6837271659211231, 0.04341476249130686
+          ],
+          "scale": [0.999999915163742, 0.9999999072655945, 0.9999998492251945]
+        },
+        "influencedVertices": 242
+      },
+      {
+        "name": "v4LeftThumbIntermediate",
+        "parent": "v4LeftThumb",
+        "restLocalTransform": {
+          "translation": [5.21540641784668e-8, 0.023914307355880737, 7.543712854385376e-8],
+          "rotationQuaternion": [
+            -0.027552434035042664, -0.001485931260463839, -0.01814976195981507, 0.9994544719634987
+          ],
+          "scale": [1.000000000034866, 1.0000001193237376, 1.0000000000800464]
+        },
+        "influencedVertices": 275
+      },
+      {
+        "name": "v4LeftThumbDistal",
+        "parent": "v4LeftThumbIntermediate",
+        "restLocalTransform": {
+          "translation": [-2.2351741790771484e-8, 0.02275641821324831, -3.038439921887459e-8],
+          "rotationQuaternion": [
+            0.10919951201804477, 0.027583720953801016, 0.1654863252580934, 0.9797596037120209
+          ],
+          "scale": [1.0000000031690444, 1.0000001236352605, 1.0000000014282577]
+        },
+        "influencedVertices": 157
+      },
+      {
+        "name": "v4RightFingers",
+        "parent": "v4RightHand",
+        "restLocalTransform": {
+          "translation": [0.04714804090418967, -0.0031281591590321955, 0.010683354748853263],
+          "rotationQuaternion": [
+            0.39193952450981767, 0.5019924093099395, 0.7271605449473717, -0.2561729337655754
+          ],
+          "scale": [0.9999997641615669, 0.9999998758951453, 0.9999997726817378]
+        },
+        "influencedVertices": 533
+      },
+      {
+        "name": "v4RightIndexProximal",
+        "parent": "v4RightFingers",
+        "restLocalTransform": {
+          "translation": [0.03133895993232716, -0.0013179033994674128, 0.01484628766775109],
+          "rotationQuaternion": [
+            0.06919738740193386, 0.02501495028681161, -0.12901953026025534, 0.9889084561527008
+          ],
+          "scale": [0.9999998816952885, 1.0000000011225831, 0.9999998214696153]
+        },
+        "influencedVertices": 253
+      },
+      {
+        "name": "v4RightIndexIntermediate",
+        "parent": "v4RightIndexProximal",
+        "restLocalTransform": {
+          "translation": [-1.1175870906487972e-7, 0.023839220404624883, 1.3038516266661304e-8],
+          "rotationQuaternion": [
+            -0.09057191325749524, 0.004330885746986422, -0.020086471693289715, 0.9956779125864138
+          ],
+          "scale": [0.9999999404544018, 1.0000000012036259, 1.0000001203591151]
+        },
+        "influencedVertices": 240
+      },
+      {
+        "name": "v4RightIndexDistal",
+        "parent": "v4RightIndexIntermediate",
+        "restLocalTransform": {
+          "translation": [3.725290298461914e-8, 0.019960597157478444, 6.332993507385254e-8],
+          "rotationQuaternion": [
+            0.19090347530884483, -0.009068767845141905, 0.08186048514761998, 0.9781474743289851
+          ],
+          "scale": [0.9999998816167837, 0.9999999456495429, 0.9999999448435003]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4RightMiddleProximal",
+        "parent": "v4RightFingers",
+        "restLocalTransform": {
+          "translation": [0.006971720606088527, -0.00021137297153456247, 0.00870400108397007],
+          "rotationQuaternion": [
+            0.0459300522314136, 0.013102296357340735, -0.05990239854665146, 0.9970609122719345
+          ],
+          "scale": [1.0000000006306196, 0.9999999413509982, 0.9999998811733187]
+        },
+        "influencedVertices": 240
+      },
+      {
+        "name": "v4RightMiddleIntermediate",
+        "parent": "v4RightMiddleProximal",
+        "restLocalTransform": {
+          "translation": [-2.2351741790771484e-8, 0.027341254055500086, -1.6391277291027961e-7],
+          "rotationQuaternion": [
+            -0.07014404364280015, 0.007507676395646451, -0.03074080553145413, 0.9970348292872484
+          ],
+          "scale": [1.0000000000732476, 1.0000000004290275, 0.9999999407593807]
+        },
+        "influencedVertices": 239
+      },
+      {
+        "name": "v4RightMiddleDistal",
+        "parent": "v4RightMiddleIntermediate",
+        "restLocalTransform": {
+          "translation": [-6.705522526129215e-8, 0.02284451574087132, -8.195638656616211e-8],
+          "rotationQuaternion": [
+            0.21746813877360377, 0.004961250235186707, -0.05484169245846003, 0.9745128954419947
+          ],
+          "scale": [0.9999998805605851, 0.9999999961825699, 0.9999999368043144]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4RightPinkyProximal",
+        "parent": "v4RightFingers",
+        "restLocalTransform": {
+          "translation": [-0.026832869276404492, 0.00025612860918039493, -0.02132529951632045],
+          "rotationQuaternion": [
+            -0.08174077723693704, -0.07861022953355255, 0.21839759508016401, 0.9692478360112982
+          ],
+          "scale": [0.9999999486225544, 0.9999999486992092, 0.9999998231499991]
+        },
+        "influencedVertices": 217
+      },
+      {
+        "name": "v4RightPinkyIntermediate",
+        "parent": "v4RightPinkyProximal",
+        "restLocalTransform": {
+          "translation": [-3.7252903400952775e-9, 0.02278700843453399, 1.3969838641436638e-7],
+          "rotationQuaternion": [
+            -0.04135296200827461, 0.014922630329859505, -0.029302692605766633, 0.9986033245704886
+          ],
+          "scale": [0.9999999404788871, 0.9999998809891416, 1.0000001193585928]
+        },
+        "influencedVertices": 203
+      },
+      {
+        "name": "v4RightPinkyDistal",
+        "parent": "v4RightPinkyIntermediate",
+        "restLocalTransform": {
+          "translation": [-3.725290312339702e-9, 0.017086327075958294, 8.754432201385498e-8],
+          "rotationQuaternion": [
+            0.24866377588981814, -0.03658272838475227, 0.13838632871667436, 0.9579547246965624
+          ],
+          "scale": [1.0000000029000493, 1.0000001306719326, 1.0000000089414407]
+        },
+        "influencedVertices": 152
+      },
+      {
+        "name": "v4RightRingProximal",
+        "parent": "v4RightFingers",
+        "restLocalTransform": {
+          "translation": [-0.011477923020720482, 0.0012732222676276606, -0.002225426957011223],
+          "rotationQuaternion": [
+            -0.02479228367828942, -0.0006891895291928558, 0.0023423163130296674, 0.9996896424601477
+          ],
+          "scale": [0.9999999999999082, 0.9999999999904698, 0.9999999999905468]
+        },
+        "influencedVertices": 220
+      },
+      {
+        "name": "v4RightRingIntermediate",
+        "parent": "v4RightRingProximal",
+        "restLocalTransform": {
+          "translation": [3.91155481338501e-8, 0.02373309433460241, -7.82310964897448e-8],
+          "rotationQuaternion": [
+            -0.08482645555631439, 0.02838359249452346, -0.06786689245637106, 0.9936764710020928
+          ],
+          "scale": [0.9999999406636537, 1.0000000005851035, 0.9999999407920445]
+        },
+        "influencedVertices": 257
+      },
+      {
+        "name": "v4RightRingDistal",
+        "parent": "v4RightRingIntermediate",
+        "restLocalTransform": {
+          "translation": [5.960464466436832e-8, 0.021797826513648068, 2.2351742234860694e-8],
+          "rotationQuaternion": [
+            0.16184507991639976, -0.013718027314140919, 0.04159616117502333, 0.9858436717902916
+          ],
+          "scale": [0.9999999407362151, 1.0000000049614617, 1.0000000046874737]
+        },
+        "influencedVertices": 170
+      },
+      {
+        "name": "v4RightThumb",
+        "parent": "v4RightHand",
+        "restLocalTransform": {
+          "translation": [-0.007649784942771021, -0.007115442848744324, 0.02936156275792043],
+          "rotationQuaternion": [
+            0.10556855221298421, 0.7207597215425859, 0.6837157870518012, -0.04351352803030745
+          ],
+          "scale": [1.0000000377307934, 0.9999999748330238, 0.9999998445533069]
+        },
+        "influencedVertices": 242
+      },
+      {
+        "name": "v4RightThumbIntermediate",
+        "parent": "v4RightThumb",
+        "restLocalTransform": {
+          "translation": [-6.332993518487484e-8, 0.023916658014059067, 4.749745152743401e-8],
+          "rotationQuaternion": [
+            -0.027796287855992544, 0.001432500237122872, 0.017532196379760962, 0.9994588217703613
+          ],
+          "scale": [1.0000000000341795, 0.9999998809100082, 1.0000000000855713]
+        },
+        "influencedVertices": 275
+      },
+      {
+        "name": "v4RightThumbDistal",
+        "parent": "v4RightThumbIntermediate",
+        "restLocalTransform": {
+          "translation": [5.5879354587951013e-8, 0.022748859599232674, 4.551839083433151e-8],
+          "rotationQuaternion": [
+            0.1103064415892869, -0.027989359520794364, -0.1672021892784306, 0.979332687393832
+          ],
+          "scale": [0.9999999997916097, 0.9999999401044202, 0.9999999999060943]
+        },
+        "influencedVertices": 157
+      }
+    ]
+  },
+  "animation": {
+    "clips": [
+      {
+        "sport": "rower",
+        "name": "rowplay-v4-row-cycle",
+        "durationSeconds": 1,
+        "driveEnd": 0.38,
+        "phaseLandmarks": {
+          "catch": 0,
+          "legDrive": 0.08,
+          "bodyOpen": 0.3,
+          "finish": 0.38,
+          "handsAway": 0.54,
+          "bodyOver": 0.72,
+          "slide": 0.88,
+          "loop": 1
+        }
+      },
+      {
+        "sport": "skierg",
+        "name": "rowplay-v4-ski-cycle",
+        "durationSeconds": 1,
+        "driveEnd": 0.34,
+        "phaseLandmarks": {
+          "reach": 0,
+          "plant": 0.12,
+          "loadedPull": 0.24,
+          "driveEnd": 0.34,
+          "release": 0.58,
+          "recover": 0.78,
+          "loop": 1
+        }
+      },
+      {
+        "sport": "bike",
+        "name": "rowplay-v4-bike-cycle",
+        "durationSeconds": 1,
+        "driveEnd": 0.5,
+        "phaseLandmarks": {
+          "leftTop": 0,
+          "leftPower": 0.25,
+          "opposed": 0.5,
+          "rightPower": 0.75,
+          "loop": 1
+        }
+      }
+    ],
+    "clipTracks": 60
+  },
+  "contacts": [
+    {
+      "bone": "v4LeftHand",
+      "role": "left-hand",
+      "localOffset": [-0.08, -0.01, 0.035]
+    },
+    {
+      "bone": "v4RightHand",
+      "role": "right-hand",
+      "localOffset": [0.08, -0.01, 0.035]
+    },
+    {
+      "bone": "v4LeftFoot",
+      "role": "left-foot",
+      "localOffset": [0, -0.055, 0.13]
+    },
+    {
+      "bone": "v4RightFoot",
+      "role": "right-foot",
+      "localOffset": [0, -0.055, 0.13]
+    }
+  ],
+  "surfaces": [
+    {
+      "role": "athlete-fabric",
+      "source": "vertex-color kit regions"
+    },
+    {
+      "role": "athlete-skin",
+      "source": "vertex-color skin regions"
+    },
+    {
+      "role": "athlete-shorts",
+      "source": "vertex-color pelvis/thigh kit regions"
+    },
+    {
+      "role": "athlete-footwear",
+      "source": "vertex-color shoe regions"
+    },
+    {
+      "role": "athlete-hair",
+      "source": "vertex-color hair regions"
+    },
+    {
+      "role": "athlete-trim",
+      "source": "vertex-color jersey/shoe accent regions"
+    },
+    {
+      "role": "athlete-eye",
+      "source": "vertex-color sclera/iris/cornea-highlight regions"
+    },
+    {
+      "role": "athlete-face-detail",
+      "source": "vertex-color brow/lip/nostril regions"
+    }
+  ],
+  "provenance": {
+    "owner": "rowplay (adaptation); Dan Ulrich / Blender Studio (anatomical base)",
+    "licence": "MIT AND CC0-1.0",
+    "source": "RowPlay-authored Blender 5 athlete derived from Blender Human Base Meshes v1.4.1 (CC0)",
+    "upstreamSource": "https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip",
+    "reviewedBase": "static/replay-assets/source/rowplay-human-base-male-v1.4.1.blend",
+    "sourceExtractionScript": "scripts/extract-replay-athlete-base-blender.py",
+    "authoringTool": "Blender 5.2 LTS",
+    "authoringScript": "scripts/build-replay-athlete-v4-blender.py",
+    "rigAndClipSource": "src/lib/replay/rigV4.ts",
+    "forbiddenSources": [
+      "undocumented download",
+      "scan",
+      "likeness",
+      "avatar generator",
+      "external texture",
+      "user image"
+    ],
+    "nativeDerivative": "Generated by Blender 5.2 from the canonical GLB; do not remodel."
+  },
+  "validation": {
+    "buildCommands": [
+      "vp run build:replay-rig-v4",
+      "vp run build:replay-rig-v4-usdz",
+      "vp run build:replay-rig-v4-contract"
+    ],
+    "validationCommands": [
+      "vp run validate:replay-assets",
+      "vp run check",
+      "vp run validate:locales",
+      "vp run test:e2e:smoke",
+      "git diff --check"
+    ]
+  }
+}

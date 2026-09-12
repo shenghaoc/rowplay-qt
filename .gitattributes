@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# The hash test in crates/rowplay-app/tests/asset_hashes.rs pins the exact
+# bytes of every vendored file under assets/replay, so a checkout that
+# normalises line endings (Windows core.autocrlf) breaks the build: the V4
+# contract JSON gained one CR per line there. Attributes override client
+# config — keep the text files LF and state the binaries explicitly.
+*.glb binary
+*.jpg binary
+*.png binary
+*.json text eol=lf
