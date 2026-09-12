@@ -19,5 +19,9 @@ qtbridge = { workspace = true, features = ["serde_json"] }
 serde_json.workspace = true
 chrono.workspace = true
 
+[dev-dependencies]
+# SHA-256 for the vendored-asset hash pin (tests/asset_hashes.rs).
+rowplay-fixtures.workspace = true
+
 [lints]
 workspace = true
