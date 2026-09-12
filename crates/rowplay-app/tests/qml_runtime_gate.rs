@@ -13,6 +13,8 @@
 //! Qt Quick 2D, so `offscreen` renders it and the gate runs in every
 //! `cargo test -p rowplay-app` invocation, including CI on all three OSes.
 
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const FORBIDDEN_PATTERNS: [&str; 5] = [
@@ -22,6 +24,98 @@ const FORBIDDEN_PATTERNS: [&str; 5] = [
     "Unable to assign",
     "is not defined",
 ];
+
+/// The Qt-bridge singletons whose members QML must resolve.
+const SINGLETONS: [&str; 4] = ["Library", "Detail", "Settings", "Sync"];
+
+fn repo_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .canonicalize()
+        .expect("repo root")
+}
+
+/// Strips `//` line comments and `/* … */` blocks so commented-out examples
+/// cannot produce false positives.
+fn strip_comments(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let bytes = source.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+        } else if bytes[i] == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+            i += 2;
+            while i + 1 < bytes.len() && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                // Keep newlines so line-based diagnostics stay sensible.
+                if bytes[i] == b'\n' {
+                    out.push('\n');
+                }
+                i += 1;
+            }
+            i += 2;
+        } else {
+            out.push(bytes[i] as char);
+            i += 1;
+        }
+    }
+    out
+}
+
+fn qml_files(dir: &Path, out: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(dir).expect("read qml dir") {
+        let path = entry.expect("dir entry").path();
+        if path.is_dir() {
+            qml_files(&path, out);
+        } else if path.extension().is_some_and(|ext| ext == "qml") {
+            out.push(path);
+        }
+    }
+}
+
+/// Every `Singleton.member` reference in `qml/`, in stable order.
+///
+/// Signal-handler names (`onLibraryChanged`) and bare identifiers are not
+/// member accesses and are skipped; chained accesses keep only the first hop
+/// (`Library.tilesJson[0].labelId` → `Library.tilesJson`).
+fn referenced_members() -> BTreeSet<String> {
+    let mut files = Vec::new();
+    qml_files(&repo_root().join("qml"), &mut files);
+    assert!(!files.is_empty(), "no QML files found");
+
+    let mut found = BTreeSet::new();
+    for path in files {
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+        let source = strip_comments(&source);
+        let bytes = source.as_bytes();
+        for singleton in SINGLETONS {
+            let mut start = 0;
+            while let Some(hit) = source[start..].find(&format!("{singleton}.")) {
+                let at = start + hit;
+                // Must be a standalone identifier, not a suffix of a longer
+                // one (e.g. `MyLibrary.` or `Synchroniser.`).
+                let boundary =
+                    at == 0 || !(bytes[at - 1].is_ascii_alphanumeric() || bytes[at - 1] == b'_');
+                let mut end = at + singleton.len() + 1;
+                while end < bytes.len()
+                    && (bytes[end].is_ascii_alphanumeric() || bytes[end] == b'_')
+                {
+                    end += 1;
+                }
+                let member = &source[at + singleton.len() + 1..end];
+                if boundary && !member.is_empty() {
+                    found.insert(format!("{singleton}.{member}"));
+                }
+                start = at + singleton.len() + 1;
+            }
+        }
+    }
+    found
+}
 
 #[test]
 fn shell_walk_produces_no_qml_runtime_errors() {
@@ -42,8 +136,24 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             "QT_QPA_PLATFORM",
             std::env::var_os("QT_QPA_PLATFORM").unwrap_or_else(|| "offscreen".into()),
         )
-        .env("LANG", "C.UTF-8");
+        .env("LANG", "C.UTF-8")
+        // The member checklist is scanned from qml/ right here, so a property
+        // reference added to any screen is probed on the next gate run without
+        // anybody maintaining a hand-written list.
+        .env(
+            "ROWPLAY_GATE_MEMBER_CHECK",
+            referenced_members()
+                .into_iter()
+                .collect::<Vec<_>>()
+                .join(","),
+        );
+    // Hermetic state: the walk syncs and clears the cache, so it must never
+    // touch the developer's real logbook data directory.
+    let temp = std::env::temp_dir().join(format!("rowplay-gate-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&temp);
+    command.env("ROWPLAY_DATA_DIR", &temp);
     let output = command.output().expect("launch rowplay-app in gate mode");
+    let _ = std::fs::remove_dir_all(&temp);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -75,6 +185,31 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate i18n zh:") && !combined.contains("gate i18n zh: nav.dashboard"),
         "live language switch to zh did not retranslate\noutput:\n{combined}"
     );
+    // Singleton properties: every member QML references must resolve on the
+    // qtbridge object. A missing registration reads as `undefined` and
+    // produces no QML warning at all, so this is the only thing that catches
+    // it.
+    let members = referenced_members();
+    assert!(
+        members.len() > 50,
+        "member scan found only {} references — the scanner is stale",
+        members.len()
+    );
+    assert!(
+        !combined.contains("gate members unresolved:"),
+        "QML references singleton members that do not resolve (a missing \
+         qproperty! registration reads as `undefined` with no QML error):\n{}",
+        combined
+            .lines()
+            .filter(|line| line.contains("gate members"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(
+        combined.contains("gate members:") && combined.contains("resolved"),
+        "the member check did not run\noutput:\n{combined}"
+    );
+
     // The mock sync must complete and land in the cache, not the demo data.
     assert!(
         combined.contains("gate sync: sync.done"),
@@ -83,5 +218,18 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     assert!(
         combined.contains("library 17 cache"),
         "mock sync did not populate the cache with the 17 demo workouts\noutput:\n{combined}"
+    );
+    // Incremental behaviour, end to end through the worker thread: the first
+    // sync saves everything, the second skips everything (fetching no
+    // details) and reports the web's "caught up" result, and a full re-sync
+    // ignores the cache again.
+    assert!(
+        combined.contains("gate resync: sync.incrementalDone added 0 skipped 17"),
+        "an incremental re-sync over an unchanged library must skip every \
+         detail\noutput:\n{combined}"
+    );
+    assert!(
+        combined.contains("gate full: sync.done added 17 skipped 0"),
+        "a full re-sync must re-download every detail\noutput:\n{combined}"
     );
 }

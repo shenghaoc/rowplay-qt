@@ -262,6 +262,15 @@ ApplicationWindow {
             Library.reload()
         }
     }
+    // The sync worker writes to the cache on its own thread; every few
+    // details (and on completion) it asks the shell to re-read the library so
+    // new rows appear while the sync runs instead of after it.
+    Connections {
+        target: Sync
+        function onLibraryRefreshRequested() {
+            Library.reload()
+        }
+    }
 
     // Safety-net poll for the worker thread's cross-thread pokes: while a
     // sync runs, drain the event pump from a timer too (qt-bridges-notes).
@@ -285,6 +294,44 @@ ApplicationWindow {
             } else {
                 Library.clearSelection()
             }
+        }
+    }
+
+    /// Probes every `Singleton.member` pair the QML sources reference (the
+    /// list is scanned from `qml/` by the gate test and handed over as
+    /// `ROWPLAY_GATE_MEMBER_CHECK`). A property that is not registered on the
+    /// qtbridge object reads as `undefined` with no QML error or binding
+    /// warning — the exact hole that let `Sync.progressText` ship — so an
+    /// unresolved member is reported loudly for the test to fail on.
+    function checkGateMembers() {
+        if (Settings.gateMemberCheck.length === 0) {
+            return
+        }
+        var objects = {
+            "Library": Library, "Detail": Detail,
+            "Settings": Settings, "Sync": Sync
+        }
+        var pairs = Settings.gateMemberCheck.split(",")
+        var missing = []
+        for (var i = 0; i < pairs.length; ++i) {
+            var pair = pairs[i]
+            if (pair.length === 0) {
+                continue
+            }
+            var dot = pair.indexOf(".")
+            if (dot < 0) {
+                continue
+            }
+            var object = objects[pair.slice(0, dot)]
+            var member = pair.slice(dot + 1)
+            if (object === undefined || typeof object[member] === "undefined") {
+                missing.push(pair)
+            }
+        }
+        console.log("gate members:", pairs.length - missing.length, "of",
+                    pairs.length, "resolved")
+        if (missing.length > 0) {
+            console.log("gate members unresolved:", missing.join(" "))
         }
     }
 
@@ -335,6 +382,7 @@ ApplicationWindow {
                             Tr.t("workoutList.matching",
                                  { n: Library.filteredCount }),
                             "| uiLanguage:", Qt.uiLanguage)
+                root.checkGateMembers()
                 break
             case 2: root.grabScreen("dashboard"); break
             case 3: root.showSettings(); break
@@ -374,7 +422,7 @@ ApplicationWindow {
                 break
             case 25:
                 if (Settings.syncMockMode) {
-                    Sync.start()
+                    Sync.start()          // incremental
                 }
                 break
             case 26: case 27: case 28: case 29: case 30:
@@ -384,30 +432,52 @@ ApplicationWindow {
                     Library.reload()
                     console.log("gate sync:", Sync.statusId,
                                 "added", Sync.statusAdded,
+                                "skipped", Sync.statusSkipped,
                                 "total", Sync.statusTotal,
                                 "library", Library.totalCount,
                                 Library.isDemoLibrary ? "demo" : "cache")
+                    // Second pass over the now-caught-up library: an
+                    // incremental sync must fetch nothing.
+                    Sync.start()
                 }
                 break
-            case 32:
+            case 32: case 33: case 34: case 35: case 36: case 37:
+                break   // the incremental re-sync runs
+            case 38:
                 if (Settings.syncMockMode) {
-                    // Restore the shipped defaults and wipe the mock-synced
-                    // cache so the next run starts clean.
+                    Library.reload()
+                    console.log("gate resync:", Sync.statusId,
+                                "added", Sync.statusAdded,
+                                "skipped", Sync.statusSkipped,
+                                "library", Library.totalCount)
+                    // Full mode re-downloads everything.
+                    Sync.startFull()
+                }
+                break
+            case 39: case 40: case 41: case 42:
+                break   // the full re-sync runs
+            case 43:
+                if (Settings.syncMockMode) {
+                    Library.reload()
+                    console.log("gate full:", Sync.statusId,
+                                "added", Sync.statusAdded,
+                                "skipped", Sync.statusSkipped,
+                                "library", Library.totalCount)
                     Settings.setDemoModeEnabled(true)
                     Settings.clearCachedWorkouts()
                     Library.reload()
                 }
                 break
-            case 33: Library.toggleSort(3); break        // pace ascending
-            case 34: Library.setDateRange("2024-01-01", "2024-12-31"); break
-            case 35: Library.setDateRange("nope", ""); break   // rejected
-            case 36: Library.setDateRange("", ""); break       // cleared
-            case 37: Library.toggleSort(0); Library.selectWorkout(9001); break
-            case 38: root.grabScreen("detail-nostrokes"); break
-            case 39: Library.selectWorkout(1005); break
-            case 40: root.grabScreen("detail-full"); break
-            case 41: Library.requestReplay(false); break       // route push
-            case 42: Library.closeReplay(); Library.clearSelection(); break
+            case 44: Library.toggleSort(3); break        // pace ascending
+            case 45: Library.setDateRange("2024-01-01", "2024-12-31"); break
+            case 46: Library.setDateRange("nope", ""); break   // rejected
+            case 47: Library.setDateRange("", ""); break       // cleared
+            case 48: Library.toggleSort(0); Library.selectWorkout(9001); break
+            case 49: root.grabScreen("detail-nostrokes"); break
+            case 50: Library.selectWorkout(1005); break
+            case 51: root.grabScreen("detail-full"); break
+            case 52: Library.requestReplay(false); break       // route push
+            case 53: Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

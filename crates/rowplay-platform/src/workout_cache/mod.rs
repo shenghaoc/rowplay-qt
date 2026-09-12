@@ -41,6 +41,36 @@ pub enum CacheError {
     },
 }
 
+/// The stamp a workout summary reports for change detection.
+///
+/// The Concept2 list payload has no explicit `updated_at`, so an incremental
+/// sync treats `date` plus the optional `date_utc` instant as the identity
+/// stamp: when both match the cached row, the detail is still current.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SummaryStamp {
+    /// Logbook wall-clock date string (`YYYY-MM-DD HH:MM:SS`).
+    pub date: String,
+    /// Concept2 `date_utc`, when the summary carried it.
+    pub date_utc: Option<String>,
+}
+
+impl SummaryStamp {
+    /// The stamp reported by `workout`.
+    #[must_use]
+    pub fn of(workout: &Workout) -> Self {
+        SummaryStamp {
+            date: workout.date.clone(),
+            date_utc: workout.date_utc.clone(),
+        }
+    }
+
+    /// Whether `workout` reports this same stamp.
+    #[must_use]
+    pub fn matches(&self, workout: &Workout) -> bool {
+        self.date == workout.date && self.date_utc == workout.date_utc
+    }
+}
+
 /// Persistent store of workout details, keyed by Concept2 result id.
 pub trait WorkoutCache: Send + Sync {
     /// Create or upgrade the schema. Idempotent.
@@ -53,6 +83,19 @@ pub trait WorkoutCache: Send + Sync {
     fn save_details(&self, details: &[WorkoutDetail]) -> Result<usize, CacheError>;
     /// Remove every row (disconnect / delete local data).
     fn clear(&self) -> Result<(), CacheError>;
+    /// Identity stamps for every cached row, keyed by result id.
+    ///
+    /// An incremental sync skips the detail fetch for an id whose stamp still
+    /// matches the summary the Logbook reports, so this is the change-detection
+    /// query. The default derives it from [`Self::list_workouts`]; stores with
+    /// a cheaper path (a stamp-only column read) may override it.
+    fn summary_stamps(&self) -> Result<BTreeMap<i64, SummaryStamp>, CacheError> {
+        Ok(self
+            .list_workouts()?
+            .iter()
+            .map(|workout| (workout.id, SummaryStamp::of(workout)))
+            .collect())
+    }
 }
 
 /// Process-local cache for tests and demo mode.
@@ -190,6 +233,24 @@ mod tests {
                 .as_deref(),
             Some("edited")
         );
+    }
+
+    #[test]
+    fn summary_stamps_track_the_date_and_utc_instant() {
+        let cache = InMemoryWorkoutCache::with_details(&demo_details());
+        let stamps = cache.summary_stamps().unwrap();
+        assert_eq!(stamps.len(), 17);
+
+        let mut edited = cache.details(&[1001]).unwrap().remove(&1001).unwrap();
+        assert!(stamps[&1001].matches(&edited.workout));
+        assert_eq!(stamps[&1001], SummaryStamp::of(&edited.workout));
+
+        // A changed logbook date (or a changed UTC instant) invalidates it.
+        edited.workout.date = "2027-01-01 00:00:00".to_owned();
+        assert!(!stamps[&1001].matches(&edited.workout));
+        edited.workout.date = "2024-01-01 00:00:00".to_owned();
+        edited.workout.date_utc = Some("2027-01-01T00:00:00Z".to_owned());
+        assert!(!stamps[&1001].matches(&edited.workout));
     }
 
     #[test]

@@ -172,14 +172,24 @@ Pane {
                     Accessible.name: text
                 }
 
+                // Two modes, matching settings.syncNote: the incremental
+                // button is the default; full re-sync is the slower escape
+                // hatch for when something looks wrong.
                 RowLayout {
                     spacing: Theme.spacingMedium
 
                     Button {
-                        text: Tr.t("dashboard.sync")
+                        text: Tr.t("settings.syncIncremental")
                         enabled: Sync.canSync
                         onClicked: Sync.start()
-                        Accessible.name: Tr.t("dashboard.sync")
+                        Accessible.name: Tr.t("settings.syncIncremental")
+                    }
+
+                    Button {
+                        text: Tr.t("settings.syncFull")
+                        enabled: Sync.canSync
+                        onClicked: Sync.startFull()
+                        Accessible.name: Tr.t("settings.syncFull")
                     }
 
                     Button {
@@ -195,19 +205,37 @@ Pane {
                         Layout.preferredWidth: 24
                         Layout.preferredHeight: 24
                     }
+                }
 
-                    Label {
-                        visible: Sync.isRunning
-                        // The counts/remaining text is rendered in Rust
-                        // (sync worker); QML only prefixes the translated
-                        // status.
-                        text: Sync.progressTotal > 0
-                              ? Tr.t("sync.inProgress") + " " + Sync.progressText
-                              : Tr.t("sync.loading")
-                        font: Theme.metricLabel
-                        color: Theme.textSecondary
-                        Accessible.name: text
-                    }
+                // Progress: determinate while the detail pass is sized
+                // (-1 before the summary walk reports a total).
+                ProgressBar {
+                    id: syncProgress
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 480
+                    visible: Sync.isRunning
+                    from: 0
+                    to: 1
+                    indeterminate: Sync.progressFraction < 0
+                    // The bar shows overall progress; the label carries the
+                    // counts (rendered in Rust).
+                    value: Sync.progressFraction < 0 ? 0 : Sync.progressFraction
+                    Accessible.name: Tr.t("sync.inProgress")
+                    Accessible.description: syncProgressLabel.text
+                }
+
+                Label {
+                    id: syncProgressLabel
+                    Layout.fillWidth: true
+                    visible: Sync.isRunning
+                    // Counts/remaining are rendered in Rust (sync worker);
+                    // QML only prefixes the translated status.
+                    text: Sync.progressTotal > 0
+                          ? Tr.t("sync.inProgress") + " " + Sync.progressText
+                          : Tr.t("sync.loading")
+                    font: Theme.metricLabel
+                    color: Theme.textSecondary
+                    Accessible.name: text
                 }
 
                 // Last result / status line.
@@ -222,6 +250,14 @@ Pane {
                         if (Settings.demoModeEnabled && !Settings.hasToken) {
                             return Tr.t("settings.syncDemo")
                         }
+                        if (Sync.statusId === "sync.incrementalDone") {
+                            return Tr.t("sync.incrementalDone",
+                                        { total: Sync.statusTotal })
+                        }
+                        // The web's exact result strings carry the counts;
+                        // `Sync.statusSkipped` is available for callers that
+                        // want the skip count, but no new English is invented
+                        // here (the i18n parity check only admits web keys).
                         if (Sync.statusId === "sync.done") {
                             return Tr.t("sync.done", { added: Sync.statusAdded,
                                                        total: Sync.statusTotal })

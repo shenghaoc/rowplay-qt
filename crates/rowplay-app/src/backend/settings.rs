@@ -36,6 +36,9 @@ pub struct SettingsBackend {
     screenshot_dir: String,
     color_scheme_override: String,
     sync_mock_mode: bool,
+    /// Comma-separated `Singleton.member` pairs the gate probes (from
+    /// `ROWPLAY_GATE_MEMBER_CHECK`); empty outside the gate.
+    gate_member_check: String,
 }
 
 impl Default for SettingsBackend {
@@ -99,6 +102,7 @@ impl Default for SettingsBackend {
             screenshot_dir: std::env::var("ROWPLAY_SMOKE_SCREENSHOT_DIR").unwrap_or_default(),
             color_scheme_override: std::env::var("ROWPLAY_FORCE_COLOR_SCHEME").unwrap_or_default(),
             sync_mock_mode: std::env::var_os("ROWPLAY_SYNC_MOCK").is_some(),
+            gate_member_check: std::env::var("ROWPLAY_GATE_MEMBER_CHECK").unwrap_or_default(),
         }
     }
 }
@@ -173,6 +177,11 @@ impl SettingsBackend {
     // MockConcept2Client (demo details) instead of the live Logbook, with no
     // token required. Lets CI exercise the whole worker-thread sync path.
     qproperty!("syncMockMode", Member = sync_mock_mode, Constant);
+    // The gate's singleton-property checklist (see Main.qml and
+    // crates/rowplay-app/tests/qml_runtime_gate.rs): a missing qtbridge
+    // property reads as `undefined` with no QML error, so the runtime gate
+    // probes every member QML references and fails on any miss.
+    qproperty!("gateMemberCheck", Member = gate_member_check, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
