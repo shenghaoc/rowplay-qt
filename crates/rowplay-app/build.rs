@@ -11,6 +11,7 @@
 //! pipeline (and `qmllint`/`qmlls` working on plain directories). No C++ is
 //! generated or compiled here. See docs/qt-bridges-notes.md.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -148,6 +149,169 @@ fn build_i18n_resources(rcc: &Path, out_dir: &Path) {
     rcc_binary(rcc, &qrc, &out_dir.join("rowplay_i18n.rcc"));
 }
 
+/// Validates the vendored V3 rig pack against the asset contract at build
+/// time (Phase 5a spec R2) and writes the name → material-role map the QML
+/// material walker and the gate need into `OUT_DIR/replay_assets_meta.json`.
+///
+/// The scene loads through `balsam`-generated QML components (see
+/// [`build_replay_balsam`]), because a `RuntimeLoader` scene is not
+/// addressable from QML — no objectNames, no traversable `children`
+/// (docs/qt-bridges-notes.md). The contract is enforced here on the exact
+/// bytes `balsam` converts; a drift fails the build with the named slot.
+/// Development (`ROWPLAY_REPLAY_ASSETS`) re-validates an on-disk pack at
+/// startup, so editing the asset surfaces immediately.
+fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
+    let assets = manifest_dir
+        .join("..")
+        .join("..")
+        .join("assets")
+        .join("replay");
+    let rigs = assets.join("rowplay-rigs-v3.glb");
+    println!("cargo::rerun-if-changed={}", rigs.display());
+    let bytes =
+        std::fs::read(&rigs).unwrap_or_else(|error| panic!("read {}: {error}", rigs.display()));
+    let library = rowplay_viewmodel::replay::glb::validate_v3(&bytes)
+        .unwrap_or_else(|error| panic!("vendored V3 rig pack fails its contract: {error}"));
+
+    let mut mesh_roles = serde_json::Map::new();
+    for entry in &library.mesh_roles {
+        mesh_roles.insert(
+            entry.name.clone(),
+            serde_json::json!({
+                "role": entry.role,
+                "template": entry.template,
+                "slot": entry.slot,
+            }),
+        );
+    }
+    let meta = serde_json::json!({
+        "byteLength": library.byte_length,
+        "assetMode": "balsam",
+        "templates": library.manifest.templates.iter().map(|template| serde_json::json!({
+            "template": template.template,
+            "partCount": template.part_count,
+            "materialRoles": template.material_roles,
+        })).collect::<Vec<_>>(),
+        "leaves": library.leaves.iter().map(|leaf| serde_json::json!({
+            "slot": leaf.slot,
+            "materialRole": leaf.material_role,
+        })).collect::<Vec<_>>(),
+        "meshRoles": mesh_roles,
+    });
+    std::fs::write(
+        out_dir.join("replay_assets_meta.json"),
+        serde_json::to_string_pretty(&meta).expect("serialize meta"),
+    )
+    .expect("write replay_assets_meta.json");
+}
+
+/// Converts the vendored packs with Qt's `balsam` into QML components and
+/// bundles them (plus their meshes) as a generated module
+/// `RowPlay.ReplayAssets` inside a third binary resource.
+///
+/// `balsam`'s components name every node (`objectName`) and every Joint of
+/// the athlete's skin with the contract's bone names, which is what makes
+/// both the runtime material walk (role by node name) and Phase 5b posing
+/// possible at all; a `RuntimeLoader` scene exposes none of that to QML.
+/// Balsam also collapses each pack into its neutral placeholder material and
+/// drops the `replayAsset*` extras — harmless, because roles are re-applied
+/// from the validated JSON map at runtime (docs/qt-bridges-notes.md).
+fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
+    println!("cargo::rerun-if-env-changed=ROWPLAY_BALSAM");
+    let balsam = find_tool("ROWPLAY_BALSAM", "balsam");
+    let assets = manifest_dir
+        .join("..")
+        .join("..")
+        .join("assets")
+        .join("replay");
+
+    // (source GLB, generated component, module subdirectory, exported type)
+    const PACKS: [(&str, &str, &str, &str); 2] = [
+        ("rowplay-rigs-v3.glb", "Rowplay_rigs_v3.qml", "rigs", "Rigs"),
+        (
+            "rowplay-athlete-v4.glb",
+            "Rowplay_athlete_v4.qml",
+            "athlete",
+            "Athlete",
+        ),
+    ];
+
+    let module_root = out_dir.join("replay-balsam");
+    let _ = std::fs::remove_dir_all(&module_root);
+    std::fs::create_dir_all(&module_root).expect("create replay-balsam dir");
+
+    // Files land in OUT_DIR/replay-balsam/… but the module must sit at
+    // /qt/qml/RowPlay/ReplayAssets/… for the import URI to resolve, so every
+    // entry carries an alias with the module-relative resource path.
+    let mut qmldir = String::from("module RowPlay.ReplayAssets\n");
+    let mut qrc_entries = Vec::new();
+    for (source, component, subdir, exported) in PACKS {
+        let pack_out = module_root.join(subdir);
+        std::fs::create_dir_all(&pack_out).expect("create balsam pack dir");
+        // The V4 pack carries its three authored cycle clips; balsam would
+        // turn them into auto-running `Timeline`s (plus `.qad` keyframe
+        // files), but the athlete is posed from Rust — 5b evaluates the
+        // clips itself (spec D2) — so Qt's animation system must not touch
+        // the joints. Strip the animation component at conversion time.
+        //
+        // balsam is a QGuiApplication: with no display it dies initialising
+        // the default platform plugin (xcb on a headless CI builder) before
+        // converting anything. Conversion never needs a real window, so pin
+        // the offscreen plugin — it ships with every Qt build.
+        let status = Command::new(&balsam)
+            .env("QT_QPA_PLATFORM", "offscreen")
+            .arg("--removeComponentAnimations")
+            .arg("-o")
+            .arg(&pack_out)
+            .arg(assets.join(source))
+            .status()
+            .unwrap_or_else(|error| panic!("run balsam on {source}: {error}"));
+        assert!(status.success(), "balsam failed on {source}");
+        let generated = pack_out.join(component);
+        assert!(
+            generated.is_file(),
+            "balsam produced no {component} for {source}"
+        );
+        writeln!(qmldir, "{exported} 1.0 {subdir}/{component}").expect("format qmldir");
+        qrc_entries.push(format!(
+            "        <file alias=\"RowPlay/ReplayAssets/{subdir}/{component}\">replay-balsam/{subdir}/{component}</file>"
+        ));
+        let meshes = pack_out.join("meshes");
+        if meshes.is_dir() {
+            let mut files: Vec<PathBuf> = std::fs::read_dir(&meshes)
+                .expect("read meshes dir")
+                .map(|entry| entry.expect("mesh entry").path())
+                .collect();
+            files.sort();
+            for file in files {
+                let name = file.file_name().expect("mesh name").to_string_lossy();
+                qrc_entries.push(format!(
+                    "        <file alias=\"RowPlay/ReplayAssets/{subdir}/meshes/{name}\">replay-balsam/{subdir}/meshes/{name}</file>"
+                ));
+            }
+        }
+    }
+    std::fs::write(module_root.join("qmldir"), qmldir).expect("write ReplayAssets qmldir");
+    qrc_entries.insert(
+        0,
+        "        <file alias=\"RowPlay/ReplayAssets/qmldir\">replay-balsam/qmldir</file>"
+            .to_owned(),
+    );
+
+    // rcc resolves <file> paths relative to the .qrc location, so the
+    // generated resource lives next to the balsam output in OUT_DIR.
+    let qrc = out_dir.join("rowplay_replay.qrc");
+    std::fs::write(
+        &qrc,
+        format!(
+            "<!DOCTYPE RCC>\n<RCC version=\"1.0\">\n    <qresource prefix=\"/qt/qml\">\n{}\n    </qresource>\n</RCC>\n",
+            qrc_entries.join("\n")
+        ),
+    )
+    .expect("write rowplay_replay.qrc");
+    rcc_binary(rcc, &qrc, &out_dir.join("rowplay_replay.rcc"));
+}
+
 fn main() {
     println!("cargo::rerun-if-env-changed=QMAKE");
     println!("cargo::rerun-if-env-changed=ROWPLAY_RCC");
@@ -182,4 +346,6 @@ fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
     rcc_binary(&rcc, &qrc, &out_dir.join("rowplay.rcc"));
     build_i18n_resources(&rcc, &out_dir);
+    build_replay_balsam(&manifest_dir, &out_dir, &rcc);
+    build_replay_asset_meta(&manifest_dir, &out_dir);
 }
