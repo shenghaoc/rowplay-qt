@@ -29,7 +29,13 @@ use super::CacheError;
 use crate::paths;
 
 /// Current schema version, stored in `PRAGMA user_version`.
-pub const SCHEMA_VERSION: i32 = 1;
+///
+/// v2 adds `date_utc`, the second half of the incremental sync's identity
+/// stamp ([`SummaryStamp`](super::SummaryStamp)). Without it the stamp query
+/// would have to decode every row's `detail_json`; with it the change check
+/// is a flat column read. It is an additive divergence from Studio's column
+/// set (see `docs/source-map.md`).
+pub const SCHEMA_VERSION: i32 = 2;
 
 /// Version 1 of the schema (Studio's column set, with `date` as the logbook
 /// string because the core model keeps it verbatim rather than as an instant).
@@ -62,16 +68,20 @@ CREATE INDEX IF NOT EXISTS idx_workouts_date ON workouts (date DESC);
 /// Upsert keyed by the Concept2 result id (`INSERT OR REPLACE`, like Studio).
 const UPSERT_WORKOUT: &str = "
 INSERT OR REPLACE INTO workouts (
-    id, sport, date, workout_type, distance, time, pace,
+    id, sport, date, date_utc, workout_type, distance, time, pace,
     stroke_rate, stroke_count, heart_rate_avg, calories_total,
     watt_minutes, drag_factor, comments, source, verified,
     has_stroke_data, is_interval, detail_json, updated_at
 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-          ?17, ?18, ?19, ?20);
+          ?17, ?18, ?19, ?20, ?21);
 ";
 
 /// Newest first, with the result id breaking ties like the in-memory cache.
 const SELECT_LIST: &str = "SELECT detail_json FROM workouts ORDER BY date DESC, id DESC;";
+
+/// Stamp-only read for the incremental sync's change detection: no JSON
+/// decode, just the summary columns it compares.
+const SELECT_STAMPS: &str = "SELECT id, date, date_utc FROM workouts;";
 
 /// SQLite-backed [`super::WorkoutCache`].
 ///
@@ -145,6 +155,13 @@ impl super::WorkoutCache for SqliteWorkoutCache {
             transaction
                 .execute_batch(CREATE_SCHEMA_V1)
                 .map_err(|error| CacheError::Migration(format!("schema v1: {error}")))?;
+        }
+        if version < 2 {
+            // v1 shipped without `date_utc`; the column is added for both a
+            // brand-new database (created just above) and an upgraded one.
+            transaction
+                .execute_batch("ALTER TABLE workouts ADD COLUMN date_utc TEXT;")
+                .map_err(|error| CacheError::Migration(format!("schema v2: {error}")))?;
         }
         transaction
             .pragma_update(None, "user_version", SCHEMA_VERSION)
@@ -229,6 +246,7 @@ impl super::WorkoutCache for SqliteWorkoutCache {
                         workout.id,
                         workout.sport.as_str(),
                         workout.date,
+                        workout.date_utc,
                         workout.workout_type,
                         workout.distance,
                         workout.time,
@@ -260,6 +278,35 @@ impl super::WorkoutCache for SqliteWorkoutCache {
             .execute("DELETE FROM workouts;", [])
             .map_err(|error| query_error(&error))?;
         Ok(())
+    }
+
+    /// Flat stamp read: id, date and `date_utc` come from columns, so the
+    /// incremental sync never decodes `detail_json` just to compare stamps.
+    fn summary_stamps(
+        &self,
+    ) -> Result<std::collections::BTreeMap<i64, super::SummaryStamp>, CacheError> {
+        let connection = self.lock()?;
+        let mut statement = connection
+            .prepare(SELECT_STAMPS)
+            .map_err(|error| query_error(&error))?;
+        let rows = statement
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    super::SummaryStamp {
+                        date: row.get::<_, String>(1)?,
+                        date_utc: row.get::<_, Option<String>>(2)?,
+                    },
+                ))
+            })
+            .map_err(|error| query_error(&error))?;
+
+        let mut stamps = std::collections::BTreeMap::new();
+        for row in rows {
+            let (id, stamp) = row.map_err(|error| query_error(&error))?;
+            stamps.insert(id, stamp);
+        }
+        Ok(stamps)
     }
 }
 
@@ -485,6 +532,77 @@ mod tests {
             .mode()
             & 0o777;
         assert_eq!(mode, 0o600, "cache file mode");
+    }
+
+    /// The fast stamp path agrees with the default derivation and survives a
+    /// row whose JSON is unreadable (it must not decode the payload).
+    #[test]
+    fn stamps_come_from_columns_without_decoding_the_payload() {
+        let (dir, cache) = cache();
+        cache.migrate().unwrap();
+        let details = demo_details();
+        cache.save_details(&details).unwrap();
+
+        let stamps = cache.summary_stamps().unwrap();
+        assert_eq!(stamps.len(), details.len());
+        for detail in &details {
+            assert_eq!(
+                stamps[&detail.id()],
+                super::super::SummaryStamp::of(&detail.workout)
+            );
+        }
+
+        // Corrupt one payload: the column read still succeeds.
+        drop(cache);
+        let connection =
+            Connection::open(dir.path().join("workouts.sqlite")).expect("independent open");
+        connection
+            .execute(
+                "UPDATE workouts SET detail_json = '{oops' WHERE id = 1001;",
+                [],
+            )
+            .unwrap();
+        drop(connection);
+        let cache = SqliteWorkoutCache::open(&dir.path().join("workouts.sqlite")).unwrap();
+        assert_eq!(cache.summary_stamps().unwrap().len(), details.len());
+        assert!(cache.list_workouts().is_err());
+    }
+
+    /// A v1 database (no `date_utc`) upgrades in place, keeping its rows.
+    #[test]
+    fn a_v1_database_upgrades_and_keeps_its_rows() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let path = dir.path().join("workouts.sqlite");
+
+        // Build the exact v1 schema by hand.
+        let connection = Connection::open(&path).expect("open");
+        connection
+            .execute_batch(CREATE_SCHEMA_V1)
+            .expect("v1 schema");
+        connection
+            .pragma_update(None, "user_version", 1)
+            .expect("user_version");
+        connection
+            .execute(
+                "INSERT INTO workouts (id, sport, date, distance, time, pace, detail_json, updated_at)
+                 VALUES (42, 'rower', '2026-01-01 06:00:00', 2000.0, 400.0, 100.0, '{}', 0.0);",
+                [],
+            )
+            .expect("v1 row");
+        drop(connection);
+
+        let cache = SqliteWorkoutCache::open(&path).expect("open");
+        cache.migrate().expect("upgrade");
+        let stamps = cache.summary_stamps().unwrap();
+        assert_eq!(stamps.len(), 1, "the v1 row survives the upgrade");
+        assert_eq!(stamps[&42].date, "2026-01-01 06:00:00");
+        assert_eq!(stamps[&42].date_utc, None, "the new column starts NULL");
+
+        let connection = Connection::open(&path).expect("reopen");
+        let version: i32 = connection
+            .query_row("PRAGMA user_version;", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
     }
 
     #[test]

@@ -130,6 +130,29 @@ Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
 on Apple targets, as it effectively does on Linux.
 
+## 15. A missing `qproperty!` registration reads as `undefined` with no QML error
+
+The most dangerous failure mode found so far. A property that QML reads but
+that was never registered with `qproperty!` (here `Sync.progressText`) does
+not raise a `TypeError`, a `ReferenceError` or a binding warning: the
+expression evaluates to `undefined`, the `Label` renders empty or the string
+"undefined", and neither `qmllint` (no `.qmltypes` for Rust types, note #9)
+nor the runtime-error gate notices.
+
+Repro: drop a `qproperty!` line from a `#[qobject(NoQmlElement)]` backend,
+bind a QML label to that property; the app runs and logs nothing.
+
+Workaround used: the gate scans `qml/` for every `Singleton.member` reference,
+passes the list to the app through `ROWPLAY_GATE_MEMBER_CHECK`, and the shell
+probes each with dynamic lookup (`typeof Sync["progressText"] === "undefined"`
+→ failure). `crates/rowplay-app/tests/qml_runtime_gate.rs` fails on any miss;
+verified by injecting a deliberate miss.
+
+Suggestion: have `#[qobject]` emit a `qmldir`/`plugins.qmltypes` entry (the
+note #9 ask) — `qmllint` would then catch this at compile time. Failing that,
+a debug-build warning when QML reads an unknown member of a Rust-backed
+QObject would make the class visible.
+
 ## 14. `QListModel::reset()` panics before the QObject is attached
 
 `#[qobject(Base = QListModel)]` works well for the 5,000-row sidebar (bulk

@@ -84,3 +84,28 @@ Spec first, then one small commit per deliverable. Two stacked PRs: 4a on
 
 Replay (Phase 5), live mode (Phase 8), HR import, annotations, comparison
 panel, file actions/export, rival controls.
+
+## Manual-testing fixes (post-4b)
+
+- [x] Register `Sync.progressText` (a missing bridge property read as
+      `undefined` with no QML error) and drive a `ProgressBar` from
+      `progressFraction` (indeterminate at -1); drop the unused
+      `progressCompleted`.
+- [x] Root-cause gate check: scan `qml/` for every `Library.` / `Detail.` /
+      `Settings.` / `Sync.` member reference and probe each at runtime,
+      failing on any that resolves to `undefined`.
+- [x] Incremental sync by default: skip a detail whose cached identity stamp
+      (`date` + `date_utc`) still matches the summary; stop paging once a
+      whole page is cached and unchanged; `full: bool` through `sync_with`
+      and the backend; two buttons (`settings.syncIncremental` /
+      `settings.syncFull`); report `skipped_count`.
+- [x] Cache: `SummaryStamp`, the default `summary_stamps()` derivation and a
+      SQLite column-read override with a v1→v2 migration for `date_utc`.
+- [x] Sidebar refreshes while a sync runs (every 25 saved details and on
+      completion) via `Sync.libraryRefreshRequested`.
+- [x] Mock-client tests: a second sync over an unchanged library issues zero
+      detail requests; a changed stamp refetches only that workout; full mode
+      re-pages and re-fetches everything.
+- [x] Hermetic gate runs (`ROWPLAY_DATA_DIR`) so the walk cannot clear a real
+      cache; end-to-end gate assertions for all three sync modes.
+- [x] Divergences recorded in `docs/source-map.md`.

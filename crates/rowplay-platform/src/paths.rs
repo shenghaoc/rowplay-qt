@@ -35,18 +35,42 @@ pub fn project_dirs() -> Option<directories::ProjectDirs> {
     directories::ProjectDirs::from(QUALIFIER, ORGANISATION, APPLICATION)
 }
 
+/// Environment override for both [`data_dir`] and [`config_dir`].
+///
+/// Exists so automated runs (the QML runtime gate) are hermetic: without it a
+/// gate run would sync into — and clear — the developer's real logbook cache.
+/// Unset in normal use, where the platform conventions above apply.
+pub const DATA_DIR_ENV: &str = "ROWPLAY_DATA_DIR";
+
+/// The overridden base directory, if `ROWPLAY_DATA_DIR` is set and non-empty.
+fn override_dir() -> Option<PathBuf> {
+    std::env::var_os(DATA_DIR_ENV)
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+}
+
 /// The data directory, created with owner-only permissions if missing.
 pub fn data_dir() -> io::Result<PathBuf> {
-    let dirs = project_dirs().ok_or_else(no_project_dirs)?;
-    let dir = dirs.data_dir().to_path_buf();
+    let dir = match override_dir() {
+        Some(base) => base.join("data"),
+        None => project_dirs()
+            .ok_or_else(no_project_dirs)?
+            .data_dir()
+            .to_path_buf(),
+    };
     create_private_dir(&dir)?;
     Ok(dir)
 }
 
 /// The configuration directory, created with owner-only permissions if missing.
 pub fn config_dir() -> io::Result<PathBuf> {
-    let dirs = project_dirs().ok_or_else(no_project_dirs)?;
-    let dir = dirs.config_dir().to_path_buf();
+    let dir = match override_dir() {
+        Some(base) => base.join("config"),
+        None => project_dirs()
+            .ok_or_else(no_project_dirs)?
+            .config_dir()
+            .to_path_buf(),
+    };
     create_private_dir(&dir)?;
     Ok(dir)
 }

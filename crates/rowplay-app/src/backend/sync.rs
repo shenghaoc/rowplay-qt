@@ -34,6 +34,9 @@ enum SyncEvent {
         /// Pre-rendered "completed/total · remaining" line (formatting stays
         /// in Rust; the worker builds it off the Qt thread).
         text: String,
+        /// True on the periodic ticks where the UI should re-read the
+        /// library so rows appear as they land.
+        refresh_library: bool,
     },
     Finished {
         outcome: Result<FinishedSync, String>,
@@ -43,6 +46,7 @@ enum SyncEvent {
 /// A finished (or cancelled) sync, already reduced to display data.
 struct FinishedSync {
     added: i64,
+    skipped: i64,
     cancelled: bool,
 }
 
@@ -50,10 +54,10 @@ struct FinishedSync {
 pub struct SyncBackend {
     is_running: bool,
     can_sync: bool,
-    progress_completed: i64,
     progress_total: i64,
     progress_fraction: f64,
     progress_text: String,
+
     /// Locale message id of the status line ("" = none yet).
     status_id: String,
     /// `{added}` for `sync.done`.
@@ -64,6 +68,10 @@ pub struct SyncBackend {
     status_date: String,
     /// `{message}` for `sync.errorHint` — always redacted.
     status_message: String,
+    /// `{skipped}` for the incremental summary line.
+    status_skipped: i64,
+    /// True while a full re-sync is running or was the last result.
+    full_mode: bool,
     cancel_flag: Option<Arc<AtomicBool>>,
     events: Option<Receiver<SyncEvent>>,
     /// Last completion, for `lastSyncText` after a restart-free reload.
@@ -81,7 +89,6 @@ impl Default for SyncBackend {
         SyncBackend {
             is_running: false,
             can_sync: false,
-            progress_completed: 0,
             progress_total: 0,
             progress_fraction: 0.0,
             progress_text: String::new(),
@@ -90,6 +97,8 @@ impl Default for SyncBackend {
             status_total: total,
             status_date: String::new(),
             status_message: String::new(),
+            status_skipped: 0,
+            full_mode: false,
             cancel_flag: None,
             events: None,
             last_finished: None,
@@ -103,11 +112,10 @@ impl SyncBackend {
     qproperty!("isRunning", Member = is_running, Notify = sync_changed);
     // True with a stored token, demo mode off and no sync running.
     qproperty!("canSync", Member = can_sync, Notify = sync_changed);
-    qproperty!(
-        "progressCompleted",
-        Member = progress_completed,
-        Notify = sync_changed
-    );
+    // The ProgressBar reads `progressFraction` (indeterminate at -1); the
+    // label reads `progressTotal`/`progressText`. `progressCompleted` was
+    // registered but never read, so it is gone rather than left as dead
+    // bridge surface.
     qproperty!(
         "progressTotal",
         Member = progress_total,
@@ -119,10 +127,26 @@ impl SyncBackend {
         Member = progress_fraction,
         Notify = sync_changed
     );
+    // Pre-rendered "saved/skipped/total" line from the worker (QML must not
+    // format numbers — ground rule 2). Until this is registered, reading
+    // `Sync.progressText` yields `undefined` with no QML warning, which is
+    // exactly what the gate's property check now catches.
+    qproperty!(
+        "progressText",
+        Member = progress_text,
+        Notify = sync_changed
+    );
     qproperty!("statusId", Member = status_id, Notify = sync_changed);
     qproperty!("statusAdded", Member = status_added, Notify = sync_changed);
     qproperty!("statusTotal", Member = status_total, Notify = sync_changed);
     qproperty!("statusDate", Member = status_date, Notify = sync_changed);
+    // How many details the last run skipped because the cache was current
+    // (incremental mode); read by the gate.
+    qproperty!(
+        "statusSkipped",
+        Member = status_skipped,
+        Notify = sync_changed
+    );
     // Redacted error detail for `sync.errorHint`; never token material.
     qproperty!(
         "statusMessage",
@@ -133,13 +157,30 @@ impl SyncBackend {
     #[qsignal]
     fn sync_changed(&mut self);
 
-    /// Starts a full sync on the worker thread. No-op while one is running.
+    /// Emitted periodically while a sync writes details, and once when it
+    /// finishes: the shell re-reads the library so rows appear as they land.
+    #[qsignal(qml_name = "libraryRefreshRequested")]
+    fn library_refresh_requested(&mut self);
+
+    /// Starts an **incremental** sync (the default) on the worker thread.
     #[qslot]
     fn start(&mut self) {
+        self.start_internal(false);
+    }
+
+    /// Starts a **full** re-sync, re-downloading every detail.
+    #[qslot]
+    fn start_full(&mut self) {
+        self.start_internal(true);
+    }
+
+    #[qslot]
+    fn start_internal(&mut self, full: bool) {
         self.refresh_can_sync();
         if self.is_running || !self.can_sync {
             return;
         }
+        self.full_mode = full;
         let state = AppState::get();
         let mock = std::env::var_os("ROWPLAY_SYNC_MOCK").is_some();
         let token = if mock {
@@ -166,7 +207,6 @@ impl SyncBackend {
         self.events = Some(receiver);
         self.cancel_flag = Some(Arc::clone(&cancel));
         self.is_running = true;
-        self.progress_completed = 0;
         self.progress_total = 0;
         self.progress_fraction = -1.0;
         "sync.inProgress".clone_into(&mut self.status_id);
@@ -183,7 +223,7 @@ impl SyncBackend {
         std::thread::Builder::new()
             .name("rowplay-sync".to_owned())
             .spawn(move || {
-                run_sync(token, &cache, &cancel, &sender, &invoker, &counts);
+                run_sync(token, &cache, &cancel, full, &sender, &invoker, &counts);
             })
             .expect("spawn the sync worker");
     }
@@ -227,8 +267,8 @@ impl SyncBackend {
                     completed,
                     total,
                     text,
+                    refresh_library,
                 } => {
-                    self.progress_completed = completed as i64;
                     self.progress_total = total as i64;
                     self.progress_fraction = if total == 0 {
                         -1.0
@@ -237,6 +277,9 @@ impl SyncBackend {
                     };
                     self.progress_text = text;
                     self.sync_changed();
+                    if refresh_library {
+                        self.library_refresh_requested();
+                    }
                 }
                 SyncEvent::Finished { outcome } => {
                     self.is_running = false;
@@ -249,8 +292,16 @@ impl SyncBackend {
                             let prefs = state.prefs();
                             let language = state.language();
                             self.last_finished = Some(chrono::Utc::now());
-                            "sync.done".clone_into(&mut self.status_id);
+                            // Incremental runs that only caught up use the
+                            // web's "caught up" string.
+                            let status = if !self.full_mode && finished.added == 0 {
+                                "sync.incrementalDone"
+                            } else {
+                                "sync.done"
+                            };
+                            status.clone_into(&mut self.status_id);
                             self.status_added = finished.added;
+                            self.status_skipped = finished.skipped;
                             self.status_total = self.last_counts.lock().expect("sync counts").0;
                             // Display dates come from the view-model (ground
                             // rule 2): the instant is formatted in Rust.
@@ -275,6 +326,8 @@ impl SyncBackend {
                     }
                     self.refresh_can_sync();
                     self.sync_changed();
+                    // Rows written by the sync must show up immediately.
+                    self.library_refresh_requested();
                 }
             }
         }
@@ -314,6 +367,7 @@ fn run_sync(
     token: Option<SecretToken>,
     cache: &Arc<dyn WorkoutCache>,
     cancel: &AtomicBool,
+    full: bool,
     sender: &Sender<SyncEvent>,
     invoker: &QmlMethodInvoker,
     counts: &Mutex<(i64, Option<String>)>,
@@ -331,12 +385,16 @@ fn run_sync(
                 return;
             }
         };
-        run_coordinator(&client, cache, cancel, sender, invoker, counts, finish);
+        run_coordinator(
+            &client, cache, cancel, full, sender, invoker, counts, finish,
+        );
     } else {
         // ROWPLAY_SYNC_MOCK: the deterministic mock serving the demo
         // library; exercises the full worker path without a token.
         let client = MockConcept2Client::new(rowplay_core::demo::demo_details());
-        run_coordinator(&client, cache, cancel, sender, invoker, counts, finish);
+        run_coordinator(
+            &client, cache, cancel, full, sender, invoker, counts, finish,
+        );
     }
 }
 
@@ -344,6 +402,7 @@ fn run_coordinator(
     client: &dyn rowplay_platform::concept2::Concept2Client,
     cache: &Arc<dyn WorkoutCache>,
     cancel: &AtomicBool,
+    full: bool,
     sender: &Sender<SyncEvent>,
     invoker: &QmlMethodInvoker,
     counts: &Mutex<(i64, Option<String>)>,
@@ -351,13 +410,18 @@ fn run_coordinator(
 ) {
     let coordinator = WorkoutSyncCoordinator::new(client, cache.as_ref());
     let started = std::time::Instant::now();
-    let result = coordinator.sync_with(cancel, &mut |progress| {
+    let result = coordinator.sync_with(cancel, full, &mut |progress| {
         let text = progress_text(progress, started.elapsed().as_secs_f64());
+        // Rows appear as they land: every 25 details (and on the last one)
+        // the UI re-reads the library.
+        let refresh_library = progress.saved > 0
+            && (progress.saved % 25 == 0 || progress.completed == progress.total);
         if sender
             .send(SyncEvent::Progress {
                 completed: progress.completed,
                 total: progress.total,
                 text,
+                refresh_library,
             })
             .is_ok()
         {
@@ -372,6 +436,7 @@ fn run_coordinator(
             }
             finish(Ok(FinishedSync {
                 added: outcome.result.saved_count as i64,
+                skipped: outcome.result.skipped_count as i64,
                 cancelled: outcome.cancelled,
             }));
         }
@@ -381,7 +446,9 @@ fn run_coordinator(
 }
 
 /// "completed/total · remaining" with the remaining time estimated from the
-/// elapsed rate (core `fmt_time`; QML never formats numbers).
+/// elapsed rate (core `fmt_time`; QML never formats numbers). Skipped details
+/// are counted as progress — an incremental run over a caught-up library
+/// finishes immediately.
 fn progress_text(progress: SyncProgress, elapsed_secs: f64) -> String {
     let counts = format!("{}/{}", progress.completed, progress.total);
     if progress.completed == 0 || progress.total <= progress.completed {

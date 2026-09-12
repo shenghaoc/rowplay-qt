@@ -18,6 +18,7 @@
 //!   continues, **except** for 401/403/429, which abort so the client does not
 //!   hammer the API with requests that cannot succeed.
 
+use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -39,6 +40,9 @@ pub struct WorkoutSyncResult {
     pub fetched_count: usize,
     /// Details fetched **and** written to the cache.
     pub saved_count: usize,
+    /// Details whose cached stamp already matched the summary (incremental
+    /// syncs only; always 0 for a full sync).
+    pub skipped_count: usize,
     /// Details that could not be fetched or saved.
     pub failed_count: usize,
     /// When the sync started.
@@ -50,10 +54,14 @@ pub struct WorkoutSyncResult {
 /// How far a running sync has got.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct SyncProgress {
-    /// Details processed so far (saved or failed).
+    /// Details processed so far (saved, skipped or failed).
     pub completed: usize,
     /// Details the summary pass found.
     pub total: usize,
+    /// Details written to the cache so far.
+    pub saved: usize,
+    /// Details skipped because the cache already held them unchanged.
+    pub skipped: usize,
 }
 
 /// A sync that stopped, either because it finished or because it was cancelled.
@@ -118,18 +126,36 @@ impl<'a> WorkoutSyncCoordinator<'a> {
     }
 
     /// Sync everything, without cancellation or progress reporting.
+    ///
+    /// Incremental by default: unchanged details are skipped and the summary
+    /// walk stops at the first page the cache already holds in full.
     pub fn sync_all(&self) -> Result<WorkoutSyncResult, WorkoutSyncError> {
+        self.sync_all_mode(false)
+    }
+
+    /// Sync everything, choosing the mode explicitly.
+    pub fn sync_all_mode(&self, full: bool) -> Result<WorkoutSyncResult, WorkoutSyncError> {
         let cancel = AtomicBool::new(false);
-        self.sync_with(&cancel, &mut |_| {})
+        self.sync_with(&cancel, full, &mut |_| {})
             .map(|outcome| outcome.result)
     }
 
-    /// Sync everything, stopping when `cancel` is set.
+    /// Sync, stopping when `cancel` is set.
+    ///
+    /// `full` selects the mode, matching the web's two buttons
+    /// (`settings.syncIncremental` / `settings.syncFull`):
+    ///
+    /// - **incremental** (`false`): a detail is skipped when the cache already
+    ///   holds that id with the same identity stamp
+    ///   ([`SummaryStamp`](crate::workout_cache::SummaryStamp)), and the summary
+    ///   walk stops as soon as a whole page is already cached and unchanged;
+    /// - **full** (`true`): every page is walked and every detail re-fetched.
     ///
     /// `progress` is called once per processed detail.
     pub fn sync_with(
         &self,
         cancel: &AtomicBool,
+        full: bool,
         progress: &mut dyn FnMut(SyncProgress),
     ) -> Result<SyncOutcome, WorkoutSyncError> {
         let started_at = Utc::now();
@@ -141,19 +167,53 @@ impl<'a> WorkoutSyncCoordinator<'a> {
             WorkoutSyncError::CacheFailed(message)
         })?;
 
-        // 1. Summaries, page by page.
-        let summaries = self.fetch_all_summaries(cancel)?;
+        // 0b. The change-detection baseline (incremental only).
+        let stamps = if full {
+            BTreeMap::new()
+        } else {
+            self.cache.summary_stamps().map_err(|error| {
+                let message = redact(&error.to_string());
+                self.logger.warn("could not read cache stamps", &[&message]);
+                WorkoutSyncError::CacheFailed(message)
+            })?
+        };
+
+        // 1. Summaries, page by page (early stop when caught up).
+        let summaries = self.fetch_summaries(cancel, full, &stamps)?;
         let total = summaries.len();
         if cancel.load(Ordering::Relaxed) {
-            return Ok(outcome(started_at, total, 0, 0, true));
+            return Ok(outcome(started_at, total, 0, 0, 0, true));
         }
 
         // 2. Details, one request at a time.
         let mut saved_count = 0;
+        let mut skipped_count = 0;
         let mut failed_count = 0;
         for (completed, summary) in summaries.iter().enumerate() {
             if cancel.load(Ordering::Relaxed) {
-                return Ok(outcome(started_at, total, saved_count, failed_count, true));
+                return Ok(outcome(
+                    started_at,
+                    total,
+                    saved_count,
+                    skipped_count,
+                    failed_count,
+                    true,
+                ));
+            }
+
+            // Incremental: the cached row already carries this stamp.
+            if stamps
+                .get(&summary.id)
+                .is_some_and(|stamp| stamp.matches(summary))
+            {
+                skipped_count += 1;
+                progress(SyncProgress {
+                    completed: completed + 1,
+                    total,
+                    saved: saved_count,
+                    skipped: skipped_count,
+                });
+                continue;
             }
 
             match self.client.result_detail(summary.id) {
@@ -179,6 +239,8 @@ impl<'a> WorkoutSyncCoordinator<'a> {
                         progress(SyncProgress {
                             completed: completed + 1,
                             total,
+                            saved: saved_count,
+                            skipped: skipped_count,
                         });
                         return Err(WorkoutSyncError::ClientFailed(message));
                     }
@@ -188,18 +250,37 @@ impl<'a> WorkoutSyncCoordinator<'a> {
             progress(SyncProgress {
                 completed: completed + 1,
                 total,
+                saved: saved_count,
+                skipped: skipped_count,
             });
         }
 
-        Ok(outcome(started_at, total, saved_count, failed_count, false))
+        Ok(outcome(
+            started_at,
+            total,
+            saved_count,
+            skipped_count,
+            failed_count,
+            false,
+        ))
     }
 
-    /// Page through every summary, following the page count the API reports.
+    /// Page through the summaries, following the page count the API reports.
     ///
     /// The page count is monotone (the web app takes the running maximum), so a
     /// server that reports fewer pages on a later response cannot cut the walk
     /// short.
-    fn fetch_all_summaries(&self, cancel: &AtomicBool) -> Result<Vec<Workout>, WorkoutSyncError> {
+    ///
+    /// In incremental mode the walk stops at the end of the first page whose
+    /// every summary is already cached with a matching stamp: the results are
+    /// newest-first, so once a whole page is unchanged everything older is
+    /// too. A full sync pages to the reported end regardless.
+    fn fetch_summaries(
+        &self,
+        cancel: &AtomicBool,
+        full: bool,
+        stamps: &BTreeMap<i64, crate::workout_cache::SummaryStamp>,
+    ) -> Result<Vec<Workout>, WorkoutSyncError> {
         let mut summaries = Vec::new();
         let mut page = 1;
         let mut total_pages = 1;
@@ -215,10 +296,19 @@ impl<'a> WorkoutSyncCoordinator<'a> {
                     self.logger.error("summary fetch failed", &[&message]);
                     WorkoutSyncError::ClientFailed(message)
                 })?;
+            let page_fully_cached = !result.workouts.is_empty()
+                && result.workouts.iter().all(|summary| {
+                    stamps
+                        .get(&summary.id)
+                        .is_some_and(|stamp| stamp.matches(summary))
+                });
             summaries.extend(result.workouts);
             total_pages = total_pages.max(result.total_pages.max(1));
             page += 1;
             if page > total_pages {
+                break;
+            }
+            if !full && page_fully_cached {
                 break;
             }
         }
@@ -231,6 +321,7 @@ fn outcome(
     started_at: DateTime<Utc>,
     fetched_count: usize,
     saved_count: usize,
+    skipped_count: usize,
     failed_count: usize,
     cancelled: bool,
 ) -> SyncOutcome {
@@ -238,6 +329,7 @@ fn outcome(
         result: WorkoutSyncResult {
             fetched_count,
             saved_count,
+            skipped_count,
             failed_count,
             started_at,
             finished_at: Utc::now(),
@@ -526,7 +618,7 @@ mod tests {
 
         let mut seen = Vec::new();
         let outcome = coordinator
-            .sync_with(&AtomicBool::new(false), &mut |progress| {
+            .sync_with(&AtomicBool::new(false), false, &mut |progress| {
                 seen.push(progress);
             })
             .unwrap();
@@ -553,20 +645,14 @@ mod tests {
 
         // Progress runs to completion, one entry per detail.
         assert_eq!(seen.len(), 17);
-        assert_eq!(
-            seen[0],
-            SyncProgress {
-                completed: 1,
-                total: 17
-            }
-        );
-        assert_eq!(
-            seen[16],
-            SyncProgress {
-                completed: 17,
-                total: 17
-            }
-        );
+        assert_eq!(seen[0].completed, 1);
+        assert_eq!(seen[0].total, 17);
+        assert_eq!(seen[0].saved, 1);
+        assert_eq!(seen[0].skipped, 0);
+        assert_eq!(seen[16].completed, 17);
+        assert_eq!(seen[16].total, 17);
+        assert_eq!(seen[16].saved, 17);
+        assert_eq!(seen[16].skipped, 0);
     }
 
     #[test]
@@ -588,7 +674,7 @@ mod tests {
             .failing_detail(1004, Concept2Error::Decode("malformed payload".into()));
         let cache = InMemoryWorkoutCache::default();
         let outcome = WorkoutSyncCoordinator::new(&client, &cache)
-            .sync_with(&AtomicBool::new(false), &mut |_| {})
+            .sync_with(&AtomicBool::new(false), false, &mut |_| {})
             .unwrap();
 
         assert_eq!(outcome.result.fetched_count, 17);
@@ -607,7 +693,7 @@ mod tests {
             inner: InMemoryWorkoutCache::default(),
         };
         let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 10)
-            .sync_with(&AtomicBool::new(false), &mut |_| {})
+            .sync_with(&AtomicBool::new(false), false, &mut |_| {})
             .unwrap();
 
         assert_eq!(outcome.result.fetched_count, 17);
@@ -630,8 +716,11 @@ mod tests {
         ] {
             let client = demo_client().failing_detail(1001, error.clone());
             let cache = InMemoryWorkoutCache::default();
-            let outcome = WorkoutSyncCoordinator::new(&client, &cache)
-                .sync_with(&AtomicBool::new(false), &mut |_| {});
+            let outcome = WorkoutSyncCoordinator::new(&client, &cache).sync_with(
+                &AtomicBool::new(false),
+                false,
+                &mut |_| {},
+            );
             assert_eq!(
                 outcome,
                 Err(WorkoutSyncError::ClientFailed(redact(&error.to_string()))),
@@ -681,7 +770,7 @@ mod tests {
         let cache = InMemoryWorkoutCache::default();
         let cancel = AtomicBool::new(true);
         let outcome = WorkoutSyncCoordinator::new(&client, &cache)
-            .sync_with(&cancel, &mut |_| {})
+            .sync_with(&cancel, false, &mut |_| {})
             .unwrap();
 
         assert!(outcome.cancelled);
@@ -698,7 +787,7 @@ mod tests {
         let cache = InMemoryWorkoutCache::default();
         let cancel = AtomicBool::new(false);
         let outcome = WorkoutSyncCoordinator::new(&client, &cache)
-            .sync_with(&cancel, &mut |progress| {
+            .sync_with(&cancel, false, &mut |progress| {
                 if progress.completed == 3 {
                     cancel.store(true, Ordering::Relaxed);
                 }
@@ -714,12 +803,169 @@ mod tests {
         assert_eq!(client.calls().len(), 1 + 3);
     }
 
+    /// The second sync over an unchanged library issues zero detail requests.
+    #[test]
+    fn an_incremental_resync_skips_every_unchanged_detail() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+
+        // First (incremental) sync: everything is new.
+        let first = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(first.fetched_count, 17);
+        assert_eq!(first.saved_count, 17);
+        assert_eq!(first.skipped_count, 0);
+        let first_calls = client.calls();
+        assert_eq!(first_calls.len(), 4 + 17, "4 pages + 17 details");
+
+        // Second sync: one page proves the library is caught up, no details.
+        let second = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(second.fetched_count, 5, "only the first page is walked");
+        assert_eq!(second.saved_count, 0);
+        assert_eq!(second.skipped_count, 5);
+        assert_eq!(second.failed_count, 0);
+        let second_calls = &client.calls()[first_calls.len()..];
+        assert_eq!(
+            second_calls,
+            &["list:1"],
+            "an unchanged library must issue zero detail requests"
+        );
+    }
+
+    /// A changed stamp refetches just that workout.
+    #[test]
+    fn a_changed_summary_stamp_refetches_only_that_workout() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+        WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+
+        // The Logbook reports a new stamp for one result.
+        let mut edited = client.details[&1001].clone();
+        edited.workout.date = "2026-05-27 09:00:00".to_owned();
+        let client = TestClient {
+            summaries: {
+                let mut summaries = client.summaries.clone();
+                for summary in &mut summaries {
+                    if summary.id == 1001 {
+                        summary.date = edited.workout.date.clone();
+                    }
+                }
+                summaries
+            },
+            details: {
+                let mut details = client.details.clone();
+                details.insert(1001, edited);
+                details
+            },
+            detail_failures: BTreeMap::new(),
+            summary_failure: None,
+            calls: Mutex::new(Vec::new()),
+        };
+
+        let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        // The changed summary keeps the walk going past its page (the early
+        // stop needs a *fully* cached page), then that page is unchanged.
+        assert_eq!(outcome.saved_count, 1, "only 1001 is refetched");
+        assert_eq!(
+            outcome.skipped_count,
+            outcome.fetched_count - 1,
+            "every other walked summary is skipped"
+        );
+        let calls = client.calls();
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|call| call.starts_with("detail:"))
+                .count(),
+            1,
+            "{calls:?}"
+        );
+        assert!(calls.contains(&"detail:1001".to_owned()), "{calls:?}");
+    }
+
+    /// Full mode re-downloads everything and never skips.
+    #[test]
+    fn a_full_resync_ignores_the_cache_and_walks_every_page() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+        WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        let calls_after_incremental = client.calls().len();
+
+        let full = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all_mode(true)
+            .unwrap();
+        assert_eq!(full.fetched_count, 17);
+        assert_eq!(full.saved_count, 17);
+        assert_eq!(full.skipped_count, 0);
+        let full_calls = &client.calls()[calls_after_incremental..];
+        assert_eq!(
+            full_calls
+                .iter()
+                .filter(|call| call.starts_with("list:"))
+                .count(),
+            4,
+            "full mode pages to the reported end"
+        );
+        assert_eq!(
+            full_calls
+                .iter()
+                .filter(|call| call.starts_with("detail:"))
+                .count(),
+            17
+        );
+    }
+
+    /// The early stop must not fire on a page that is only partly cached.
+    #[test]
+    fn incremental_paging_continues_past_a_partly_changed_page() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+        // Seed the cache with only the newest result, then sync: page 1 is
+        // not fully cached, so paging continues to the end.
+        cache
+            .save_details(&[client.details[&1005].clone()])
+            .unwrap();
+        let outcome = WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_all()
+            .unwrap();
+        assert_eq!(outcome.fetched_count, 17);
+        assert_eq!(outcome.saved_count, 16);
+        assert_eq!(outcome.skipped_count, 1);
+    }
+
+    /// Progress carries the running saved/skipped counts.
+    #[test]
+    fn progress_reports_saved_and_skipped() {
+        let client = demo_client();
+        let cache = InMemoryWorkoutCache::default();
+        cache.save_details(&demo_details()).unwrap();
+        let mut seen = Vec::new();
+        WorkoutSyncCoordinator::with_per_page(&client, &cache, 5)
+            .sync_with(&AtomicBool::new(false), false, &mut |progress| {
+                seen.push(progress);
+            })
+            .unwrap();
+        assert_eq!(seen.len(), 5, "one entry per summary on the walked page");
+        assert_eq!(seen[4].completed, 5);
+        assert_eq!(seen[4].skipped, 5);
+        assert_eq!(seen[4].saved, 0);
+    }
+
     #[test]
     fn an_empty_logbook_syncs_cleanly() {
         let client = TestClient::new(Vec::new());
         let cache = InMemoryWorkoutCache::default();
         let outcome = WorkoutSyncCoordinator::new(&client, &cache)
-            .sync_with(&AtomicBool::new(false), &mut |_| {})
+            .sync_with(&AtomicBool::new(false), false, &mut |_| {})
             .unwrap();
         assert!(!outcome.cancelled);
         assert_eq!(outcome.result.fetched_count, 0);
