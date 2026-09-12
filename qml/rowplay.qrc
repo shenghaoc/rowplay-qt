@@ -21,6 +21,13 @@
         <file>RowPlay/SmokeScene.qml</file>
         <file>RowPlay/Theme.qml</file>
         <file>RowPlay/Tr.qml</file>
+        <file>RowPlay/Replay/qmldir</file>
+        <file>RowPlay/Replay/ReplayScene.qml</file>
+        <!-- The vendored replay packs (assets/replay/) are validated against
+             their V3 contract and converted to QML components by build.rs
+             (balsam) into the generated RowPlay.ReplayAssets module, bundled
+             as a separate binary resource; the GLBs themselves are not
+             shipped in the app. -->
     </qresource>
     <qresource prefix="/">
         <file>qtquickcontrols2.conf</file>

@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+module RowPlay.Replay
+ReplayScene 1.0 ReplayScene.qml

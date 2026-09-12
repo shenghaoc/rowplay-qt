@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 mod backend;
+mod replay;
 mod smoke;
 
 use std::process::ExitCode;
@@ -61,6 +62,7 @@ fn main() -> ExitCode {
         .register::<backend::detail::DetailBackend>()
         .register::<backend::settings::SettingsBackend>()
         .register::<backend::sync::SyncBackend>()
+        .register::<backend::replay::ReplayBackend>()
         .add_import_path("qrc:/qt/qml")
         .load_qml_from_file(root)
         .run();

@@ -9,6 +9,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import RowPlay
+import RowPlay.Replay
 
 ApplicationWindow {
     id: root
@@ -147,28 +148,17 @@ ApplicationWindow {
                         onClosed: root.toggleSettings()
                     }
 
-                    // Replay route placeholder — the navigation policy is
-                    // live (Library.requestReplay); the 3D scene is Phase 5.
-                    Pane {
-                        padding: Theme.spacingXxxLarge
-                        ColumnLayout {
-                            spacing: Theme.spacingLarge
-                            Label {
-                                text: Tr.t("common.replay")
-                                font: Theme.pageTitle
-                                color: Theme.textPrimary
-                                Accessible.name: text
-                            }
-                            Label {
-                                text: Tr.t("common.loading")
-                                font: Theme.body
-                                color: Theme.textSecondary
-                                Accessible.name: text
-                            }
-                            Button {
-                                text: Tr.t("common.dismiss")
-                                onClicked: Library.closeReplay()
-                                Accessible.name: text
+                    // Replay route (Phase 5a): the 3D scene renders the route
+                    // itself; the navigation policy stays
+                    // Library.requestReplay / closeReplay.
+                    ReplayScene {
+                        // The Rust palette needs the scheme flag; Theme owns
+                        // the actual colour scheme decision.
+                        Component.onCompleted: Replay.setSchemeDark(Theme.dark)
+                        Connections {
+                            target: Theme
+                            function onDarkChanged() {
+                                Replay.setSchemeDark(Theme.dark)
                             }
                         }
                     }
