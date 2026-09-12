@@ -345,6 +345,10 @@ ApplicationWindow {
     // keeps platforms that never produce frames (offscreen) moving.
     property bool grabPending: false
     property int grabWaits: 0
+    // Set when a gate step starts a sync; the walk then holds until the
+    // worker is genuinely idle, so the following step reports real counts
+    // instead of a mid-run snapshot (the full re-sync is the slowest).
+    property bool gateAwaitingSync: false
 
     function grabScreen(name) {
         if (Settings.screenshotDir.length === 0) {
@@ -373,6 +377,12 @@ ApplicationWindow {
                 }
                 console.log("gate screenshot: grab timed out, continuing")
                 root.grabPending = false
+            }
+            if (root.gateAwaitingSync) {
+                if (Sync.isRunning) {
+                    return
+                }
+                root.gateAwaitingSync = false
             }
             root.gateStep += 1
             switch (root.gateStep) {
@@ -422,11 +432,12 @@ ApplicationWindow {
                 break
             case 25:
                 if (Settings.syncMockMode) {
+                    root.gateAwaitingSync = true
                     Sync.start()          // incremental
                 }
                 break
             case 26: case 27: case 28: case 29: case 30:
-                break   // let the worker run; the safety-net timer pumps
+                break   // unreachable while a sync runs
             case 31:
                 if (Settings.syncMockMode) {
                     Library.reload()
@@ -438,11 +449,12 @@ ApplicationWindow {
                                 Library.isDemoLibrary ? "demo" : "cache")
                     // Second pass over the now-caught-up library: an
                     // incremental sync must fetch nothing.
+                    root.gateAwaitingSync = true
                     Sync.start()
                 }
                 break
             case 32: case 33: case 34: case 35: case 36: case 37:
-                break   // the incremental re-sync runs
+                break   // unreachable while a sync runs
             case 38:
                 if (Settings.syncMockMode) {
                     Library.reload()
@@ -451,11 +463,12 @@ ApplicationWindow {
                                 "skipped", Sync.statusSkipped,
                                 "library", Library.totalCount)
                     // Full mode re-downloads everything.
+                    root.gateAwaitingSync = true
                     Sync.startFull()
                 }
                 break
             case 39: case 40: case 41: case 42:
-                break   // the full re-sync runs
+                break   // unreachable while a sync runs
             case 43:
                 if (Settings.syncMockMode) {
                     Library.reload()

@@ -30,6 +30,23 @@ use rowplay_viewmodel::settings::Language;
 
 static APP_STATE: OnceLock<AppState> = OnceLock::new();
 
+/// Test/CI-only environment hooks.
+///
+/// `ROWPLAY_SYNC_MOCK` and `ROWPLAY_GATE_MEMBER_CHECK` exist for automated
+/// runs; compiled out of release builds so a stray variable in a user's
+/// environment cannot make a shipped binary serve demo data while looking
+/// like a real sync. (`ROWPLAY_DATA_DIR` and `ROWPLAY_FORCE_COLOR_SCHEME`
+/// are deliberately *not* here: those are documented user-facing overrides.)
+#[cfg(debug_assertions)]
+pub fn test_env(name: &str) -> Option<String> {
+    std::env::var(name).ok()
+}
+
+#[cfg(not(debug_assertions))]
+pub fn test_env(_name: &str) -> Option<String> {
+    None
+}
+
 /// The services shared by every QML backend singleton.
 pub struct AppState {
     /// Durable preferences (atomic JSON file; in-memory when unwritable).

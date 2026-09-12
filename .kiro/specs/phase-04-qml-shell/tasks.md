@@ -109,3 +109,22 @@ panel, file actions/export, rival controls.
 - [x] Hermetic gate runs (`ROWPLAY_DATA_DIR`) so the walk cannot clear a real
       cache; end-to-end gate assertions for all three sync modes.
 - [x] Divergences recorded in `docs/source-map.md`.
+
+### Review follow-up (early-stop soundness)
+
+- [x] Persist a `fully_synced` checkpoint next to the cache
+      (`WorkoutCache::is_fully_synced`/`set_fully_synced`, SQLite's
+      `sync_state` table) and gate the incremental early page stop on it, so a
+      cancelled or failing first run still pages to the end and picks up the
+      older workouts. Cleared on cancellation and on `failed_count > 0`.
+- [x] SQLite v2 now builds `CREATE_SCHEMA_V2` for fresh databases and applies
+      `MIGRATE_V1_TO_V2` only when upgrading a real v1 file; a test asserts the
+      two paths agree column-for-column.
+- [x] Tests: cancelled first sync → incremental fetches the missing older
+      details (and does not refetch page 1); a failed detail is refetched next
+      run; a clean run restores the early stop across repeated runs.
+- [x] Test-only environment hooks (`ROWPLAY_SYNC_MOCK`,
+      `ROWPLAY_GATE_MEMBER_CHECK`, `ROWPLAY_SMOKE_GATE`) now read under
+      `cfg(debug_assertions)` only.
+- [x] Documented the edited-workout limitation of stamp-based incremental sync
+      (comments/verification/stroke-upload edits need Full re-sync).

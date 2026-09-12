@@ -96,6 +96,17 @@ pub trait WorkoutCache: Send + Sync {
             .map(|workout| (workout.id, SummaryStamp::of(workout)))
             .collect())
     }
+    /// Whether the last sync walked every summary page with no failures and no
+    /// cancellation.
+    ///
+    /// The incremental early page stop is only sound while this holds: a first
+    /// sync that was cancelled (or hit failures) leaves the newest page cached
+    /// and older ones missing, and stopping at page 1 would then strand those
+    /// older workouts forever. It is persisted rather than kept in memory so a
+    /// cancelled-then-restarted app still pages all the way to the end.
+    fn is_fully_synced(&self) -> Result<bool, CacheError>;
+    /// Records the outcome of a finished sync (see [`Self::is_fully_synced`]).
+    fn set_fully_synced(&self, fully_synced: bool) -> Result<(), CacheError>;
 }
 
 /// Process-local cache for tests and demo mode.
@@ -103,6 +114,7 @@ pub trait WorkoutCache: Send + Sync {
 pub struct InMemoryWorkoutCache {
     rows: Mutex<BTreeMap<i64, WorkoutDetail>>,
     migrated: Mutex<bool>,
+    fully_synced: Mutex<bool>,
 }
 
 impl InMemoryWorkoutCache {
@@ -156,6 +168,15 @@ impl WorkoutCache for InMemoryWorkoutCache {
         self.rows.lock().expect("cache lock").clear();
         Ok(())
     }
+
+    fn is_fully_synced(&self) -> Result<bool, CacheError> {
+        Ok(*self.fully_synced.lock().expect("cache lock"))
+    }
+
+    fn set_fully_synced(&self, fully_synced: bool) -> Result<(), CacheError> {
+        *self.fully_synced.lock().expect("cache lock") = fully_synced;
+        Ok(())
+    }
 }
 
 /// A cache whose every operation fails with the configured error (Studio
@@ -184,6 +205,14 @@ impl WorkoutCache for FailingWorkoutCache {
     }
 
     fn clear(&self) -> Result<(), CacheError> {
+        Err(self.error.clone())
+    }
+
+    fn is_fully_synced(&self) -> Result<bool, CacheError> {
+        Err(self.error.clone())
+    }
+
+    fn set_fully_synced(&self, _fully_synced: bool) -> Result<(), CacheError> {
         Err(self.error.clone())
     }
 }
@@ -254,6 +283,18 @@ mod tests {
     }
 
     #[test]
+    fn the_fully_synced_flag_defaults_to_false_and_round_trips() {
+        let cache = InMemoryWorkoutCache::default();
+        // A cache that has never completed a sync is not known to be current.
+        assert!(!cache.is_fully_synced().unwrap());
+        cache.set_fully_synced(true).unwrap();
+        assert!(cache.is_fully_synced().unwrap());
+        // An interrupted run clears it again.
+        cache.set_fully_synced(false).unwrap();
+        assert!(!cache.is_fully_synced().unwrap());
+    }
+
+    #[test]
     fn failing_cache_propagates_errors() {
         let cache = FailingWorkoutCache {
             error: CacheError::Open("disk full".into()),
@@ -263,6 +304,8 @@ mod tests {
         assert!(cache.details(&[1]).is_err());
         assert!(cache.save_details(&[]).is_err());
         assert!(cache.clear().is_err());
+        assert!(cache.is_fully_synced().is_err());
+        assert!(cache.set_fully_synced(true).is_err());
         assert_eq!(
             CacheError::Decode { id: 7 }.to_string(),
             "cache row 7 could not be decoded"
