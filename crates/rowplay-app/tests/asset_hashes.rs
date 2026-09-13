@@ -227,10 +227,154 @@ const EXPECTED: &[(&str, u64, &str)] = &[
         733864,
         "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925",
     ),
+    (
+        "venues/procedural/snow-groomed-128.png",
+        10630,
+        "ec67239ff29c551d3f9386850f2a8d7cf4f9012bc78350111cb63afd6c7eb14a",
+    ),
+    (
+        "venues/procedural/snow-groomed-64.png",
+        3044,
+        "3aac39a5ee7135b57f587a530d4168d566f716581b71ed9e0dcf81d5c827d067",
+    ),
+    (
+        "venues/procedural/water-sheen-128.png",
+        11533,
+        "f1698cd276a55ed231439e30586ff2925c364c962a3f74d0f48fc73dc84029bf",
+    ),
+    (
+        "venues/procedural/water-sheen-64.png",
+        3494,
+        "21f08366a14382e5afb0e9aed968ef7e7bb6ab73758eeec578e3e8d3af8c3b51",
+    ),
+    (
+        "venues/rowplay-venue-bike-high.glb",
+        1257000,
+        "c9d602511d9e8fcec31e9c3ebf631ae52bf5df57827fde6e5e7f1eca03b637b9",
+    ),
+    (
+        "venues/rowplay-venue-bike-high.json",
+        17588,
+        "fe5431a2090ea89b1901b8c7b8dedec8463c64f8d54d3f08105d504e7704adf5",
+    ),
+    (
+        "venues/rowplay-venue-bike-low.glb",
+        52668,
+        "72edcdd4f7920f560f64fa8ea23e73fa71fa3eb7af67a30fb59b13506f6de70f",
+    ),
+    (
+        "venues/rowplay-venue-bike-low.json",
+        7370,
+        "2881d536a6f81b28d4c463725b3a9f69a609e3ae195079ed1d7f9d3e1f9fdeda",
+    ),
+    (
+        "venues/rowplay-venue-bike-medium.glb",
+        435412,
+        "8b6b21bce86f5ec9d2d82086645ba522d2c28bf544abd1327ae79a5f737ad490",
+    ),
+    (
+        "venues/rowplay-venue-bike-medium.json",
+        10197,
+        "e54f0a3f62777d04b0ae05949c881eb57228b8a21ee16419b9151d3dda68d5c3",
+    ),
+    (
+        "venues/rowplay-venue-bike-ultra.glb",
+        1452864,
+        "a41dae5364675539f9e59c667678c728b3724894d029ad94a9ce661e7bcbe958",
+    ),
+    (
+        "venues/rowplay-venue-bike-ultra.json",
+        20603,
+        "1fee74c1eb748480dd91a4af656b76c84be32f11dc7207d6cea4172666fea827",
+    ),
+    (
+        "venues/rowplay-venue-rower-high.glb",
+        908748,
+        "964a81298bb38fe54b6c3898a3db2e0cb92afbbe0b3ce2be3bcea89491abc7bb",
+    ),
+    (
+        "venues/rowplay-venue-rower-high.json",
+        91750,
+        "128f7d5f8dacd65a232d56b54e5425545771cc28b7fd15bca3c85b364c1ecdd4",
+    ),
+    (
+        "venues/rowplay-venue-rower-low.glb",
+        386824,
+        "c609412411136b5029c042ad05ba34dabb866daead0696c7f8bba3b862fa11a7",
+    ),
+    (
+        "venues/rowplay-venue-rower-low.json",
+        22285,
+        "c9b27a7c57e09f042991b30835e96d243b8052a896f1a54aae95e12f0775846a",
+    ),
+    (
+        "venues/rowplay-venue-rower-medium.glb",
+        747096,
+        "1996bf067bc2a7e9211f936197955f084c8073fa865c8d462be385e46f6adafc",
+    ),
+    (
+        "venues/rowplay-venue-rower-medium.json",
+        47293,
+        "ecb28ed4301e808af1011d19c82a9b3a95af4ef49c214a578375ee5fb28b3893",
+    ),
+    (
+        "venues/rowplay-venue-rower-ultra.glb",
+        1122548,
+        "3486eed1b6c637f08816c67759b5c7efb010f4c4fda34d43eeabdf8ae8c75c65",
+    ),
+    (
+        "venues/rowplay-venue-rower-ultra.json",
+        135099,
+        "f5460a5b80f8f30cfb7340b47acff6356d0799df04a7cc9b6951180a63748e75",
+    ),
+    (
+        "venues/rowplay-venue-skierg-high.glb",
+        787976,
+        "217fdfa0483f29efd7ab54c54ca4d623782b3d660e337689d81a0261ead75dfb",
+    ),
+    (
+        "venues/rowplay-venue-skierg-high.json",
+        111533,
+        "76d3906e1e5144afabb3ae34ff42a4f8616d703c5e2e205ea4acc60d57727ee9",
+    ),
+    (
+        "venues/rowplay-venue-skierg-low.glb",
+        419116,
+        "d3debeead44db6117d0327ee2db799b48c2c794de805f3065d34e35412b255bd",
+    ),
+    (
+        "venues/rowplay-venue-skierg-low.json",
+        18021,
+        "39de8397cdc7e87b2243038c1f65d3277033ab1cf720b9ad7c8f21520b8ce695",
+    ),
+    (
+        "venues/rowplay-venue-skierg-medium.glb",
+        720856,
+        "ca61b72400ec87842c90d576f7535cfda15f37996c95d3ef7d737bdf139cea99",
+    ),
+    (
+        "venues/rowplay-venue-skierg-medium.json",
+        57729,
+        "b60e4e246340be1d404e85981f4e89d58b1aa2ddea9ffd6d79d4068db4580a23",
+    ),
+    (
+        "venues/rowplay-venue-skierg-ultra.glb",
+        1104968,
+        "dee072effbaf6a0d5800b4562ff11553a0a96e47148a8331f87e223367d746a0",
+    ),
+    (
+        "venues/rowplay-venue-skierg-ultra.json",
+        163323,
+        "70c9fc4842732e4f254435a92b9ee5bd0c222bf7dcc9e3dd54915e49e56fbb6c",
+    ),
 ];
 
 /// Documentation that ships with the assets but carries no hash pin.
-const UNPINNED_DOCS: &[&str] = &["environments/README.md"];
+const UNPINNED_DOCS: &[&str] = &[
+    "environments/README.md",
+    "venues/MANIFEST.json",
+    "venues/README.md",
+];
 
 fn assets_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -298,22 +442,26 @@ fn no_unpinned_file_under_assets_replay() {
         EXPECTED.len() + UNPINNED_DOCS.len(),
         "asset inventory drift"
     );
-    // ADR 0009: assets stay in plain Git until this ceiling. Exceeding it is
-    // the signal to revisit the storage decision (Git LFS or split packs)
-    // with an ADR, before Phase 6 venues grow the tree silently.
-    const LFS_TRIPWIRE_BYTES: u64 = 50 * 1024 * 1024;
+    // ADR 0009 set a 50 MB tripwire when the next asset family's size was
+    // unknown. Phase 6a measured the baked venues (ADR 0011): the whole
+    // `assets/replay/` tree is ~18.3 MiB, two orders of magnitude below
+    // GitHub's per-file limits, so assets stay in plain Git (no LFS) and the
+    // total ceiling is raised to 100 MB. The next doubling is again a
+    // decision point.
+    const LFS_TRIPWIRE_BYTES: u64 = 100 * 1024 * 1024;
     let mut total = 0;
     for (rel, size, _) in EXPECTED {
         total += size;
         assert!(
             *size <= LFS_TRIPWIRE_BYTES,
-            "{rel} is over the per-file tripwire ({size} B); ADR 0009 must be \
-             revisited before vendoring a file this large"
+            "{rel} is over the per-file tripwire ({size} B); ADR 0011 (which \
+             raised ADR 0009's ceiling) must be revisited before vendoring a \
+             file this large"
         );
     }
     assert!(
         total <= LFS_TRIPWIRE_BYTES,
-        "assets/replay totals {total} B, over the ADR 0009 plain-Git \
+        "assets/replay totals {total} B, over the ADR 0011 plain-Git \
          tripwire ({LFS_TRIPWIRE_BYTES} B); write a follow-up ADR (Git LFS \
          or split packs) before vendoring more"
     );

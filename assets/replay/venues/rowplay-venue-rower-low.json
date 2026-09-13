@@ -1,0 +1,1294 @@
+{
+  "format": 1,
+  "seed": 20260913,
+  "source": {
+    "repo": "https://github.com/shenghaoc/rowplay",
+    "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "authoredAgainst": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "entry": "src/lib/replay/renderer3dEnvironment.ts",
+    "generator": "tools/bake-venues/bake.mjs"
+  },
+  "sport": "rower",
+  "quality": "low",
+  "environmentDetail": 0,
+  "innerR": 22,
+  "outerR": 34,
+  "environment": {
+    "skyZenith": "#4b91bd",
+    "skyHorizon": "#dceef1",
+    "skyNadir": "#5f8f8e",
+    "fog": "#bfd4ca",
+    "fogNear": 62,
+    "fogFar": 178,
+    "hemisphereSky": "#f2fbff",
+    "hemisphereGround": "#426c5b",
+    "hemisphereIntensity": 1.3,
+    "sun": "#ffedc1",
+    "sunIntensity": 2.55,
+    "fill": "#bfe9f1",
+    "fillIntensity": 0.7,
+    "exposure": 1.06,
+    "farSilhouette": "#78947b",
+    "midSilhouette": "#3f6d50",
+    "venueStructure": "#e8e4d8",
+    "venueAccent": "#a65e3b",
+    "infield": "#2f8198",
+    "apron": "#3c91a3",
+    "envIntensity": 0,
+    "hemisphereIntensityIbl": 1.22
+  },
+  "materials": {
+    "environment:rower:horizon-mid:material": {
+      "type": "basic",
+      "color": {
+        "light": "#3f6d50",
+        "dark": "#1c493d"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": true,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:rower:island-earth-material": {
+      "type": "standard",
+      "color": {
+        "light": "#6a6d4f",
+        "dark": "#32392f"
+      },
+      "roughness": 0.97,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:island-grass-material": {
+      "type": "standard",
+      "color": {
+        "light": "#55724b",
+        "dark": "#294b3d"
+      },
+      "roughness": 0.93,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:island-beach-material": {
+      "type": "standard",
+      "color": {
+        "light": "#c4b89a",
+        "dark": "#5a6258"
+      },
+      "roughness": 0.9,
+      "metalness": 0.04,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:island-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#2d6548",
+        "dark": "#1c503c"
+      },
+      "roughness": 0.86,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:bank-earth-material": {
+      "type": "standard",
+      "color": {
+        "light": "#6d7050",
+        "dark": "#32392f"
+      },
+      "roughness": 0.98,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:bank-grass-material": {
+      "type": "standard",
+      "color": {
+        "light": "#55724b",
+        "dark": "#294b3d"
+      },
+      "roughness": 0.94,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:campus-lawn-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5f7d4f",
+        "dark": "#2f4d38"
+      },
+      "roughness": 0.9,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:bank-waterline-material": {
+      "type": "standard",
+      "color": {
+        "light": "#b4afa0",
+        "dark": "#4f5854"
+      },
+      "roughness": 0.9,
+      "metalness": 0.05,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:reed-material": {
+      "type": "standard",
+      "color": {
+        "light": "#8b8850",
+        "dark": "#53633f"
+      },
+      "roughness": 0.96,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:pine-trunk-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5a4635",
+        "dark": "#261f1b"
+      },
+      "roughness": 0.96,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:pine-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#2d6548",
+        "dark": "#1c503c"
+      },
+      "roughness": 0.82,
+      "metalness": 0.005,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:broadleaf-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#4b7f3e",
+        "dark": "#264d2e"
+      },
+      "roughness": 0.85,
+      "metalness": 0.005,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:campus-path-material": {
+      "type": "standard",
+      "color": {
+        "light": "#b7aea0",
+        "dark": "#4e524c"
+      },
+      "roughness": 0.88,
+      "metalness": 0.02,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:pavilion-body-material": {
+      "type": "standard",
+      "color": {
+        "light": "#e8e4d8",
+        "dark": "#7f9093"
+      },
+      "roughness": 0.76,
+      "metalness": 0.06,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:pavilion-roof-material": {
+      "type": "standard",
+      "color": {
+        "light": "#a65e3b",
+        "dark": "#d9a066"
+      },
+      "roughness": 0.5,
+      "metalness": 0.16,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:pavilion-glass-material": {
+      "type": "physical",
+      "color": {
+        "light": "#8ed4e5",
+        "dark": "#8ed4e5"
+      },
+      "roughness": 0.18,
+      "metalness": 0.12,
+      "opacity": 0.72,
+      "alphaMode": "blend",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": false,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:rower:apron-material": {
+      "type": "standard",
+      "color": {
+        "light": "#3c91a3",
+        "dark": "#175a69"
+      },
+      "roughness": 0.22,
+      "metalness": 0.05,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    }
+  },
+  "instancing": {
+    "environment:rower:island-trees": [
+      {
+        "p": [
+          0.77415,
+          0.304,
+          3.10495
+        ],
+        "q": [
+          0,
+          0.12187,
+          0,
+          0.99255
+        ],
+        "s": [
+          0.399,
+          0.38,
+          0.399
+        ],
+        "c": [
+          0.86678,
+          0.8568,
+          0.84681
+        ]
+      },
+      {
+        "p": [
+          3.17807,
+          0.368,
+          -3.92459
+        ],
+        "q": [
+          0,
+          0.97359,
+          0,
+          0.22831
+        ],
+        "s": [
+          0.483,
+          0.46,
+          0.483
+        ],
+        "c": [
+          1.08702,
+          1.06326,
+          1.03949
+        ]
+      },
+      {
+        "p": [
+          -5.69653,
+          0.432,
+          -0.19893
+        ],
+        "q": [
+          0,
+          -0.55041,
+          0,
+          0.8349
+        ],
+        "s": [
+          0.567,
+          0.54,
+          0.567
+        ],
+        "c": [
+          1.16104,
+          1.14297,
+          1.12491
+        ]
+      },
+      {
+        "p": [
+          4.3305,
+          0.496,
+          6.1846
+        ],
+        "q": [
+          0,
+          0.59353,
+          0,
+          0.80481
+        ],
+        "s": [
+          0.651,
+          0.62,
+          0.651
+        ],
+        "c": [
+          1.10493,
+          1.10141,
+          1.0979
+        ]
+      }
+    ],
+    "environment:rower:reed-beds": [
+      {
+        "p": [
+          -16.56155,
+          0.28,
+          33.53319
+        ],
+        "q": [
+          0,
+          -0.22737,
+          0,
+          0.97381
+        ],
+        "s": [
+          1,
+          0.4,
+          1
+        ]
+      },
+      {
+        "p": [
+          35.92063,
+          0.34,
+          11.17912
+        ],
+        "q": [
+          0,
+          0.69581,
+          0,
+          0.71823
+        ],
+        "s": [
+          1,
+          0.52,
+          1
+        ]
+      },
+      {
+        "p": [
+          35.96714,
+          0.4,
+          -11.75716
+        ],
+        "q": [
+          0,
+          0.9368,
+          0,
+          0.34987
+        ],
+        "s": [
+          1,
+          0.64,
+          1
+        ]
+      },
+      {
+        "p": [
+          22.6439,
+          0.46,
+          -30.59113
+        ],
+        "q": [
+          0,
+          0.99627,
+          0,
+          -0.08629
+        ],
+        "s": [
+          1,
+          0.76,
+          1
+        ]
+      },
+      {
+        "p": [
+          -17.37255,
+          0.52,
+          -34.11089
+        ],
+        "q": [
+          0,
+          -0.71405,
+          0,
+          0.70009
+        ],
+        "s": [
+          1,
+          0.88,
+          1
+        ]
+      },
+      {
+        "p": [
+          -35.38726,
+          0.28,
+          -15.16548
+        ],
+        "q": [
+          0,
+          -0.30776,
+          0,
+          0.95146
+        ],
+        "s": [
+          1,
+          0.4,
+          1
+        ]
+      },
+      {
+        "p": [
+          -35.83854,
+          0.34,
+          10.69387
+        ],
+        "q": [
+          0,
+          0.16878,
+          0,
+          0.98565
+        ],
+        "s": [
+          1,
+          0.52,
+          1
+        ]
+      },
+      {
+        "p": [
+          -16.4251,
+          0.4,
+          33.84495
+        ],
+        "q": [
+          0,
+          0.6587,
+          0,
+          0.75241
+        ],
+        "s": [
+          1,
+          0.64,
+          1
+        ]
+      }
+    ],
+    "environment:rower:pine-trunks": [
+      {
+        "p": [
+          2.68385,
+          0.62667,
+          45.56102
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1.08243,
+          1.1394,
+          1.08243
+        ],
+        "c": [
+          0.94996,
+          0.94996,
+          0.94996
+        ]
+      },
+      {
+        "p": [
+          -3.14434,
+          0.9207,
+          50.73662
+        ],
+        "q": [
+          0,
+          0.93203,
+          0,
+          0.36237
+        ],
+        "s": [
+          1.5903,
+          1.674,
+          1.5903
+        ],
+        "c": [
+          1.00926,
+          1.00926,
+          1.00926
+        ]
+      },
+      {
+        "p": [
+          7.14618,
+          0.9207,
+          55.40932
+        ],
+        "q": [
+          0,
+          -0.67549,
+          0,
+          0.73737
+        ],
+        "s": [
+          1.5903,
+          1.674,
+          1.5903
+        ],
+        "c": [
+          1.02129,
+          1.02129,
+          1.02129
+        ]
+      },
+      {
+        "p": [
+          -6.02411,
+          0.63665,
+          60.3113
+        ],
+        "q": [
+          0,
+          0.44247,
+          0,
+          0.89678
+        ],
+        "s": [
+          1.09967,
+          1.15755,
+          1.09967
+        ],
+        "c": [
+          0.9691,
+          0.9691,
+          0.9691
+        ]
+      },
+      {
+        "p": [
+          7.67787,
+          0.28512,
+          64.52823
+        ],
+        "q": [
+          0,
+          0.99617,
+          0,
+          -0.08743
+        ],
+        "s": [
+          0.49248,
+          0.5184,
+          0.49248
+        ],
+        "c": [
+          1.03851,
+          1.03851,
+          1.03851
+        ]
+      },
+      {
+        "p": [
+          35.70199,
+          0.28512,
+          -31.3607
+        ],
+        "q": [
+          0,
+          -0.2795,
+          0,
+          0.96014
+        ],
+        "s": [
+          0.49248,
+          0.5184,
+          0.49248
+        ],
+        "c": [
+          1.0708,
+          1.0708,
+          1.0708
+        ]
+      },
+      {
+        "p": [
+          35.30929,
+          0.60674,
+          -37.04104
+        ],
+        "q": [
+          0,
+          0.7936,
+          0,
+          0.60844
+        ],
+        "s": [
+          1.04801,
+          1.10317,
+          1.04801
+        ],
+        "c": [
+          0.95636,
+          0.95636,
+          0.95636
+        ]
+      },
+      {
+        "p": [
+          38.00641,
+          0.9207,
+          -39.21246
+        ],
+        "q": [
+          0,
+          -0.85467,
+          0,
+          0.51918
+        ],
+        "s": [
+          1.5903,
+          1.674,
+          1.5903
+        ],
+        "c": [
+          0.99304,
+          0.99304,
+          0.99304
+        ]
+      },
+      {
+        "p": [
+          42.48777,
+          0.9207,
+          -39.44415
+        ],
+        "q": [
+          0,
+          0.17418,
+          0,
+          0.98471
+        ],
+        "s": [
+          1.5903,
+          1.674,
+          1.5903
+        ],
+        "c": [
+          1.06148,
+          1.06148,
+          1.06148
+        ]
+      },
+      {
+        "p": [
+          41.9096,
+          0.65647,
+          -44.92055
+        ],
+        "q": [
+          0,
+          0.9809,
+          0,
+          0.19449
+        ],
+        "s": [
+          1.1339,
+          1.19358,
+          1.1339
+        ],
+        "c": [
+          0.92869,
+          0.92869,
+          0.92869
+        ]
+      },
+      {
+        "p": [
+          -41.84719,
+          0.28512,
+          -12.54347
+        ],
+        "q": [
+          0,
+          -0.53673,
+          0,
+          0.84376
+        ],
+        "s": [
+          0.49248,
+          0.5184,
+          0.49248
+        ],
+        "c": [
+          0.98236,
+          0.98236,
+          0.98236
+        ]
+      },
+      {
+        "p": [
+          -45.47577,
+          0.28512,
+          -14.50589
+        ],
+        "q": [
+          0,
+          0.59191,
+          0,
+          0.806
+        ],
+        "s": [
+          0.49248,
+          0.5184,
+          0.49248
+        ],
+        "c": [
+          1.04313,
+          1.04313,
+          1.04313
+        ]
+      },
+      {
+        "p": [
+          -51.02221,
+          0.58711,
+          -10.87307
+        ],
+        "q": [
+          0,
+          0.96572,
+          0,
+          -0.2596
+        ],
+        "s": [
+          1.0141,
+          1.06748,
+          1.0141
+        ],
+        "c": [
+          1.03889,
+          1.03889,
+          1.03889
+        ]
+      },
+      {
+        "p": [
+          -52.77382,
+          0.74181,
+          -21.44604
+        ],
+        "q": [
+          0,
+          -0.10799,
+          0,
+          0.99415
+        ],
+        "s": [
+          1.28131,
+          1.34874,
+          1.28131
+        ],
+        "c": [
+          1.08283,
+          1.08283,
+          1.08283
+        ]
+      }
+    ],
+    "environment:rower:pines": [
+      {
+        "p": [
+          -3.14434,
+          3.38148,
+          50.73662
+        ],
+        "q": [
+          0,
+          0.93203,
+          0,
+          0.36237
+        ],
+        "s": [
+          1.64052,
+          1.74096,
+          1.62378
+        ],
+        "c": [
+          1.10388,
+          1.13494,
+          1.166
+        ]
+      },
+      {
+        "p": [
+          7.14618,
+          3.38148,
+          55.40932
+        ],
+        "q": [
+          0,
+          -0.67549,
+          0,
+          0.73737
+        ],
+        "s": [
+          1.74096,
+          1.74096,
+          1.70748
+        ],
+        "c": [
+          0.83278,
+          0.85831,
+          0.88384
+        ]
+      },
+      {
+        "p": [
+          7.67787,
+          1.04717,
+          64.52823
+        ],
+        "q": [
+          0,
+          0.99617,
+          0,
+          -0.08743
+        ],
+        "s": [
+          0.50803,
+          0.53914,
+          0.47693
+        ],
+        "c": [
+          0.99092,
+          1.01863,
+          1.04634
+        ]
+      },
+      {
+        "p": [
+          35.30929,
+          2.2284,
+          -37.04104
+        ],
+        "q": [
+          0,
+          0.7936,
+          0,
+          0.60844
+        ],
+        "s": [
+          1.01491,
+          1.14729,
+          1.12523
+        ],
+        "c": [
+          0.93858,
+          0.95959,
+          0.98061
+        ]
+      },
+      {
+        "p": [
+          42.48777,
+          3.38148,
+          -39.44415
+        ],
+        "q": [
+          0,
+          0.17418,
+          0,
+          0.98471
+        ],
+        "s": [
+          1.74096,
+          1.74096,
+          1.54008
+        ],
+        "c": [
+          0.98412,
+          0.98511,
+          0.9861
+        ]
+      },
+      {
+        "p": [
+          41.9096,
+          2.41103,
+          -44.92055
+        ],
+        "q": [
+          0,
+          0.9809,
+          0,
+          0.19449
+        ],
+        "s": [
+          1.09809,
+          1.24132,
+          1.15777
+        ],
+        "c": [
+          1.05099,
+          1.04035,
+          1.02971
+        ]
+      },
+      {
+        "p": [
+          -45.47577,
+          1.04717,
+          -14.50589
+        ],
+        "q": [
+          0,
+          0.59191,
+          0,
+          0.806
+        ],
+        "s": [
+          0.53914,
+          0.53914,
+          0.55469
+        ],
+        "c": [
+          0.91299,
+          0.89299,
+          0.87298
+        ]
+      },
+      {
+        "p": [
+          -52.77382,
+          2.72446,
+          -21.44604
+        ],
+        "q": [
+          0,
+          -0.10799,
+          0,
+          0.99415
+        ],
+        "s": [
+          1.32177,
+          1.40269,
+          1.30828
+        ],
+        "c": [
+          0.94433,
+          0.94532,
+          0.9463
+        ]
+      }
+    ],
+    "environment:rower:broadleaves": [
+      {
+        "p": [
+          2.68385,
+          2.30159,
+          45.56102
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1.04825,
+          1.18498,
+          1.04825
+        ],
+        "c": [
+          1.03152,
+          1.03008,
+          1.02864
+        ]
+      },
+      {
+        "p": [
+          -6.02411,
+          2.33825,
+          60.3113
+        ],
+        "q": [
+          0,
+          0.44247,
+          0,
+          0.89678
+        ],
+        "s": [
+          1.06495,
+          1.20385,
+          1.23858
+        ],
+        "c": [
+          0.90558,
+          0.92747,
+          0.94937
+        ]
+      },
+      {
+        "p": [
+          35.70199,
+          1.04717,
+          -31.3607
+        ],
+        "q": [
+          0,
+          -0.2795,
+          0,
+          0.96014
+        ],
+        "s": [
+          0.53914,
+          0.53914,
+          0.50285
+        ],
+        "c": [
+          1.11659,
+          1.1085,
+          1.10042
+        ]
+      },
+      {
+        "p": [
+          38.00641,
+          3.38148,
+          -39.21246
+        ],
+        "q": [
+          0,
+          -0.85467,
+          0,
+          0.51918
+        ],
+        "s": [
+          1.64052,
+          1.74096,
+          1.79118
+        ],
+        "c": [
+          0.92929,
+          0.90754,
+          0.88579
+        ]
+      },
+      {
+        "p": [
+          -41.84719,
+          1.04717,
+          -12.54347
+        ],
+        "q": [
+          0,
+          -0.53673,
+          0,
+          0.84376
+        ],
+        "s": [
+          0.50803,
+          0.53914,
+          0.52877
+        ],
+        "c": [
+          0.87705,
+          0.86099,
+          0.84493
+        ]
+      },
+      {
+        "p": [
+          -51.02221,
+          2.1563,
+          -10.87307
+        ],
+        "q": [
+          0,
+          0.96572,
+          0,
+          -0.2596
+        ],
+        "s": [
+          0.98208,
+          1.11018,
+          0.98208
+        ],
+        "c": [
+          1.1156,
+          1.10396,
+          1.09232
+        ]
+      }
+    ]
+  },
+  "hidden": [
+    "environment:rower:infield"
+  ],
+  "inventory": {
+    "nodes": 34,
+    "meshes": 25,
+    "instancedMeshes": 5,
+    "instances": 40,
+    "materials": 18
+  },
+  "bounds": {
+    "min": [
+      -97.5968,
+      -55,
+      -75.38131
+    ],
+    "max": [
+      70.03192,
+      55,
+      94.46053
+    ]
+  }
+}

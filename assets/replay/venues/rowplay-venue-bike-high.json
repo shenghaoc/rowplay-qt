@@ -1,0 +1,890 @@
+{
+  "format": 1,
+  "seed": 20260913,
+  "source": {
+    "repo": "https://github.com/shenghaoc/rowplay",
+    "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "authoredAgainst": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "entry": "src/lib/replay/renderer3dEnvironment.ts",
+    "generator": "tools/bake-venues/bake.mjs"
+  },
+  "sport": "bike",
+  "quality": "high",
+  "environmentDetail": 2,
+  "innerR": 22,
+  "outerR": 34,
+  "environment": {
+    "skyZenith": "#2e3540",
+    "skyHorizon": "#4a4e54",
+    "skyNadir": "#33383f",
+    "fog": "#3d4249",
+    "fogNear": 72,
+    "fogFar": 165,
+    "hemisphereSky": "#8a8f96",
+    "hemisphereGround": "#6b5844",
+    "hemisphereIntensity": 1.15,
+    "sun": "#ffe2b0",
+    "sunIntensity": 3.5,
+    "fill": "#7d94a8",
+    "fillIntensity": 0.62,
+    "exposure": 1.16,
+    "farSilhouette": "#525c63",
+    "midSilhouette": "#454f58",
+    "venueStructure": "#5a646c",
+    "venueAccent": "#d79a50",
+    "infield": "#6d7a74",
+    "apron": "#847d70",
+    "envIntensity": 0.72,
+    "hemisphereIntensityIbl": 0.34
+  },
+  "materials": {
+    "environment:bike:infield-floor-material": {
+      "type": "standard",
+      "color": {
+        "light": "#99a79f",
+        "dark": "#405049"
+      },
+      "roughness": 0.78,
+      "metalness": 0.015,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {
+        "map": {
+          "kind": "set",
+          "path": "/replay-assets/environments/brushed-concrete-2/brushed-concrete-2-diffuse-512.jpg",
+          "repeat": [
+            0.28,
+            0.28
+          ]
+        },
+        "roughnessMap": {
+          "kind": "set",
+          "path": "/replay-assets/environments/brushed-concrete-2/brushed-concrete-2-roughness-512.jpg",
+          "repeat": [
+            0.28,
+            0.28
+          ]
+        }
+      },
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:infield-line-material": {
+      "type": "basic",
+      "color": {
+        "light": "#e6e2d8",
+        "dark": "#7f918e"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 0.48,
+      "alphaMode": "blend",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": false,
+      "textures": {}
+    },
+    "environment:bike:staging-mat-material": {
+      "type": "standard",
+      "color": {
+        "light": "#77847f",
+        "dark": "#35423e"
+      },
+      "roughness": 0.8,
+      "metalness": 0.04,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {
+        "map": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-diffuse-512.jpg",
+          "repeat": [
+            0.8,
+            0.8
+          ]
+        },
+        "roughnessMap": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-roughness-512.jpg",
+          "repeat": [
+            0.8,
+            0.8
+          ]
+        }
+      },
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:gantry-structure": {
+      "type": "standard",
+      "color": {
+        "light": "#5a646c",
+        "dark": "#344452"
+      },
+      "roughness": 0.52,
+      "metalness": 0.42,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:gantry-trim": {
+      "type": "standard",
+      "color": {
+        "light": "#d79a50",
+        "dark": "#f0b667"
+      },
+      "roughness": 0.58,
+      "metalness": 0.18,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:stands-material": {
+      "type": "standard",
+      "color": {
+        "light": "#454f58",
+        "dark": "#314352"
+      },
+      "roughness": 0.88,
+      "metalness": 0.02,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:stands-accent-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d79a50",
+        "dark": "#f0b667"
+      },
+      "roughness": 0.72,
+      "metalness": 0.04,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:arena-wall-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5a646c",
+        "dark": "#344452"
+      },
+      "roughness": 0.88,
+      "metalness": 0.08,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {
+        "map": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-diffuse-512.jpg",
+          "repeat": [
+            0.08,
+            0.35
+          ]
+        },
+        "roughnessMap": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-roughness-512.jpg",
+          "repeat": [
+            0.08,
+            0.35
+          ]
+        }
+      },
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:ad-band-material": {
+      "type": "basic",
+      "color": {
+        "light": "#1a2434",
+        "dark": "#0c121c"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:bike:track-board-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d8d2c6",
+        "dark": "#4a524c"
+      },
+      "roughness": 0.7,
+      "metalness": 0.05,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {
+        "map": {
+          "kind": "set",
+          "path": "/replay-assets/environments/brown-planks-03/brown-planks-03-diffuse-512.jpg",
+          "repeat": [
+            2.4,
+            0.4
+          ]
+        },
+        "roughnessMap": {
+          "kind": "set",
+          "path": "/replay-assets/environments/brown-planks-03/brown-planks-03-roughness-512.jpg",
+          "repeat": [
+            2.4,
+            0.4
+          ]
+        }
+      },
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:roof-shell-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d2dcde",
+        "dark": "#263642"
+      },
+      "roughness": 0.86,
+      "metalness": 0.08,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:roof-truss-material": {
+      "type": "standard",
+      "color": {
+        "light": "#73828a",
+        "dark": "#2a3946"
+      },
+      "roughness": 0.54,
+      "metalness": 0.48,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:skylight-material": {
+      "type": "basic",
+      "color": {
+        "light": "#f4fbff",
+        "dark": "#9fc7da"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:bike:hangar-light-body": {
+      "type": "standard",
+      "color": {
+        "light": "#66747c",
+        "dark": "#26343e"
+      },
+      "roughness": 0.45,
+      "metalness": 0.55,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:hangar-light-glow": {
+      "type": "basic",
+      "color": {
+        "light": "#fff4d9",
+        "dark": "#ffd49a"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:bike:team-pit-bay-material": {
+      "type": "standard",
+      "color": {
+        "light": "#76847f",
+        "dark": "#34413e"
+      },
+      "roughness": 0.78,
+      "metalness": 0.06,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {
+        "map": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-diffuse-512.jpg",
+          "repeat": [
+            0.9,
+            0.9
+          ]
+        },
+        "roughnessMap": {
+          "kind": "set",
+          "path": "/replay-assets/environments/concrete-floor-painted/concrete-floor-painted-roughness-512.jpg",
+          "repeat": [
+            0.9,
+            0.9
+          ]
+        }
+      },
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:team-pit-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d79a50",
+        "dark": "#f0b667"
+      },
+      "roughness": 0.55,
+      "metalness": 0.22,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:scoreboard-structure-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5a646c",
+        "dark": "#344452"
+      },
+      "roughness": 0.5,
+      "metalness": 0.46,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:scoreboard-screen-material": {
+      "type": "basic",
+      "color": {
+        "light": "#172334",
+        "dark": "#080d17"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:bike:scoreboard-accent-material": {
+      "type": "basic",
+      "color": {
+        "light": "#d79a50",
+        "dark": "#f0b667"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:bike:pavilion-body-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5a646c",
+        "dark": "#344452"
+      },
+      "roughness": 0.76,
+      "metalness": 0.06,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:pavilion-roof-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d79a50",
+        "dark": "#f0b667"
+      },
+      "roughness": 0.5,
+      "metalness": 0.16,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:pavilion-glass-material": {
+      "type": "physical",
+      "color": {
+        "light": "#8ed4e5",
+        "dark": "#8ed4e5"
+      },
+      "roughness": 0.18,
+      "metalness": 0.12,
+      "opacity": 0.72,
+      "alphaMode": "blend",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": false,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:infield-material": {
+      "type": "standard",
+      "color": {
+        "light": "#6d7a74",
+        "dark": "#405149"
+      },
+      "roughness": 0.9,
+      "metalness": 0.01,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:bike:apron-material": {
+      "type": "standard",
+      "color": {
+        "light": "#847d70",
+        "dark": "#3c3c3a"
+      },
+      "roughness": 0.9,
+      "metalness": 0.01,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    }
+  },
+  "instancing": {
+    "environment:bike:rail-posts": [
+      {
+        "p": [
+          0,
+          0.575,
+          34.75
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          13.29825,
+          0.575,
+          32.10481
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          24.57196,
+          0.575,
+          24.57196
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          32.10481,
+          0.575,
+          13.29825
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          34.75,
+          0.575,
+          0
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          32.10481,
+          0.575,
+          -13.29825
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          24.57196,
+          0.575,
+          -24.57196
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          13.29825,
+          0.575,
+          -32.10481
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          0,
+          0.575,
+          -34.75
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -13.29825,
+          0.575,
+          -32.10481
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -24.57196,
+          0.575,
+          -24.57196
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -32.10481,
+          0.575,
+          -13.29825
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -34.75,
+          0.575,
+          0
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -32.10481,
+          0.575,
+          13.29825
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -24.57196,
+          0.575,
+          24.57196
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "p": [
+          -13.29825,
+          0.575,
+          32.10481
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1,
+          1,
+          1
+        ]
+      }
+    ]
+  },
+  "hidden": [],
+  "inventory": {
+    "nodes": 84,
+    "meshes": 46,
+    "instancedMeshes": 1,
+    "instances": 16,
+    "materials": 25
+  },
+  "bounds": {
+    "min": [
+      -72,
+      -72,
+      -61.49063
+    ],
+    "max": [
+      72,
+      72,
+      44.2
+    ]
+  }
+}

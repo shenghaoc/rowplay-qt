@@ -223,6 +223,39 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
         serde_json::to_string(&athlete).expect("serialize athlete"),
     )
     .expect("write replay_athlete_v4.json");
+
+    // Phase 6a: every vendored venue pair (3 sports x 4 quality tiers) is
+    // read back and checked against its contract at build time, so a bad bake
+    // fails the build naming the file and rule instead of rendering wrong (the
+    // `validate_v3` pattern). The structural inventory is embedded for the
+    // runtime and the gate.
+    let venues = assets.join("venues");
+    let mut venue_meta = serde_json::Map::new();
+    for sport in ["rower", "skierg", "bike"] {
+        for tier in ["low", "medium", "high", "ultra"] {
+            let stem = format!("rowplay-venue-{sport}-{tier}");
+            let glb = venues.join(format!("{stem}.glb"));
+            let contract = venues.join(format!("{stem}.json"));
+            println!("cargo::rerun-if-changed={}", glb.display());
+            println!("cargo::rerun-if-changed={}", contract.display());
+            let glb_bytes = std::fs::read(&glb)
+                .unwrap_or_else(|error| panic!("read {}: {error}", glb.display()));
+            let contract_json = std::fs::read_to_string(&contract)
+                .unwrap_or_else(|error| panic!("read {}: {error}", contract.display()));
+            let package =
+                rowplay_viewmodel::replay::venue::validate_venue(&glb_bytes, &contract_json)
+                    .unwrap_or_else(|error| {
+                        panic!("vendored venue {stem} fails its contract: {error}")
+                    });
+            venue_meta.insert(stem.clone(), package.inventory_json());
+        }
+    }
+    std::fs::write(
+        out_dir.join("replay_venues_meta.json"),
+        serde_json::to_string_pretty(&serde_json::Value::Object(venue_meta))
+            .expect("serialize venue meta"),
+    )
+    .expect("write replay_venues_meta.json");
 }
 
 /// Converts the vendored packs with Qt's `balsam` into QML components and
