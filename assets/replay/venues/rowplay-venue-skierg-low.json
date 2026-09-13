@@ -1,0 +1,1031 @@
+{
+  "format": 1,
+  "seed": 20260913,
+  "source": {
+    "repo": "https://github.com/shenghaoc/rowplay",
+    "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "authoredAgainst": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "entry": "src/lib/replay/renderer3dEnvironment.ts",
+    "generator": "tools/bake-venues/bake.mjs"
+  },
+  "sport": "skierg",
+  "quality": "low",
+  "environmentDetail": 0,
+  "innerR": 22,
+  "outerR": 34,
+  "environment": {
+    "skyZenith": "#1f3c58",
+    "skyHorizon": "#a2b4c4",
+    "skyNadir": "#7e97a9",
+    "fog": "#64798c",
+    "fogNear": 74,
+    "fogFar": 205,
+    "hemisphereSky": "#b9cfe2",
+    "hemisphereGround": "#5d7789",
+    "hemisphereIntensity": 0.9,
+    "sun": "#ffe8c0",
+    "sunIntensity": 2.7,
+    "fill": "#7fa3c4",
+    "fillIntensity": 0.62,
+    "exposure": 1.02,
+    "farSilhouette": "#9a8b96",
+    "midSilhouette": "#435d72",
+    "venueStructure": "#25394a",
+    "venueAccent": "#e04852",
+    "infield": "#cfdfe9",
+    "apron": "#dfeaf1",
+    "envIntensity": 0.62,
+    "hemisphereIntensityIbl": 0.36
+  },
+  "materials": {
+    "environment:skierg:horizon-mid:material": {
+      "type": "basic",
+      "color": {
+        "light": "#435d72",
+        "dark": "#315267"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": true,
+      "vertexColors": true,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:skierg:centre-snow-material": {
+      "type": "standard",
+      "color": {
+        "light": "#e2edf5",
+        "dark": "#b0c4d4"
+      },
+      "roughness": 0.94,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:centre-packed-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d4e2ec",
+        "dark": "#9bb0c0"
+      },
+      "roughness": 0.9,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:groom-line-material": {
+      "type": "basic",
+      "color": {
+        "light": "#c0d2de",
+        "dark": "#6e8796"
+      },
+      "roughness": 1,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {}
+    },
+    "environment:skierg:chute-material": {
+      "type": "standard",
+      "color": {
+        "light": "#d8e5f0",
+        "dark": "#9bb5c8"
+      },
+      "roughness": 0.92,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:snowbank-material": {
+      "type": "standard",
+      "color": {
+        "light": "#e0edf2",
+        "dark": "#718a96"
+      },
+      "roughness": 0.98,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:mountain-material": {
+      "type": "standard",
+      "color": {
+        "light": "#7897a8",
+        "dark": "#4f6a7a"
+      },
+      "roughness": 0.92,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": true,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:snowcap-material": {
+      "type": "standard",
+      "color": {
+        "light": "#e8f2f5",
+        "dark": "#aec1ca"
+      },
+      "roughness": 0.9,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:pine-trunk-material": {
+      "type": "standard",
+      "color": {
+        "light": "#5a4635",
+        "dark": "#261f1b"
+      },
+      "roughness": 0.96,
+      "metalness": 0,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:pine-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#27403c",
+        "dark": "#244d45"
+      },
+      "roughness": 0.82,
+      "metalness": 0.005,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:broadleaf-canopy-material": {
+      "type": "standard",
+      "color": {
+        "light": "#3f6b4a",
+        "dark": "#27503a"
+      },
+      "roughness": 0.85,
+      "metalness": 0.005,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:pavilion-body-material": {
+      "type": "standard",
+      "color": {
+        "light": "#25394a",
+        "dark": "#192f3d"
+      },
+      "roughness": 0.76,
+      "metalness": 0.06,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:pavilion-roof-material": {
+      "type": "standard",
+      "color": {
+        "light": "#e04852",
+        "dark": "#ff6670"
+      },
+      "roughness": 0.5,
+      "metalness": 0.16,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:pavilion-glass-material": {
+      "type": "physical",
+      "color": {
+        "light": "#8ed4e5",
+        "dark": "#8ed4e5"
+      },
+      "roughness": 0.18,
+      "metalness": 0.12,
+      "opacity": 0.72,
+      "alphaMode": "blend",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": false,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    },
+    "environment:skierg:apron-material": {
+      "type": "standard",
+      "color": {
+        "light": "#dfeaf1",
+        "dark": "#c7d7df"
+      },
+      "roughness": 0.9,
+      "metalness": 0.01,
+      "opacity": 1,
+      "alphaMode": "opaque",
+      "doubleSided": false,
+      "vertexColors": false,
+      "depthWrite": true,
+      "textures": {},
+      "normalScale": [
+        1,
+        1
+      ]
+    }
+  },
+  "instancing": {
+    "environment:skierg:snowbank": [
+      {
+        "p": [
+          31.3,
+          0.025,
+          19.35329
+        ],
+        "q": [
+          0,
+          0.48688,
+          0,
+          0.87347
+        ],
+        "s": [
+          1.131,
+          0.3248,
+          0.4756
+        ]
+      },
+      {
+        "p": [
+          35.85908,
+          0.025,
+          -5.55929
+        ],
+        "q": [
+          0,
+          0.75934,
+          0,
+          0.65069
+        ],
+        "s": [
+          1.36218,
+          0.25525,
+          0.5452
+        ]
+      },
+      {
+        "p": [
+          23.59513,
+          0.025,
+          -27.48438
+        ],
+        "q": [
+          0,
+          0.93775,
+          0,
+          0.34731
+        ],
+        "s": [
+          1.16978,
+          0.3966,
+          0.6148
+        ]
+      },
+      {
+        "p": [
+          -25.22457,
+          0.025,
+          -26.60697
+        ],
+        "q": [
+          0,
+          0.9289,
+          0,
+          -0.37033
+        ],
+        "s": [
+          0.90632,
+          0.32023,
+          0.4756
+        ]
+      },
+      {
+        "p": [
+          -36.86838,
+          0.025,
+          -5.12684
+        ],
+        "q": [
+          0,
+          -0.75423,
+          0,
+          0.65661
+        ],
+        "s": [
+          1.05452,
+          0.25773,
+          0.5452
+        ]
+      },
+      {
+        "p": [
+          -32.17125,
+          0.025,
+          19.09767
+        ],
+        "q": [
+          0,
+          -0.49474,
+          0,
+          0.86904
+        ],
+        "s": [
+          1.34285,
+          0.39862,
+          0.6148
+        ]
+      }
+    ],
+    "environment:skierg:mountain-peaks": [
+      {
+        "p": [
+          -110.18792,
+          11.9064,
+          -92.70719
+        ],
+        "q": [
+          0,
+          0.90659,
+          0,
+          -0.42202
+        ],
+        "s": [
+          0.89298,
+          1.38908,
+          0.9922
+        ]
+      },
+      {
+        "p": [
+          -157.30548,
+          8.43294,
+          -0.62398
+        ],
+        "q": [
+          0,
+          -0.59107,
+          0,
+          0.80662
+        ],
+        "s": [
+          0.68869,
+          0.98384,
+          0.70275
+        ]
+      },
+      {
+        "p": [
+          129.85582,
+          10.54253,
+          39.49448
+        ],
+        "q": [
+          0,
+          0.81212,
+          0,
+          0.58349
+        ],
+        "s": [
+          0.93126,
+          1.22996,
+          0.87854
+        ]
+      }
+    ],
+    "environment:skierg:snowcaps": [
+      {
+        "p": [
+          -110.18792,
+          11.9064,
+          -92.70719
+        ],
+        "q": [
+          0,
+          0.90659,
+          0,
+          -0.42202
+        ],
+        "s": [
+          0.9922,
+          0.94259,
+          0.9922
+        ]
+      },
+      {
+        "p": [
+          -157.30548,
+          8.43294,
+          -0.62398
+        ],
+        "q": [
+          0,
+          -0.59107,
+          0,
+          0.80662
+        ],
+        "s": [
+          0.70275,
+          0.66761,
+          0.70275
+        ]
+      },
+      {
+        "p": [
+          129.85582,
+          10.54253,
+          39.49448
+        ],
+        "q": [
+          0,
+          0.81212,
+          0,
+          0.58349
+        ],
+        "s": [
+          0.87854,
+          0.83462,
+          0.87854
+        ]
+      }
+    ],
+    "environment:skierg:pine-trunks": [
+      {
+        "p": [
+          -43.28459,
+          0.58025,
+          -42.01127
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          1.00225,
+          1.055,
+          1.00225
+        ],
+        "c": [
+          0.94996,
+          0.94996,
+          0.94996
+        ]
+      },
+      {
+        "p": [
+          -43.25119,
+          0.8525,
+          -53.52959
+        ],
+        "q": [
+          0,
+          0.93203,
+          0,
+          0.36237
+        ],
+        "s": [
+          1.4725,
+          1.55,
+          1.4725
+        ],
+        "c": [
+          1.00926,
+          1.00926,
+          1.00926
+        ]
+      },
+      {
+        "p": [
+          -58.88453,
+          0.8525,
+          -49.70325
+        ],
+        "q": [
+          0,
+          -0.67549,
+          0,
+          0.73737
+        ],
+        "s": [
+          1.4725,
+          1.55,
+          1.4725
+        ],
+        "c": [
+          1.02129,
+          1.02129,
+          1.02129
+        ]
+      },
+      {
+        "p": [
+          -50.78474,
+          0.58949,
+          -67.93465
+        ],
+        "q": [
+          0,
+          0.44247,
+          0,
+          0.89678
+        ],
+        "s": [
+          1.01822,
+          1.07181,
+          1.01822
+        ],
+        "c": [
+          0.9691,
+          0.9691,
+          0.9691
+        ]
+      },
+      {
+        "p": [
+          51.72018,
+          0.264,
+          -76.05279
+        ],
+        "q": [
+          0,
+          0.99617,
+          0,
+          -0.08743
+        ],
+        "s": [
+          0.456,
+          0.48,
+          0.456
+        ],
+        "c": [
+          1.03851,
+          1.03851,
+          1.03851
+        ]
+      },
+      {
+        "p": [
+          43.9105,
+          0.264,
+          -45.72649
+        ],
+        "q": [
+          0,
+          -0.2795,
+          0,
+          0.96014
+        ],
+        "s": [
+          0.456,
+          0.48,
+          0.456
+        ],
+        "c": [
+          1.0708,
+          1.0708,
+          1.0708
+        ]
+      },
+      {
+        "p": [
+          43.43747,
+          0.5618,
+          -54.09416
+        ],
+        "q": [
+          0,
+          0.7936,
+          0,
+          0.60844
+        ],
+        "s": [
+          0.97038,
+          1.02145,
+          0.97038
+        ],
+        "c": [
+          0.95636,
+          0.95636,
+          0.95636
+        ]
+      },
+      {
+        "p": [
+          -51.61275,
+          0.8525,
+          -54.41064
+        ],
+        "q": [
+          0,
+          -0.85467,
+          0,
+          0.51918
+        ],
+        "s": [
+          1.4725,
+          1.55,
+          1.4725
+        ],
+        "c": [
+          0.99304,
+          0.99304,
+          0.99304
+        ]
+      },
+      {
+        "p": [
+          -52.24683,
+          0.8525,
+          -61.24654
+        ],
+        "q": [
+          0,
+          0.17418,
+          0,
+          0.98471
+        ],
+        "s": [
+          1.4725,
+          1.55,
+          1.4725
+        ],
+        "c": [
+          1.06148,
+          1.06148,
+          1.06148
+        ]
+      },
+      {
+        "p": [
+          -60.48018,
+          0.60784,
+          -61.37438
+        ],
+        "q": [
+          0,
+          0.9809,
+          0,
+          0.19449
+        ],
+        "s": [
+          1.04991,
+          1.10517,
+          1.04991
+        ],
+        "c": [
+          0.92869,
+          0.92869,
+          0.92869
+        ]
+      }
+    ],
+    "environment:skierg:pines": [
+      {
+        "p": [
+          -43.25119,
+          3.131,
+          -53.52959
+        ],
+        "q": [
+          0,
+          0.93203,
+          0,
+          0.36237
+        ],
+        "s": [
+          1.519,
+          1.612,
+          1.5035
+        ],
+        "c": [
+          1.10388,
+          1.13494,
+          1.166
+        ]
+      },
+      {
+        "p": [
+          -58.88453,
+          3.131,
+          -49.70325
+        ],
+        "q": [
+          0,
+          -0.67549,
+          0,
+          0.73737
+        ],
+        "s": [
+          1.612,
+          1.612,
+          1.581
+        ],
+        "c": [
+          0.83278,
+          0.85831,
+          0.88384
+        ]
+      },
+      {
+        "p": [
+          -50.78474,
+          2.16505,
+          -67.93465
+        ],
+        "q": [
+          0,
+          0.44247,
+          0,
+          0.89678
+        ],
+        "s": [
+          0.98606,
+          1.11468,
+          1.14683
+        ],
+        "c": [
+          0.99092,
+          1.01863,
+          1.04634
+        ]
+      },
+      {
+        "p": [
+          51.72018,
+          0.9696,
+          -76.05279
+        ],
+        "q": [
+          0,
+          0.99617,
+          0,
+          -0.08743
+        ],
+        "s": [
+          0.4704,
+          0.4992,
+          0.4416
+        ],
+        "c": [
+          0.93858,
+          0.95959,
+          0.98061
+        ]
+      },
+      {
+        "p": [
+          43.43747,
+          2.06333,
+          -54.09416
+        ],
+        "q": [
+          0,
+          0.7936,
+          0,
+          0.60844
+        ],
+        "s": [
+          0.93974,
+          1.06231,
+          1.04188
+        ],
+        "c": [
+          0.98412,
+          0.98511,
+          0.9861
+        ]
+      },
+      {
+        "p": [
+          -51.61275,
+          3.131,
+          -54.41064
+        ],
+        "q": [
+          0,
+          -0.85467,
+          0,
+          0.51918
+        ],
+        "s": [
+          1.519,
+          1.612,
+          1.6585
+        ],
+        "c": [
+          1.05099,
+          1.04035,
+          1.02971
+        ]
+      },
+      {
+        "p": [
+          -52.24683,
+          3.131,
+          -61.24654
+        ],
+        "q": [
+          0,
+          0.17418,
+          0,
+          0.98471
+        ],
+        "s": [
+          1.612,
+          1.612,
+          1.426
+        ],
+        "c": [
+          0.91299,
+          0.89299,
+          0.87298
+        ]
+      },
+      {
+        "p": [
+          -60.48018,
+          2.23243,
+          -61.37438
+        ],
+        "q": [
+          0,
+          0.9809,
+          0,
+          0.19449
+        ],
+        "s": [
+          1.01675,
+          1.14937,
+          1.07201
+        ],
+        "c": [
+          0.94433,
+          0.94532,
+          0.9463
+        ]
+      }
+    ],
+    "environment:skierg:broadleaves": [
+      {
+        "p": [
+          -43.28459,
+          2.1311,
+          -42.01127
+        ],
+        "q": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "s": [
+          0.9706,
+          1.0972,
+          0.9706
+        ],
+        "c": [
+          1.03152,
+          1.03008,
+          1.02864
+        ]
+      },
+      {
+        "p": [
+          43.9105,
+          0.9696,
+          -45.72649
+        ],
+        "q": [
+          0,
+          -0.2795,
+          0,
+          0.96014
+        ],
+        "s": [
+          0.4992,
+          0.4992,
+          0.4656
+        ],
+        "c": [
+          0.90558,
+          0.92747,
+          0.94937
+        ]
+      }
+    ]
+  },
+  "hidden": [
+    "environment:skierg:infield"
+  ],
+  "inventory": {
+    "nodes": 24,
+    "meshes": 17,
+    "instancedMeshes": 6,
+    "instances": 32,
+    "materials": 15
+  },
+  "bounds": {
+    "min": [
+      -73.5968,
+      -55,
+      -99.38131
+    ],
+    "max": [
+      94.03192,
+      55,
+      70.46053
+    ]
+  }
+}

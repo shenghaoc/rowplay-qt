@@ -1,0 +1,147 @@
+{
+  "format": 1,
+  "generatedBy": "tools/bake-venues/bake.sh",
+  "upstreamCommit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+  "files": [
+    {
+      "path": "procedural/snow-groomed-128.png",
+      "bytes": 10630,
+      "sha256": "ec67239ff29c551d3f9386850f2a8d7cf4f9012bc78350111cb63afd6c7eb14a"
+    },
+    {
+      "path": "procedural/snow-groomed-64.png",
+      "bytes": 3044,
+      "sha256": "3aac39a5ee7135b57f587a530d4168d566f716581b71ed9e0dcf81d5c827d067"
+    },
+    {
+      "path": "procedural/water-sheen-128.png",
+      "bytes": 11533,
+      "sha256": "f1698cd276a55ed231439e30586ff2925c364c962a3f74d0f48fc73dc84029bf"
+    },
+    {
+      "path": "procedural/water-sheen-64.png",
+      "bytes": 3494,
+      "sha256": "21f08366a14382e5afb0e9aed968ef7e7bb6ab73758eeec578e3e8d3af8c3b51"
+    },
+    {
+      "path": "rowplay-venue-bike-high.glb",
+      "bytes": 1257000,
+      "sha256": "c9d602511d9e8fcec31e9c3ebf631ae52bf5df57827fde6e5e7f1eca03b637b9"
+    },
+    {
+      "path": "rowplay-venue-bike-high.json",
+      "bytes": 17588,
+      "sha256": "fe5431a2090ea89b1901b8c7b8dedec8463c64f8d54d3f08105d504e7704adf5"
+    },
+    {
+      "path": "rowplay-venue-bike-low.glb",
+      "bytes": 52668,
+      "sha256": "72edcdd4f7920f560f64fa8ea23e73fa71fa3eb7af67a30fb59b13506f6de70f"
+    },
+    {
+      "path": "rowplay-venue-bike-low.json",
+      "bytes": 7370,
+      "sha256": "2881d536a6f81b28d4c463725b3a9f69a609e3ae195079ed1d7f9d3e1f9fdeda"
+    },
+    {
+      "path": "rowplay-venue-bike-medium.glb",
+      "bytes": 435412,
+      "sha256": "8b6b21bce86f5ec9d2d82086645ba522d2c28bf544abd1327ae79a5f737ad490"
+    },
+    {
+      "path": "rowplay-venue-bike-medium.json",
+      "bytes": 10197,
+      "sha256": "e54f0a3f62777d04b0ae05949c881eb57228b8a21ee16419b9151d3dda68d5c3"
+    },
+    {
+      "path": "rowplay-venue-bike-ultra.glb",
+      "bytes": 1452864,
+      "sha256": "a41dae5364675539f9e59c667678c728b3724894d029ad94a9ce661e7bcbe958"
+    },
+    {
+      "path": "rowplay-venue-bike-ultra.json",
+      "bytes": 20603,
+      "sha256": "1fee74c1eb748480dd91a4af656b76c84be32f11dc7207d6cea4172666fea827"
+    },
+    {
+      "path": "rowplay-venue-rower-high.glb",
+      "bytes": 908748,
+      "sha256": "964a81298bb38fe54b6c3898a3db2e0cb92afbbe0b3ce2be3bcea89491abc7bb"
+    },
+    {
+      "path": "rowplay-venue-rower-high.json",
+      "bytes": 91750,
+      "sha256": "128f7d5f8dacd65a232d56b54e5425545771cc28b7fd15bca3c85b364c1ecdd4"
+    },
+    {
+      "path": "rowplay-venue-rower-low.glb",
+      "bytes": 386824,
+      "sha256": "c609412411136b5029c042ad05ba34dabb866daead0696c7f8bba3b862fa11a7"
+    },
+    {
+      "path": "rowplay-venue-rower-low.json",
+      "bytes": 22285,
+      "sha256": "c9b27a7c57e09f042991b30835e96d243b8052a896f1a54aae95e12f0775846a"
+    },
+    {
+      "path": "rowplay-venue-rower-medium.glb",
+      "bytes": 747096,
+      "sha256": "1996bf067bc2a7e9211f936197955f084c8073fa865c8d462be385e46f6adafc"
+    },
+    {
+      "path": "rowplay-venue-rower-medium.json",
+      "bytes": 47293,
+      "sha256": "ecb28ed4301e808af1011d19c82a9b3a95af4ef49c214a578375ee5fb28b3893"
+    },
+    {
+      "path": "rowplay-venue-rower-ultra.glb",
+      "bytes": 1122548,
+      "sha256": "3486eed1b6c637f08816c67759b5c7efb010f4c4fda34d43eeabdf8ae8c75c65"
+    },
+    {
+      "path": "rowplay-venue-rower-ultra.json",
+      "bytes": 135099,
+      "sha256": "f5460a5b80f8f30cfb7340b47acff6356d0799df04a7cc9b6951180a63748e75"
+    },
+    {
+      "path": "rowplay-venue-skierg-high.glb",
+      "bytes": 787976,
+      "sha256": "217fdfa0483f29efd7ab54c54ca4d623782b3d660e337689d81a0261ead75dfb"
+    },
+    {
+      "path": "rowplay-venue-skierg-high.json",
+      "bytes": 111533,
+      "sha256": "76d3906e1e5144afabb3ae34ff42a4f8616d703c5e2e205ea4acc60d57727ee9"
+    },
+    {
+      "path": "rowplay-venue-skierg-low.glb",
+      "bytes": 419116,
+      "sha256": "d3debeead44db6117d0327ee2db799b48c2c794de805f3065d34e35412b255bd"
+    },
+    {
+      "path": "rowplay-venue-skierg-low.json",
+      "bytes": 18021,
+      "sha256": "39de8397cdc7e87b2243038c1f65d3277033ab1cf720b9ad7c8f21520b8ce695"
+    },
+    {
+      "path": "rowplay-venue-skierg-medium.glb",
+      "bytes": 720856,
+      "sha256": "ca61b72400ec87842c90d576f7535cfda15f37996c95d3ef7d737bdf139cea99"
+    },
+    {
+      "path": "rowplay-venue-skierg-medium.json",
+      "bytes": 57729,
+      "sha256": "b60e4e246340be1d404e85981f4e89d58b1aa2ddea9ffd6d79d4068db4580a23"
+    },
+    {
+      "path": "rowplay-venue-skierg-ultra.glb",
+      "bytes": 1104968,
+      "sha256": "dee072effbaf6a0d5800b4562ff11553a0a96e47148a8331f87e223367d746a0"
+    },
+    {
+      "path": "rowplay-venue-skierg-ultra.json",
+      "bytes": 163323,
+      "sha256": "70c9fc4842732e4f254435a92b9ee5bd0c222bf7dcc9e3dd54915e49e56fbb6c"
+    }
+  ]
+}

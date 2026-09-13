@@ -2,7 +2,8 @@
 //! Replay presentation logic (Phase 5): the V3 asset contract reader
 //! ([`glb`]), the material-role → theme-key palette resolver ([`materials`]),
 //! the venue palette bridge for sky, ground and lanes ([`palette`]) and the
-//! equipment anchor table from the asset README ([`anchors`]).
+//! equipment anchor table from the asset README ([`anchors`]). Phase 6a adds
+//! the baked-venue reader and contract validator ([`venue`]).
 //!
 //! Everything here is Qt-free data and validation: the app crate's `Replay`
 //! singleton adapts it to QML, and no hex colour or anchor coordinate is
@@ -20,3 +21,4 @@ pub mod materials;
 pub mod palette;
 pub mod pose;
 pub mod tier;
+pub mod venue;

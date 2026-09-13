@@ -1,6 +1,8 @@
 # ADR 0009 — Vendored assets stay in plain Git, with a size tripwire before Phase 6 venues
 
-Status: accepted (2026-09-12)
+Status: superseded in part by ADR 0011 (2026-09-13) — plain Git is retained,
+the 50 MB ceiling was raised to 100 MB on the measured Phase 6a venue size.
+The reasoning below remains the record of the original decision.
 
 ## Context
 
