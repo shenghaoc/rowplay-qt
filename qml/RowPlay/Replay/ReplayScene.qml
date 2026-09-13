@@ -53,6 +53,18 @@ Item {
     property var poleBasketNodes: ({})
     property var anchorsByTemplate: ({})
     property var mirrorByTemplate: ({})
+    // Ghost node caches (same structure as player, separate references).
+    property var ghostJointNodes: []
+    property var ghostSeatNode: null
+    property var ghostOarRigNode: null
+    property var ghostOarRigMirror: null
+    property var ghostWheelNode: null
+    property var ghostWheelMirror: null
+    property var ghostDrivetrainNode: null
+    property var ghostBladeNodes: ({})
+    property var ghostPoleShaftNodes: ({})
+    property var ghostGripNodes: ({})
+    property var ghostBasketNodes: ({})
     // ---- HUD text parts (updated by applyFrame) ----
     property string clockText: ""
     property string totalText: ""
@@ -70,10 +82,17 @@ Item {
         anchors.right: parent.right
         anchors.bottom: transportBar.top
 
+        // The tier settings resolve MSAA and shadow parameters from the
+        // current quality index + sport (Replay.tierSettings JSON).
+        readonly property var ts: Replay.tierSettings
+        readonly property int msaa: ts ? ts.msaaSamples : 4
+
         environment: ExtendedSceneEnvironment {
             backgroundMode: SceneEnvironment.SkyBox
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
+            antialiasingMode: scene.msaa > 0 ? SceneEnvironment.MSAA
+                                              : SceneEnvironment.NoAA
+            antialiasingQuality: scene.msaa >= 4 ? SceneEnvironment.High
+                                                 : SceneEnvironment.Medium
             tonemapMode: SceneEnvironment.TonemapModeFilmic
             exposure: 1.0
             lightProbe: Texture { id: skyProbe }
@@ -117,7 +136,9 @@ Item {
                                   Replay.sunOffset[2])
             target: sunTarget
             DirectionalLight {
-                color: Replay.skySun; brightness: 1.2; castsShadow: true
+                id: keyLight
+                color: Replay.skySun; brightness: 1.2
+                castsShadow: scene.ts ? scene.ts.shadows : true
                 shadowMapQuality: Light.ShadowMapQualityHigh; shadowFactor: 80
                 shadowBias: 0.02; pcfFactor: 0.03; shadowMapFar: 60; csmNumSplits: 2
             }
@@ -176,10 +197,62 @@ Item {
             }
         }
 
+        // ---- Ghost group (on the ghost loop, inside the same View3D) ----
+        Node {
+            id: ghostCourseNode
+            visible: Replay.hasGhost
+            Node {
+                id: ghostRigGroup
+                Rigs {
+                    id: ghostRigs
+                    visible: Replay.hasGhost && Replay.loadState !== "error"
+
+                    // Ghost material variants: athlete body parts stay opaque,
+                    // equipment and athlete trim/shorts go 45% opacity (the V4
+                    // depth contract, materialSpecs.ghostOpacity). The ghost
+                    // painted equipment uses the ghost paint colour.
+                    PrincipledMaterial { id: gMatSkin; baseColor: Theme.replaySkin; metalness: 0.0; roughness: 0.55 }
+                    PrincipledMaterial { id: gMatFabric; baseColor: Theme.replayFabric; metalness: 0.0; roughness: 0.8 }
+                    PrincipledMaterial { id: gMatHair; baseColor: Theme.replayHair; metalness: 0.0; roughness: 0.45 }
+                    PrincipledMaterial { id: gMatFootwear; baseColor: Theme.replayFootwear; metalness: 0.0; roughness: 0.6 }
+                    PrincipledMaterial { id: gMatShorts; baseColor: Theme.replayShorts; metalness: 0.0; roughness: 0.8; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatTrim; baseColor: Theme.replayTrim; metalness: 0.1; roughness: 0.4; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatEye; baseColor: Theme.replayEye; metalness: 0.0; roughness: 0.15 }
+                    PrincipledMaterial { id: gMatFaceDetail; baseColor: Theme.replayFaceDetail; metalness: 0.0; roughness: 0.6 }
+                    PrincipledMaterial { id: gMatPainted; baseColor: Replay.ghostPaint; metalness: 0.05; roughness: 0.35; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatDark; baseColor: Theme.replayEquipmentDark; metalness: 0.2; roughness: 0.5; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatLight; baseColor: Theme.replayEquipmentLight; metalness: 0.1; roughness: 0.4; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatMetal; baseColor: Theme.replayEquipmentMetal; metalness: 0.9; roughness: 0.25; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatRubber; baseColor: Theme.replayEquipmentRubber; metalness: 0.0; roughness: 0.9; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatGrip; baseColor: Theme.replayEquipmentGrip; metalness: 0.0; roughness: 0.85; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                    PrincipledMaterial { id: gMatTrimEq; baseColor: Theme.replayEquipmentTrim; metalness: 0.3; roughness: 0.4; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
+                }
+                Rigs {
+                    id: ghostRigsMirror
+                    visible: Replay.hasGhost && Replay.loadState !== "error"
+                }
+                Athlete {
+                    id: ghostAthlete
+                    visible: Replay.hasGhost && Replay.loadState !== "error"
+                }
+            }
+        }
+
         // Drive Replay.tick from the rendering loop.
         FrameAnimation {
             running: Replay.hasWorkout && Replay.loadState === "ready"
-            onTriggered: Replay.tick(frameTime)
+            onTriggered: {
+                Replay.tick(frameTime)
+                // Feed the governor with the Quick 3D render pass cost.
+                Replay.sampleRenderTime(scene.renderStats.frameTime)
+                // Bench: collect renderStats.frameTime for measurement,
+                // plus wall-clock delta for cross-check.
+                if (replayRoot.benchCollecting) {
+                    replayRoot.benchSample(scene.renderStats.frameTime)
+                    if (replayRoot.benchWarmup <= 0)
+                        replayRoot.benchWallSample(frameTime * 1000)
+                }
+            }
         }
 
         Component.onCompleted: {
@@ -251,6 +324,37 @@ Item {
                 Label { text: Tr.t("replay.gRate") + " " + replayRoot.rateText;  font: Theme.body; visible: rateText.length > 0 }
                 Label { text: Tr.t("replay.gPower") + " " + replayRoot.wattsText; font: Theme.body; visible: wattsText.length > 0 }
                 Label { text: Tr.t("replay.gHeart") + " " + replayRoot.heartText; font: Theme.body; visible: heartText.length > 0 }
+                // Race gap (visible when a ghost is loaded).
+                Label {
+                    text: Replay.gapText
+                    font: Theme.body
+                    visible: Replay.hasGhost && Replay.gapText.length > 0
+                    Accessible.name: text
+                }
+                // Race verdict at finish (locale ids from the web).
+                Label {
+                    visible: Replay.hasGhost && Replay.verdictText.length > 0
+                    text: {
+                        var parts = Replay.verdictText.split("|")
+                        if (parts[0] === "win")
+                            return Tr.t("replay.raceVerdictWinSession",
+                                { seconds: parts[1], m: parts[2],
+                                  date: "", distance: "" })
+                        if (parts[0] === "lose")
+                            return Tr.t("replay.raceVerdictLoseSession",
+                                { seconds: parts[1], m: parts[2],
+                                  date: "", distance: "" })
+                        return Tr.t("replay.raceFinished")
+                    }
+                    font: Theme.body
+                    color: {
+                        var parts = Replay.verdictText.split("|")
+                        return parts[0] === "win" ? Theme.energeticGreen
+                             : parts[0] === "lose" ? Theme.alertRed
+                             : Theme.textPrimary
+                    }
+                    Accessible.name: text
+                }
                 Button { text: Tr.t("replay.back"); onClicked: Library.closeReplay(); Accessible.name: text }
             }
         }
@@ -311,6 +415,18 @@ Item {
         "equipment-rubber": matEquipmentRubber, "equipment-grip": matEquipmentGrip,
         "equipment-trim": matEquipmentTrim,
     })
+    // Ghost material variant: same keys, but equipment and athlete trim/shorts
+    // get 45% opacity (the V4 depth contract).
+    property var ghostByRole: ({
+        "athlete-skin": gMatSkin, "athlete-fabric": gMatFabric,
+        "athlete-hair": gMatHair, "athlete-footwear": gMatFootwear,
+        "athlete-shorts": gMatShorts, "athlete-trim": gMatTrim,
+        "athlete-eye": gMatEye, "athlete-face-detail": gMatFaceDetail,
+        "equipment-painted": gMatPainted, "equipment-dark": gMatDark,
+        "equipment-light": gMatLight, "equipment-metal": gMatMetal,
+        "equipment-rubber": gMatRubber, "equipment-grip": gMatGrip,
+        "equipment-trim": gMatTrimEq,
+    })
 
     // ---- helpers ----
     function quatFromFrame(f, i) {
@@ -335,6 +451,11 @@ Item {
         walkForJoints(athlete, jn)
         jointNodes = jn
         validateJoints()
+        // Ghost joint lookup.
+        var gjn = []
+        for (var k = 0; k < semanticBones.length; ++k) gjn.push(null)
+        walkForJoints(ghostAthlete, gjn)
+        ghostJointNodes = gjn
         if (!validateMaterials()) return
         applySceneRules()
         Replay.reportReady()
@@ -392,6 +513,32 @@ Item {
         bladeNodes = {}; poleShaftNodes = {}; poleGripNodes = {}; poleBasketNodes = {}
         walkRigs(rigs, anchorsByTemplate, false)
         walkRigs(rigsMirror, mirrorByTemplate, true)
+        // Ghost rigs: same materials and anchors, separate node caches.
+        // Save and restore the player caches around the ghost walk.
+        var savedSeat = seatNode, savedBoat = boatNode
+        var savedDrive = drivetrainNode, savedFrame = frameNode
+        var savedOar = oarRigNode, savedOarM = oarRigMirror
+        var savedWheel = wheelAssemblyNode, savedWheelM = wheelMirror
+        var savedBlade = bladeNodes, savedShaft = poleShaftNodes
+        var savedGrip = poleGripNodes, savedBasket = poleBasketNodes
+        seatNode = null; boatNode = null; drivetrainNode = null; frameNode = null
+        oarRigNode = null; oarRigMirror = null
+        wheelAssemblyNode = null; wheelMirror = null
+        bladeNodes = {}; poleShaftNodes = {}; poleGripNodes = {}; poleBasketNodes = {}
+        walkRigs(ghostRigs, anchorsByTemplate, false, ghostByRole)
+        walkRigs(ghostRigsMirror, mirrorByTemplate, true, ghostByRole)
+        ghostSeatNode = seatNode; ghostOarRigNode = oarRigNode
+        ghostOarRigMirror = oarRigMirror; ghostWheelNode = wheelAssemblyNode
+        ghostWheelMirror = wheelMirror; ghostDrivetrainNode = drivetrainNode
+        ghostBladeNodes = bladeNodes; ghostPoleShaftNodes = poleShaftNodes
+        ghostGripNodes = poleGripNodes; ghostBasketNodes = poleBasketNodes
+        // Restore player caches.
+        seatNode = savedSeat; boatNode = savedBoat
+        drivetrainNode = savedDrive; frameNode = savedFrame
+        oarRigNode = savedOar; oarRigMirror = savedOarM
+        wheelAssemblyNode = savedWheel; wheelMirror = savedWheelM
+        bladeNodes = savedBlade; poleShaftNodes = savedShaft
+        poleGripNodes = savedGrip; poleBasketNodes = savedBasket
         initPoleScales()
         console.log("replay scene rules:", materialsApplied, "materials,",
                     templatesPlaced, "templates placed,", leavesHidden, "leaves hidden")
@@ -443,18 +590,30 @@ Item {
         }
         var sportTag = ["row", "ski", "bike"][Replay.sportIndex]
         console.log("replay equipment " + sportTag + ":", present, "of", inventory.length)
+        // Tier readback: log the actual applied scene settings so the bench
+        // and gate can verify the tier picker is reaching the renderer.
+        var ts = Replay.tierSettings
+        var sets = ts ? ts.textureSets : []
+        var tierTag = ["low", "medium", "high", "ultra"][Replay.qualityIndex] || "medium"
+        console.log("replay tier " + tierTag + ": msaa="
+                    + scene.environment.antialiasingMode
+                    + " aaQuality=" + scene.environment.antialiasingQuality
+                    + " shadow=" + keyLight.castsShadow)
+        console.log("replay textures " + tierTag + ":", sets.length, "sets",
+                    sets.length > 0 ? sets.join(",") : "(none)")
     }
 
     // Walk one balsam Rigs component: assign materials, show/hide by sport,
     // place templates at anchors, cache nodes for per-frame updates.
     // `isMirror` restricts the mirror copy to multi-instance templates only.
-    function walkRigs(node, anchorMap, isMirror) {
+    function walkRigs(node, anchorMap, isMirror, materialMap) {
         if (!node) return
+        var matMap = materialMap || byRole
         var side = isMirror ? "left" : "right"
         var meta = Replay.meshRoles[node.objectName]
         if (meta !== undefined) {
-            if (node.materials !== undefined && byRole[meta.role] !== undefined) {
-                node.materials = [byRole[meta.role]]
+            if (node.materials !== undefined && matMap[meta.role] !== undefined) {
+                node.materials = [matMap[meta.role]]
                 materialsApplied += 1
             }
             if (meta.slot !== null && meta.slot !== undefined) {
@@ -497,7 +656,7 @@ Item {
             }
         }
         var ch = node.children
-        for (var i = 0; ch && i < ch.length; ++i) walkRigs(ch[i], anchorMap, isMirror)
+        for (var i = 0; ch && i < ch.length; ++i) walkRigs(ch[i], anchorMap, isMirror, materialMap)
     }
 
     function cacheLeaf(slot, side, node) {
@@ -569,6 +728,48 @@ Item {
         rateText     = parts[4] || ""
         wattsText    = parts[5] || ""
         heartText    = parts[6] || ""
+
+        // Ghost frame (same layout, separate data).
+        if (Replay.hasGhost) applyGhostFrame()
+    }
+
+    function applyGhostFrame() {
+        var gf = Replay.ghostFrame
+        if (!gf || gf.length < fl.length) return
+
+        // Ghost course placement.
+        ghostCourseNode.position = Qt.vector3d(gf[fl.courseX], 0, gf[fl.courseZ])
+        ghostCourseNode.rotation = quatFromFrame(gf, fl.courseYaw)
+        ghostRigGroup.position = Qt.vector3d(0, gf[fl.accentBob], gf[fl.accentSurge])
+        ghostRigGroup.rotation = quatFromFrame(gf, fl.accentRoll)
+
+        // Ghost joints.
+        for (var j = 0; j < fl.jointCount; ++j) {
+            var jn = ghostJointNodes[j]
+            if (!jn) continue
+            var at = fl.joints + j * fl.jointStride
+            jn.position = Qt.vector3d(gf[at], gf[at + 1], gf[at + 2])
+            jn.rotation = Qt.quaternion(gf[at + 6], gf[at + 3], gf[at + 4], gf[at + 5])
+        }
+
+        // Ghost equipment.
+        if (ghostSeatNode) ghostSeatNode.z = gf[fl.seatZ]
+        if (ghostOarRigNode) ghostOarRigNode.rotation = quatFromFrame(gf, fl.oarRight)
+        if (ghostOarRigMirror) ghostOarRigMirror.rotation = quatFromFrame(gf, fl.oarLeft)
+        var wq = quatFromFrame(gf, fl.wheel)
+        if (ghostWheelNode) ghostWheelNode.rotation = wq
+        if (ghostWheelMirror) ghostWheelMirror.rotation = wq
+        if (ghostDrivetrainNode) ghostDrivetrainNode.rotation = quatFromFrame(gf, fl.crank)
+
+        // Ghost blade positions.
+        placeLeaf7(ghostBladeNodes["right"], gf, fl.bladeRight)
+        placeLeaf7(ghostBladeNodes["left"], gf, fl.bladeLeft)
+
+        // Ghost pole positions.
+        applyPoleLeaves(gf, fl.poleLeft, fl.poleLeavesLeft, "left",
+                        ghostPoleShaftNodes, ghostGripNodes, ghostBasketNodes)
+        applyPoleLeaves(gf, fl.poleRight, fl.poleLeavesRight, "right",
+                        ghostPoleShaftNodes, ghostGripNodes, ghostBasketNodes)
     }
 
     // Set the constant pole-leaf scales from the equipmentLayout (once per
@@ -596,14 +797,74 @@ Item {
 
     // Read the three pole leaf positions from the frame (rotation shared
     // with the pole root, scale set once from the constant fits).
-    function applyPoleLeaves(f, poleAt, leavesAt, side) {
+    function applyPoleLeaves(f, poleAt, leavesAt, side, shaftMap, gripMap, basketMap) {
         var rot = quatFromFrame(f, poleAt + 3)
-        var shaft = poleShaftNodes[side]
+        var shaft = (shaftMap || poleShaftNodes)[side]
         if (shaft) { shaft.position = vec3FromFrame(f, leavesAt); shaft.rotation = rot }
-        var grip = poleGripNodes[side]
+        var grip = (gripMap || poleGripNodes)[side]
         if (grip) { grip.position = vec3FromFrame(f, leavesAt + 3); grip.rotation = rot }
-        var basket = poleBasketNodes[side]
+        var basket = (basketMap || poleBasketNodes)[side]
         if (basket) { basket.position = vec3FromFrame(f, leavesAt + 6); basket.rotation = rot }
     }
 
+    // ---- Bench mode (ROWPLAY_REPLAY_BENCH=1) ----
+    // Collects View3D.renderStats.frameTime (the Qt Quick 3D render pass
+    // cost: sync + prepare + render, independent of compositor presentation).
+    // Must run with QSG_NO_VSYNC=1 — without it, renderStats.frameTime
+    // includes the vsync wait and reports the display refresh interval.
+    property bool benchCollecting: false
+    property var benchTimes: []
+    property int benchTarget: 600
+    property int benchWarmup: 120
+    property int benchExcluded: 0
+    property var benchWallTimes: []
+    property int benchWallOver50: 0
+    property string benchLabel: ""
+
+    function benchStart(label) {
+        replayRoot.benchLabel = label
+        replayRoot.benchTimes = []
+        replayRoot.benchWarmup = 120
+        replayRoot.benchExcluded = 0
+        replayRoot.benchWallTimes = []
+        replayRoot.benchWallOver50 = 0
+        replayRoot.benchCollecting = true
+    }
+
+    function benchSample(renderTimeMs) {
+        if (replayRoot.benchWarmup > 0) { replayRoot.benchWarmup -= 1; return }
+        // Cap at 100 ms: GC pauses and buffer uploads produce 200+ ms
+        // outliers that aren't sustained render cost.
+        if (renderTimeMs > 100) { replayRoot.benchExcluded += 1; return }
+        benchTimes.push(renderTimeMs)
+        if (benchTimes.length >= benchTarget) {
+            benchCollecting = false
+            benchReport()
+        }
+    }
+
+    function benchWallSample(wallMs) {
+        replayRoot.benchWallTimes.push(wallMs)
+        if (wallMs > 50) replayRoot.benchWallOver50 += 1
+    }
+
+    function benchReport() {
+        var sorted = benchTimes.slice().sort(function(a, b) { return a - b })
+        var n = sorted.length
+        if (n === 0) return
+        var median = sorted[Math.floor(n / 2)]
+        var p95 = sorted[Math.floor(n * 0.95)]
+        var wn = replayRoot.benchWallTimes.length
+        var wsorted = wn > 0 ? replayRoot.benchWallTimes.slice().sort(function(a,b){return a-b}) : [0]
+        var wmedian = wsorted[Math.floor(wsorted.length / 2)]
+        var wp95 = wsorted[Math.floor(wsorted.length * 0.95)]
+        console.log("replay bench " + benchLabel + ":"
+                    + " n=" + n
+                    + " excluded=" + replayRoot.benchExcluded
+                    + " median=" + median.toFixed(2) + "ms"
+                    + " p95=" + p95.toFixed(2) + "ms"
+                    + " | wall median=" + wmedian.toFixed(2) + "ms"
+                    + " p95=" + wp95.toFixed(2) + "ms"
+                    + " >50ms=" + replayRoot.benchWallOver50)
+    }
 }

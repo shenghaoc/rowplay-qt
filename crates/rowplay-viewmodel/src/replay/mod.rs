@@ -19,3 +19,4 @@ pub mod hud;
 pub mod materials;
 pub mod palette;
 pub mod pose;
+pub mod tier;

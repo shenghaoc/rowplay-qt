@@ -154,6 +154,7 @@ ApplicationWindow {
                         Component.onCompleted: {
                             Replay.setSchemeDark(Theme.dark)
                             Replay.setReduceMotion(Settings.reduceReplayMotion)
+                            Replay.setQualityIndex(Settings.qualityIndex)
                         }
                         Connections {
                             target: Theme
@@ -165,6 +166,7 @@ ApplicationWindow {
                             target: Settings
                             function onSettingsChanged() {
                                 Replay.setReduceMotion(Settings.reduceReplayMotion)
+                                Replay.setQualityIndex(Settings.qualityIndex)
                             }
                         }
                     }
@@ -345,6 +347,17 @@ ApplicationWindow {
     // Set when a gate step starts a sync; the walk then holds until the
     // worker is genuinely idle, so the following step reports real counts
     // instead of a mid-run snapshot (the full re-sync is the slowest).
+    // Bench mode: the gate holds while the ReplayScene collects 600 frames.
+    property bool gateAwaitingBench: false
+    function benchRun(label) {
+        // Find the ReplayScene component (it's the 4th child of detailColumn)
+        var replayScene = detailColumn.children[3]
+        if (replayScene && replayScene.benchStart) {
+            replayScene.benchStart(label)
+            root.gateAwaitingBench = true
+        }
+    }
+
     property bool gateAwaitingSync: false
     // Set while the replay scene applies its rules; the walk holds until the
     // scene reports ready (bounded, so a broken pack cannot hang the gate —
@@ -435,6 +448,14 @@ ApplicationWindow {
                     return
                 }
                 root.gateAwaitingSync = false
+            }
+            if (root.gateAwaitingBench) {
+                var rs = detailColumn.children[3]
+                if (rs && !rs.benchCollecting) {
+                    root.gateAwaitingBench = false
+                } else {
+                    return  // still collecting
+                }
             }
             if (root.gateAwaitingReplay) {
                 if (Replay.loadState === "ready") {
@@ -591,7 +612,47 @@ ApplicationWindow {
             case 56: root.grabSettledScene("replay-ski"); break
             case 57: Replay.loadWorkout(1004); break     // bike demo workout
             case 58: root.grabSettledScene("replay-bike"); break
-            case 59: Library.closeReplay(); Library.clearSelection(); break
+            // Ghost: load workout 1002 as rival alongside the rower (1001).
+            case 59: Replay.loadWorkout(1001); Replay.loadGhost(1002); break
+            case 60: root.grabSettledScene("replay-ghost"); break
+            case 61: Replay.loadGhost(-1); break  // dismiss ghost
+            // Tier cycling: exercise all four quality tiers on the rower scene
+            // so the gate can assert texture set counts per tier.
+            case 62: Replay.setQualityIndex(0); break  // Low
+            case 63: Replay.setQualityIndex(2); break  // High
+            case 64: Replay.setQualityIndex(3); break  // Ultra
+            case 65: Replay.setQualityIndex(1); break  // back to Medium
+            case 66: Library.closeReplay(); Library.clearSelection(); break
+            // Bench mode (ROWPLAY_REPLAY_BENCH=1): measure 600 frames per
+            // sport × tier on hardware GL. Runs after the normal gate.
+            case 67:
+                if (!Settings.benchMode) { root.gateStep = 999; break }
+                Library.selectWorkout(1001)
+                Library.requestReplay(false)
+                root.gateAwaitingReplay = true
+                break
+            // Bench with ghost: load the ghost one step before each sport's
+            // measurement so the doubled geometry is settled by the time the
+            // 60-frame warmup starts.
+            // RowErg × 4 tiers
+            case 68: Replay.loadWorkout(1001); Replay.loadGhost(1002); break
+            case 69: Replay.setQualityIndex(0); Replay.play(); root.benchRun("row-low"); break
+            case 70: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("row-medium"); break
+            case 71: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("row-high"); break
+            case 72: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("row-ultra"); break
+            // SkiErg × 4 tiers
+            case 73: Replay.loadWorkout(1003); Replay.loadGhost(1005); break
+            case 74: Replay.setQualityIndex(0); Replay.play(); root.benchRun("ski-low"); break
+            case 75: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("ski-medium"); break
+            case 76: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("ski-high"); break
+            case 77: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("ski-ultra"); break
+            // BikeErg × 4 tiers
+            case 78: Replay.loadWorkout(1004); Replay.loadGhost(1006); break
+            case 79: Replay.setQualityIndex(0); Replay.play(); root.benchRun("bike-low"); break
+            case 80: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("bike-medium"); break
+            case 81: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("bike-high"); break
+            case 82: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("bike-ultra"); break
+            case 83: Replay.setQualityIndex(1); Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

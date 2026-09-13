@@ -244,6 +244,12 @@ impl ReplayState {
         self.duration
     }
 
+    /// The stroke samples driving this replay.
+    #[must_use]
+    pub fn strokes(&self) -> &[Stroke] {
+        &self.strokes
+    }
+
     /// Current playback time in seconds.
     #[must_use]
     pub fn time(&self) -> f64 {

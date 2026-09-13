@@ -17,7 +17,9 @@ use qtbridge::qtbridge_runtime::{QObjectHolder, QmlRegister};
 use rowplay_core::demo::DEFAULT_WORKOUT_ID;
 use rowplay_core::models::Sport;
 use rowplay_core::replay::engine::{ReplaySpeed, ReplayState};
+use rowplay_core::replay::motion::PerfGovernor;
 use rowplay_core::replay::motion_graph::{ReplayMotionGraph, sample_motion_graph};
+use rowplay_core::replay::quality::RenderQuality;
 use rowplay_core::replay::rig_pose::{SportRigPose, solve_rig_pose};
 use rowplay_core::replay::stroke_model::{
     StrokeTimeline, build_stroke_timeline, reduced_motion, stroke_pose_at,
@@ -35,6 +37,7 @@ use rowplay_viewmodel::replay::equipment::{
 use rowplay_viewmodel::replay::frame;
 use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings};
 use rowplay_viewmodel::replay::pose::{PoseSolver, clip_fraction, rig_targets};
+use rowplay_viewmodel::replay::tier::tier_settings_json;
 use rowplay_viewmodel::replay::{anchors, glb, materials, palette};
 
 use crate::backend::AppState;
@@ -75,6 +78,10 @@ pub struct ReplayBackend {
     frame_layout: serde_json::Value,
     equipment_layout: serde_json::Value,
     speed_labels: Vec<String>,
+    // Tier settings resolved from (quality, sport) — the scene reads this
+    // to apply shadows, MSAA, textures.
+    tier_settings: serde_json::Value,
+    quality_index: i64,
     // Load state: the startup validation result, then the scene's report.
     load_state: String,
     error_text: String,
@@ -114,6 +121,25 @@ pub struct ReplayBackend {
     has_workout: bool,
     workout_id: i64,
     emit_count: u64,
+    // Ghost (Phase 5c).
+    ghost_playback: Option<Playback>,
+    ghost_frame: Vec<f32>,
+    ghost_camera: CameraState,
+    ghost_anim_phase: f64,
+    ghost_last_distance: f64,
+    has_ghost: bool,
+    gap_text: String,
+    verdict_text: String,
+    // Governor (Phase 5c).
+    governor: PerfGovernor,
+    /// True = Automatic (governor applies degradation); false = pinned tier.
+    governor_auto: bool,
+    /// The effective quality after governor degradation (may differ from
+    /// `quality_index` when the governor has stepped down).
+    effective_quality: i64,
+    /// Diagnostics text for the developer strip (updated at ~4 Hz).
+    diagnostics_text: String,
+    diag_counter: u32,
 }
 
 impl Default for ReplayBackend {
@@ -212,6 +238,11 @@ impl Default for ReplayBackend {
                 .iter()
                 .map(|speed| speed.label().to_owned())
                 .collect(),
+            tier_settings: tier_settings_json(
+                quality_from_index(AppState::get().prefs().replay_quality),
+                Sport::Rower,
+            ),
+            quality_index: i64::from(AppState::get().prefs().replay_quality.unwrap_or(1)),
             load_state,
             error_text,
             sport_index: 0,
@@ -247,6 +278,21 @@ impl Default for ReplayBackend {
             has_workout: false,
             workout_id: -1,
             emit_count: 0,
+            ghost_playback: None,
+            ghost_frame: Vec::new(),
+            ghost_camera: CameraState::new(Sport::Rower),
+            ghost_anim_phase: 0.0,
+            ghost_last_distance: 0.0,
+            has_ghost: false,
+            gap_text: String::new(),
+            verdict_text: String::new(),
+            // Governor: 22 ms budget, 30-frame window, 60-frame grace,
+            // max 3 levels, 120-frame calibration (web defaults).
+            governor: PerfGovernor::new(22.0, 30, 60, 3, 120),
+            governor_auto: true,
+            effective_quality: i64::from(AppState::get().prefs().replay_quality.unwrap_or(1)),
+            diagnostics_text: String::new(),
+            diag_counter: 0,
         };
         backend.refresh_palette();
         backend
@@ -266,6 +312,15 @@ fn mesh_roles_json(library: &glb::V3Library) -> serde_json::Value {
         );
     }
     serde_json::Value::Object(map)
+}
+
+fn quality_from_index(index: Option<u8>) -> RenderQuality {
+    match index.unwrap_or(1) {
+        0 => RenderQuality::Low,
+        2 => RenderQuality::High,
+        3 => RenderQuality::Ultra,
+        _ => RenderQuality::Medium,
+    }
 }
 
 fn sport_name(sport: Sport) -> &'static str {
@@ -304,6 +359,34 @@ impl ReplayBackend {
     // "loading" | "ready" | "error".
     qproperty!("loadState", Member = load_state, Notify = replay_changed);
     qproperty!("errorText", Member = error_text, Notify = replay_changed);
+    // The resolved tier settings JSON for the current quality + sport.
+    qproperty!(
+        "tierSettings",
+        Member = tier_settings,
+        Notify = replay_changed
+    );
+    qproperty!(
+        "qualityIndex",
+        Member = quality_index,
+        Notify = replay_changed
+    );
+    // The effective quality after governor degradation (may differ from
+    // qualityIndex when the governor has stepped down).
+    qproperty!(
+        "effectiveQuality",
+        Member = effective_quality,
+        Notify = replay_changed
+    );
+    qproperty!(
+        "governorAuto",
+        Member = governor_auto,
+        Notify = replay_changed
+    );
+    qproperty!(
+        "diagnosticsText",
+        Member = diagnostics_text,
+        Notify = replay_changed
+    );
     // 0 = RowErg, 1 = SkiErg, 2 = BikeErg.
     qproperty!("sportIndex", Member = sport_index, Notify = replay_changed);
     qproperty!("schemeDark", Member = scheme_dark, Notify = replay_changed);
@@ -342,6 +425,11 @@ impl ReplayBackend {
     qproperty!("frameSeq", Member = frame_seq, Notify = frame_changed);
     qproperty!("hudText", Member = hud_text, Notify = frame_changed);
     qproperty!("progress", Member = progress, Notify = frame_changed);
+    // Ghost frame (same layout as poseFrame, empty when no ghost).
+    qproperty!("ghostFrame", Member = ghost_frame, Notify = frame_changed);
+    qproperty!("hasGhost", Member = has_ghost, Notify = playback_changed);
+    qproperty!("gapText", Member = gap_text, Notify = frame_changed);
+    qproperty!("verdictText", Member = verdict_text, Notify = frame_changed);
     // Transport state.
     qproperty!("playing", Member = playing, Notify = playback_changed);
     qproperty!(
@@ -387,7 +475,74 @@ impl ReplayBackend {
         }
         self.sport_index = clamped;
         self.refresh_palette();
+        self.refresh_tier();
         self.notify_replay();
+    }
+
+    /// Sets the quality tier (0 Low, 1 Medium, 2 High, 3 Ultra).
+    #[qslot]
+    fn set_quality_index(&mut self, index: i64) {
+        let clamped = index.clamp(0, 3);
+        if clamped == self.quality_index {
+            return;
+        }
+        self.quality_index = clamped;
+        self.effective_quality = clamped; // user override resets degradation
+        self.governor.reset();
+        self.refresh_tier();
+        self.notify_replay();
+    }
+
+    /// Toggle automatic quality degradation (governor on/off).
+    #[qslot]
+    fn set_governor_auto(&mut self, auto: bool) {
+        if auto == self.governor_auto {
+            return;
+        }
+        self.governor_auto = auto;
+        if auto {
+            self.governor.reset();
+        }
+        self.notify_replay();
+    }
+
+    /// Called from QML with `renderStats.frameTime` after each rendered
+    /// frame. Feeds the governor and, in Automatic mode, applies any
+    /// degradation step to the effective tier.
+    ///
+    /// Guard: zero, negative or absurdly large samples (>250 ms) are
+    /// dropped — `PerfGovernor::sample` rejects them — so a lost stats
+    /// source makes the governor sit still rather than slide to Low.
+    #[qslot]
+    fn sample_render_time(&mut self, ms: f64) {
+        if !self.governor_auto || !ms.is_finite() || ms <= 0.0 {
+            return;
+        }
+        if let Some(new_level) = self.governor.sample(ms) {
+            let base = quality_from_index(Some(self.quality_index as u8));
+            let degraded = base.degraded(new_level as u8);
+            let new_effective = degraded as i64;
+            if new_effective != self.effective_quality {
+                self.effective_quality = new_effective;
+                self.refresh_tier();
+                self.notify_replay();
+            }
+        }
+        // Diagnostics: update at ~4 Hz (every 15th sample).
+        self.diag_counter += 1;
+        if self.diag_counter.is_multiple_of(15) {
+            let tier_names = ["Low", "Medium", "High", "Ultra"];
+            let base_idx = self.quality_index.clamp(0, 3) as usize;
+            let eff_idx = self.effective_quality.clamp(0, 3) as usize;
+            self.diagnostics_text = format!(
+                "{} → {} | gov L{} | {:.1} ms",
+                tier_names[base_idx],
+                tier_names[eff_idx],
+                self.governor.level(),
+                self.governor.active_budget_ms()
+            );
+            self.notify_replay();
+        }
     }
 
     /// Mirrors `Theme.dark` so the Rust palette follows the scheme.
@@ -437,6 +592,44 @@ impl ReplayBackend {
         self.advance(0.0);
         self.notify_playback();
         self.notify_frame();
+    }
+
+    /// Loads a rival workout as the ghost. The ghost uses the same sport's
+    /// clips and poses, driven by its own `ReplayState` over the rival's
+    /// strokes. Pass −1 to dismiss the ghost.
+    #[qslot]
+    fn load_ghost(&mut self, id: i64) {
+        if id < 0 {
+            self.ghost_playback = None;
+            self.ghost_frame = Vec::new();
+            self.has_ghost = false;
+            self.gap_text.clear();
+            self.verdict_text.clear();
+            self.notify_playback();
+            return;
+        }
+        let state = AppState::get();
+        let details = state.details();
+        let Some(detail) = details.iter().find(|d| d.id() == id) else {
+            return;
+        };
+        let sport = detail.workout.sport;
+        let timeline =
+            build_stroke_timeline(&detail.strokes, sport, detail.workout.has_stroke_data);
+        let mut replay = ReplayState::new(detail.strokes.clone());
+        replay.set_speed(SPEEDS[self.speed_index as usize].factor());
+        self.ghost_playback = Some(Playback {
+            state: replay,
+            timeline,
+            sport,
+        });
+        self.ghost_frame = frame::empty_frame();
+        self.ghost_camera = CameraState::new(sport);
+        self.ghost_anim_phase = 0.0;
+        self.ghost_last_distance = 0.0;
+        self.has_ghost = true;
+        self.dirty = true;
+        self.notify_playback();
     }
 
     /// Advance playback by `dt` seconds of wall time (one call per rendered
@@ -562,6 +755,16 @@ impl ReplayBackend {
         SPORTS[self.sport_index as usize]
     }
 
+    /// Build a `Workout` for `race_result` from the loaded library.
+    fn workout_for_result(&self) -> Option<rowplay_core::models::Workout> {
+        let state = AppState::get();
+        let details = state.details();
+        details
+            .iter()
+            .find(|d| d.id() == self.workout_id)
+            .map(|d| d.workout.clone())
+    }
+
     fn refresh_palette(&mut self) {
         let sky = palette::sky_palette(self.sport(), self.scheme_dark);
         sky.zenith.clone_into(&mut self.sky_zenith);
@@ -577,6 +780,13 @@ impl ReplayBackend {
             .collect();
         self.sun_elevation = f64::from(palette::sun_elevation_degrees(self.sport()));
         self.sun_azimuth = f64::from(palette::sun_azimuth_degrees(self.sport()));
+    }
+
+    fn refresh_tier(&mut self) {
+        // Use effective_quality (which reflects governor degradation) rather
+        // than the user's selected quality_index.
+        let quality = quality_from_index(Some(self.effective_quality as u8));
+        self.tier_settings = tier_settings_json(quality, self.sport());
     }
 
     /// The single emission site of the per-frame notify (spec R1.3): counted
@@ -627,6 +837,7 @@ impl ReplayBackend {
         if index != self.sport_index {
             self.sport_index = index;
             self.refresh_palette();
+            self.refresh_tier();
             self.notify_replay();
         }
         true
@@ -831,6 +1042,188 @@ impl ReplayBackend {
         } else {
             0.0
         };
+
+        // Ghost pipeline: same pose/course/equipment but into ghost_frame.
+        if let Some(ghost) = self.ghost_playback.as_mut() {
+            ghost.state.tick(dt);
+            let g_time = ghost.state.time();
+            let g_sampled = ghost.state.current_frame();
+            let mut g_stroke = stroke_pose_at(&ghost.timeline, g_time);
+            if self.reduce_motion {
+                g_stroke = reduced_motion(&g_stroke);
+            }
+            let g_distance = g_sampled.d;
+            let g_sport = ghost.sport;
+
+            let g_rig = solve_rig_pose(g_sport, &g_stroke, g_distance, self.reduce_motion);
+            let g_targets = rig_targets(&g_rig);
+            if let (Some(solver), Some(clip)) =
+                (&self.solver, self.athlete.clip_for(sport_name(g_sport)))
+            {
+                let fraction = clip_fraction(
+                    g_stroke.cycle_frac,
+                    g_stroke.phase,
+                    g_stroke.drive_frac,
+                    clip.drive_end,
+                );
+                let posed = solver.pose(
+                    &self.athlete,
+                    g_sport,
+                    clip,
+                    fraction * f64::from(clip.duration),
+                    &g_targets.contacts,
+                );
+                solver.pack(&posed, &mut self.ghost_frame);
+            }
+
+            // Ghost course placement.
+            use rowplay_viewmodel::replay::course::GHOST_LOOP_RADIUS;
+            let g_placement = place(g_sport, g_distance, GHOST_LOOP_RADIUS);
+            let g_cues = match sample_motion_graph(g_sport, &g_stroke) {
+                ReplayMotionGraph::Rower(g) => AccentCues {
+                    vertical: g.accents.vertical.value,
+                    surge: g.accents.surge.value,
+                },
+                ReplayMotionGraph::Skierg(g) => AccentCues {
+                    vertical: g.accents.rebound.value,
+                    surge: g.accents.surge.value,
+                },
+                ReplayMotionGraph::Bike(_) => AccentCues::default(),
+            };
+            self.ghost_anim_phase = advance_anim_phase(
+                self.ghost_anim_phase,
+                g_sampled.spm,
+                dt,
+                playing,
+                self.reduce_motion,
+            );
+            let g_accent = accents(
+                g_sport,
+                g_cues,
+                self.ghost_anim_phase,
+                g_sampled.spm,
+                self.reduce_motion,
+            );
+
+            // Pack ghost course/accents into ghost_frame.
+            let gf = &mut self.ghost_frame;
+            gf[frame::COURSE_X] = g_placement.x as f32;
+            gf[frame::COURSE_Z] = g_placement.z as f32;
+            write_quat(gf, frame::COURSE_YAW, yaw_rotation(g_placement.yaw));
+            gf[frame::ACCENT_BOB] = g_accent.bob as f32;
+            gf[frame::ACCENT_SURGE] = g_accent.surge as f32;
+            write_quat(gf, frame::ACCENT_ROLL, roll_rotation(g_accent.roll));
+
+            // Ghost equipment (same structure as player).
+            for value in &mut gf[frame::EQUIPMENT..frame::EQUIPMENT + frame::EQUIPMENT_COUNT] {
+                *value = 0.0;
+            }
+            match g_rig {
+                SportRigPose::Rower(rower) => {
+                    gf[frame::EQ_SEAT_Z] = rower.seat_z as f32;
+                    let [left, right] = oar_rotations(rower.oar_sweep, rower.oar_feather);
+                    write_quat(gf, frame::EQ_OAR_LEFT, left);
+                    write_quat(gf, frame::EQ_OAR_RIGHT, right);
+                    gf[frame::EQ_BLADE_ROLL_DEG] = blade_roll_degrees(rower.blade_feather) as f32;
+                    // Blade positions.
+                    let anchors_data = &anchors::ANCHORS;
+                    let oar_anchor = anchors_data
+                        .iter()
+                        .find(|a| a.template == "equipment:row:oar-rig");
+                    if let Some(anchor) = oar_anchor {
+                        for (at, oar_q, idx) in [
+                            (frame::EQ_BLADE_LEFT, left, 1u8),
+                            (frame::EQ_BLADE_RIGHT, right, 0),
+                        ] {
+                            let pos = anchors::clone_position(anchor.template, idx);
+                            let oarlock = [f64::from(pos[0]), f64::from(pos[1]), f64::from(pos[2])];
+                            let bp = blade_position(oarlock, oar_q);
+                            for i in 0..3 {
+                                gf[at + i] = bp[i] as f32;
+                            }
+                            write_quat(gf, at + 3, oar_q);
+                        }
+                    }
+                }
+                SportRigPose::SkiErg(_) => {
+                    if let Some([left_pole, right_pole]) = g_targets.poles {
+                        for (pole_at, leaves_at, pole) in [
+                            (frame::EQ_POLE_LEFT, frame::EQ_POLE_LEAVES_LEFT, left_pole),
+                            (
+                                frame::EQ_POLE_RIGHT,
+                                frame::EQ_POLE_LEAVES_RIGHT,
+                                right_pole,
+                            ),
+                        ] {
+                            for i in 0..3 {
+                                gf[pole_at + i] = pole.root[i] as f32;
+                            }
+                            let pr = pole_rotation(pole.direction);
+                            write_quat(gf, pole_at + 3, pr);
+                            for (leaf_idx, fit) in self.pole_fits.iter().enumerate() {
+                                if let Some(fit) = fit {
+                                    let lp = pole_leaf_position(pole.root, pr, fit.position);
+                                    for i in 0..3 {
+                                        gf[leaves_at + leaf_idx * 3 + i] = lp[i] as f32;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                SportRigPose::Bike(bike) => {
+                    write_quat(gf, frame::EQ_CRANK, crank_rotation(bike.crank_angle));
+                    write_quat(gf, frame::EQ_WHEEL, wheel_rotation(bike.wheel_angle));
+                }
+            }
+
+            // Race gap: positive = player ahead, negative = behind.
+            // The text uses absolute values with a sign label so QML shows
+            // e.g. "+20 m (0:04 ahead)" or "15 m (0:03 behind)".
+            use rowplay_core::formatting::fmt_time;
+            use rowplay_core::replay::race_gap::{race_gap_metres, race_gap_seconds};
+            let gap_m = race_gap_metres(sampled.d, g_sampled.d);
+            let gap_s = race_gap_seconds(gap_m, sampled.pace);
+            if gap_m.abs() < 0.5 {
+                "—".clone_into(&mut self.gap_text);
+            } else {
+                let abs_m = gap_m.abs();
+                let abs_s = gap_s.abs();
+                let label = if gap_m > 0.0 { "ahead" } else { "behind" };
+                self.gap_text = format!("{:.0} m ({} {label})", abs_m, fmt_time(abs_s, false));
+            }
+
+            // Race result at finish: computed by race_result from the
+            // player and rival strokes, shown as a verdict string. The
+            // overlay reads the result rather than deciding the winner.
+            // Race result at finish: pass structured data so QML can
+            // format with the web's locale ids (replay.raceVerdictWin/
+            // LoseSession). Format: "win|<seconds>|<metres>" or
+            // "lose|<seconds>|<metres>" or "tie".
+            if !playing && self.verdict_text.is_empty() {
+                use rowplay_core::replay::race_result::{RaceOutcome, race_result};
+                let ghost_strokes = ghost.state.strokes().to_vec();
+                if let (Some(playback), Some(workout)) =
+                    (&self.playback, &self.workout_for_result())
+                {
+                    let result = race_result(playback.state.strokes(), &ghost_strokes, workout);
+                    if let Some(result) = result {
+                        let seconds = result.time_margin.unwrap_or(0.0);
+                        let metres = result.distance_margin.unwrap_or(0.0);
+                        self.verdict_text = match result.outcome {
+                            RaceOutcome::PlayerWon => {
+                                format!("win|{seconds:.1}|{metres:.0}")
+                            }
+                            RaceOutcome::RivalWon => {
+                                format!("lose|{seconds:.1}|{metres:.0}")
+                            }
+                            RaceOutcome::Tie => "tie".to_owned(),
+                        };
+                    }
+                }
+            }
+        }
+
         true
     }
 }
@@ -948,5 +1341,33 @@ mod tests {
             replay.workout_id, DEFAULT_WORKOUT_ID,
             "unknown ids fall back to the demo default"
         );
+    }
+
+    /// Ghost rendering: loading a rival workout produces a ghost frame
+    /// that advances in parallel with the player.
+    #[test]
+    fn ghost_advances_on_the_ghost_loop() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001); // rower
+        replay.load_ghost(1002); // another rower as rival
+        assert!(replay.has_ghost);
+        assert_eq!(replay.ghost_frame.len(), frame::LENGTH);
+        replay.play();
+        for _ in 0..60 {
+            replay.tick(1.0 / 60.0);
+        }
+        // The ghost frame should have moved on the course.
+        assert!(
+            replay.ghost_frame[frame::COURSE_X] != 0.0
+                || replay.ghost_frame[frame::COURSE_Z] != 0.0,
+            "ghost should be placed on the course loop"
+        );
+        // Gap text should be populated.
+        assert!(!replay.gap_text.is_empty(), "gap text should be set");
+        // Dismissing the ghost clears the frame.
+        replay.load_ghost(-1);
+        assert!(!replay.has_ghost);
+        assert!(replay.ghost_frame.is_empty());
     }
 }

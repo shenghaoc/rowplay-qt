@@ -43,6 +43,12 @@ pub struct Preferences {
     /// UI language code (`en`, `zh`, `de`, `es`, `fr`, `ja`). `None` reads as
     /// the default (`en`), matching the web's stored-language fallback.
     pub language: Option<String>,
+    /// Replay quality tier index (0 Low, 1 Medium, 2 High, 3 Ultra).
+    /// `None` reads as Medium (the web's `loadQualityPref` default).
+    /// Tolerant of absent key: a pre-5c preferences file omits this field
+    /// and serde's `default` fills `None`.
+    #[serde(default)]
+    pub replay_quality: Option<u8>,
 }
 
 impl Default for Preferences {
@@ -53,6 +59,7 @@ impl Default for Preferences {
             preferred_distance_unit: DistanceUnit::Metric,
             home_timezone: None,
             language: None,
+            replay_quality: None,
         }
     }
 }
@@ -280,6 +287,7 @@ mod tests {
             preferred_distance_unit: DistanceUnit::Imperial,
             home_timezone: Some("Asia/Singapore".into()),
             language: Some("ja".into()),
+            replay_quality: Some(2),
         };
         store.save(&prefs).unwrap();
         assert_eq!(store.load().unwrap(), prefs);

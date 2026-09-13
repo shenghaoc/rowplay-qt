@@ -4,8 +4,8 @@
 // - token section: web `token.*` / `auth.logout` instead of Studio's
 //   hardcoded labels; "connected" is expressed by the Log-out control
 //   appearing, exactly like the web header (no status string);
-// - the reduce-motion toggle is deferred to Phase 5 (replay) — the web has
-//   no key for it and the preference persists regardless;
+// - the reduce-motion toggle uses a desktop-supplement key
+//   (settings.reduceMotion) because the web has none;
 // - the timezone picker is a flat list (labels carry the UTC offset) instead
 //   of the web's grouped <select>.
 import QtQuick
@@ -63,6 +63,45 @@ Pane {
                     wrapMode: Text.WordWrap
                     Accessible.name: text
                 }
+            }
+
+            // Replay quality --------------------------------------------------
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingMedium
+
+                Label {
+                    text: Tr.t("replay.quality")
+                    font: Theme.sectionHeadline
+                    color: Theme.textPrimary
+                    Accessible.name: text
+                }
+
+                RowLayout {
+                    spacing: Theme.spacingSmall
+                    Repeater {
+                        model: Settings.qualityLabels
+                        Button {
+                            text: modelData
+                            flat: true
+                            highlighted: index === Settings.qualityIndex
+                            onClicked: Settings.setQualityIndex(index)
+                            Accessible.name: Tr.t("replay.quality") + " " + modelData
+                        }
+                    }
+                }
+            }
+
+            // Reduce motion ---------------------------------------------------
+            // The web has no locale key for this; the desktop supplement
+            // (tools/convert-locales.mjs DESKTOP_SUPPLEMENT) provides
+            // "settings.reduceMotion" with the English value for all six
+            // locales so the pipeline stays the single source.
+            Switch {
+                text: Tr.t("settings.reduceMotion")
+                checked: Settings.reduceReplayMotion
+                onToggled: Settings.setReduceReplayMotion(checked)
+                Accessible.name: Tr.t("settings.reduceMotion")
             }
 
             // Concept2 token --------------------------------------------------

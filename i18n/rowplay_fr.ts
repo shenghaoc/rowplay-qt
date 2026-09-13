@@ -5031,5 +5031,10 @@ Toujours bloqué ? La [FAQ](/docs/faq) couvre d'autres cas, et chaque page de ce
         <oldsource>Per-rep pace and time deltas.</oldsource>
         <translation>Deltas d’allure et de temps par répétition.</translation>
     </message>
+    <message id="settings.reduceMotion">
+        <source></source>
+        <oldsource>Reduce motion</oldsource>
+        <translation>Reduce motion</translation>
+    </message>
 </context>
 </TS>

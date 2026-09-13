@@ -5031,5 +5031,10 @@ Confirma primero que el entrenamiento llegó a tu cuaderno de Concept2 (debe sub
         <oldsource>Per-rep pace and time deltas.</oldsource>
         <translation>Deltas de ritmo y tiempo por repetición.</translation>
     </message>
+    <message id="settings.reduceMotion">
+        <source></source>
+        <oldsource>Reduce motion</oldsource>
+        <translation>Reduce motion</translation>
+    </message>
 </context>
 </TS>

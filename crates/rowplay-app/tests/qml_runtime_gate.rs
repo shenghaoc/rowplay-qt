@@ -280,6 +280,33 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         );
     }
 
+    // Phase 5c: per-tier texture set assertion. The gate cycles through all
+    // four quality tiers on the rower scene. The expected texture set counts
+    // are from the environments README table, hardcoded here as the oracle.
+    let expected_textures: [(&str, usize); 4] =
+        [("low", 0), ("medium", 0), ("high", 8), ("ultra", 8)];
+    for (tier, expected_count) in expected_textures {
+        let tier_needle = format!("replay textures {tier}:");
+        let ok = combined
+            .lines()
+            .filter(|l| l.contains(&tier_needle))
+            .all(|l| {
+                let rest = l.split(&tier_needle).nth(1).unwrap_or("");
+                let count: usize = rest
+                    .split_whitespace()
+                    .next()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(usize::MAX);
+                count == expected_count
+            });
+        assert!(
+            ok,
+            "replay texture inventory for tier {tier}: expected {expected_count} \
+             sets in every \"{tier_needle}\" log line\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+    }
+
     // Phase 5a spec R6.1/R6.2: when this walk ran with a screenshot
     // directory, each sport's replay capture must be a real render — loaded
     // equipment, not a blank or single-colour frame. This must live in the
