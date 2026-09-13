@@ -248,6 +248,38 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "a full re-sync must re-download every detail\noutput:\n{combined}"
     );
 
+    // Phase 5b: structural equipment inventory check. The scene logs
+    // "replay equipment: N of M" after each applySceneRules. The expected
+    // counts are fixed here from the V3 contract's anchor table — the app's
+    // own count is the thing under test, so the oracle must be external.
+    //
+    //   RowErg:  1 boat + 2 oars + 2 blades + 1 seat = 6
+    //   SkiErg:  2 skis + 2×3 pole-parts             = 8
+    //   BikeErg: 1 frame + 1 drivetrain + 2 wheels    = 4
+    let expected_equipment: [(&str, usize); 3] = [("row", 6), ("ski", 8), ("bike", 4)];
+    for (sport, expected) in expected_equipment {
+        // "replay equipment row: 5 of 5" — filter to this sport's lines.
+        let sport_needle = format!("replay equipment {sport}:");
+        let ok = combined
+            .lines()
+            .filter(|line| line.contains(&sport_needle))
+            .all(|line| {
+                let rest = line.split(&sport_needle).nth(1).unwrap_or("");
+                let present: usize = rest
+                    .split_whitespace()
+                    .next()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+                present >= expected
+            });
+        assert!(
+            ok,
+            "replay equipment inventory for {sport}: expected at least {expected} \
+             nodes in every \"{sport_needle}\" log line\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+    }
+
     // Phase 5a spec R6.1/R6.2: when this walk ran with a screenshot
     // directory, each sport's replay capture must be a real render — loaded
     // equipment, not a blank or single-colour frame. This must live in the
@@ -266,7 +298,14 @@ fn shell_walk_produces_no_qml_runtime_errors() {
                 )
             });
             let (width, height, pixels) = common::parse_ppm(&bytes);
-            common::assert_rendered(width, height, pixels, &format!("replay-{sport}"));
+            let label = format!("replay-{sport}");
+            common::assert_rendered(width, height, pixels, &label);
+            // Phase 5b: shadows must be visible on the ground plane.
+            // Only checked under a real GL backend — the offscreen QPA
+            // does not render View3D content, so its captures are flat.
+            if std::env::var("QSG_RHI_BACKEND").is_ok() {
+                common::assert_shadows(width, height, pixels, &label);
+            }
         }
     }
 }
