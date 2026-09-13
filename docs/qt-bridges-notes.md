@@ -528,3 +528,33 @@ from), or have `run()` return non-zero when no root object was created.
   of height, 40–60% of width) is compared against the far right edge, both
   sampling unshaded ground; the sample regions are tied to the chase camera's
   deterministic framing at t=0 for the demo workouts.
+- **`renderStats.frameTime` vs wall-clock frame deltas** (Phase 5c). With
+  `QSG_NO_VSYNC=1`, `renderStats.frameTime` reports the Qt Quick 3D render
+  pass cost (sync + prepare + render), while `FrameAnimation.frameTime`
+  measures the threaded render loop's output pacing (~6 ms regardless of
+  tier). Without `QSG_NO_VSYNC`, both include the vsync wait and report the
+  display refresh interval. For frame-time measurement, `renderStats` with
+  vsync off is the correct source; for stutter detection,
+  `FrameAnimation.frameTime` is the correct source because it measures what
+  the user sees. The `drawCallCount` and `drawVertexCount` on
+  `View3D.renderStats` read zero on Qt 6.11.2; the render pass cost is
+  trustworthy despite this (cross-checked against wall-clock stutter counts:
+  both agree at ~42–54 spikes per 720-frame run). An earlier figure of 20%
+  spike rate was from excluding >100 ms samples from `renderStats` only; the
+  wall-clock cross-check corrected this to ~6%.
+- **Ghost geometry doubles the balsam scene** (Phase 5c). Two `Rigs` × 2
+  (primary + mirror) plus two `Athlete` components = 4× the player's balsam
+  geometry in the scene graph. On the Intel UHD 630, this produces ~6% of
+  frames with >50 ms stalls from structural overhead (GC, buffer uploads)
+  that no tier change reduces. The `PerfGovernor` was extended with outlier
+  clamping (3× budget) and a payoff check (roll back if a step-down doesn't
+  improve the EMA by ≥10%) so it settles rather than walking the sticky
+  ladder to Low. The user stays at their chosen tier with occasional stalls.
+  Reducing ghost draw calls — instanced geometry or shared scene-graph nodes
+  — is the path to fixing the stalls in a later phase.
+- **Desktop-supplement locale keys** (Phase 5c). The web has no UI toggle
+  for reduce-motion, so there's no locale key for it. The converter
+  (`tools/convert-locales.mjs`) gained a `DESKTOP_SUPPLEMENT` map that
+  injects desktop-only keys with the English value into all six locales,
+  keeping the pipeline as the single source. The i18n parity test pins at
+  909 = 908 web + 1 supplement.
