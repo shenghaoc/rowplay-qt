@@ -45,6 +45,22 @@ Rust. All replay maths comes from `rowplay-core::replay`; 5b adds none.
   back to the V3 leaf-slot athlete (bbox-fitted shells) for this PR, keeping
   the V4 load + validation in place for 5c/Phase 7. (Decision gate, recorded
   either way.)
+
+  Outcome (2026-09-12, before implementation): the gate is resolved by ADR
+  0008. The athlete is a `balsam`-generated component whose skin is
+  `Skin { joints: [...] }` over plain `Node`s named after the contract's
+  bones, so QML writes joint `position`/`rotation` directly; there is no
+  `RuntimeLoader`, no C++ and no fallback. The skin has 51 joints — the 19
+  semantic bones in contract order plus 32 helpers — and
+  `--removeComponentAnimations` strips the authored clips from the
+  component, so Rust is the only thing that ever drives a joint (R2.1). The
+  contact targets the web feeds its pass come from its procedural per-sport
+  avatars (`renderer3d{Row,Ski,Bike}Avatar.ts`, ~4,000 lines); 5b ports
+  Studio's renderer-neutral `ReplayRigPose.swift` — which Studio's source
+  map documents as its port of those contact positions — into
+  `rowplay_core::replay::rig_pose` with bounds/phase tests, and records the
+  choice in `docs/source-map.md` as a divergence (the web's avatar geometry
+  itself is not ported).
 - R2.4 `reduce_replay_motion` (Phase 4 preference) freezes articulation and
   camera damping when set — the deferred Phase 4 toggle lands here in
   Settings (R6.3).
@@ -65,7 +81,15 @@ Rust. All replay maths comes from `rowplay-core::replay`; 5b adds none.
   `PedalMotion` circular channels, wheels from course speed.
 - R3.3 Cloning uses Qt `InstanceList`/`Model.instancing` where a template is
   repeated (ski pair, wheels, buoys in 5c); single-instance templates are
-  plain `Model` children positioned by the anchor.
+  plain `Model` children positioned by the anchor. The templates are the
+  named roots of the `balsam` `Rigs` component (ADR 0008), not
+  `RuntimeLoader` instances.
+- R3.4 The live athlete travels the web's course: a 1 km loop
+  (`COURSE_LOOP_METERS`) on the live radius, position `(r·sin a, 0, r·cos a)`
+  with `a = metres / 1000 · 2π`, unit tangent `(cos a, −sin a)`, the rig
+  yawed to the tangent (rowing shells travel bow-first, so the row rig turns
+  a further π), plus the sport profile's bob, surge and roll accents. Venue
+  geometry is Phase 6; the loop itself is pure motion and lands here.
 
 ## R4 — Camera
 
@@ -76,7 +100,14 @@ Rust. All replay maths comes from `rowplay-core::replay`; 5b adds none.
   (`positionRate = 8 + min(18, smoothedSpeed × 0.55)`,
   `aimRate = 6 + speedFollow × 0.65`) via `replay::motion::damp_factor`.
   Constants live in the view-model; the camera maths runs in Rust inside
-  `tick` and crosses as part of the flat frame.
+  `tick` and crosses as part of the flat frame. (Verified against
+  `renderer3d.ts` on 2026-09-12: the constants and rates above match the
+  code; the desktop rower `back` is 5.4, not the rig's 4.05.)
+- R4.3 The procedural sky's sun disc must be verified in frame with the chase
+  camera: 5a derived `sunLongitude = atan2(−x, −z)` from Qt's generator and
+  could not see the disc with its static cameras. A capture with the disc
+  visible settles the convention (or fixes the sign) and the source-map row
+  is updated either way.
 - R4.2 Paused renders snap only when the target jumped (seek, workout
   change), exactly like the web's sub-metre trailing-lag rule; reduced motion
   disables lag entirely.
