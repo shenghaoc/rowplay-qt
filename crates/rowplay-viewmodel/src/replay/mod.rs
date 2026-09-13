@@ -12,6 +12,7 @@ pub mod anchors;
 pub mod athlete;
 pub mod camera;
 pub mod course;
+pub mod equipment;
 pub mod frame;
 pub mod glb;
 pub mod hud;
