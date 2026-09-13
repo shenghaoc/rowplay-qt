@@ -9,6 +9,7 @@
 //! written in QML (Phase 5a spec R3/R4/R5).
 
 pub mod anchors;
+pub mod athlete;
 pub mod camera;
 pub mod course;
 pub mod frame;
