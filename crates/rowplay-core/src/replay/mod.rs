@@ -6,7 +6,8 @@
 //! The module tree keeps the web file names so `docs/source-map.md` stays
 //! greppable: `engine`, `motion`, `stroke_model`, `motion_graph`,
 //! `sport_kinematics`, `comparability`, `ghost_pick`, `race_gap`,
-//! `race_result`, `rivals`, `quality` and the 2D `theme` palettes.
+//! `race_result`, `rig_pose` and `two_bone` (Studio's rig-pose and two-bone
+//! solvers), `rivals`, `quality` and the 2D `theme` palettes.
 //! Everything here is Qt-free and side-effect-free: playback is driven by
 //! externally supplied ticks, parsers consume byte slices, and the motion
 //! graph is a deterministic function of a [`stroke_model::StrokePose`].
@@ -19,10 +20,12 @@ pub mod motion_graph;
 pub mod quality;
 pub mod race_gap;
 pub mod race_result;
+pub mod rig_pose;
 pub mod rivals;
 pub mod sport_kinematics;
 pub mod stroke_model;
 pub mod theme;
+pub mod two_bone;
 
 pub use comparability::{ComparabilityAxis, ComparableContext, are_comparable, classify_axis};
 pub use engine::{Frame, ReplaySpeed, ReplayState, sample_at, sample_index_at};
