@@ -154,6 +154,7 @@ pub fn gate_log_lines(combined: &str) -> String {
             line.contains("gate ")
                 || line.contains("replay scene rules")
                 || line.contains("replay equipment")
+                || line.contains("replay textures")
                 || line.contains("gate screenshot")
         })
         .collect::<Vec<_>>()

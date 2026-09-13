@@ -39,6 +39,12 @@ pub struct SettingsBackend {
     /// Comma-separated `Singleton.member` pairs the gate probes (from
     /// `ROWPLAY_GATE_MEMBER_CHECK`); empty outside the gate.
     gate_member_check: String,
+    /// Replay quality tier index (0 Low, 1 Medium, 2 High, 3 Ultra).
+    quality_index: i32,
+    /// Quality tier labels for the Settings picker.
+    quality_labels: Vec<String>,
+    /// Bench mode: run 600-tick measurements per sport per tier.
+    bench_mode: bool,
 }
 
 impl Default for SettingsBackend {
@@ -106,6 +112,14 @@ impl Default for SettingsBackend {
             sync_mock_mode: crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some(),
             gate_member_check: crate::backend::test_env("ROWPLAY_GATE_MEMBER_CHECK")
                 .unwrap_or_default(),
+            quality_index: i32::from(prefs.replay_quality.unwrap_or(1)),
+            quality_labels: vec![
+                "Low".to_owned(),
+                "Medium".to_owned(),
+                "High".to_owned(),
+                "Ultra".to_owned(),
+            ],
+            bench_mode: crate::backend::test_env("ROWPLAY_REPLAY_BENCH").is_some(),
         }
     }
 }
@@ -185,6 +199,14 @@ impl SettingsBackend {
     // property reads as `undefined` with no QML error, so the runtime gate
     // probes every member QML references and fails on any miss.
     qproperty!("gateMemberCheck", Member = gate_member_check, Constant);
+    // Replay quality: 0 Low, 1 Medium, 2 High, 3 Ultra.
+    qproperty!(
+        "qualityIndex",
+        Member = quality_index,
+        Notify = settings_changed
+    );
+    qproperty!("qualityLabels", Member = quality_labels, Constant);
+    qproperty!("benchMode", Member = bench_mode, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
@@ -276,6 +298,14 @@ impl SettingsBackend {
             }
             Err(_) => "token.rejected".to_owned(),
         };
+        self.settings_changed();
+    }
+
+    #[qslot]
+    fn set_quality_index(&mut self, index: i32) {
+        let clamped = index.clamp(0, 3);
+        self.apply(|prefs| prefs.replay_quality = Some(clamped as u8));
+        self.quality_index = clamped;
         self.settings_changed();
     }
 

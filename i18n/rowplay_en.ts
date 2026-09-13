@@ -5031,5 +5031,10 @@ Still stuck? The [FAQ](/docs/faq) covers more, and every page of this guide is r
         <oldsource>Per-rep pace and time deltas.</oldsource>
         <translation>Per-rep pace and time deltas.</translation>
     </message>
+    <message id="settings.reduceMotion">
+        <source></source>
+        <oldsource>Reduce motion</oldsource>
+        <translation>Reduce motion</translation>
+    </message>
 </context>
 </TS>

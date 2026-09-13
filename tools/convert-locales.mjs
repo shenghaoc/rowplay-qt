@@ -124,6 +124,19 @@ async function main() {
     dictionaries.set(language, flatten(dict));
   }
 
+  // Desktop-only keys: the web has no locale key for these, so the desktop
+  // port supplies the English value and every locale inherits it (the web's
+  // fallback rule). Kept as few as possible — only keys with no web
+  // equivalent that appear in committed QML.
+  const DESKTOP_SUPPLEMENT = new Map([
+    ["settings.reduceMotion", "Reduce motion"],
+  ]);
+  for (const [id, value] of DESKTOP_SUPPLEMENT) {
+    for (const [, dict] of dictionaries) {
+      dict.set(id, dict === dictionaries.get("en") ? value : value);
+    }
+  }
+
   const english = dictionaries.get("en");
   for (const [language, dict] of dictionaries) {
     if (language === "en") continue;

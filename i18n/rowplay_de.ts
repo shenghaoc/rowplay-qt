@@ -5037,5 +5037,10 @@ Hängst du noch fest? Die [FAQ](/docs/faq) deckt mehr ab, und jede Seite dieses 
         <oldsource>Per-rep pace and time deltas.</oldsource>
         <translation>Pace- und Zeit-Deltas pro Wiederholung.</translation>
     </message>
+    <message id="settings.reduceMotion">
+        <source></source>
+        <oldsource>Reduce motion</oldsource>
+        <translation>Reduce motion</translation>
+    </message>
 </context>
 </TS>

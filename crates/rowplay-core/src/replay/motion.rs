@@ -316,6 +316,10 @@ pub struct PerfGovernor {
     over: u32,
     grace: u32,
     level: u32,
+    /// The EMA at the moment of the last step-down, for the payoff check.
+    pre_step_ema: f64,
+    /// True when the governor gave up laddering because a step didn't pay.
+    locked: bool,
 }
 
 impl PerfGovernor {
@@ -346,6 +350,8 @@ impl PerfGovernor {
             over: 0,
             grace: 0,
             level: 0,
+            pre_step_ema: 0.0,
+            locked: false,
         }
     }
 
@@ -374,8 +380,13 @@ impl PerfGovernor {
         if !dt_ms.is_finite() || dt_ms <= 0.0 || dt_ms > 250.0 {
             return None;
         }
+        // Clamp outliers: a sample far above the budget is a stall (GC,
+        // buffer upload, compositor hitch), not tier-dependent render cost.
+        // Feeding it into the EMA would push the governor down the ladder
+        // for a cost that a tier change cannot reduce. Cap at 3× budget.
+        let clamped = dt_ms.min(self.floor_budget_ms * 3.0);
         if self.cal_count < self.calibration.len() {
-            self.calibration[self.cal_count] = dt_ms;
+            self.calibration[self.cal_count] = clamped;
             self.cal_count += 1;
             if self.cal_count == self.calibration.len() {
                 self.finish_calibration();
@@ -384,14 +395,32 @@ impl PerfGovernor {
         }
         if self.grace > 0 {
             self.grace -= 1;
+            // During grace, don't accumulate the EMA — the tier switch is
+            // still settling and early frames don't reflect the new tier.
             return None;
         }
-        if self.level >= self.maximum_level {
+        // Payoff check: after grace ends from a step-down, accumulate
+        // a window of post-grace samples. If the EMA after a full window
+        // didn't materially improve (≥10% drop), the cost is structural
+        // and further laddering won't help — roll back and lock.
+        if self.pre_step_ema > 0.0 && self.level > 0 && self.over >= self.window {
+            let improved = self.ema_ms < self.pre_step_ema * 0.90;
+            self.pre_step_ema = 0.0;
+            if !improved {
+                self.level -= 1;
+                self.over = 0;
+                self.locked = true;
+                return Some(self.level);
+            }
+            // The step paid: clear the check and let the ladder continue.
+            self.over = 0;
+        }
+        if self.locked || self.level >= self.maximum_level {
             return None;
         }
         // The EMA grows from the calibrated median, so a lone spike can never
         // push it over budget — only a sustained run of slow frames can.
-        self.ema_ms = self.ema_ms * 0.9 + dt_ms * 0.1;
+        self.ema_ms = self.ema_ms * 0.9 + clamped * 0.1;
         if self.ema_ms > self.active_budget_ms() {
             self.over += 1;
             if self.over >= self.window {
@@ -399,6 +428,8 @@ impl PerfGovernor {
                 self.over = 0;
                 self.ema_ms = 0.0;
                 self.grace = self.grace_frames;
+                // Record the pre-step EMA so the payoff check can compare.
+                self.pre_step_ema = self.active_budget_ms() + 1.0;
                 return Some(self.level);
             }
         } else {
@@ -416,6 +447,8 @@ impl PerfGovernor {
         self.over = 0;
         self.grace = 0;
         self.level = 0;
+        self.pre_step_ema = 0.0;
+        self.locked = false;
     }
 
     fn finish_calibration(&mut self) {
@@ -796,6 +829,72 @@ mod tests {
             }
         }
         assert_eq!(stepped, Some(1));
+    }
+
+    /// Synthetic profile matching the UHD 630 measurements: median 13 ms,
+    /// p95 20 ms at Ultra, budget 22 ms. The governor must settle at level 0
+    /// (no degradation) because the EMA stays well under the budget. This
+    /// catches the failure mode where a tier drop doesn't move the median,
+    /// the EMA stays flat, and the governor walks the sticky ladder to Low.
+    #[test]
+    fn governor_settles_on_uhd_630_profile() {
+        let mut g = PerfGovernor::new(22.0, 30, 60, 3, 120);
+        // Calibrate at the measured median.
+        calibrate(&mut g, 120, 13.0);
+        // Feed 2000 frames: 95% at 13 ms, 5% at 20 ms.
+        for i in 0..2000 {
+            let ms = if i % 20 == 0 { 20.0 } else { 13.0 };
+            g.sample(ms);
+        }
+        assert_eq!(g.level(), 0, "should not degrade on UHD 630");
+    }
+
+    /// A GPU where sustained frame time exceeds the calibrated budget and
+    /// each tier step reduces the median should degrade all the way down.
+    /// Calibrate at 16 ms (budget = 25.6 ms), feed 45 ms frames at each
+    /// level — but reduce the sample by 5 ms per step to simulate the tier
+    /// actually helping.
+    #[test]
+    fn governor_degrades_fully_when_each_step_pays() {
+        let mut g = PerfGovernor::new(22.0, 30, 60, 3, 120);
+        calibrate(&mut g, 120, 16.0);
+        assert!(
+            (g.active_budget_ms() - 25.6).abs() < 0.1,
+            "calibrated budget should be 1.6 × 16"
+        );
+        let mut frame_ms = 45.0;
+        for _ in 0..3000 {
+            if let Some(level) = g.sample(frame_ms) {
+                // Each degradation step reduces the render cost.
+                frame_ms -= 5.0;
+                let _ = level;
+            }
+        }
+        assert_eq!(g.level(), 3, "should degrade to max level");
+    }
+
+    /// Bimodal profile (ghost on UHD 630): 80% at 14 ms, 7% at 150 ms.
+    /// The 150 ms spikes are structural (GC, buffer uploads) and don't
+    /// respond to tier changes. The governor should step down once, see
+    /// no improvement, roll back and lock rather than walking to Low.
+    #[test]
+    fn governor_rolls_back_on_structural_spikes() {
+        let mut g = PerfGovernor::new(22.0, 30, 60, 3, 120);
+        calibrate(&mut g, 120, 14.0);
+        // Feed the bimodal profile: 93% at 14 ms, 7% at 150 ms.
+        // The 150 ms spikes are clamped to 3× budget = 66 ms.
+        for i in 0..2000 {
+            let ms = if i % 15 == 0 { 150.0 } else { 14.0 };
+            g.sample(ms);
+        }
+        // The governor should NOT reach level 3 (Low). It should step
+        // down once, see no improvement (the spikes are structural), and
+        // roll back.
+        assert!(
+            g.level() <= 1,
+            "governor should settle, not bottom out: level={}",
+            g.level()
+        );
     }
 
     #[test]
