@@ -278,22 +278,37 @@ Wayland (`cargo run -p rowplay-app`).
   shadow luminance margin (≥5%); colour diversity. Sun-disc azimuth
   confirmed correct for all three sports.
 
-### Phase 5c — Quality tiers and polish
+### Phase 5c — Quality tiers and polish ✓
 
-- `RenderQuality` Low / Medium / High / Ultra mapped to shadow enable and
-  map size, antialiasing, the environment texture sets (Low / Medium bind
-  none; High diffuse + roughness; Ultra adds the normal maps and the
-  SkiErg-only timber terrace) and the `QualityBudgets` instance caps;
-  user-settable in Settings and persisted.
-- The Phase 2 `PerfGovernor` degrading the live tier from frame times
-  measured in `tick`, with a manual override that pins a tier; thresholds
-  stay at the Phase 2 values unless evidence is documented.
-- Ghost athlete and equipment over a second `ReplayState`, ghost pick, the
-  race-gap overlay and finish verdict from Rust strings, rival file import
-  through the Phase 2 parsers.
-- Reduce-motion polish (camera lag, spray / wake) and a developer
-  diagnostics strip; frame times per sport per tier recorded in the PR and
-  in this roadmap's exit note.
+- `TierSettings` resolver maps `RenderQuality` + sport to shadow enable/size,
+  MSAA samples, environment texture sets (Low/Medium bind none; High
+  diffuse + roughness; Ultra adds normals and the SkiErg timber terrace) and
+  `QualityBudgets`. User-settable in Settings, persisted, per-tier texture
+  gate assertion from the environments README.
+- `PerfGovernor` fed `renderStats.frameTime` with outlier clamping (3×
+  budget) and a payoff check: if a step-down doesn't materially improve the
+  EMA (≥10% drop), the governor rolls back and locks. This prevents
+  bottoming out on structural spikes that don't respond to tier changes.
+- Ghost athlete + equipment on the ghost loop (26 m) with the ghost material
+  variant (45% equipment opacity, athlete opaque). Race gap from
+  `race_gap_metres`/`race_gap_seconds`, verdict from `race_result` using the
+  web's locale ids (`replay.raceVerdictWinSession`/`LoseSession`).
+- Reduce-motion toggle in Settings via a desktop-supplement locale key
+  (`settings.reduceMotion`); the pipeline zeroes accents, snaps the camera
+  and returns neutral poses.
+- Frame times measured on Intel UHD 630 (Mesa 25.2.7, Wayland, 144 Hz,
+  `QSG_NO_VSYNC=1`) via `renderStats.frameTime` with wall-clock cross-check.
+  The UHD 630 renders the default tier (Medium) close to budget with a ghost
+  present: p95 20.0–20.6 ms against the 22 ms governor budget. Ultra with a
+  ghost exceeds budget at p95 (22.4 ms rower). The governor steps down once,
+  sees no improvement (structural: ~6% of frames spike from doubled balsam
+  geometry, confirmed by wall-clock at 42–54 per 720-frame run), rolls back
+  and locks. The user stays at Ultra with occasional stalls rather than being
+  dropped to Low. Reducing ghost draw calls or instancing the geometry is the
+  path to fixing the stalls.
+- Deferred: compare control UI (default ghost pick already selects
+  automatically), rival file import (core parsers tested, the file dialog is
+  UI plumbing for Phase 6).
 
 ### Phase 6 — Venues
 
