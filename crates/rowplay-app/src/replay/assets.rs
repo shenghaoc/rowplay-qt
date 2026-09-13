@@ -45,6 +45,24 @@ impl Meta {
         self.raw["meshRoles"].clone()
     }
 
+    /// A leaf slot's mesh bounds (`min`, `max`), for the runtime shell fits.
+    #[must_use]
+    pub fn leaf_bounds(&self, slot: &str) -> Option<([f64; 3], [f64; 3])> {
+        let leaf = self.raw["leaves"]
+            .as_array()?
+            .iter()
+            .find(|leaf| leaf["slot"].as_str() == Some(slot))?;
+        let read = |index: usize| -> Option<[f64; 3]> {
+            let values = leaf["bounds"].get(index)?.as_array()?;
+            Some([
+                values.first()?.as_f64()?,
+                values.get(1)?.as_f64()?,
+                values.get(2)?.as_f64()?,
+            ])
+        };
+        Some((read(0)?, read(1)?))
+    }
+
     /// Every node name the loaded scene must contain (roots + leaves).
     #[must_use]
     pub fn scene_names(&self) -> Vec<String> {
@@ -65,6 +83,17 @@ impl Meta {
         names.dedup();
         names
     }
+}
+
+/// The V4 athlete embedded by `build.rs` (skin joints, rest hierarchy, the
+/// three clips), already cross-checked against the vendored contract.
+#[must_use]
+pub fn embedded_athlete() -> rowplay_viewmodel::replay::athlete::V4Athlete {
+    serde_json::from_str(include_str!(concat!(
+        env!("OUT_DIR"),
+        "/replay_athlete_v4.json"
+    )))
+    .expect("replay_athlete_v4.json")
 }
 
 /// The development asset directory, when an on-disk pack should be

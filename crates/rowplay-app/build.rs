@@ -195,6 +195,7 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
         "leaves": library.leaves.iter().map(|leaf| serde_json::json!({
             "slot": leaf.slot,
             "materialRole": leaf.material_role,
+            "bounds": [leaf.bounds.0, leaf.bounds.1],
         })).collect::<Vec<_>>(),
         "meshRoles": mesh_roles,
     });
@@ -203,6 +204,25 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
         serde_json::to_string_pretty(&meta).expect("serialize meta"),
     )
     .expect("write replay_assets_meta.json");
+
+    // The V4 athlete's skin, rest hierarchy and clips, cross-checked against
+    // the vendored contract, embedded as JSON (~100 KB) so the app evaluates
+    // the clips in Rust without shipping the 4.6 MB GLB (ADR 0008).
+    let athlete_glb = assets.join("rowplay-athlete-v4.glb");
+    let contract = assets.join("rowplay-athlete-v4.contract.json");
+    println!("cargo::rerun-if-changed={}", athlete_glb.display());
+    println!("cargo::rerun-if-changed={}", contract.display());
+    let athlete_bytes = std::fs::read(&athlete_glb)
+        .unwrap_or_else(|error| panic!("read {}: {error}", athlete_glb.display()));
+    let contract_json = std::fs::read_to_string(&contract)
+        .unwrap_or_else(|error| panic!("read {}: {error}", contract.display()));
+    let athlete = rowplay_viewmodel::replay::athlete::read_v4(&athlete_bytes, &contract_json)
+        .unwrap_or_else(|error| panic!("vendored V4 athlete pack fails its contract: {error}"));
+    std::fs::write(
+        out_dir.join("replay_athlete_v4.json"),
+        serde_json::to_string(&athlete).expect("serialize athlete"),
+    )
+    .expect("write replay_athlete_v4.json");
 }
 
 /// Converts the vendored packs with Qt's `balsam` into QML components and

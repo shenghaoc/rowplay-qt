@@ -148,17 +148,23 @@ ApplicationWindow {
                         onClosed: root.toggleSettings()
                     }
 
-                    // Replay route (Phase 5a): the 3D scene renders the route
-                    // itself; the navigation policy stays
-                    // Library.requestReplay / closeReplay.
+                    // Replay route (Phase 5b): the 3D scene with the chase
+                    // camera, athlete posing and transport controls.
                     ReplayScene {
-                        // The Rust palette needs the scheme flag; Theme owns
-                        // the actual colour scheme decision.
-                        Component.onCompleted: Replay.setSchemeDark(Theme.dark)
+                        Component.onCompleted: {
+                            Replay.setSchemeDark(Theme.dark)
+                            Replay.setReduceMotion(Settings.reduceReplayMotion)
+                        }
                         Connections {
                             target: Theme
                             function onDarkChanged() {
                                 Replay.setSchemeDark(Theme.dark)
+                            }
+                        }
+                        Connections {
+                            target: Settings
+                            function onSettingsChanged() {
+                                Replay.setReduceMotion(Settings.reduceReplayMotion)
                             }
                         }
                     }
@@ -235,10 +241,11 @@ ApplicationWindow {
         function onLibraryChanged() {
             Detail.refresh()
         }
-        // Replay route presentation (Phase 5 renders it; the shell routes).
+        // Replay route: load the workout and switch the stack index.
         function onIsReplayPresentedChanged() {
             if (Library.isReplayPresented) {
                 root.screenIndex = 3
+                Replay.loadWorkout(Library.selectedWorkoutId)
             } else if (root.screenIndex === 3) {
                 root.screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
             }
@@ -574,17 +581,17 @@ ApplicationWindow {
             case 49: root.grabScreen("detail-nostrokes"); break
             case 50: Library.selectWorkout(1005); break
             case 51: root.grabScreen("detail-full"); break
-            case 52:                                 // route push + first sport
+            case 52:                                 // route push + rower
                 Library.requestReplay(false)
-                Replay.setSport(0)
                 root.gateAwaitingReplay = true
                 break
-            case 53: root.grabSettledScene("replay-row"); break
-            case 54: Replay.setSport(1); break
-            case 55: root.grabSettledScene("replay-ski"); break
-            case 56: Replay.setSport(2); break
-            case 57: root.grabSettledScene("replay-bike"); break
-            case 58: Library.closeReplay(); Library.clearSelection(); break
+            case 53: Replay.loadWorkout(1001); break     // rower demo workout
+            case 54: root.grabSettledScene("replay-row"); break
+            case 55: Replay.loadWorkout(1003); break     // skierg demo workout
+            case 56: root.grabSettledScene("replay-ski"); break
+            case 57: Replay.loadWorkout(1004); break     // bike demo workout
+            case 58: root.grabSettledScene("replay-bike"); break
+            case 59: Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
