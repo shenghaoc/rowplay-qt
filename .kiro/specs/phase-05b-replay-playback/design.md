@@ -39,18 +39,28 @@ kinematics (`solve_rower/skier/bike_kinematics`), then the analytic correction
 rotates the terminal bone so the contract's local offset lands on the target
 (bounded rotation, web's clamp constants).
 
-Fallback (R2.3 decision gate): if writing 19 joint transforms per frame onto
-a RuntimeLoader skeleton proves impossible without C++ (no `QQuick3DJoint`
-write path from qtbridge), the athlete renders from the V3 leaf shells
-(bbox-fitted, Phase-2-driven) and the ADR records why; the decision is made
-in the first 5b commit and reflected in these tasks.
+Decision gate (R2.3), resolved before the first 5b commit: the `balsam`
+component (ADR 0008) exposes every bone as a named `Node` inside
+`Skin { joints: [...] }`, so the joint write path is plain QML property
+assignment; no ADR, no V3-shell fallback. The clip data is read from the GLB
+(three LINEAR clips of 20 channels — 19 rotations plus the hips translation —
+over 1 s, 14/14/9 keyframes) and evaluated in Rust; the component itself
+carries no animation. Contact targets: `rowplay_core::replay::rig_pose`, a
+port of Studio's `ReplayRigPose` solver (per-sport calibration ranges over the
+motion-graph channels: seat/handle/oar for the rower, the shoulder-arc hand
+path and planted basket for the skier, crank/pedal/wheel for the bike),
+supplies the pelvis, hand and foot targets the two-bone contact pass closes
+on, using the contract's per-bone local offsets.
 
 ## Equipment and anchors
 
-Anchors are the 5a view-model table. Each template root becomes a QML `Node`
-whose children are `Model`s referencing the loaded template meshes
-(RuntimeLoader instance per template; clones via `Model` copies sharing the
-mesh source). Per-frame equipment scalars from the frame bundle:
+Anchors are the 5a view-model table. Each template root is a named `Node` of
+the `balsam` `Rigs` component (ADR 0008); repeated templates (ski pair,
+wheels) are cloned as `Model` children sharing the generated mesh source, or
+through `instancing`. The whole rig rides a course `Node` placed by the
+web's loop (R3.4: `a = metres / 1000 · 2π`, live radius 30 m, tangent yaw,
++π for the row shell) with the profile accents (bob, surge, roll) from the
+motion graph. Per-frame equipment scalars from the frame bundle:
 `seat_travel` → carriage Z; oarlock pivot angles from `blade_water` +
 `oarlock_load` envelope; ski poles from hand contacts with the planted-pole
 anchor from `catch_events`; crank angle from `PedalMotion.left/right`
