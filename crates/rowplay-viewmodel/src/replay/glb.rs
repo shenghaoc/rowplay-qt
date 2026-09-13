@@ -97,6 +97,9 @@ pub enum AssetError {
         /// What failed.
         reason: String,
     },
+    /// The V4 athlete pack contradicts its contract JSON or cannot be decoded.
+    #[error("replay athlete V4 pack invalid: {0}")]
+    Athlete(String),
     /// A mesh attribute accessor declares non-finite bounds.
     #[error("replay asset geometry {node} invalid: {reason}")]
     Geometry {
@@ -128,12 +131,16 @@ pub struct TemplateManifest {
 }
 
 /// A validated leaf slot and its material role.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LeafSlot {
     /// The slot id, e.g. `athlete:torso`.
     pub slot: String,
     /// Its `replayMaterialRole`.
     pub material_role: String,
+    /// The mesh's POSITION accessor bounds (`min`, `max`), metres, in the
+    /// leaf's own space — leaf shells are fitted into a target box at
+    /// runtime (Studio `attachFittedVisual`), so the scene needs them.
+    pub bounds: ([f64; 3], [f64; 3]),
 }
 
 /// One mesh node and its resolved role, for the runtime material walker.
@@ -153,7 +160,7 @@ pub struct MeshNodeRole {
 }
 
 /// The full validated V3 library (web `ReplayAssetTemplateLibrary`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct V3Library {
     /// Byte length of the container the manifest was read from.
     pub byte_length: usize,
@@ -165,23 +172,23 @@ pub struct V3Library {
     pub mesh_roles: Vec<MeshNodeRole>,
 }
 
-/// The glTF node fields the contract reads.
+/// The glTF node fields the contracts read.
 #[derive(Debug, Clone)]
-struct Node {
-    index: usize,
-    name: String,
-    children: Vec<usize>,
-    parent: Option<usize>,
-    extras: Map<String, Value>,
-    mesh: Option<usize>,
-    skin: Option<usize>,
-    translation: Option<[f64; 3]>,
-    rotation: Option<[f64; 4]>,
-    scale: Option<[f64; 3]>,
+pub(crate) struct Node {
+    pub(crate) index: usize,
+    pub(crate) name: String,
+    pub(crate) children: Vec<usize>,
+    pub(crate) parent: Option<usize>,
+    pub(crate) extras: Map<String, Value>,
+    pub(crate) mesh: Option<usize>,
+    pub(crate) skin: Option<usize>,
+    pub(crate) translation: Option<[f64; 3]>,
+    pub(crate) rotation: Option<[f64; 4]>,
+    pub(crate) scale: Option<[f64; 3]>,
 }
 
 impl Node {
-    fn description(&self) -> String {
+    pub(crate) fn description(&self) -> String {
         if self.name.is_empty() {
             format!("node {}", self.index)
         } else {
@@ -203,12 +210,12 @@ fn template_of(node: &Node) -> Option<&str> {
 /// # Errors
 /// Any contract violation, naming the slot, template or node path involved.
 pub fn validate_v3(bytes: &[u8]) -> Result<V3Library, AssetError> {
-    let json = json_chunk(bytes)?;
+    let (json, _) = chunks(bytes)?;
     let nodes = parse_nodes(&json)?;
     validate_accessors(&json, &nodes)?;
     let roots = composite_roots(&nodes)?;
     let (templates, mut mesh_roles) = validate_templates(&nodes, &roots)?;
-    let (leaves, leaf_roles) = validate_leaves(&nodes)?;
+    let (leaves, leaf_roles) = validate_leaves(&json, &nodes)?;
     mesh_roles.extend(leaf_roles);
     Ok(V3Library {
         byte_length: bytes.len(),
@@ -221,8 +228,9 @@ pub fn validate_v3(bytes: &[u8]) -> Result<V3Library, AssetError> {
     })
 }
 
-/// Extracts the JSON chunk of a glTF 2.0 binary container.
-fn json_chunk(bytes: &[u8]) -> Result<Value, AssetError> {
+/// Extracts the JSON chunk and the (optional) binary chunk of a glTF 2.0
+/// binary container. The binary chunk is borrowed, never copied.
+pub(crate) fn chunks(bytes: &[u8]) -> Result<(Value, &[u8]), AssetError> {
     if bytes.len() > MAX_GLB_BYTES {
         return Err(AssetError::Container(format!(
             "{} bytes exceeds the {MAX_GLB_BYTES} byte cap",
@@ -248,6 +256,8 @@ fn json_chunk(bytes: &[u8]) -> Result<Value, AssetError> {
         )));
     }
     let mut at = 12;
+    let mut json: Option<Value> = None;
+    let mut bin: &[u8] = &[];
     while at + 8 <= bytes.len() {
         let chunk_len =
             u32::from_le_bytes(bytes[at..at + 4].try_into().expect("range checked")) as usize;
@@ -257,13 +267,18 @@ fn json_chunk(bytes: &[u8]) -> Result<Value, AssetError> {
             .checked_add(chunk_len)
             .filter(|end| *end <= bytes.len())
             .ok_or_else(|| AssetError::Container("chunk overruns container".to_owned()))?;
-        if chunk_type == b"JSON" {
-            return serde_json::from_slice(&bytes[start..end])
-                .map_err(|error| AssetError::Json(error.to_string()));
+        if chunk_type == b"JSON" && json.is_none() {
+            json = Some(
+                serde_json::from_slice(&bytes[start..end])
+                    .map_err(|error| AssetError::Json(error.to_string()))?,
+            );
+        } else if chunk_type == b"BIN\0" && bin.is_empty() {
+            bin = &bytes[start..end];
         }
         at = end;
     }
-    Err(AssetError::Container("no JSON chunk".to_owned()))
+    json.map(|json| (json, bin))
+        .ok_or_else(|| AssetError::Container("no JSON chunk".to_owned()))
 }
 
 fn vec3(value: Option<&Value>) -> Option<[f64; 3]> {
@@ -287,7 +302,7 @@ fn vec4(value: Option<&Value>) -> Option<[f64; 4]> {
     ])
 }
 
-fn parse_nodes(json: &Value) -> Result<Vec<Node>, AssetError> {
+pub(crate) fn parse_nodes(json: &Value) -> Result<Vec<Node>, AssetError> {
     let empty = Vec::new();
     let raw = json
         .get("nodes")
@@ -399,6 +414,29 @@ fn validate_accessors(json: &Value, nodes: &[Node]) -> Result<(), AssetError> {
         }
     }
     Ok(())
+}
+
+/// The POSITION bounds of a node's mesh (first primitive), already checked
+/// finite by [`validate_accessors`].
+fn mesh_bounds(json: &Value, node: &Node) -> Result<([f64; 3], [f64; 3]), AssetError> {
+    let read = |key: &str| -> Option<[f64; 3]> {
+        let mesh = json.get("meshes")?.as_array()?.get(node.mesh?)?;
+        let primitive = mesh.get("primitives")?.as_array()?.first()?;
+        let accessor = primitive.get("attributes")?.get("POSITION")?.as_u64()?;
+        let values = json
+            .get("accessors")?
+            .as_array()?
+            .get(usize::try_from(accessor).ok()?)?
+            .get(key)?;
+        vec3(Some(values))
+    };
+    match (read("min"), read("max")) {
+        (Some(min), Some(max)) => Ok((min, max)),
+        _ => Err(AssetError::Geometry {
+            node: node.description(),
+            reason: "leaf mesh has no POSITION bounds".to_owned(),
+        }),
+    }
 }
 
 /// The composite roots: exactly the seven known slots, once each, un-nested.
@@ -643,7 +681,10 @@ fn validate_templates(
 
 /// The eighteen leaf slots, once each, each with a known role (web
 /// `collectLegacyGeometries` over `REQUIRED_REPLAY_ASSET_V3_LEAF_SLOTS`).
-fn validate_leaves(nodes: &[Node]) -> Result<(Vec<LeafSlot>, Vec<MeshNodeRole>), AssetError> {
+fn validate_leaves(
+    json: &Value,
+    nodes: &[Node],
+) -> Result<(Vec<LeafSlot>, Vec<MeshNodeRole>), AssetError> {
     let mut found: Vec<LeafSlot> = Vec::new();
     let mut mesh_roles: Vec<MeshNodeRole> = Vec::new();
     for node in nodes {
@@ -677,6 +718,7 @@ fn validate_leaves(nodes: &[Node]) -> Result<(Vec<LeafSlot>, Vec<MeshNodeRole>),
         found.push(LeafSlot {
             slot: slot.to_owned(),
             material_role: role.to_owned(),
+            bounds: mesh_bounds(json, node)?,
         });
         mesh_roles.push(MeshNodeRole {
             name: node.name.clone(),
