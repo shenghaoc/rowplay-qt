@@ -384,9 +384,10 @@ from), or have `run()` return non-zero when no root object was created.
   changes, assigns it to the probe `Texture` and destroys the old one; the
   captures now read #90acbc (row), #6fa7c9 (ski) and #e0e2e3 (bike). The
   same generator starts the sun at (0, 0, -1) and rotates it about X by
-  `sunLatitude`, then about Y by `sunLongitude`; whether the sky-box shader
-  mirrors X is unverified until the Phase 5b chase camera brings the sun disc
-  into frame.
+  `sunLatitude`, then about Y by `sunLongitude`. Phase 5b confirmed the
+  azimuth convention with the chase camera in frame: `atan2(-x, -z)` from the
+  web's SUN_OFFSETS produces a Qt sun direction matching the web's normalised
+  offset to three decimal places for all three sports.
 - `createObject` of a Quick 3D object with a 2D parent (the `View3D`) logs
   "QML ProceduralSkyTextureData: Created graphical object was not placed in
   the graphics scene" and the object never reaches the scene graph; parent
@@ -479,3 +480,51 @@ from), or have `run()` return non-zero when no root object was created.
   `*.json text eol=lf` plus the binary extensions; `git add --renormalize`
   must stay a no-op. Hash tests pin bytes, so they cannot be lenient about
   line endings — the checkout must be.
+- **Dynamically assigned properties on balsam Models** (Phase 5b). Setting a
+  balsam-generated Model's `instancing` property from JavaScript
+  (`model.instancing = myInstanceList`) appeared to have no effect: the
+  instanced copies never rendered. The root cause was not conclusively
+  isolated (the property may not be writable from JS on a generated
+  component, or the same ownership issue as dynamic materials may apply to
+  InstanceList objects). The workaround: a second `Rigs` balsam component
+  for the mirror-side copies (see "dual-component pattern" below). Phase 6
+  venue materials should test any dynamic Quick 3D property assignment on the
+  first attempt rather than assuming it works, since the generated component
+  may not surface it the way a hand-written `.qml` would.
+- **Dual-component pattern for multi-instance templates** (Phase 5b). The V3
+  pack has three templates with `instances > 1` (oar-rig, ski-assembly,
+  wheel-assembly) and four equipment leaves (blade, three pole parts) that
+  need multiple positioned copies. Rather than instancing, the scene uses
+  two `Rigs` balsam components side by side: the primary is walked with the
+  assets README's primary anchor table (`Replay.anchors`), the mirror with
+  the clone-index-1 table (`Replay.mirrorAnchors`). `walkRigs(node,
+  anchorMap, isMirror)` shows only multi-instance templates
+  (`anchor.instances > 1`) in the mirror copy and hides everything else. For
+  equipment leaves (blades, pole parts), both copies are shown and
+  positioned per frame from the Rust-computed transforms in the frame bundle.
+  The per-frame update caches node references by side ("right"/"left") and
+  reads the flat frame data without any composition.
+- **Frame layout contract** (Phase 5b). The per-tick frame bundle is 225
+  `f32` values, starting at offset 0 and packed in this order: sequence (1),
+  HUD scalars (8: distance, pace, rate, elapsed, speed, ghost gap, finish
+  ETA, progress), camera (7: position xyz, aim xyz, fov), course (8: x, z,
+  yaw quat, bob, surge, roll quat), 19 semantic joints (133: 7 per joint —
+  translation xyz, rotation xyzw), equipment (64: seat z, oar-left/right
+  quats, blade-roll degrees, pole-left/right pos+quat, crank quat, wheel
+  quat, blade-left/right pos+quat, pole-leaves-left/right 3×xyz). QML reads
+  the layout's named offsets from `Replay.frameLayout` (a JSON object) and
+  indexes the flat `Replay.poseFrame` array by those offsets. Every transform
+  is computed in Rust (`rowplay_viewmodel::replay::frame`,
+  `equipment.rs`); QML assigns, never composes.
+- **Three gate assertions and what each catches** (Phase 5b). (1) Colour
+  diversity (≥64 distinct colours, no single colour >90%): catches blank or
+  single-colour renders — a completely failed scene or a sky-only frame.
+  (2) Fixed equipment inventory per sport (RowErg 6, SkiErg 8, BikeErg 4,
+  from the assets README): catches missing geometry. This assertion was added
+  because colour diversity alone passed with half the equipment absent — a
+  one-oared boat with no blades still showed high diversity from the sky
+  gradient and the ground plane. (3) Shadow luminance margin (≥5%, measured
+  8–12% on llvmpipe): catches shadow-map failures. The centre band (55–75%
+  of height, 40–60% of width) is compared against the far right edge, both
+  sampling unshaded ground; the sample regions are tied to the chase camera's
+  deterministic framing at t=0 for the demo workouts.
