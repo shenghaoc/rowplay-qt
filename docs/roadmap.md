@@ -256,25 +256,27 @@ Exit criteria: fmt / clippy / test pass across the workspace; the gate
 captures each sport's scene; the scene was run and looked at by hand under
 Wayland (`cargo run -p rowplay-app`).
 
-### Phase 5b — Replay playback
+### Phase 5b — Replay playback ✓
 
 - Transport (play / pause / seek / speed) over `replay::engine::ReplayState`
   in the `Replay` singleton, driven by one `FrameAnimation` → `tick(dt)` per
-  frame; the whole frame crosses the bridge once as a flat `Vec<f32>` pose
-  plus a HUD string bundle, with a test that counts the crossings.
-- The V4 athlete posed from the motion graph and stroke model (the per-sport
-  clips evaluated in Rust, then the analytic contact pass) through
-  `Skeleton` / `Joint` poses written in one pass; a recorded decision gate
-  falls back to the V3 leaf-slot athlete if a loaded glTF skeleton cannot be
-  retargeted without C++.
-- Equipment cloned onto the README anchors (oarlocks, seat carriage, ski
-  pair, wheels, frame, drivetrain), `InstanceList` where a template repeats,
-  moving parts following the rig contacts.
-- The web's chase camera (per-sport framing, speed FOV gain, damping via
-  `damp_factor`) computed in Rust inside `tick`; a HUD formatted in Rust
-  only; the reduce-motion toggle deferred from Phase 4.
-- Gate: per-sport playback captures at fixed times, plus a camera-target
-  parity test against a web golden.
+  frame; the whole frame crosses the bridge once as a flat `Vec<f32>` (225
+  floats), with a 600-tick test that asserts exactly one emission per tick.
+- The V4 athlete posed via `PoseSolver`: clip-time warping, translation-only
+  pelvis alignment, two-bone IK contact pass on each limb with the V4
+  contract's bone offsets, 19 semantic joints packed into the frame bundle.
+  The ADR 0008 decision gate resolved: balsam components expose the skin
+  joints by objectName with no C++ needed.
+- Equipment from two `Rigs` balsam components (primary + mirror) for the
+  README anchors: 2 oars + 2 blades, 2 skis + 6 pole parts, 2 wheels +
+  drivetrain + frame + hull + seat. All leaf transforms (blade positions,
+  pole-leaf positions) computed in Rust and packed into the frame.
+- The web's chase camera (per-sport framing, speed FOV gain, damped smoothing)
+  computed in Rust inside `tick`; HUD formatted in Rust only; reduce-motion
+  wired from Settings.
+- Gate: fixed equipment inventory per sport (6/8/4 from the assets README);
+  shadow luminance margin (≥5%); colour diversity. Sun-disc azimuth
+  confirmed correct for all three sports.
 
 ### Phase 5c — Quality tiers and polish
 
