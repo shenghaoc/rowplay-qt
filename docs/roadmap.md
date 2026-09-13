@@ -312,10 +312,46 @@ Wayland (`cargo run -p rowplay-app`).
 
 ### Phase 6 — Venues
 
-- A `tools/` Node script that runs rowplay's environment builder per sport and
-  exports `.glb` via `GLTFExporter`. Check for DOM / canvas dependencies first;
-  if they block Node, write an ADR.
-- The author does a Blender clean-up pass; results are vendored with provenance.
+**6a — the baking pipeline** (delivered, this PR):
+
+- Feasibility checked first (ADR 0010): the web builder runs under plain Node
+  — its only DOM references are the two guarded lines in
+  `loadEnvironmentTexture`, and the web repo's own vitest suite already builds
+  all three worlds under `environment: "node"`. No headless browser needed.
+  Two Node mechanics were required: `--experimental-transform-types` (the
+  builder class uses a constructor parameter property) and a resolve hook for
+  its extensionless relative imports.
+- Determinism: the builder's randomness is a module-scope unseeded
+  `SimplexNoise`; pinning `Math.random` (mulberry32, seed `20260913`) before
+  the module is imported fixes the permutation. A double bake is
+  byte-identical, asserted on every run.
+- `tools/bake-venues/`: one GLB per sport per tier (12 total; the geometry
+  differs at every `environmentDetail` level) plus a contract JSON, all from
+  one command (`tools/bake-venues/bake.sh`). Textures are not baked in —
+  bindings are recorded in the contract, `repeat` is multiplied into the GLB
+  UVs, and the procedural water/snow maps are encoded to PNG by the baker's
+  own deterministic `node:zlib` encoder. `InstancedMesh` is split into an
+  archetype mesh plus contract instance transforms, because balsam silently
+  drops `EXT_mesh_gpu_instancing` and Blender expands it.
+- Blender pass (`cleanup.py`, scripted, `--threads 1`, `PYTHONHASHSEED=0`):
+  drop loose/degenerate geometry, consolidate the material copies Blender
+  splits out (a shared material used by meshes that disagree about vertex
+  colours), verify every name/material/UV/colour layer survives, re-export.
+  No merge-by-material, no AO baking (ADR 0010).
+- Vendored into `assets/replay/venues/` (28 files, 9.66 MiB) with a reviewed
+  `MANIFEST.json`, SHA-256 pins in `tests/asset_hashes.rs`, rows in
+  `ASSET_PROVENANCE.md` and a `README.md` naming convention. The whole
+  `assets/replay/` tree measures 18.29 MiB, so ADR 0011 keeps plain Git and
+  raises the ADR 0009 tripwire to 100 MB on the measured numbers.
+- `rowplay_viewmodel::replay::venue::validate_venue` plus a `build.rs` drift
+  gate: bounded read, all nodes/materials named, `environment:<sport>:`
+  prefix, no embedded images, finite POSITION bounds, plausible world extent,
+  and a contract inventory cross-check. Defect classes are unit-tested.
+
+**6b — runtime**: loads each venue GLB through the same balsam path as the
+rigs, builds the contract's instance lists, rebinds the tier texture sets
+(Low/Medium load none), extends the gate with a per-sport venue inventory
+assertion and screenshots, and re-measures with vsync off.
 
 ### Phase 7 — Motion
 
