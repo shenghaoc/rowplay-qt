@@ -558,3 +558,29 @@ from), or have `run()` return non-zero when no root object was created.
   injects desktop-only keys with the English value into all six locales,
   keeping the pipeline as the single source. The i18n parity test pins at
   909 = 908 web + 1 supplement.
+- **`balsam` silently drops `EXT_mesh_gpu_instancing`** (Phase 6a). Feeding
+  Qt 6.11.2's `balsam` a GLB whose nodes carry three.js's
+  `EXT_mesh_gpu_instancing` extension (marked `extensionsRequired`) produces
+  a component with a single plain `Model` per node and no warning — every
+  instance collapses onto the origin. The extension is not in the list of
+  extensions balsam warns about, so this fails silently in a scene where the
+  only visible symptom is missing scenery. Minimal repro: export any three.js
+  `InstancedMesh` (three r184 `GLTFExporter`) and run
+  `balsam --removeComponentAnimations -o out in.glb`; the generated QML has
+  no `Instances`/`InstanceList` and the mesh appears once. Qt's own importer
+  (`QQuick3DInstancing`) does support the extension in QML form, so the gap is
+  the balsam conversion, not the runtime.
+- **Blender's glTF importer does not preserve object names for mesh nodes it
+  synthesises, and expands instances** (Phase 6a). For a glTF scene the
+  exporter wrote from three.js, Blender's importer created extra unnamed mesh
+  objects under the named empties where the source had instanced nodes, and
+  its exporter then wrote those children as `Mesh_6`, `Mesh_6.001`, …,
+  destroying the `objectName`-keyed runtime contract. Once the baker stopped
+  emitting `EXT_mesh_gpu_instancing` and named every node, Blender's round-trip
+  preserved all names 1:1 — but its importer also copies a shared material
+  into `name.001` copies when the meshes using it disagree about vertex
+  colours (Blender models vertex colour as a shader node, glTF as a per-vertex
+  attribute), and its default `export_vertex_color="MATERIAL"` then drops the
+  colour attribute for meshes whose shader no longer references it. The venue
+  clean-up script consolidates the copies back onto the base name and exports
+  with `export_vertex_color="ACTIVE"`.
