@@ -21,3 +21,6 @@ aqtinstall.log
 .qmlls.ini
 *.qmlc
 *.jsc
+
+# Venue bake scratch output (tools/bake-venues/bake.sh writes here)
+/build/
