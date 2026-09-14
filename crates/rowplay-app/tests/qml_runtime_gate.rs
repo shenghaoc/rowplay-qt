@@ -307,6 +307,128 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         );
     }
 
+    // Phase 6b: venue inventory. The scene logs one line per venue load with
+    // the structural counts, and one per tier texture readback. The oracle is
+    // the vendored contracts themselves (external to the app), keyed by
+    // (sport, tier): every venue line must exactly match the tier it was
+    // served at, a FAILED line anywhere fails the walk — a venue that does
+    // not load must fail the gate, not fall back to the bare ground plane.
+    let venue_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("assets")
+        .join("replay")
+        .join("venues");
+    let venue_inventory = |sport: &str| -> Vec<[usize; 4]> {
+        ["low", "medium", "high", "ultra"]
+            .iter()
+            .map(|tier| {
+                let text = std::fs::read_to_string(
+                    venue_dir.join(format!("rowplay-venue-{sport}-{tier}.json")),
+                )
+                .unwrap_or_else(|error| {
+                    panic!("read vendored venue contract {sport}/{tier}: {error}")
+                });
+                let contract: serde_json::Value =
+                    serde_json::from_str(&text).expect("vendored venue contract is valid JSON");
+                let inventory = &contract["inventory"];
+                [
+                    inventory["nodes"].as_u64().expect("nodes") as usize,
+                    contract["instancing"]
+                        .as_object()
+                        .map_or(0, serde_json::Map::len),
+                    inventory["instances"].as_u64().expect("instances") as usize,
+                    inventory["materials"].as_u64().expect("materials") as usize,
+                ]
+            })
+            .collect()
+    };
+    assert!(
+        !combined.contains("replay venue FAILED"),
+        "a venue failed to load; there is no silent fallback\n\napp log:\n{}",
+        common::gate_log_lines(&combined)
+    );
+    for (sport, tag) in [("rower", "row"), ("skierg", "ski"), ("bike", "bike")] {
+        let expected = venue_inventory(sport);
+        let needle = format!("replay venue {tag}:");
+        let lines: Vec<&str> = combined
+            .lines()
+            .filter(|line| line.contains(&needle))
+            .collect();
+        assert!(
+            !lines.is_empty(),
+            "no venue log for {sport}; the walk must load a venue per sport\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+        for line in &lines {
+            let rest = line.split(&needle).nth(1).unwrap_or("");
+            let numbers: Vec<usize> = rest
+                .split(|c: char| !c.is_ascii_digit())
+                .filter(|part| !part.is_empty())
+                .filter_map(|part| part.parse().ok())
+                .collect();
+            assert!(
+                expected.iter().any(|inv| inv == numbers.as_slice()),
+                "{sport} venue load {numbers:?} matches no tier inventory {expected:?}\n\n\
+                 app log:\n{}",
+                common::gate_log_lines(&combined)
+            );
+        }
+    }
+
+    // Per-tier venue texture counts. The tier cycle runs on the rower scene;
+    // ski and bike log once each at the walk's default tier (medium). The
+    // expected counts are the texture bindings the contract carries at that
+    // tier (Low binds none — the environments README rule; Ultra's normal
+    // bindings only exist in the Ultra contracts, matching the resolver's
+    // normalMaps flag). Texture *objects* are shared across variants by
+    // source; the logged count is the bindings a walk applied.
+    let venue_texture_counts = |sport: &str| -> Vec<(String, usize)> {
+        ["low", "medium", "high", "ultra"]
+            .iter()
+            .map(|tier| {
+                let text = std::fs::read_to_string(
+                    venue_dir.join(format!("rowplay-venue-{sport}-{tier}.json")),
+                )
+                .expect("venue contract");
+                let contract: serde_json::Value =
+                    serde_json::from_str(&text).expect("venue contract JSON");
+                let bindings: usize = contract["materials"]
+                    .as_object()
+                    .expect("materials")
+                    .values()
+                    .filter_map(|material| material["textures"].as_object())
+                    .map(serde_json::Map::len)
+                    .sum();
+                (tier.to_string(), bindings)
+            })
+            .collect()
+    };
+    for (sport, tag) in [("rower", "row"), ("skierg", "ski"), ("bike", "bike")] {
+        let expected = venue_texture_counts(sport);
+        let needle = format!("replay venue {tag} textures ");
+        for line in combined.lines().filter(|line| line.contains(&needle)) {
+            let rest = line.split(&needle).nth(1).unwrap_or("");
+            let mut parts = rest.split_whitespace();
+            let tier = parts.next().unwrap_or("").trim_end_matches(':');
+            let count: usize = parts
+                .next()
+                .and_then(|c| c.parse().ok())
+                .unwrap_or(usize::MAX);
+            let expected_count = expected.iter().find(|(name, _)| name == tier).map_or_else(
+                || panic!("{tag}: unknown venue tier {tier}"),
+                |(_, count)| *count,
+            );
+            assert_eq!(
+                count,
+                expected_count,
+                "{sport} venue textures at {tier}: expected {expected_count} unique \
+                 sources\n\napp log:\n{}",
+                common::gate_log_lines(&combined)
+            );
+        }
+    }
+
     // Phase 5a spec R6.1/R6.2: when this walk ran with a screenshot
     // directory, each sport's replay capture must be a real render — loaded
     // equipment, not a blank or single-colour frame. This must live in the

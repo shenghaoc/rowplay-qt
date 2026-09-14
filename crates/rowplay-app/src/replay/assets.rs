@@ -32,7 +32,6 @@ impl Meta {
         .expect("replay_assets_meta.json");
         Meta { raw }
     }
-
     /// `balsam`: the generated-component path (the only shipped mode).
     #[must_use]
     pub fn asset_mode(&self) -> &str {
@@ -127,4 +126,39 @@ pub fn validate_on_disk(
     let bytes = std::fs::read(dev_dir.join(file))
         .map_err(|error| glb::AssetError::Container(error.to_string()))?;
     glb::validate_v3(&bytes)
+}
+
+/// The embedded venue runtime plans (Phase 6b), written by `build.rs` after
+/// the 6a drift gate: per sport and tier, the balsam component URL, the
+/// material specs with resolved rcc texture sources, the bucketed instance
+/// groups and the structural inventory the gate asserts.
+pub struct VenueMeta {
+    raw: serde_json::Value,
+}
+
+impl VenueMeta {
+    /// The build-time plans of all twelve variants.
+    #[must_use]
+    pub fn embedded() -> VenueMeta {
+        let raw: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("OUT_DIR"),
+            "/replay_venues_meta.json"
+        )))
+        .expect("replay_venues_meta.json");
+        VenueMeta { raw }
+    }
+
+    /// The plan for one sport and tier, with the loadable component URL.
+    #[must_use]
+    pub fn plan(&self, sport: &str, tier: &str) -> Option<serde_json::Value> {
+        let mut plan = self
+            .raw
+            .get(format!("rowplay-venue-{sport}-{tier}"))?
+            .clone();
+        let component = plan["component"].as_str()?.to_owned();
+        plan["url"] =
+            format!("qrc:/qt/qml/RowPlay/ReplayAssets/venues/{sport}-{tier}/{component}.qml")
+                .into();
+        Some(plan)
+    }
 }

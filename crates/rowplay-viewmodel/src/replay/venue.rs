@@ -115,6 +115,8 @@ pub struct VenuePackage {
     pub materials: Vec<String>,
     /// Instance-group node names (contract `instancing` keys).
     pub instance_groups: Vec<String>,
+    /// Total instance transforms across all groups.
+    pub instances: u64,
     /// Meshes the web builds but hides (not present in the GLB).
     pub hidden: Vec<String>,
     /// World-space `(min, max)` over all POSITION accessors.
@@ -133,6 +135,9 @@ impl VenuePackage {
             "seed": self.seed,
             "nodes": self.nodes.len(),
             "meshes": self.mesh_count,
+            "instancedMeshes": self.instance_groups.len(),
+            "instances": self.instances,
+            "materials": self.materials.len(),
             "instanceGroups": self.instance_groups,
             "hidden": self.hidden,
         })
@@ -319,6 +324,12 @@ pub fn validate_venue(glb_bytes: &[u8], contract_json: &str) -> Result<VenuePack
         nodes,
         materials,
         instance_groups,
+        instances: contract
+            .instancing
+            .values()
+            .filter_map(Value::as_array)
+            .map(|list| list.len() as u64)
+            .sum(),
         hidden: contract.hidden,
         bounds,
         mesh_count,

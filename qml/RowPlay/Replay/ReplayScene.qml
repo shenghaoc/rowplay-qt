@@ -151,6 +151,69 @@ Item {
             materials: PrincipledMaterial { baseColor: Replay.groundColor; roughness: 0.9 }
         }
 
+        // ---- Venue (Phase 6b): the twelve baked venue variants ----
+        // The GLBs are authored in the web's course space (innerR 22 /
+        // outerR 34, y-up, metres), so the components sit at the origin with
+        // no offset. All twelve are instantiated statically — the balsam
+        // components are engine-owned, which a dynamically created 3D
+        // component is not reliably part of the renderable scene (found in
+        // 6b; qt-bridges-notes) — and exactly the (sport, effective tier)
+        // match is visible. Visibility flips are instant, so governor
+        // step-downs swap the venue without a reload. Each variant is walked
+        // (materials, instance buckets, tier textures) once, on first show.
+        Node {
+            id: venueRoot
+
+            VenueRowerLow {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 0
+                         && Replay.effectiveQuality === 0
+            }
+            VenueRowerMedium {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 0
+                         && Replay.effectiveQuality === 1
+            }
+            VenueRowerHigh {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 0
+                         && Replay.effectiveQuality === 2
+            }
+            VenueRowerUltra {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 0
+                         && Replay.effectiveQuality === 3
+            }
+            VenueSkiLow {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 1
+                         && Replay.effectiveQuality === 0
+            }
+            VenueSkiMedium {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 1
+                         && Replay.effectiveQuality === 1
+            }
+            VenueSkiHigh {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 1
+                         && Replay.effectiveQuality === 2
+            }
+            VenueSkiUltra {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 1
+                         && Replay.effectiveQuality === 3
+            }
+            VenueBikeLow {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 2
+                         && Replay.effectiveQuality === 0
+            }
+            VenueBikeMedium {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 2
+                         && Replay.effectiveQuality === 1
+            }
+            VenueBikeHigh {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 2
+                         && Replay.effectiveQuality === 2
+            }
+            VenueBikeUltra {
+                visible: Replay.loadState !== "error" && Replay.sportIndex === 2
+                         && Replay.effectiveQuality === 3
+            }
+        }
+
         // ---- Course / rig hierarchy ----
         Node {
             id: courseNode
@@ -398,7 +461,12 @@ Item {
         target: Replay
         function onFrameChanged() { replayRoot.applyFrame() }
         function onReplayChanged() {
-            if (Replay.loadState === "ready") replayRoot.applySceneRules()
+            if (Replay.loadState === "ready") {
+                replayRoot.applySceneRules()
+                // Venue: all tier/quality/sport notifications share one
+                // signal, so detect what actually changed.
+                replayRoot.syncVenue()
+            }
         }
     }
     onWidthChanged: Replay.setViewport(width, height)
@@ -458,6 +526,8 @@ Item {
         ghostJointNodes = gjn
         if (!validateMaterials()) return
         applySceneRules()
+        venueSchemeCached = Replay.schemeDark
+        syncVenue()
         Replay.reportReady()
     }
 
@@ -601,6 +671,232 @@ Item {
                     + " shadow=" + keyLight.castsShadow)
         console.log("replay textures " + tierTag + ":", sets.length, "sets",
                     sets.length > 0 ? sets.join(",") : "(none)")
+    }
+
+    // ---- Venue (Phase 6b) ----
+    // The twelve baked variants are instantiated statically inside the scene
+    // (venueRoot); exactly the (sport, effective tier) match is visible. Each
+    // variant is walked once — materials from the contract, bucketed
+    // InstanceLists, tier-gated textures — on first show; the walk registries
+    // live for the whole session (bounded: ~350 materials and ~70 instance
+    // lists across all twelve variants, textures shared by source).
+    property var venueMaterials: ({})
+    property var venueTextureCache: ({})
+    property var venueWalked: ({})
+    property bool venueSchemeCached: false
+
+    function syncVenue() {
+        if (Replay.loadState !== "ready") return
+        var key = Replay.sportIndex + "|" + Replay.effectiveQuality
+        if (venueWalked[key] === true) {
+            if (venueSchemeCached !== Replay.schemeDark) {
+                venueSchemeCached = Replay.schemeDark
+                retintVenue()
+            }
+            return
+        }
+        var plan = Replay.venuePlan
+        if (!plan || !plan.inventory) return
+        venueWalked[key] = true
+        venueSchemeCached = Replay.schemeDark
+        // The twelve variants sit inside venueRoot in (sport asc, tier asc)
+        // declaration order.
+        var item = venueRoot.children[Replay.sportIndex * 4 + Replay.effectiveQuality]
+        if (!item) {
+            failVenue("no static component for " + key)
+            return
+        }
+        applyVenuePlan(item, plan)
+    }
+
+    function failVenue(reason) {
+        var sportTag = ["row", "ski", "bike"][Replay.sportIndex]
+        console.warn("replay venue FAILED " + sportTag + ":", reason)
+        Replay.reportError("venue load failed: " + reason)
+    }
+
+    // One-time tinted-hex helper: multiply the sRGB channels of "#rrggbb"
+    // by the bucket's tint (a linear scatterTint multiplier). Runs at walk
+    // time only — never per frame.
+    function tintedHex(hex, tint) {
+        var r = parseInt(hex.substr(1, 2), 16) / 255.0
+        var g = parseInt(hex.substr(3, 2), 16) / 255.0
+        var b = parseInt(hex.substr(5, 2), 16) / 255.0
+        var channel = function (value) {
+            var out = Math.min(1.0, Math.max(0.0, value))
+            return Math.round(out * 255).toString(16).padStart(2, "0")
+        }
+        return "#" + channel(r * tint[0]) + channel(g * tint[1]) + channel(b * tint[2])
+    }
+
+    function venueBaseColor(spec, tint) {
+        var hex = Replay.schemeDark ? spec.colorDark : spec.colorLight
+        return tint ? tintedHex(hex, tint) : hex
+    }
+
+    // Build (or reuse) the material for one contract entry. Keys are scoped
+    // per variant: tiers bind different texture sets under the same material
+    // name, and a reused entry would carry one tier's textures into another.
+    // `tint` is set only for instance-bucket materials; `original` is the
+    // placeholder material balsam generated, which carries the authored
+    // clearcoat values the contract does not duplicate.
+    function venueMaterial(variantKey, name, tint, original) {
+        var key = variantKey + "|" + name + (tint ? "#" + tint.join(",") : "")
+        if (venueMaterials[key] !== undefined)
+            return { material: venueMaterials[key].material, bindings: 0 }
+        var spec = Replay.venuePlan.materials[name]
+        if (spec === undefined) {
+            failVenue("plan has no material " + name)
+            return null
+        }
+        var properties = {
+            objectName: key,
+            baseColor: Qt.color(venueBaseColor(spec, tint)),
+            metalness: spec.metalness,
+            roughness: spec.roughness
+        }
+        if (spec.alphaMode === "blend") {
+            properties.alphaMode = PrincipledMaterial.Blend
+            properties.opacity = spec.opacity
+        }
+        if (spec.type === "basic") properties.lighting = PrincipledMaterial.NoLighting
+        if (spec.type === "physical" && original !== undefined) {
+            properties.clearcoatAmount = original.clearcoatAmount
+            properties.clearcoatRoughnessAmount = original.clearcoatRoughnessAmount
+        }
+        if (spec.doubleSided) properties.cullMode = PrincipledMaterial.NoCulling
+        if (spec.vertexColors) properties.vertexColorsEnabled = true
+        var material = Qt.createQmlObject(
+            "import QtQuick3D; PrincipledMaterial {}", venueRoot, "venueMaterial")
+        for (var property in properties) material[property] = properties[property]
+        var bindings = bindVenueTextures(material, spec)
+        venueMaterials[key] = { material: material, spec: spec, tint: tint || null }
+        return { material: material, bindings: bindings }
+    }
+
+    // Tier-gated texture binding (R3.1): instantiate exactly the bindings the
+    // contract carries for this tier's variant — none at Low (the web builds
+    // those variants with no slots at all), procedural-only at Medium, sets
+    // at High, plus normals at Ultra. Texture objects are shared across
+    // variants by source (the same Poly Haven derivative); the returned count
+    // is the bindings this walk applied. UV repeat is already baked into the
+    // GLB's UVs; textures must repeat for tiles beyond 0–1. The contract
+    // keeps the web's slot names; Qt's diffuse slot is `baseColorMap`.
+    function bindVenueTextures(material, spec) {
+        var textures = spec.textures
+        if (!textures) return 0
+        var bindings = 0
+        for (var slot in textures) {
+            var binding = textures[slot]
+            if (slot === "normalMap" && !(Replay.tierSettings
+                                          && Replay.tierSettings.normalMaps)) continue
+            var texture = venueTextureCache[binding.source]
+            if (texture === undefined) {
+                texture = Qt.createQmlObject(
+                    "import QtQuick3D; Texture { tilingModeHorizontal: Texture.Repeat; tilingModeVertical: Texture.Repeat }",
+                    venueRoot, "venueTexture")
+                texture.source = binding.source
+                venueTextureCache[binding.source] = texture
+            }
+            var qmlSlot = slot === "map" ? "baseColorMap" : slot
+            material[qmlSlot] = texture
+            // Qt 6.11 renamed PrincipledMaterial.normalScale (vector2d) to
+            // normalStrength (float); the web's authored scales are uniform.
+            if (slot === "normalMap" && spec.normalScale !== undefined)
+                material.normalStrength = spec.normalScale[0]
+            bindings += 1
+        }
+        return bindings
+    }
+
+    // Turn one archetype Model into its bucketed InstanceLists. The bucket
+    // tints ride on cloned materials (no custom shaders).
+    function applyInstanceGroup(variantKey, node, plan) {
+        var buckets = plan.buckets
+        for (var b = 0; b < buckets.length; ++b) {
+            var bucket = buckets[b]
+            var qml = "import QtQuick3D; InstanceList { instances: ["
+            for (var i = 0; i < bucket.transforms.length; ++i) {
+                var t = bucket.transforms[i]
+                qml += "Instance { position: Qt.vector3d(" + t[0] + "," + t[1] + "," + t[2] + ")"
+                qml += "; rotation: Qt.quaternion(" + t[6] + "," + t[3] + "," + t[4] + "," + t[5] + ")"
+                qml += "; scale: Qt.vector3d(" + t[7] + "," + t[8] + "," + t[9] + ") },"
+            }
+            qml += "] }"
+            var list = Qt.createQmlObject(qml, venueRoot, "venueInstances")
+            var built = venueMaterial(variantKey, node.materials[0].objectName,
+                                      bucket.tint, node.materials[0])
+            if (built === null) return 0
+            // A Model carries exactly one instancing, so each bucket draws
+            // through its own Model over the shared archetype mesh. The
+            // archetype sits at identity (the baker premultiplied the group
+            // transform into the instance records), so the clones need no
+            // transform of their own.
+            var target = node
+            if (b > 0) {
+                target = Qt.createQmlObject("import QtQuick3D; Model {}",
+                                            node.parent, "venueBucketModel")
+                target.source = node.source
+                target.castsShadows = node.castsShadows
+                target.receivesShadows = node.receivesShadows
+            }
+            target.instancing = list
+            target.materials = [built.material]
+        }
+        return buckets.length
+    }
+
+    // Walk one static venue variant: re-material every Model from the plan,
+    // and convert instance-group archetypes into bucketed instanced draws.
+    function walkVenue(variantKey, node, plan) {
+        var instanceGroups = plan.instanceGroups
+        var children = node.children
+        var applied = 0
+        for (var i = 0; children && i < children.length; ++i) {
+            var child = children[i]
+            if (child.instancing !== undefined && child.source !== undefined) {
+                var groupPlan = instanceGroups[child.objectName]
+                if (groupPlan !== undefined) {
+                    applied += applyInstanceGroup(variantKey, child, groupPlan)
+                } else if (child.materials.length > 0) {
+                    var built = venueMaterial(variantKey, child.materials[0].objectName,
+                                              null, child.materials[0])
+                    if (built === null) return applied
+                    child.materials = [built.material]
+                    applied += built.bindings
+                }
+            }
+            applied += walkVenue(variantKey, child, plan)
+        }
+        return applied
+    }
+
+    function applyVenuePlan(item, plan) {
+        var key = Replay.sportIndex + "|" + Replay.effectiveQuality
+        var applied = walkVenue(key, item, plan)
+        var inv = plan.inventory
+        var groups = plan.instanceGroups.length
+        var instances = 0
+        for (var g = 0; g < plan.instanceGroups.length; ++g) {
+            var buckets = plan.instanceGroups[g].buckets
+            for (var b = 0; b < buckets.length; ++b)
+                instances += buckets[b].transforms.length
+        }
+        var sportTag = ["row", "ski", "bike"][Replay.sportIndex]
+        console.log("replay venue " + sportTag + ":", inv.nodes, "nodes,",
+                    groups, "instanced groups,", instances, "instances,",
+                    inv.materials, "materials")
+        var tierTag = ["low", "medium", "high", "ultra"][Replay.effectiveQuality] || "medium"
+        console.log("replay venue " + sportTag + " textures " + tierTag + ":",
+                    applied)
+    }
+
+    // Scheme change: re-tint the retained materials in place — no re-walk.
+    function retintVenue() {
+        for (var key in venueMaterials) {
+            var entry = venueMaterials[key]
+            entry.material.baseColor = Qt.color(venueBaseColor(entry.spec, entry.tint))
+        }
     }
 
     // Walk one balsam Rigs component: assign materials, show/hide by sport,

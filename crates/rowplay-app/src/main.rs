@@ -28,6 +28,11 @@ static I18N_RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay
 /// their meshes. See `build.rs` for why the scene loads through balsam
 /// instead of `RuntimeLoader`.
 static REPLAY_RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay_replay.rcc"));
+/// The venue surface textures (Phase 6b): the Poly Haven set derivatives and
+/// the bake's procedural maps, under `/qt/qml/RowPlay/Environments/…`. Bound
+/// to venue materials only at High and Ultra (the environments README tiers).
+static ENVIRONMENT_RESOURCES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/rowplay_environments.rcc"));
 
 fn main() -> ExitCode {
     let mut app = QApp::new();
@@ -44,6 +49,10 @@ fn main() -> ExitCode {
     assert!(
         qtbridge::qresource::register_bytes(REPLAY_RESOURCES),
         "failed to register the replay asset bundle"
+    );
+    assert!(
+        qtbridge::qresource::register_bytes(ENVIRONMENT_RESOURCES),
+        "failed to register the environment texture bundle"
     );
 
     // The Phase 0 smoke scene keeps its own window so the stack screenshot
