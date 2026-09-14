@@ -19,6 +19,16 @@ on:
   schedule:
     - cron: "23 3 * * *"
   workflow_dispatch:
+  # Also run on changes that could break the bake: the tooling itself, the
+  # vendored artifacts, or this workflow. A scheduled-only workflow rots
+  # silently — the first version of this file 404'd on the Blender download
+  # for a week because nothing ever executed it on a pull request.
+  pull_request:
+    paths:
+      - ".github/workflows/venue-bake-check.yml"
+      - "tools/bake-venues/**"
+      - "tools/vendor-venues.py"
+      - "assets/replay/venues/**"
 
 env:
   # Pinned in docs/source-map.md; must match tools/vendor-venues.py and
@@ -28,6 +38,9 @@ env:
   # hygiene pass (triangulation, degenerate dissolve) is not identical
   # across Blender versions, so reproduction requires the same one.
   BLENDER_VERSION: "5.2.1"
+  # Blender's download site files releases under their major.minor series
+  # directory (`Blender5.2/`), not the full patch version.
+  BLENDER_SERIES: "5.2"
 
 jobs:
   bake:
@@ -56,9 +69,10 @@ jobs:
         run: |
           cd /tmp
           curl -fsSL --retry 3 \
-            "https://download.blender.org/release/Blender${BLENDER_VERSION}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
+            "https://download.blender.org/release/Blender${BLENDER_SERIES}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
             -o blender.tar.xz
           tar -xJf blender.tar.xz
+          test -x "/tmp/blender-${BLENDER_VERSION}-linux-x64/blender"
           echo "BLENDER_BIN=/tmp/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
 
       - name: Bake all twelve variants (Blender pass, finalize, byte-verify one)
