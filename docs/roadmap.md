@@ -419,8 +419,29 @@ Wayland (`cargo run -p rowplay-app`).
 
 ### Phase 7 — Motion
 
-- Drive the V4 athlete from the motion graph (Studio's production path ignores
-  it), plus per-stroke variation. Enables the grip / equipment parity fixtures.
+Status: in progress (spec + slice 1 landed).
+
+The exploration finding (spec R0): the web's V4 is "clip-contact-constrained"
+— the motion graph drives a procedural rig that provides contact targets, and
+the V4 skin constrains onto them. The Rust port already matches that split
+(`solve_rig_pose` consumes the parity-pinned graph and derives targets;
+`PoseSolver` constrains the clip onto them), so Phase 7 completes the **hand
+layer** the port leaves at clip identity rather than rewiring the athlete.
+
+- Slice 1 (landed): `rowplay_core::replay::hand_grip` — the port of the web's
+  `handGrip.ts` geometry-closure grip: fitted channel constants, hand-local
+  digit chains, and `solve_hand_grip_closure` (staged bounded flexion with
+  first-contact bisection, mid-range-touch bracketing, the thicker-than-span
+  emerge search, thumb end-press with its own pad allowance, the `v4*Fingers`
+  carrying cup, and the opt-in final-enclosure wrap search) with signed
+  contact reports. `grip_closure_parity` is enabled and matches the vendored
+  fixture exactly (3 sports × 2 hands, every pose and contact at 1e-9), with
+  9 module invariant tests alongside.
+- Remaining: wrist budgets and the equipment projections
+  (`orientHandToGripChannel`, `constrainWristFrame`, spin/tilt refinement) and
+  the equipment parity fixture; per-frame hand orientation in `PoseSolver`;
+  the runtime pose table + gate grip-contact assertion; per-stroke
+  verification; docs.
 
 ### Phase 8 — Live mode
 
