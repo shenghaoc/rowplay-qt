@@ -380,6 +380,16 @@ Wayland (`cargo run -p rowplay-app`).
   | SkiErg | 11.6 / 20.5 / 46 | 11.4 / 21.1 / 47 | 12.1 / 28.2 / 53 | 12.2 / 26.9 / 52 |
   | BikeErg | 10.9 / 21.2 / 47 | 10.5 / 21.0 / 49 | 11.4 / 22.7 / 50 | 11.7 / 23.5 / 54 |
 
+  All measurements in this project are taken on a **debug binary** — the
+  gate and bench hooks (`ROWPLAY_SMOKE_GATE`, `ROWPLAY_REPLAY_BENCH`) are
+  compiled out of release builds by design — which keeps the 6b table
+  comparable with 5c's. The corollary: debug Rust is slower on the CPU side
+  of `tick`, so the ~10–12 ms medians are partly an artifact and a release
+  build should floor lower; a one-off release spot check (test hooks
+  temporarily enabled locally) is recorded in `docs/qt-bridges-notes.md`.
+  The finding: medians are identical across builds (the ~10–12 ms floor is
+  real render cost, not a debug artifact) and the p95 differences are within
+  run-to-run variance.
   The default tier (Medium) **holds its 22 ms budget with venues present**
   (p95 20.4–21.1 ms, medians ~9.7–11.4 ms — 5c measured 20.0–20.6 ms p95
   without venues): the venue geometry is static and largely hidden behind the
