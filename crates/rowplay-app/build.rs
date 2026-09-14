@@ -227,8 +227,9 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
     // Phase 6a: every vendored venue pair (3 sports x 4 quality tiers) is
     // read back and checked against its contract at build time, so a bad bake
     // fails the build naming the file and rule instead of rendering wrong (the
-    // `validate_v3` pattern). The structural inventory is embedded for the
-    // runtime and the gate.
+    // `validate_v3` pattern). Phase 6b embeds the full runtime plan —
+    // materials with resolved rcc texture sources and bucketed instance
+    // groups — so the scene can build the venue without re-parsing anything.
     let venues = assets.join("venues");
     let mut venue_meta = serde_json::Map::new();
     for sport in ["rower", "skierg", "bike"] {
@@ -247,7 +248,14 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
                     .unwrap_or_else(|error| {
                         panic!("vendored venue {stem} fails its contract: {error}")
                     });
-            venue_meta.insert(stem.clone(), package.inventory_json());
+            let contract_value: serde_json::Value = serde_json::from_str(&contract_json)
+                .unwrap_or_else(|error| panic!("parse {stem} contract: {error}"));
+            let plan =
+                rowplay_viewmodel::replay::venue_runtime::venue_plan(sport, tier, &contract_value)
+                    .unwrap_or_else(|error| panic!("venue plan {stem}: {error}"));
+            let mut entry = plan.to_json();
+            entry["inventory"] = package.inventory_json();
+            venue_meta.insert(stem, entry);
         }
     }
     std::fs::write(
@@ -279,13 +287,88 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
         .join("replay");
 
     // (source GLB, generated component, module subdirectory, exported type)
-    const PACKS: [(&str, &str, &str, &str); 2] = [
+    // The venues' stems match `venue_runtime::component_name` ("skierg"
+    // trims to "ski"), so the scene can compute component URLs from the
+    // sport and tier alone.
+    const PACKS: [(&str, &str, &str, &str); 14] = [
         ("rowplay-rigs-v3.glb", "Rowplay_rigs_v3.qml", "rigs", "Rigs"),
         (
             "rowplay-athlete-v4.glb",
             "Rowplay_athlete_v4.qml",
             "athlete",
             "Athlete",
+        ),
+        (
+            "venues/rowplay-venue-rower-low.glb",
+            "Rowplay_venue_rower_low.qml",
+            "venues/rower-low",
+            "VenueRowerLow",
+        ),
+        (
+            "venues/rowplay-venue-rower-medium.glb",
+            "Rowplay_venue_rower_medium.qml",
+            "venues/rower-medium",
+            "VenueRowerMedium",
+        ),
+        (
+            "venues/rowplay-venue-rower-high.glb",
+            "Rowplay_venue_rower_high.qml",
+            "venues/rower-high",
+            "VenueRowerHigh",
+        ),
+        (
+            "venues/rowplay-venue-rower-ultra.glb",
+            "Rowplay_venue_rower_ultra.qml",
+            "venues/rower-ultra",
+            "VenueRowerUltra",
+        ),
+        (
+            "venues/rowplay-venue-skierg-low.glb",
+            "Rowplay_venue_skierg_low.qml",
+            "venues/skierg-low",
+            "VenueSkiLow",
+        ),
+        (
+            "venues/rowplay-venue-skierg-medium.glb",
+            "Rowplay_venue_skierg_medium.qml",
+            "venues/skierg-medium",
+            "VenueSkiMedium",
+        ),
+        (
+            "venues/rowplay-venue-skierg-high.glb",
+            "Rowplay_venue_skierg_high.qml",
+            "venues/skierg-high",
+            "VenueSkiHigh",
+        ),
+        (
+            "venues/rowplay-venue-skierg-ultra.glb",
+            "Rowplay_venue_skierg_ultra.qml",
+            "venues/skierg-ultra",
+            "VenueSkiUltra",
+        ),
+        (
+            "venues/rowplay-venue-bike-low.glb",
+            "Rowplay_venue_bike_low.qml",
+            "venues/bike-low",
+            "VenueBikeLow",
+        ),
+        (
+            "venues/rowplay-venue-bike-medium.glb",
+            "Rowplay_venue_bike_medium.qml",
+            "venues/bike-medium",
+            "VenueBikeMedium",
+        ),
+        (
+            "venues/rowplay-venue-bike-high.glb",
+            "Rowplay_venue_bike_high.qml",
+            "venues/bike-high",
+            "VenueBikeHigh",
+        ),
+        (
+            "venues/rowplay-venue-bike-ultra.glb",
+            "Rowplay_venue_bike_ultra.qml",
+            "venues/bike-ultra",
+            "VenueBikeUltra",
         ),
     ];
 
@@ -401,4 +484,72 @@ fn main() {
     build_i18n_resources(&rcc, &out_dir);
     build_replay_balsam(&manifest_dir, &out_dir, &rcc);
     build_replay_asset_meta(&manifest_dir, &out_dir);
+    build_environments_resource(&manifest_dir, &rcc, &out_dir);
+}
+
+/// Bundles the venue surface textures — the Poly Haven set derivatives and
+/// the bake's procedural maps — as a fourth binary resource under
+/// `/qt/qml/RowPlay/Environments/…`, mirroring the `assets/replay` layout
+/// the venue plans' `source` fields point at (Phase 6b spec R3.1). Not a QML
+/// module: plain resources the scene's `Texture { source }` bindings load.
+fn build_environments_resource(manifest_dir: &Path, rcc: &Path, out_dir: &Path) {
+    let replay = manifest_dir
+        .join("..")
+        .join("..")
+        .join("assets")
+        .join("replay");
+    let mut entries = Vec::new();
+    // Two layouts: `environments/<family>/<file>` and `procedural/<file>`.
+    for (dir, alias_prefix) in [
+        (replay.join("environments"), "environments"),
+        (replay.join("venues").join("procedural"), "procedural"),
+    ] {
+        let mut paths: Vec<PathBuf> = std::fs::read_dir(&dir)
+            .unwrap_or_else(|error| panic!("read {}: {error}", dir.display()))
+            .map(|entry| entry.expect("environments entry").path())
+            .collect();
+        paths.sort();
+        for path in paths {
+            if path.is_dir() {
+                let name = path.file_name().expect("dir name").to_string_lossy();
+                let mut sub: Vec<PathBuf> = std::fs::read_dir(&path)
+                    .expect("read set dir")
+                    .map(|entry| entry.expect("set entry").path())
+                    .filter(|sub| sub.is_file())
+                    .collect();
+                sub.sort();
+                for file in sub {
+                    let file_name = file.file_name().expect("file name").to_string_lossy();
+                    println!("cargo::rerun-if-changed={}", file.display());
+                    entries.push(format!(
+                        "        <file alias=\"{alias_prefix}/{name}/{file_name}\">{}</file>",
+                        file.display()
+                    ));
+                }
+            } else {
+                let name = path.file_name().expect("file name").to_string_lossy();
+                println!("cargo::rerun-if-changed={}", path.display());
+                entries.push(format!(
+                    "        <file alias=\"{alias_prefix}/{name}\">{}</file>",
+                    path.display()
+                ));
+            }
+        }
+    }
+    assert!(
+        entries.len() >= 39 + 4,
+        "expected the 39 environment maps plus the procedural PNGs, found {}",
+        entries.len()
+    );
+    // Absolute <file> paths need no qrc-relative resolution; rcc accepts them.
+    let qrc = out_dir.join("rowplay_environments.qrc");
+    std::fs::write(
+        &qrc,
+        format!(
+            "<!DOCTYPE RCC>\n<RCC version=\"1.0\">\n    <qresource prefix=\"/qt/qml/RowPlay/Environments\">\n{}\n    </qresource>\n</RCC>\n",
+            entries.join("\n")
+        ),
+    )
+    .expect("write rowplay_environments.qrc");
+    rcc_binary(rcc, &qrc, &out_dir.join("rowplay_environments.rcc"));
 }

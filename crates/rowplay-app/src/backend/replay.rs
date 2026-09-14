@@ -81,6 +81,9 @@ pub struct ReplayBackend {
     // Tier settings resolved from (quality, sport) — the scene reads this
     // to apply shadows, MSAA, textures.
     tier_settings: serde_json::Value,
+    // The active venue's runtime plan (component URL, materials, bucketed
+    // instance groups, inventory) for the current (sport, effective tier).
+    venue_plan: serde_json::Value,
     quality_index: i64,
     // Load state: the startup validation result, then the scene's report.
     load_state: String,
@@ -242,6 +245,7 @@ impl Default for ReplayBackend {
                 quality_from_index(AppState::get().prefs().replay_quality),
                 Sport::Rower,
             ),
+            venue_plan: serde_json::Value::Null,
             quality_index: i64::from(AppState::get().prefs().replay_quality.unwrap_or(1)),
             load_state,
             error_text,
@@ -365,6 +369,10 @@ impl ReplayBackend {
         Member = tier_settings,
         Notify = replay_changed
     );
+    // The active venue's plan (component URL, materials, bucketed instance
+    // groups, inventory) for the current sport + effective tier; refreshed
+    // whenever either changes.
+    qproperty!("venuePlan", Member = venue_plan, Notify = replay_changed);
     qproperty!(
         "qualityIndex",
         Member = quality_index,
@@ -787,6 +795,17 @@ impl ReplayBackend {
         // than the user's selected quality_index.
         let quality = quality_from_index(Some(self.effective_quality as u8));
         self.tier_settings = tier_settings_json(quality, self.sport());
+        self.refresh_venue_plan();
+    }
+
+    /// The venue plan for the current (sport, effective tier); the scene
+    /// (re)loads its venue component whenever this changes.
+    fn refresh_venue_plan(&mut self) {
+        const TIERS: [&str; 4] = ["low", "medium", "high", "ultra"];
+        let tier = TIERS[self.effective_quality.clamp(0, 3) as usize];
+        self.venue_plan = crate::replay::assets::VenueMeta::embedded()
+            .plan(sport_name(self.sport()), tier)
+            .unwrap_or(serde_json::Value::Null);
     }
 
     /// The single emission site of the per-frame notify (spec R1.3): counted
