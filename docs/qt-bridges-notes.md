@@ -584,3 +584,26 @@ from), or have `run()` return non-zero when no root object was created.
   colour attribute for meshes whose shader no longer references it. The venue
   clean-up script consolidates the copies back onto the base name and exports
   with `export_vertex_color="ACTIVE"`.
+- **Dynamically created Quick 3D components never reach the rendered frame**
+  (Phase 6b). `Qt.createComponent("qrc:…/balsam-component.qml")` +
+  `component.createObject(sceneNode)` builds a complete, walkable object tree
+  (children enumerable, `objectName`s intact) parented to a `Node` inside a
+  `View3D` — but nothing from that subtree ever rasterises: no warnings, no
+  "was not placed in the graphics scene", frames just show the rest of the
+  scene. Proven by swapping the same component to a static declaration
+  (renders immediately) while keeping the dynamic path byte-identical
+  otherwise (Qt 6.11.2, software GL). The venue runtime therefore instantiates
+  all twelve variants statically and toggles `visible` — which also makes
+  quality-tier swaps instant. If upstream knows a supported way to inject
+  runtime-created components into a live scene graph, the dynamic loader is
+  the preferred shape and this note can be retired.
+- **Qt 6.11 `PrincipledMaterial` slot/property drift vs three.js and older Qt**
+  (Phase 6b), found wiring the venue contracts onto Qt materials:
+  three's `map` slot is `baseColorMap` in Qt; Qt 6.11 renamed
+  `PrincipledMaterial.normalScale` (vector2d) to `normalStrength` (float);
+  `Texture` needs explicit `tilingModeHorizontal/Vertical: Texture.Repeat` —
+  UV transform (`texture.repeat`) does not exist, so the bake multiplies the
+  repeat into the geometry UVs; and `Material.DisableCulling`/
+  `Material.NoCulling` is shadowed by QtQuick.Controls' attached `Material`
+  in files importing both — qualify through the concrete type
+  (`PrincipledMaterial.NoCulling`).

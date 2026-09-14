@@ -146,6 +146,20 @@ is Phase 6b.
 | `renderer3d.ts` `QUALITY` (`environmentDetail` 0–3) and the per-tier instance counts | `ReplayPerformanceGovernor.swift`, quality tiers | `rowplay_viewmodel::replay::venue::validate_venue`, `rowplay-app/build.rs` (drift gate + `replay_venues_meta.json`) | The build-time gate reads every vendored pair back and checks names, the `environment:<sport>:` prefix, no embedded images, finite POSITION bounds, the plausible world extent and the contract inventory — the `validate_v3` pattern. The `PerfGovernor` tier machinery from Phase 5c is unchanged; Phase 6b consumes these tiers. |
 | — (the browser bakes geometry at runtime; three's `GLTFExporter` writes `EXT_mesh_gpu_instancing`) | — | `tools/bake-venues/bake.mjs` instance split | three would export `InstancedMesh` via `EXT_mesh_gpu_instancing`, but Qt 6.11.2's `balsam` silently drops that extension and Blender expands it, so each `InstancedMesh` is exported as one archetype mesh and its per-instance transforms and colour tints go into the contract's `instancing` map. This also keeps the GLB small. |
 
+## Phase 6b — venue runtime
+
+The baked venues are loaded into the replay scene, re-materialed from the
+contracts, instanced from the bucketed contract transforms, and textured per
+quality tier.
+
+| Web source | Swift (rowplay-studio) | Rust / QML (rowplay-qt) | Notes |
+| --- | --- | --- | --- |
+| `renderer3d.ts` `buildEnvironment` output as the renderer consumes it (static venue in the live scene) | `Replay3DSceneBuilder.swift` | `qml/RowPlay/Replay/ReplayScene.qml` (`venueRoot`, twelve static balsam components, `syncVenue`/`walkVenue`/`applyInstanceGroup`), `crates/rowplay-app/src/backend/replay.rs` (`venuePlan`) | All twelve variants instantiate statically (the rigs' pattern; a dynamically created 3D component never reaches the rendered frame — qt-bridges-notes); exactly the (sport, effective tier) match is visible, so governor step-downs are instant visibility flips. The GLBs are authored in the web's course space, so the venue sits at the scene origin. |
+| `renderer3dEnvironment.ts` material registry (`environmentThemeMats`, themed light/dark) | `ReplayEnvironmentPlan.swift` | the walk's contract materials: light/dark base colours with live scheme re-tint, roughness/metalness, `alphaMode`/opacity, unlit for `MeshBasicMaterial`, clearcoat read from balsam's placeholder for the two glasses, vertex colours, double-sided | The web re-evaluates `themed()` on scheme flips; the walk keeps both colours per material and re-tints in place (`retintVenue`) without reloading. |
+| `renderer3dVenueKit.ts` `scatterTint` (per-instance colours on every `InstancedMesh`) | — | `rowplay_viewmodel::replay::venue_runtime` (fixed 2×2 lightness×warmth bucket quantisation) → `InstanceList`s with tinted `PrincipledMaterial`s | Per-instance colour without custom shaders: each group's tints quantise onto at most 4 shade buckets (the scatterTint axes), one instanced draw per bucket. Deterministic; unit tests cross-check every contract instance into exactly one bucket. |
+| `renderer3dEnvironment.ts` `applyEnvironmentSurfaceMaps` (detail ≥ 2 diffuse+roughness, ≥ 3 +normal), `makeSnowSurfaceTexture`/`makeWaterSurfaceTexture`/`makeWaterNormalTexture` (detail ≥ 1) | `ReplayEnvironmentPlan.swift` | `bindVenueTextures` from the contract's per-material bindings → `qrc:/qt/qml/RowPlay/Environments/…` (fourth rcc, `build_environments_resource`) | The contract already encodes the per-tier payload (bindings only exist at the tiers the web bound them); the scene instantiates exactly those. Low/Medium bind no sets — the environments README rule. Qt slot names differ (`map` → `baseColorMap`); Qt 6.11 renamed `normalScale` (vector2d) to `normalStrength` (float); UV `repeat` is baked into the GLB UVs and textures repeat. |
+| `renderer3d.test.ts` venue payload/name assertions | Studio's acceptance harness | `qml_runtime_gate.rs` venue inventory + texture-count assertions, `Main.qml` replay/tier steps | The gate parses `replay venue <tag>: N nodes, G instanced groups, I instances, M materials` and requires an exact match against the vendored contracts per tier, and `replay venue <tag> textures <tier>: N` against the contract binding counts; any `replay venue FAILED` line fails the walk — no silent ground-plane fallback. |
+
 ## Later phases (mapping only)
 
 | Web source | Swift | Rust target | Phase |
@@ -154,7 +168,7 @@ is Phase 6b.
 | `src/lib/locales/*.ts` | — | `i18n/*.ts` via `tools/` | 4 |
 | `src/lib/replay/renderer3d.ts` (assets, materials, sky, key light), `renderer3dAssets.ts`, `renderer3dV4Assets.ts`, `static/replay-assets/README.md` | `Views/Replay3D/*.swift` | `assets/replay/`, `rowplay_viewmodel::replay::{glb,materials,palette,anchors}`, `qml/RowPlay/Replay/*.qml`, `rowplay-app/src/backend/replay.rs` | 5a (delivered; see above) |
 | `renderer3d.ts` (playback: pose, equipment clones, chase camera, HUD; ghosts), `replayRenderer.ts` (`QUALITY`, `PerfGovernor`) | `Views/Replay3D/*.swift`, `Views/ReplayView.swift`, `Replay/ReplayPerformanceGovernor.swift` | `qml/RowPlay/Replay/*.qml` + `rowplay-app/src/backend/replay.rs` over `rowplay_core::replay::{motion_graph,stroke_model,quality}` | 5b (playback), 5c (quality tiers, ghosts) |
-| `src/lib/replay/renderer3dEnvironment.ts` | `ReplayEnvironment*.swift` | baked `assets/replay/venues/*.glb` (ADR 0005) | 6a (delivered; see above), 6b (runtime) |
+| `src/lib/replay/renderer3dEnvironment.ts` | `ReplayEnvironment*.swift` | baked `assets/replay/venues/*.glb` (ADR 0005) | 6a, 6b (both delivered; see above) |
 | `src/lib/replay/renderer3dV4Motion.ts`, `rigV4.ts`, `handGrip.ts` | `ReplayAthleteContactSolver.swift`, `ReplayHandClosure.swift` | `rowplay-core::replay::motion_graph` driving the V4 athlete | 7 |
 | `src/lib/liveMode.ts`, `liveMode.svelte.ts` | `Live/*.swift`, `Connectivity/*.swift` | `rowplay-platform::live`, `btleplug` transport | 8 |
 

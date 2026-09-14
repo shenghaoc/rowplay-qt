@@ -348,10 +348,50 @@ Wayland (`cargo run -p rowplay-app`).
   prefix, no embedded images, finite POSITION bounds, plausible world extent,
   and a contract inventory cross-check. Defect classes are unit-tested.
 
-**6b — runtime**: loads each venue GLB through the same balsam path as the
-rigs, builds the contract's instance lists, rebinds the tier texture sets
-(Low/Medium load none), extends the gate with a per-sport venue inventory
-assertion and screenshots, and re-measures with vsync off.
+**6b — runtime** (delivered, this PR):
+
+- All 12 venue variants convert with balsam into `RowPlay.ReplayAssets` and
+  instantiate **statically** inside the `View3D`; exactly the (sport,
+  effective tier) match is visible. Dynamically created 3D components
+  (`Qt.createComponent` + `createObject` under a scene Node) build a complete,
+  walkable object tree but never reach the rendered frame — found in 6b,
+  recorded in qt-bridges-notes. Static instantiation is the rigs' own pattern
+  and makes governor step-downs instant visibility flips.
+- Each variant is walked once on first show: contract materials (light/dark
+  base colour with live scheme re-tint, roughness/metalness, blend, unlit,
+  clearcoat from balsam's placeholder, vertex colours, double-sided), the
+  contract's instance groups as bucketed `InstanceList`s (4-shade quantisation
+  of the web's scatterTint, no custom shaders; bucketing unit-tested against
+  the vendored contracts), and tier-gated textures from a fourth rcc
+  (`Environments`): none at Low, procedural-only at Medium, the sport's sets
+  at High, plus normals at Ultra — exactly the 5c resolver.
+- Gate: per-sport `replay venue` inventory lines asserted **exactly** against
+  the vendored contracts; `replay venue FAILED` anywhere fails the walk; the
+  5c per-tier texture assertion extended with per-tier venue binding counts;
+  screenshots + shadow margin re-verified on GL.
+- Measurements (Intel UHD 630, Mesa 25.2.7, Wayland, 144 Hz, `QSG_NO_VSYNC=1`,
+  ghost present, debug binary — the 5c methodology and build, for
+  comparability; `renderStats.frameTime` with wall-clock cross-check),
+  median / p95 in ms and wall-clock >50 ms stalls per 720 frames:
+
+  | Sport | Low | Medium | High | Ultra |
+  | --- | --- | --- | --- | --- |
+  | RowErg | 10.8 / 20.7 / 46 | 9.7 / 20.4 / 48 | 11.4 / 28.3 / 55 | 11.6 / 23.2 / 52 |
+  | SkiErg | 11.6 / 20.5 / 46 | 11.4 / 21.1 / 47 | 12.1 / 28.2 / 53 | 12.2 / 26.9 / 52 |
+  | BikeErg | 10.9 / 21.2 / 47 | 10.5 / 21.0 / 49 | 11.4 / 22.7 / 50 | 11.7 / 23.5 / 54 |
+
+  The default tier (Medium) **holds its 22 ms budget with venues present**
+  (p95 20.4–21.1 ms, medians ~9.7–11.4 ms — 5c measured 20.0–20.6 ms p95
+  without venues): the venue geometry is static and largely hidden behind the
+  camera, and the ghost still dominates the frame cost, so the R5.2 ladder
+  did not need to fire. High and Ultra exceed p95 22 ms as in 5c; their
+  medians stay ~11–12 ms. Wall-clock stalls are 46–55 per 720 frames
+  (6.4–7.6 %), the same structural band 5c measured (~6 %) — the venues did
+  not multiply the stall rate. Governor: at venue-era medians the sustained-
+  over window never triggers, so no step-down (and hence no payoff-rollback)
+  fires during the Ultra bench — verified by the absence of venue reloads
+  (an effective-tier change would re-walk and re-log the venue); the
+  governor's threshold unit tests are unchanged and green.
 
 ### Phase 7 — Motion
 
