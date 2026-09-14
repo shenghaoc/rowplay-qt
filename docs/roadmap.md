@@ -398,10 +398,31 @@ Wayland (`cargo run -p rowplay-app`).
 - Drive the V4 athlete from the motion graph (Studio's production path ignores
   it), plus per-stroke variation. Enables the grip / equipment parity fixtures.
 
-### Phase 8 — Live and hardware
+### Phase 8 — Live mode
 
-- PM5 over BLE via `btleplug`, and live mode (including the demo live workout
-  generator, `generateMockWorkout`, from the web app).
+Live mode is logbook polling, not hardware: rowplay reads the Concept2 Logbook
+after upload and never connects to a PM5 (web README, repeated in its
+limitations; Studio's `Connectivity/` is a mock-only boundary whose spec
+excludes real Bluetooth, FTMS and PM protocols). No new subsystem — a timer
+runs the Phase 3 pieces (sync coordinator, cache, persisted checkpoint)
+against a short window: the newest results page only, never the full history.
+It adds no network client and no parsing of its own: the poll is the existing
+`Concept2Client::list_results(page, per_page)` with a small page (the web's
+`listRecentWorkouts` asks for page 1, 25 results) and dedupes by id — the sync
+path already does the work.
+
+- Interval presets 30 / 60 / 120 / 300 s, default 60, minimum 30 per Concept2
+  rate guidance (web `LIVE_INTERVALS`, Studio `LivePollingCadence`). Failed
+  polls back off 30 s → 60 s → 120 s → 300 s cap and retry automatically;
+  three consecutive failures raise a warning.
+- The panel mirrors `LiveModePanelView.swift`: an enable toggle, the interval
+  picker, "Polling for telemetry…" while a poll is in flight, last-poll time
+  and a next-poll countdown.
+- When a fresh result lands, it is deduped by id against the known workouts,
+  appended to the library and derived data refreshed; the web debounces bursts
+  into one 1 s batch and can play a chime.
+- Demo mode keeps the web's `generateMockWorkout` generator, landing a mock
+  result on a random 30 s–3 min delay instead of the interval.
 
 ### Phase 9 — Packaging
 
