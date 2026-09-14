@@ -346,7 +346,7 @@ so Phase 4 can read it from the bridge thread:
 
 ## Non-goals
 
-No QML, no Qt, no OAuth (bring-your-own-token only), no live PM5/BLE work, no
+No QML, no Qt, no OAuth (bring-your-own-token only), no live-mode work, no
 Phase 4 controller (`Concept2SyncController`'s UI-facing orchestration is the
 app layer's job), no worker thread or cancellation handle beyond the
 `AtomicBool`, no analytics, no token rotation, no on-disk HTTP cache.

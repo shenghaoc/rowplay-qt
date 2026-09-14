@@ -170,7 +170,15 @@ quality tier.
 | `renderer3d.ts` (playback: pose, equipment clones, chase camera, HUD; ghosts), `replayRenderer.ts` (`QUALITY`, `PerfGovernor`) | `Views/Replay3D/*.swift`, `Views/ReplayView.swift`, `Replay/ReplayPerformanceGovernor.swift` | `qml/RowPlay/Replay/*.qml` + `rowplay-app/src/backend/replay.rs` over `rowplay_core::replay::{motion_graph,stroke_model,quality}` | 5b (playback), 5c (quality tiers, ghosts) |
 | `src/lib/replay/renderer3dEnvironment.ts` | `ReplayEnvironment*.swift` | baked `assets/replay/venues/*.glb` (ADR 0005) | 6a, 6b (both delivered; see above) |
 | `src/lib/replay/renderer3dV4Motion.ts`, `rigV4.ts`, `handGrip.ts` | `ReplayAthleteContactSolver.swift`, `ReplayHandClosure.swift` | `rowplay-core::replay::motion_graph` driving the V4 athlete | 7 |
-| `src/lib/liveMode.ts`, `liveMode.svelte.ts` | `Live/*.swift`, `Connectivity/*.swift` | `rowplay-platform::live`, `btleplug` transport | 8 |
+| `src/lib/liveMode.ts`, `liveMode.svelte.ts`, `src/routes/api/live/*` | `Live/*.swift` (`LiveModeState`, `LivePollingCadence`, `LiveSource`), `Views/LiveModePanelView.swift` | logbook polling over the Phase 3 `Concept2Client` and sync checkpoint (no hardware transport) | 8 |
+
+Correction (2026-09): the original porting brief specified Phase 8 as PM5 over
+BLE (`btleplug`), which matched neither reference repo — the web README states
+rowplay "reads the Logbook rather than connecting directly to a PM5" and that
+live mode "polls for newly logged results rather than receiving push updates",
+and Studio's `Connectivity/*.swift` is a mock-only boundary (its phase-7 spec's
+non-goals exclude real Bluetooth, FTMS and PM protocols). Live mode is logbook
+polling; the roadmap entry was corrected before Phase 6 planning.
 
 ## Divergences recorded by the Rust port
 
