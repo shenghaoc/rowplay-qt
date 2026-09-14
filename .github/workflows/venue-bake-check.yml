@@ -1,0 +1,77 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Nightly venue-bake reproduction check (ADR 0010).
+#
+# The Phase 6a claim is that the vendored venues under
+# `assets/replay/venues/` are byte-reproducible from the pinned rowplay
+# reference with one command. Bytes cannot drift silently — every file is
+# SHA-256-pinned in `asset_hashes.rs` — but the *tooling* can drift: a bake
+# change, a three.js bump, or a Blender behaviour change would make a fresh
+# bake disagree with the vendored artifacts while every pin still passes.
+# This job runs the full bake (all 12 variants, the complete Blender pass and
+# finalize) from a fresh clone of the pinned reference and then requires the
+# staged output to match the committed `venues/MANIFEST.json` byte for byte,
+# so the claim is exercised instead of asserted.
+
+name: Venue bake check
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+env:
+  # Pinned in docs/source-map.md; must match tools/vendor-venues.py and
+  # tools/bake-venues/bake.mjs (AUTHORED_AGAINST).
+  ROWPLAY_REF_COMMIT: "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086"
+  # The Blender version the vendored artifacts were cleaned with. The
+  # hygiene pass (triangulation, degenerate dissolve) is not identical
+  # across Blender versions, so reproduction requires the same one.
+  BLENDER_VERSION: "5.2.1"
+
+jobs:
+  bake:
+    name: Bake venues from the pinned reference and verify the vendored bytes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Clone the pinned rowplay reference
+        run: |
+          git clone --quiet https://github.com/shenghaoc/rowplay reference/rowplay
+          git -C reference/rowplay checkout --quiet "$ROWPLAY_REF_COMMIT"
+
+      - name: Install reference dependencies (three.js)
+        working-directory: reference/rowplay
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Install Blender ${{ env.BLENDER_VERSION }}
+        run: |
+          cd /tmp
+          curl -fsSL --retry 3 \
+            "https://download.blender.org/release/Blender${BLENDER_VERSION}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
+            -o blender.tar.xz
+          tar -xJf blender.tar.xz
+          echo "BLENDER_BIN=/tmp/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
+
+      - name: Bake all twelve variants (Blender pass, finalize, byte-verify one)
+        run: tools/bake-venues/bake.sh --verify
+
+      - name: Staged output must match the committed manifest byte for byte
+        run: python3 tools/vendor-venues.py
+
+      - name: Report on failure
+        if: failure()
+        run: |
+          echo "A fresh bake from the pinned reference no longer reproduces"
+          echo "the vendored venues. If the change is intended, re-review the"
+          echo "staged bytes with 'tools/vendor-venues.py --accept' and commit"
+          echo "the refreshed manifest; otherwise fix the bake."
+          git status --short assets/replay/venues || true

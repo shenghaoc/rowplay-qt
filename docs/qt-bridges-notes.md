@@ -426,6 +426,34 @@ from), or have `run()` return non-zero when no root object was created.
   headless (`env -u DISPLAY -u WAYLAND_DISPLAY`) against both packs. The
   workflow's Toolchain report step prints `balsam --version` so a missing
   binary is visible at a glance.
+- **Dynamic Quick 3D content does not reliably reach the rendered scene;
+  static declarations are the pattern** (Phases 5a–6b, three independent
+  findings). This is the consolidated rule for the codebase; the entries
+  below keep the individual evidence. In this repository's setup
+  (qtbridge-generated QML engine, Qt 6.11.2), Quick 3D content that must
+  rasterise is declared statically in the scene, and what is built at
+  runtime from JavaScript is limited to data, inspection, and objects whose
+  rendering has been proven per case:
+  - *Phase 5a*: a dynamically created `PrincipledMaterial` that nothing owns
+    is garbage-collected and its `Model` drops out of the render (ownership
+    is one failure mode — parent or retain fixes that case, and parented
+    dynamic materials do render).
+  - *Phase 5b*: assigning `model.instancing = myInstanceList` from
+    JavaScript on a balsam-generated Model had no effect (see the 5b entry
+    below); the dual-component pattern replaced it.
+  - *Phase 6b*: a fully dynamic component subtree
+    (`Qt.createComponent` + `createObject(sceneNode)`) under a `Node` inside
+    a `View3D` built a complete, walkable object graph — children
+    enumerable, `objectName`s intact, no warnings, no "was not placed in the
+    graphics scene" — yet nothing in it ever rasterised. Proven by swapping
+    the identical component to a static declaration, which rendered
+    immediately. The venue runtime therefore instantiates all twelve
+    variants statically and toggles `visible` (which also makes tier swaps
+    instant).
+  Rule of thumb going forward: any new dynamic Quick 3D creation must be
+  render-tested on the first attempt, and the default plan is a static
+  declaration with visibility/state driven from data. If upstream documents
+  a supported injection path for runtime-created scene content, revisit.
 - A dynamically created Quick 3D *material* that nothing owns is garbage
   collected, and the `Model` it was assigned to then drops out of the
   render entirely — no fallback to the default material, while the shadow
@@ -443,9 +471,9 @@ from), or have `run()` return non-zero when no root object was created.
   implementation — 15 materials from `Qt.createQmlObject` parented to a
   singleton `QtObject` and kept in a `var` map — and rendered the full
   lane-painted boat. An earlier version of this note blamed dynamic
-  creation as such; that does not reproduce. Rule for Phase 6 venue
-  materials built per venue at runtime: give every dynamic material a QML
-  parent or hold a reference to it in a property (either is enough).
+  creation as such; that does not reproduce — ownership is a separate,
+  fixable failure mode (see the consolidated dynamic-content rule above for
+  the cases dynamic creation cannot fix).
   `qml/RowPlay/Replay/ReplayScene.qml` keeps the 15 role materials as
   static children of the scene (like balsam's inline placeholder) and
   cross-checks each one's metalness/roughness against the Rust spec table
@@ -484,13 +512,12 @@ from), or have `run()` return non-zero when no root object was created.
   balsam-generated Model's `instancing` property from JavaScript
   (`model.instancing = myInstanceList`) appeared to have no effect: the
   instanced copies never rendered. The root cause was not conclusively
-  isolated (the property may not be writable from JS on a generated
-  component, or the same ownership issue as dynamic materials may apply to
-  InstanceList objects). The workaround: a second `Rigs` balsam component
-  for the mirror-side copies (see "dual-component pattern" below). Phase 6
-  venue materials should test any dynamic Quick 3D property assignment on the
-  first attempt rather than assuming it works, since the generated component
-  may not surface it the way a hand-written `.qml` would.
+  isolated — it is one instance of the consolidated dynamic-content rule
+  above. The workaround: a second `Rigs` balsam component for the
+  mirror-side copies (see "dual-component pattern" below). Phase 6b's venue
+  runtime later applied `instancing` from JavaScript successfully on
+  statically declared components, so the failing ingredient is the dynamic
+  creation path, not the property assignment.
 - **Dual-component pattern for multi-instance templates** (Phase 5b). The V3
   pack has three templates with `instances > 1` (oar-rig, ski-assembly,
   wheel-assembly) and four equipment leaves (blade, three pole parts) that
@@ -585,18 +612,13 @@ from), or have `run()` return non-zero when no root object was created.
   clean-up script consolidates the copies back onto the base name and exports
   with `export_vertex_color="ACTIVE"`.
 - **Dynamically created Quick 3D components never reach the rendered frame**
-  (Phase 6b). `Qt.createComponent("qrc:…/balsam-component.qml")` +
-  `component.createObject(sceneNode)` builds a complete, walkable object tree
-  (children enumerable, `objectName`s intact) parented to a `Node` inside a
-  `View3D` — but nothing from that subtree ever rasterises: no warnings, no
-  "was not placed in the graphics scene", frames just show the rest of the
-  scene. Proven by swapping the same component to a static declaration
-  (renders immediately) while keeping the dynamic path byte-identical
-  otherwise (Qt 6.11.2, software GL). The venue runtime therefore instantiates
-  all twelve variants statically and toggles `visible` — which also makes
-  quality-tier swaps instant. If upstream knows a supported way to inject
-  runtime-created components into a live scene graph, the dynamic loader is
-  the preferred shape and this note can be retired.
+  (Phase 6b) — the third and most absolute instance of the consolidated
+  dynamic-content rule above: a full component subtree under a scene `Node`,
+  complete and walkable, never rasterises and never warns. The venue runtime
+  instantiates all twelve variants statically and toggles `visible`. If
+  upstream knows a supported way to inject runtime-created components into a
+  live scene graph, the dynamic loader is the preferred shape and this note
+  can be retired.
 - **Qt 6.11 `PrincipledMaterial` slot/property drift vs three.js and older Qt**
   (Phase 6b), found wiring the venue contracts onto Qt materials:
   three's `map` slot is `baseColorMap` in Qt; Qt 6.11 renamed
@@ -607,3 +629,19 @@ from), or have `run()` return non-zero when no root object was created.
   `Material.NoCulling` is shadowed by QtQuick.Controls' attached `Material`
   in files importing both — qualify through the concrete type
   (`PrincipledMaterial.NoCulling`).
+- **Debug-binary measurements vs a release spot check** (Phase 6b
+  follow-up). All frame-time measurements in this project are taken on a
+  debug binary because the gate and bench hooks (`ROWPLAY_SMOKE_GATE`,
+  `ROWPLAY_REPLAY_BENCH`) are compiled out of release via `test_env`; that
+  keeps the 6b table comparable with 5c's. To size the artifact, one release
+  run was made with the hooks temporarily re-enabled locally (not committed):
+  same machine, scene, seed and bench settings. Result: **medians are
+  build-independent** — 10.0–12.5 ms across all twelve sport×tier cells on
+  both builds (debug 9.7–12.2 ms) — so `tick`'s CPU side is not a measurable
+  share of the frame cost and the ~10–12 ms floor is real render cost, not a
+  debug artifact. p95 moved by more than medians (row-high 28.3 debug →
+  20.5 release, ski-ultra 26.9 → 20.9, but bike-ultra 23.5 → 31.3), i.e.
+  within run-to-run variance for the GPU-bound tail; wall-clock stall counts
+  were equal (46–56 per 720 frames on both). Conclusion: the debug-binary
+  methodology overstates nothing that the 22 ms budget judges; spot-checking
+  release again after future CPU-side changes is still worthwhile.

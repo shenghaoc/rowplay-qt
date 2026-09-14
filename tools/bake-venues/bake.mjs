@@ -663,6 +663,17 @@ const only = flagValue("only");
 const all = hasFlag("all");
 const verify = hasFlag("verify") || all;
 
+/** The (sport, tier) pairs a run covers: one, or all twelve for `--all`. */
+function variantsOf(onlyFlag) {
+  if (onlyFlag) {
+    const [sport, tier] = onlyFlag.split(":");
+    return [[sport, tier]];
+  }
+  const pairs = [];
+  for (const sport of SPORTS) for (const tier of TIERS) pairs.push([sport, tier]);
+  return pairs;
+}
+
 if (hasFlag("finalize")) {
   await finalize(outDir);
 } else if (all && !only) {
@@ -673,7 +684,12 @@ if (hasFlag("finalize")) {
   if (verify) {
     const scratch = await mkdtemp(join(tmpdir(), "rowplay-venue-determinism-"));
     try {
-      const [sport, tier] = [SPORTS[0], TIERS[0]];
+      // Rotate the re-baked variant by UTC day so repeated runs eventually
+      // cover all twelve (the CI bake-check job re-bakes the full set
+      // nightly; this in-process check is the cheap daily companion).
+      const dayIndex = Math.floor(Date.now() / 86_400_000);
+      const flat = variantsOf(only);
+      const [sport, tier] = flat[dayIndex % flat.length];
       runChild("--only", `${sport}:${tier}`, "--out", scratch);
       const stem = `rowplay-venue-${sport}-${tier}`;
       for (const suffix of [".glb", ".json"]) {
