@@ -645,3 +645,16 @@ from), or have `run()` return non-zero when no root object was created.
   were equal (46–56 per 720 frames on both). Conclusion: the debug-binary
   methodology overstates nothing that the 22 ms budget judges; spot-checking
   release again after future CPU-side changes is still worthwhile.
+- **p95 at 600 frames resolves Low/Medium but not High/Ultra tails**
+  (Phase 6b follow-up). Three additional identical debug bench runs (same
+  binary, env, data dir) plus the PR run and the release spot check give
+  five samples per cell. Low/Medium p95 is tight — 17.9–21.3 ms across all
+  runs, identical-run spread ≤ 7 %, worst sample 21.3 — so "Medium holds its
+  22 ms budget" is safe to state per-run. High/Ultra p95 straddles the 22 ms
+  line and swings 23–38 % between identical runs (bike-high: 21.0, 21.0,
+  22.8, 29.4 across four runs) because the tail has a second mode near the
+  threshold and the 30th-worst of 600 samples flips across it. Protocol
+  going forward: tail claims at High/Ultra are stated as ranges over ≥ 3
+  runs ("typically at or above 22 ms"), never as a single-run p95; medians
+  are stable everywhere (9.7–12.8 ms across all 58 samples) and need no such
+  treatment.
