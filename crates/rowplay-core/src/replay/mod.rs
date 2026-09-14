@@ -15,6 +15,7 @@
 pub mod comparability;
 pub mod engine;
 pub mod ghost_pick;
+pub mod hand_grip;
 pub mod motion;
 pub mod motion_graph;
 pub mod quality;

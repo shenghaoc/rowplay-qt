@@ -1435,8 +1435,269 @@ fn venue_field(palette: &VenuePalette, field: &str) -> Option<&'static str> {
     })
 }
 
+// --- Phase 7: grip closure parity (handGrip.ts) ---------------------------
+
+#[derive(Deserialize)]
+struct GripsFixture {
+    channel: GripChannelFixture,
+    hands: GripHandsFixture,
+    closures: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(Deserialize, Clone, Copy)]
+struct Xyz {
+    x: f64,
+    y: f64,
+    z: f64,
+}
+
+impl From<Xyz> for [f64; 3] {
+    fn from(value: Xyz) -> [f64; 3] {
+        [value.x, value.y, value.z]
+    }
+}
+
+#[derive(Deserialize)]
+#[allow(clippy::struct_field_names)]
+struct GripChannelFixture {
+    #[serde(rename = "handCurlAxis")]
+    hand_curl_axis: Xyz,
+    #[serde(rename = "handFistCentre")]
+    hand_fist_centre: Xyz,
+    #[serde(rename = "handFistRadius")]
+    hand_fist_radius: f64,
+    #[serde(rename = "handFistReferenceGripRadius")]
+    hand_fist_reference_grip_radius: f64,
+    #[serde(rename = "handPalmContact")]
+    hand_palm_contact: Xyz,
+    #[serde(rename = "handPalmNormalIn")]
+    hand_palm_normal_in: Xyz,
+    #[serde(rename = "handGripSeatFlesh")]
+    hand_grip_seat_flesh: f64,
+    #[serde(rename = "handLongAxis")]
+    hand_long_axis: Xyz,
+}
+
+#[derive(Deserialize)]
+struct GripHandsFixture {
+    left: GripHandFixture,
+    right: GripHandFixture,
+}
+
+#[derive(Deserialize)]
+struct GripHandFixture {
+    chains: Vec<GripChainFixture>,
+}
+
+#[derive(Deserialize)]
+struct GripChainFixture {
+    digit: String,
+    #[serde(rename = "tipLength")]
+    tip_length: f64,
+    #[serde(rename = "cupNode", default)]
+    cup_node: Option<GripJointFixture>,
+    joints: Vec<GripJointFixture>,
+}
+
+#[derive(Deserialize)]
+struct GripJointFixture {
+    helper: String,
+    position: [f64; 3],
+    quaternion: [f64; 4],
+}
+
+#[derive(Deserialize)]
+struct GripClosureOptionsFixture {
+    radius: f64,
+    #[serde(rename = "thumbEndAxial")]
+    thumb_end_axial: Option<f64>,
+    #[serde(rename = "thumbOppose")]
+    thumb_oppose: f64,
+    #[serde(rename = "wrapFingerStages", default)]
+    wrap_finger_stages: bool,
+}
+
+#[derive(Deserialize)]
+struct GripClosureResultFixture {
+    poses: Vec<rowplay_core::replay::hand_grip::DigitStagePose>,
+    contacts: Vec<rowplay_core::replay::hand_grip::DigitContact>,
+}
+
+fn fixture_digit(name: &str) -> &'static str {
+    match name {
+        "index" => "index",
+        "middle" => "middle",
+        "ring" => "ring",
+        "pinky" => "pinky",
+        _ => "thumb",
+    }
+}
+
+fn fixture_chains(hand: &GripHandFixture) -> Vec<rowplay_core::replay::hand_grip::HandDigitChain> {
+    use rowplay_core::replay::hand_grip::{DigitJoint, HandDigitChain};
+    hand.chains
+        .iter()
+        .map(|chain| HandDigitChain {
+            digit: fixture_digit(&chain.digit),
+            joints: chain
+                .joints
+                .iter()
+                .map(|joint| DigitJoint {
+                    helper: joint.helper.clone(),
+                    position: joint.position,
+                    quaternion: joint.quaternion,
+                })
+                .collect(),
+            tip_length: chain.tip_length,
+            cup_node: chain.cup_node.as_ref().map(|cup| DigitJoint {
+                helper: cup.helper.clone(),
+                position: cup.position,
+                quaternion: cup.quaternion,
+            }),
+        })
+        .collect()
+}
+
+fn assert_closure_matches(
+    label: &str,
+    solved: &rowplay_core::replay::hand_grip::GripClosure,
+    expected: &GripClosureResultFixture,
+) {
+    assert_eq!(
+        solved.poses.len(),
+        expected.poses.len(),
+        "{label}: pose count"
+    );
+    for (solved, expected) in solved.poses.iter().zip(&expected.poses) {
+        assert_eq!(solved.helper, expected.helper, "{label}: pose helper order");
+        assert!(
+            (solved.flex - expected.flex).abs() < 1e-9,
+            "{label}: {} flex {} vs {}",
+            expected.helper,
+            solved.flex,
+            expected.flex
+        );
+        assert!(
+            (solved.oppose - expected.oppose).abs() < 1e-9,
+            "{label}: {} oppose {} vs {}",
+            expected.helper,
+            solved.oppose,
+            expected.oppose
+        );
+    }
+    assert_eq!(
+        solved.contacts.len(),
+        expected.contacts.len(),
+        "{label}: contact count"
+    );
+    for (solved, expected) in solved.contacts.iter().zip(&expected.contacts) {
+        assert_eq!(solved.digit, expected.digit, "{label}: contact digit");
+        assert!(
+            (solved.surface_distance - expected.surface_distance).abs() < 1e-9,
+            "{label}: {} surface distance {} vs {}",
+            expected.digit,
+            solved.surface_distance,
+            expected.surface_distance
+        );
+        assert_eq!(
+            solved.contact, expected.contact,
+            "{label}: {} contact flag",
+            expected.digit
+        );
+        for axis in 0..3 {
+            assert!(
+                (solved.tip[axis] - expected.tip[axis]).abs() < 1e-9,
+                "{label}: {} tip axis {axis}",
+                expected.digit
+            );
+        }
+    }
+}
+
 #[test]
-#[ignore = "Phase 7 (motion) / Phase 5 (3D replay): V4 grip and equipment contact parity (replay-current-main-grips.json, replay-current-main-equipment.json)"]
-fn grip_and_equipment_parity() {
-    unreachable!("enable with the V4 athlete contact solver");
+fn grip_closure_parity() {
+    let fixture: GripsFixture = load_json("replay-current-main-grips.json")
+        .unwrap_or_else(|error| panic!("load grips fixture: {error}"));
+
+    // The fixture's fitted geometry channels must equal the ported constants.
+    let channel = &fixture.channel;
+    let close = |a: f64, b: f64| (a - b).abs() < 1e-12;
+    let curl_axis: [f64; 3] = channel.hand_curl_axis.into();
+    let fist_centre: [f64; 3] = channel.hand_fist_centre.into();
+    let palm_contact: [f64; 3] = channel.hand_palm_contact.into();
+    let palm_normal_in: [f64; 3] = channel.hand_palm_normal_in.into();
+    let long_axis: [f64; 3] = channel.hand_long_axis.into();
+    for axis in 0..3 {
+        assert!(close(
+            curl_axis[axis],
+            rowplay_core::replay::hand_grip::HAND_CURL_AXIS[axis]
+        ));
+        assert!(close(
+            fist_centre[axis],
+            rowplay_core::replay::hand_grip::HAND_FIST_CENTRE[axis]
+        ));
+        assert!(close(
+            palm_contact[axis],
+            rowplay_core::replay::hand_grip::HAND_PALM_CONTACT[axis]
+        ));
+        assert!(close(
+            palm_normal_in[axis],
+            rowplay_core::replay::hand_grip::hand_palm_normal_in()[axis]
+        ));
+        assert!(close(
+            long_axis[axis],
+            rowplay_core::replay::hand_grip::HAND_LONG_AXIS[axis]
+        ));
+    }
+    assert!(close(
+        channel.hand_fist_radius,
+        rowplay_core::replay::hand_grip::HAND_FIST_RADIUS
+    ));
+    assert!(close(
+        channel.hand_fist_reference_grip_radius,
+        rowplay_core::replay::hand_grip::HAND_FIST_REFERENCE_GRIP_RADIUS
+    ));
+    assert!(close(
+        channel.hand_grip_seat_flesh,
+        rowplay_core::replay::hand_grip::hand_grip_seat_flesh()
+    ));
+
+    // Per sport: the fixture's options feed the solver; the solved poses and
+    // contact reports must match the fixture within 1e-9.
+    for (sport, entry) in &fixture.closures {
+        let options: GripClosureOptionsFixture = serde_json::from_value(entry["options"].clone())
+            .unwrap_or_else(|error| panic!("{sport}: options: {error}"));
+        let closure_options = rowplay_core::replay::hand_grip::ClosureOptions {
+            side: -1.0,
+            surface: rowplay_core::replay::hand_grip::GripSurface {
+                radius: options.radius,
+                thumb_end_axial: options.thumb_end_axial,
+            },
+            thumb_oppose: options.thumb_oppose,
+            finger_flesh: None,
+            thumb_flesh: None,
+            wrap_finger_stages: options.wrap_finger_stages,
+        };
+        for (side_name, side) in [("left", -1.0), ("right", 1.0)] {
+            let expected: GripClosureResultFixture =
+                serde_json::from_value(entry[side_name].clone())
+                    .unwrap_or_else(|error| panic!("{sport}/{side_name}: closure: {error}"));
+            let mut closure_options = closure_options.clone();
+            closure_options.side = side;
+            let chains = fixture_chains(if side < 0.0 {
+                &fixture.hands.left
+            } else {
+                &fixture.hands.right
+            });
+            let solved =
+                rowplay_core::replay::hand_grip::solve_hand_grip_closure(&chains, &closure_options);
+            assert_closure_matches(&format!("{sport}/{side_name}"), &solved, &expected);
+        }
+    }
+}
+
+#[test]
+#[ignore = "Phase 7 (motion): wrist budgets and equipment projections (replay-current-main-equipment.json)"]
+fn equipment_contact_parity() {
+    unreachable!("enable with orientHandToGripChannel + constrainWristFrame");
 }
