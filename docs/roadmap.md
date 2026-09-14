@@ -388,20 +388,34 @@ Wayland (`cargo run -p rowplay-app`).
   build should floor lower; a one-off release spot check (test hooks
   temporarily enabled locally) is recorded in `docs/qt-bridges-notes.md`.
   The finding: medians are identical across builds (the ~10–12 ms floor is
-  real render cost, not a debug artifact) and the p95 differences are within
-  run-to-run variance.
-  The default tier (Medium) **holds its 22 ms budget with venues present**
-  (p95 20.4–21.1 ms, medians ~9.7–11.4 ms — 5c measured 20.0–20.6 ms p95
-  without venues): the venue geometry is static and largely hidden behind the
-  camera, and the ghost still dominates the frame cost, so the R5.2 ladder
-  did not need to fire. High and Ultra exceed p95 22 ms as in 5c; their
-  medians stay ~11–12 ms. Wall-clock stalls are 46–55 per 720 frames
-  (6.4–7.6 %), the same structural band 5c measured (~6 %) — the venues did
-  not multiply the stall rate. Governor: at venue-era medians the sustained-
-  over window never triggers, so no step-down (and hence no payoff-rollback)
-  fires during the Ultra bench — verified by the absence of venue reloads
-  (an effective-tier change would re-walk and re-log the venue); the
-  governor's threshold unit tests are unchanged and green.
+  real render cost, not a debug artifact).
+  A p95 repeatability experiment (three additional identical debug bench
+  runs, same binary/env/data dir, compared against the PR run and the
+  release spot check — five runs total) pins down how much p95 can be
+  trusted at 600 frames:
+  - **Low and Medium: tight and uniformly under budget.** p95 across all
+    five runs spans 17.9–21.3 ms per cell (identical-run spread ≤ 7 %, one
+    low outlier aside); the worst sample anywhere is 21.3 ms. The default
+    tier's **22 ms budget holds in every one of five independent runs, two
+    builds** (medians ~9.7–11.9 ms — 5c measured 20.0–20.6 ms p95 without
+    venues: the venue geometry is static and largely hidden behind the
+    camera, and the ghost still dominates the frame cost).
+  - **High and Ultra: p95 straddles the 22 ms line and is not resolvable at
+    600 frames** — identical-run spreads of 23–38 % (e.g. bike-high p95
+    21.0/21.0/22.8/29.4). Honest statement: High/Ultra p95 **typically lands
+    at or above 22 ms** (ski-high and bike-ultra exceeded it in all runs;
+    row-high, row-ultra, ski-ultra flip per run) with medians ~11–12 ms.
+    Tail claims at these tiers need repeats or more frames; single-run p95
+    there is noise.
+  - **Debug vs release: no difference beyond this run variance** — every
+    release p95 sits inside the debug repeats' range for its cell.
+  Wall-clock stalls are 46–55 per 720 frames (6.4–7.6 %), the same
+  structural band 5c measured (~6 %) — the venues did not multiply the stall
+  rate. Governor: at venue-era medians the sustained-over window never
+  triggers, so no step-down (and hence no payoff-rollback) fires during the
+  Ultra bench — verified by the absence of venue reloads (an effective-tier
+  change would re-walk and re-log the venue); the governor's threshold unit
+  tests are unchanged and green.
 
 ### Phase 7 — Motion
 
