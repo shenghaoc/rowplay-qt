@@ -22,6 +22,7 @@ use rowplay_core::replay::race_gap::{
     ghost_distance, race_gap_metres, race_gap_seconds, relative_duration,
 };
 use rowplay_core::replay::race_result::{RaceOutcome, race_result};
+use rowplay_core::replay::rig_pose::solve_rig_pose;
 use rowplay_core::replay::rivals::{ParsedTrace, constant_pace_strokes, parse_rival_file};
 use rowplay_core::replay::sport_kinematics::{
     solve_bike_kinematics, solve_rower_kinematics, solve_skier_kinematics,
@@ -2388,4 +2389,265 @@ fn rower_rig_phase_parity() {
             );
         }
     }
+}
+
+/// Stage 2 of the parity coverage audit (docs/parity-coverage.md): the web
+/// avatar rig calibration (`renderer3d{Row,Ski,Bike}Avatar.ts` at the pinned
+/// rowplay commit, sampled rig-local over the full cycle at two timing
+/// inputs) against `rig_pose::solve_rig_pose`. The generator is
+/// `tools/gen-rig-phase-parity.mjs`.
+///
+/// The comparisons are raw (no sign or frame fudging), with angles compared
+/// on the circle where they are periodic; the mapping from Rust outputs to
+/// web scene-graph quantities is stated per field. Tolerance 1e-6: both
+/// sides are exact-formula float chains from identical inputs.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RigPhaseFixture {
+    sample_count: usize,
+    samples: Vec<RigPhaseSample>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RigPhaseSample {
+    sport: String,
+    #[allow(dead_code)]
+    sweep: String,
+    #[allow(dead_code)]
+    phase_index: usize,
+    pose: serde_json::Value,
+    rig: serde_json::Value,
+}
+
+fn rig_pose_from_echo(echo: &serde_json::Value) -> StrokePose {
+    let f = |key: &str| {
+        echo[key]
+            .as_f64()
+            .unwrap_or_else(|| panic!("pose.{key} missing"))
+    };
+    StrokePose {
+        index: echo["index"].as_u64().expect("pose.index") as usize,
+        phase: f("phase"),
+        warped_phase: f("warpedPhase"),
+        cycle_frac: f("cycleFrac"),
+        drive_frac: f("driveFrac"),
+        drive: echo["drive"].as_bool().expect("pose.drive"),
+        drive_progress: f("driveProgress"),
+        recovery_progress: f("recoveryProgress"),
+        stroke_seconds: f("strokeSeconds"),
+        stroke_meters: f("strokeMeters"),
+        rate: f("rate"),
+        watts: f("watts"),
+        intensity: f("intensity"),
+        amplitude: f("amplitude"),
+        fatigue: f("fatigue"),
+        real: echo["real"].as_bool().expect("pose.real"),
+    }
+}
+
+/// Read `rig.<a>.<b>` from the sample; numeric path segments index arrays.
+fn rig_number(rig: &serde_json::Value, path: &[&str]) -> f64 {
+    let mut node = rig;
+    for key in path {
+        node = if node.is_array() {
+            let index: usize = key
+                .parse()
+                .unwrap_or_else(|_| panic!("array index {key} in {}", path.join(".")));
+            &node[index]
+        } else {
+            &node[*key]
+        };
+    }
+    node.as_f64()
+        .unwrap_or_else(|| panic!("rig.{} missing", path.join(".")))
+}
+
+/// Signed shortest difference between two periodic angles.
+fn angle_delta(actual: f64, expected: f64) -> f64 {
+    let tau = std::f64::consts::TAU;
+    let diff = (actual - expected) % tau;
+    if diff > tau / 2.0 {
+        diff - tau
+    } else if diff < -tau / 2.0 {
+        diff + tau
+    } else {
+        diff
+    }
+}
+
+fn assert_close(
+    worst: &mut BTreeMap<String, (f64, String)>,
+    field: &str,
+    actual: f64,
+    expected: f64,
+    periodic: bool,
+) {
+    let delta = if periodic {
+        angle_delta(actual, expected)
+    } else {
+        actual - expected
+    };
+    if delta.abs() > 1e-6 {
+        let line = format!("rust {actual:.6} vs web {expected:.6} (delta {delta:+.6})");
+        // Keep the worst (largest) delta seen per field for the summary.
+        let worse = worst
+            .get(field)
+            .is_none_or(|(prev, _)| delta.abs() > prev.abs());
+        if worse {
+            worst.insert(field.to_string(), (delta.abs(), line));
+        }
+    }
+}
+
+#[test]
+#[ignore = "audit stage 3: first run FAILED on every calibration field - the port mirrors Studio's calibration, not the web's (see docs/parity-coverage.md rows 1-3 and the PR description). Enable with the web-calibration fix."]
+fn rig_phase_parity() {
+    let fixture: RigPhaseFixture =
+        rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+    assert_eq!(fixture.sample_count, fixture.samples.len());
+
+    let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
+    for sample in &fixture.samples {
+        let sport = match sample.sport.as_str() {
+            "rower" => Sport::Rower,
+            "skierg" => Sport::Skierg,
+            "bike" => Sport::Bike,
+            other => panic!("unknown sport {other}"),
+        };
+        let pose = rig_pose_from_echo(&sample.pose);
+        let meters = rig_number(&sample.rig, &["meters"]);
+        let solved = solve_rig_pose(sport, &pose, meters, false);
+        match (sport, &solved) {
+            (Sport::Rower, rowplay_core::replay::rig_pose::SportRigPose::Rower(rig)) => {
+                // seat_z ↔ the web seat slide (`rower-athlete.position.z`).
+                assert_close(
+                    &mut worst,
+                    "rower.seat_z",
+                    rig.seat_z,
+                    rig_number(&sample.rig, &["seat", "2"]),
+                    false,
+                );
+                // oar_sweep / oar_feather ↔ the right oar's authored yaw / roll.
+                assert_close(
+                    &mut worst,
+                    "rower.oar_sweep",
+                    rig.oar_sweep,
+                    rig_number(&sample.rig, &["oarRightRotation", "1"]),
+                    false,
+                );
+                assert_close(
+                    &mut worst,
+                    "rower.oar_feather",
+                    rig.oar_feather,
+                    rig_number(&sample.rig, &["oarRightRotation", "2"]),
+                    false,
+                );
+                // torso_lean ↔ the torso group's pitch (web: catch +0.56 -> finish -0.30).
+                assert_close(
+                    &mut worst,
+                    "rower.torso_lean",
+                    rig.joints.torso_lean,
+                    rig_number(&sample.rig, &["torsoRotation", "0"]),
+                    false,
+                );
+                // handle_y / handle_z ↔ the right scull grip contact, rig-local.
+                assert_close(
+                    &mut worst,
+                    "rower.handle_y",
+                    rig.handle_y,
+                    rig_number(&sample.rig, &["handleContactRight", "1"]),
+                    false,
+                );
+                assert_close(
+                    &mut worst,
+                    "rower.handle_z",
+                    rig.handle_z,
+                    rig_number(&sample.rig, &["handleContactRight", "2"]),
+                    false,
+                );
+            }
+            (Sport::Skierg, rowplay_core::replay::rig_pose::SportRigPose::SkiErg(rig)) => {
+                // torso_lean ↔ the hinging upper group (web: 0.055 + hipHinge*0.56,
+                // plus pelvis/head counter-tilts the port does not model).
+                assert_close(
+                    &mut worst,
+                    "skierg.torso_lean",
+                    rig.joints.torso_lean,
+                    rig_number(&sample.rig, &["upperRotation", "0"]),
+                    false,
+                );
+                // preferred hand path ↔ the V4 left-hand target landmark.
+                assert_close(
+                    &mut worst,
+                    "skierg.preferred_hand_y",
+                    rig.preferred_hand_y,
+                    rig_number(&sample.rig, &["targets", "leftHand", "1"]),
+                    false,
+                );
+                assert_close(
+                    &mut worst,
+                    "skierg.preferred_hand_z",
+                    rig.preferred_hand_z,
+                    rig_number(&sample.rig, &["targets", "leftHand", "2"]),
+                    false,
+                );
+                // plant_basket_z ↔ the left pole tip's rig-local forward coordinate.
+                assert_close(
+                    &mut worst,
+                    "skierg.plant_basket_z",
+                    rig.plant_basket_z,
+                    rig_number(&sample.rig, &["poleTipLeft", "2"]),
+                    false,
+                );
+            }
+            (Sport::Bike, rowplay_core::replay::rig_pose::SportRigPose::Bike(rig)) => {
+                // crank_angle / wheel_angle are periodic; compare on the circle
+                // (the web wheel divides by the 0.31 tyre radius, not 0.335).
+                assert_close(
+                    &mut worst,
+                    "bike.crank_angle",
+                    rig.crank_angle,
+                    rig_number(&sample.rig, &["crankRotation", "0"]),
+                    true,
+                );
+                assert_close(
+                    &mut worst,
+                    "bike.wheel_angle",
+                    rig.wheel_angle,
+                    rig_number(&sample.rig, &["wheelFrontRotation", "0"]),
+                    true,
+                );
+                // pedal_pos ↔ the left pedal relative to the bottom bracket.
+                let (cy, cz) = (
+                    rig_number(&sample.rig, &["crankPosition", "1"]),
+                    rig_number(&sample.rig, &["crankPosition", "2"]),
+                );
+                assert_close(
+                    &mut worst,
+                    "bike.pedal_y_l",
+                    rig.pedal_pos_l.y,
+                    rig_number(&sample.rig, &["pedalLeft", "1"]) - cy,
+                    false,
+                );
+                assert_close(
+                    &mut worst,
+                    "bike.pedal_z_l",
+                    rig.pedal_pos_l.z,
+                    rig_number(&sample.rig, &["pedalLeft", "2"]) - cz,
+                    false,
+                );
+            }
+            _ => panic!("sport mismatch"),
+        }
+    }
+    assert!(
+        worst.is_empty(),
+        "rig-phase calibration diverges from the web (worst delta per field):\n  {}",
+        worst
+            .values()
+            .map(|(_, line)| line.clone())
+            .collect::<Vec<_>>()
+            .join("\n  ")
+    );
 }
