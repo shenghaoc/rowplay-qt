@@ -143,6 +143,16 @@
       }
     },
     {
+      "path": "replay-row-phase-parity.json",
+      "bytes": 25569,
+      "sha256": "ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay",
+        "commit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
+        "path": "tests/fixtures/replay-row-phase-parity.json"
+      }
+    },
+    {
       "path": "stroke-pose-parity.json",
       "bytes": 2385,
       "sha256": "b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae",

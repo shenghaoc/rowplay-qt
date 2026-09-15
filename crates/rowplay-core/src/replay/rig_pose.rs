@@ -206,17 +206,32 @@ fn solve_rower(pose: &StrokePose) -> RowerRigPose {
     let legs = unit(graph.body.leg_extension.value);
     let torso = unit(graph.body.spine_hinge.value);
     let arms = unit(graph.body.arm_draw.value);
-    let handle = unit(graph.body.handle_travel.value);
     let feather = unit(graph.contacts.blade_feather.value);
 
-    // Static rig-space calibration ranges (Studio); the sequencing is the
-    // motion graph's.
-    let seat_z = -0.20 + legs * 0.40;
+    // The web avatar's phase calibration (renderer3dRowAvatar.ts `animate`),
+    // pinned sample-by-sample by the replay-row-phase-parity fixture: the
+    // seat rides `pelvisTravel` from the catch z +0.26 — CLOSEST to the
+    // fixed feet — through −0.44 of travel; the oar sweep rides
+    // `handleTravel` from the catch yaw +0.68 (grips ahead of the shoulders
+    // toward the stretcher) to the draw's −0.80; the dip roll rides
+    // `bladeWater` with a small handle-rise. Studio's ranges here (seat
+    // −0.20 + legs·0.40, sweep −0.58 + handle·1.16, roll −0.06 +
+    // feather·0.34) are phase-inverted against the web — its seat starts
+    // farthest from the feet and its catch grips sit behind the torso; see
+    // the divergence row in docs/source-map.md.
+    let pelvis_travel = unit(graph.body.pelvis_travel.value);
+    let handle = unit(graph.body.handle_travel.value);
+    let blade_water = unit(graph.contacts.blade_water.value);
+    let seat_z = 0.26 + pelvis_travel * -0.44;
+    let oar_sweep = 0.68 + handle * (-0.8 - 0.68);
+    let oar_feather = blade_water * 0.28 + handle * 0.04;
+
+    // The remaining channels are Studio's joint-pose outputs; the Qt port
+    // poses the athlete from the V4 clip plus the contact targets above, so
+    // nothing consumes them (kept for the Studio surface — see source-map).
     let handle_y = 0.62 - handle * 0.05 + feather * 0.03;
     let handle_z = 0.66 - handle * 0.22;
     let handle_rot_x = feather * 0.20;
-    let oar_sweep = -0.58 + handle * 1.16;
-    let oar_feather = -0.06 + feather * 0.34;
     let torso_lean = -0.28 + torso * 0.46;
     let shoulder_flex = -0.22 + arms * 0.34;
     let elbow_flex = arms * 0.42;
@@ -523,7 +538,11 @@ mod tests {
                 panic!("sport mismatch");
             };
             assert_joints_bounded(&rig.joints);
-            assert!((-0.20..=0.20).contains(&rig.seat_z), "seat {}", rig.seat_z);
+            // Web ranges (renderer3dRowAvatar.ts; the row-phase-parity
+            // fixture pins them sample-by-sample): the catch seat sits
+            // CLOSEST to the feet at +0.26, the catch sweep ahead of the
+            // shoulders at +0.68.
+            assert!((-0.18..=0.26).contains(&rig.seat_z), "seat {}", rig.seat_z);
             assert!(
                 (0.57..=0.65).contains(&rig.handle_y),
                 "handle y {}",
@@ -536,13 +555,16 @@ mod tests {
             );
             assert!((0.0..=0.20).contains(&rig.handle_rot_x));
             assert!(
-                (-0.58..=0.58).contains(&rig.oar_sweep),
+                (-0.8..=0.68).contains(&rig.oar_sweep),
                 "sweep {}",
                 rig.oar_sweep
             );
-            assert!((-0.06..=0.28).contains(&rig.oar_feather));
+            assert!((0.0..=0.32).contains(&rig.oar_feather));
             assert!((0.0..=1.0).contains(&rig.blade_feather));
-            assert!((rig.oar_feather - (-0.06 + rig.blade_feather * 0.34)).abs() < 1e-12);
+            let graph = sample_rower_motion_graph(&pose);
+            let expected_feather = unit(graph.contacts.blade_water.value) * 0.28
+                + unit(graph.body.handle_travel.value) * 0.04;
+            assert!((rig.oar_feather - expected_feather).abs() < 1e-12);
             assert!((-0.28..=0.18).contains(&rig.joints.torso_lean));
             // Knee and hip flexion share the leg-extension cue: 0.82 : 0.48.
             if rig.joints.hip_flex_l > 1e-9 {
@@ -552,6 +574,23 @@ mod tests {
             assert_eq!(rig.joints.hip_flex_l, rig.joints.hip_flex_r);
             assert!((rig.joints.head_pitch + rig.joints.torso_lean * 0.3).abs() < 1e-12);
         }
+    }
+
+    #[test]
+    fn rower_seat_leads_the_cycle_from_the_catch() {
+        // The inversion guard: at the catch the seat is at its travel maximum
+        // (closest to the feet) and the sweep at its catch yaw; at the finish
+        // both have crossed to the far end.
+        let catch = fallback_stroke_pose(Sport::Rower, 0.0, 28.0);
+        let SportRigPose::Rower(rig) = solve_rig_pose(Sport::Rower, &catch, 0.0, false) else {
+            panic!("sport mismatch");
+        };
+        assert!((rig.seat_z - 0.26).abs() < 1e-9, "seat {}", rig.seat_z);
+        assert!(
+            (rig.oar_sweep - 0.68).abs() < 1e-9,
+            "sweep {}",
+            rig.oar_sweep
+        );
     }
 
     #[test]

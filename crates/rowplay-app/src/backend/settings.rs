@@ -48,6 +48,9 @@ pub struct SettingsBackend {
     /// Phase-shot mode: capture catch / mid-drive / finish / mid-recovery
     /// per sport with the ghost loaded (T8 visual baseline).
     phase_shots: bool,
+    /// Close-up twins for the phase shots: a second, torso-and-hands
+    /// framing per capture (the wrist/posture judgement shots, T8).
+    phase_closeups: bool,
 }
 
 impl Default for SettingsBackend {
@@ -124,6 +127,7 @@ impl Default for SettingsBackend {
             ],
             bench_mode: crate::backend::test_env("ROWPLAY_REPLAY_BENCH").is_some(),
             phase_shots: crate::backend::test_env("ROWPLAY_PHASE_SHOTS").is_some(),
+            phase_closeups: crate::backend::test_env("ROWPLAY_PHASE_CLOSEUPS").is_some(),
         }
     }
 }
@@ -214,6 +218,10 @@ impl SettingsBackend {
     // Phase-shot mode (ROWPLAY_PHASE_SHOTS): stroke-phase captures per
     // sport for the T8 visual baseline.
     qproperty!("phaseShots", Member = phase_shots, Constant);
+    // Close-up twins for the phase shots (ROWPLAY_PHASE_CLOSEUPS): each
+    // phase grab also saves a torso-and-hands framing (the wrist/posture
+    // judgement captures; T8).
+    qproperty!("phaseCloseups", Member = phase_closeups, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]

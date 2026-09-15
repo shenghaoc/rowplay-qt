@@ -109,6 +109,10 @@ pub struct ReplayBackend {
     // Playback (Phase 5b).
     athlete: V4Athlete,
     solver: Option<PoseSolver>,
+    // Capture-walk close-up camera (T8): frames the athlete's torso and
+    // hands instead of the chase view while the phase-shot walk takes a
+    // "-closeup" twin. Chase state is untouched so it flips back cleanly.
+    closeup_camera: bool,
     pole_fits: [Option<PoleLeafFit>; 3],
     playback: Option<Playback>,
     camera: CameraState,
@@ -275,6 +279,7 @@ impl Default for ReplayBackend {
             pole_fits,
             playback: None,
             camera: CameraState::new(Sport::Rower),
+            closeup_camera: false,
             anim_phase: 0.0,
             last_distance: 0.0,
             dirty: false,
@@ -344,6 +349,19 @@ fn sport_name(sport: Sport) -> &'static str {
         Sport::Skierg => "skierg",
         Sport::Bike => "bike",
     }
+}
+
+/// Athlete close-up framing for the capture walk (T8): a front
+/// three-quarter view locked to the course placement so the torso and the
+/// hands' stroke path fill the frame at every phase. `yaw` is the course
+/// node's rig→world rotation, so the rig-local offset tracks the athlete
+/// through the loop.
+fn closeup_camera_view(yaw: f64) -> ([f64; 3], [f64; 3], f64) {
+    let (sin, cos) = yaw.sin_cos();
+    let to_world = |x: f64, y: f64, z: f64| [x * cos + z * sin, y, -x * sin + z * cos];
+    let position = to_world(1.15, 0.72, 0.95);
+    let aim = to_world(0.0, 0.55, 0.28);
+    (position, aim, 45.0)
 }
 
 #[qobject(NoQmlElement, ConvertToCamelCase)]
@@ -745,6 +763,21 @@ impl ReplayBackend {
         self.notify_playback();
     }
 
+    /// Capture-walk hook: frame the athlete's torso and hands instead of the
+    /// chase view (the phase-shot close-up twins judge wrist and posture).
+    /// A paused replay emits no frames, so the flip must push one the way a
+    /// seek does or the lens never swaps.
+    #[qslot]
+    fn set_closeup_camera(&mut self, on: bool) {
+        if self.closeup_camera == on {
+            return;
+        }
+        self.closeup_camera = on;
+        self.dirty = true;
+        self.advance(0.0);
+        self.notify_frame();
+    }
+
     /// Step the speed preset up or down (the web's `[` and `]`).
     #[qslot]
     fn step_speed(&mut self, direction: i64) {
@@ -1048,11 +1081,19 @@ impl ReplayBackend {
         f[frame::SEQUENCE] = f32::from_bits(self.frame_seq as u32);
         f[frame::HUD_DISTANCE..=frame::HUD_PROGRESS]
             .copy_from_slice(&hud_numbers(&sampled, duration));
+        // Camera for this frame: the chase view, or the capture walk's
+        // athlete close-up (chase state untouched, so flipping back to it
+        // mid-session resumes smoothly).
+        let (camera_position, camera_aim, camera_fov) = if self.closeup_camera {
+            closeup_camera_view(placement.yaw)
+        } else {
+            (self.camera.position, self.camera.aim, self.camera.fov)
+        };
         for i in 0..3 {
-            f[frame::CAMERA_POSITION + i] = self.camera.position[i] as f32;
-            f[frame::CAMERA_AIM + i] = self.camera.aim[i] as f32;
+            f[frame::CAMERA_POSITION + i] = camera_position[i] as f32;
+            f[frame::CAMERA_AIM + i] = camera_aim[i] as f32;
         }
-        f[frame::CAMERA_FOV] = self.camera.fov as f32;
+        f[frame::CAMERA_FOV] = camera_fov as f32;
         f[frame::COURSE_X] = placement.x as f32;
         f[frame::COURSE_Z] = placement.z as f32;
         write_quat(f, frame::COURSE_YAW, yaw_rotation(placement.yaw));

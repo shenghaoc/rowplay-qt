@@ -2343,3 +2343,49 @@ fn equipment_contact_parity() {
     assert_eq!(20 + 10 + 10 + 16 + 165 + 32, root.sample_count);
 }
 
+/// The web avatar's rower stroke-phase calibration (fixture
+/// `replay-row-phase-parity.json`, generated from the rowplay web repo at
+/// 4d96480 — the Studio-derived corpus has no phase coverage, which is how
+/// Studio's inverted rower phase ported cleanly). Tolerance 1e-10, matching
+/// the motion corpus the channels come through.
+#[test]
+fn rower_rig_phase_parity() {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Fixture {
+        sample_count: usize,
+        samples: Vec<Sample>,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Sample {
+        phase_index: usize,
+        seat_z: f64,
+        oar_yaw: f64,
+        oar_roll_z: f64,
+    }
+
+    let fixture: Fixture = load_json("replay-row-phase-parity.json").expect("fixture");
+    assert_eq!(fixture.sample_count, fixture.samples.len());
+    for sample in &fixture.samples {
+        let pose = generator_pose(Sport::Rower, sample.phase_index, fixture.sample_count);
+        let rig = rowplay_core::replay::rig_pose::solve_rig_pose(Sport::Rower, &pose, 0.0, false);
+        let rowplay_core::replay::rig_pose::SportRigPose::Rower(rower) = rig else {
+            panic!("rower rig pose");
+        };
+        // The fixture's oar values are unsigned (per-side application is the
+        // consumer's job): yaw → `oar_sweep`, and the right-side roll
+        // −oar_feather must equal the fixture's signed `oar_roll_z`.
+        for (name, actual, expected) in [
+            ("seatZ", rower.seat_z, sample.seat_z),
+            ("oarYaw", rower.oar_sweep, sample.oar_yaw),
+            ("oarRollZ", -rower.oar_feather, sample.oar_roll_z),
+        ] {
+            assert!(
+                (actual - expected).abs() <= 1e-10,
+                "phase {} {name}: {actual} != {expected}",
+                sample.phase_index
+            );
+        }
+    }
+}

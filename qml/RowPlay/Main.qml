@@ -378,6 +378,10 @@ ApplicationWindow {
     property int gateSceneWaits: 0
     property int gateSceneTicks: 0
     property string gateSceneGrabName: ""
+    // ROWPLAY_PHASE_CLOSEUPS: after a phase grab settles and saves, take a
+    // second grab of the same seek through the close-up camera (the
+    // torso-and-hands framing the wrist/posture judgement needs).
+    property bool gateSceneCloseup: false
 
     // An idle scene renders exactly one frame per change, so a "+N frames"
     // settle target is unreachable and mesh-buffer uploads (which only
@@ -405,6 +409,7 @@ ApplicationWindow {
         gateSceneWaits = 0
         gateSceneTicks = 0
         gateSceneGrabName = name
+        gateSceneCloseup = Settings.phaseCloseups && name.indexOf("phase-") === 0
         console.log("gate scene: settling", name, "from",
                     gateRenderedFrames, "frames")
     }
@@ -423,6 +428,26 @@ ApplicationWindow {
             // pixel-diversity assertions — uncompressed P6 is trivial to
             // parse without an image crate.
             result.saveToFile(Settings.screenshotDir + "/" + name + ".ppm")
+            if (root.gateSceneCloseup && name.indexOf("-closeup") < 0) {
+                // Same seek, close-up camera: settle again so the swapped
+                // lens has rendered, then re-enter grabScreen for the twin.
+                // gateAwaitingScene holds the walk; grabPending releases so
+                // the settle branch is reachable on the next ticks.
+                root.gateSceneCloseup = false
+                Replay.setCloseupCamera(true)
+                root.grabPending = false
+                root.gateAwaitingScene = true
+                root.gateSceneFramesTarget = root.gateRenderedFrames + 3
+                root.gateSceneWaits = 0
+                root.gateSceneTicks = 0
+                root.gateSceneGrabName = name + "-closeup"
+                console.log("gate scene: settling", root.gateSceneGrabName,
+                            "from", root.gateRenderedFrames, "frames")
+                return
+            }
+            if (name.indexOf("-closeup") >= 0) {
+                Replay.setCloseupCamera(false)
+            }
             root.grabPending = false
         })
     }
