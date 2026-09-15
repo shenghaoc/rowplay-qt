@@ -16,16 +16,26 @@ checked by `crates/rowplay-fixtures` tests.
 Redaction policy: see `Concept2/REDACTION.md` (copied from Studio). No fixture
 contains real athlete data, tokens, cookies, or hardware identifiers.
 
-One fixture is generated locally rather than vendored:
-`replay-row-phase-parity.json` pins the web avatar's rower stroke-phase
-calibration (seat slide, oar sweep yaw, oar dip roll per cycle) directly from
-the **rowplay web repo** at commit `4d96480e7c6fb382f800555bd3aa463d9fe5b1a6`,
-because the Studio-derived corpus has no phase coverage — the hole that let
-Studio's inverted rower phase port cleanly (the seat driven farthest from the
-feet at the catch). Regenerate with
-`node tools/gen-row-phase-parity.mjs --rowplay-repo reference/rowplay`
-(Node ≥ 23.6, web node_modules present); the JSON records the web source-file
-SHA-256s. `tools/vendor-fixtures.py` preserves its manifest entry.
+Two fixtures are generated locally rather than vendored:
+
+- `replay-row-phase-parity.json` pins the web avatar's rower stroke-phase
+  calibration (seat slide, oar sweep yaw, oar dip roll per cycle) directly
+  from the **rowplay web repo** at commit `4d96480e7c6fb382f800555bd3aa463d9fe5b1a6`,
+  because the Studio-derived corpus has no phase coverage — the hole that let
+  Studio's inverted rower phase port cleanly (the seat driven farthest from the
+  feet at the catch). Regenerate with
+  `node tools/gen-row-phase-parity.mjs --rowplay-repo reference/rowplay`
+  (Node ≥ 23.6, web node_modules present).
+- `replay-rig-phase-parity.json` (parity coverage audit stage 2,
+  `docs/parity-coverage.md`) sweeps the **composed** web avatar calibration for
+  all three sports over the full cycle — rig-local transforms and the V4
+  contact landmarks from `renderer3d{Row,Ski,Bike}Avatar.ts` at the pinned
+  rowplay commit `011e8303` (384 samples × 2 timing sweeps). Regenerate with
+  `node --experimental-transform-types tools/gen-rig-phase-parity.mjs`.
+
+Both record the web source-file SHA-256s inside the JSON, and
+`tools/vendor-fixtures.py` preserves their manifest entries. Never hand-edit
+either.
 
 | Fixture | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -37,6 +47,7 @@ SHA-256s. `tools/vendor-fixtures.py` preserves its manifest entry.
 | `duration-band-parity.json` | 6120 | `b25819daecb6458eb1a32d226965aeeb66335d2166028dfdbfaca8cb4d918ee4` |
 | `performance-predictor-parity.json` | 1304 | `46cdec99696325feacdd1bd1df89409fdc5704b2fefc2bf34f995ecc2343712d` |
 | `replay-current-main-2d.json` | 112327 | `407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693` |
+| `replay-rig-phase-parity.json` | 861062 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` |
 | `replay-current-main-equipment.json` | 61418 | `d403eb47c835dc2c8766ac13f235c7a6313962f2157bf5854e37932921f9d865` |
 | `replay-current-main-grips.json` | 55216 | `50940759fe637d35267a3b20eb60f92fb8bc5debff6ce7f43c087b39563b962b` |
 | `replay-current-main-motion.json` | 482320 | `e47ffdf5e2332ce86911bda2b8b963f5b3ec559f252feee8aa8aaf9bbfdee230` |

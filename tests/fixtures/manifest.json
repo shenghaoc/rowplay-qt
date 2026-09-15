@@ -133,6 +133,16 @@
       }
     },
     {
+      "path": "replay-rig-phase-parity.json",
+      "bytes": 861062,
+      "sha256": "70e041f96ab780622799a2db8d19dc63c96cb91580a2331c72adc2204dcad275",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay",
+        "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+        "path": "tests/fixtures/replay-rig-phase-parity.json"
+      }
+    },
+    {
       "path": "replay-rival-sources-parity.json",
       "bytes": 5404,
       "sha256": "35e252dcd69a3df8d40fbaa4855ba059f2e1571d25495bf525a256c34f05e04d",
