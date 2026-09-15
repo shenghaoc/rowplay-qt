@@ -109,7 +109,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 | Surface | Rust | Web | Via | Evidence | Gap and risk |
 | --- | --- | --- | --- | --- | --- |
-| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike enabled and green** after its fix; rower and skierg `#[ignore]`d with recorded verdicts. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: oar sweep −0.73 (the composed yaw adds the reach solve the runtime never composes — see ranking 3), dip +0.029 residual, Studio handle/torso dead channels. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 1). |
+| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike enabled and green** after its fix; rower and skierg `#[ignore]`d with recorded verdicts. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` −0.73 — the composed yaw comes from the web's arm-authority reach solve, which the runtime never composes (**an inverted chain, not a layering indifference** — ranking 3 has the full finding and the fix plan); dip +0.029 residual from the composed damping; Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). |
 | Motion-graph timing parameters | `motion_graph::timing_into` etc. | `motionGraph.ts` `timingInto` | web | Corpus sweeps phase at one fixed timing per sport; drive-fraction clamps and rate-dependent timing unit-pinned exactly (motion_graph.rs tests, re-expressing web tests). | No corpus varies `driveFrac`/`secondsPerCycle`/rate inputs. A regressed clamp would fail only the unit pins, which were written from the port. **Phase-source choice unpinned**: the graph reads `pose.phase` (motion_graph.rs, matching the web), but because the corpus pins `warpedPhase = phase`, a regression to `warped_phase` would pass every existing test. Sign error unlikely; input-selection error possible. |
 | Stroke pose, web pipeline (production path) | `stroke_model::{build_stroke_timeline, stroke_pose_at}` | `strokeModel.ts` `buildStrokeTimeline`, `strokePoseAt` | web | Unit tests pin timeline arithmetic, the web amplitude law `clamp(0.94 + i·0.12, 0.94, 1.06)` and drive-fraction law exactly; the app renderer uses this path (backend `replay.rs`, not `compute_at_time`). Verified: the web 3D renderer itself never calls `strokePoseAt` per frame — the Svelte page does, then hands `pose.phase` to the avatar — so the Rust production chain (page-equivalent path) matches the web's shape. | No web-generated corpus of `stroke_pose_at` outputs over varied rate/intensity/fatigue/duration inputs; the existing fixture drives the Studio path with 3 range cases predating the web's #171 rework. Intensity/fatigue composition could drift undetected. Inversion unlikely (progress/amplitude laws pinned). |
 | Warp stroke phase | `motion::warp_stroke_phase[_rate]` | `motion.ts` `warpStrokePhase` | web (deliberate divergence) | Boundary mapping (0.4·τ → π), identity at f = 0.5, monotonicity and C1/periodicity guard tests. | The port is intentionally C1 where the web is C0 — a web-generated fixture would fail by design; the divergence row is the contract. Residual risk: the documented contract itself is only enforced at the pins, not swept. |
@@ -162,33 +162,66 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 ## Risk ranking (drives the remaining stages)
 
-Ordered by (inversion likelihood × symptom subtlety × how much of the scene
-inherits the error). The original 1–3 family was the Studio-authored rig
-calibration: Phase 7 fixed the rower (`cf85cdb`), the audit's stage 3 fixed
-the bike (two constants, `rig_phase_parity_bike` green); skierg leads.
+Ordered by what to act on next (inversion likelihood × symptom subtlety × how
+much of the scene inherits the error). The original 1–3 family was the
+Studio-authored rig calibration: Phase 7 fixed the rower (`cf85cdb`), the
+audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
 
-1. **`solve_skierg` phase calibration** — torso base, hand-path frame
+1. **Rower arm/oar authority — inverted chain (confirmed defect; the oar
+   reach solve is the missing layer).** The web makes the **arm** the
+   authority and solves the oar yaw to meet it. `renderer3dRowAvatar.ts`
+   `placeArms`: the `armDraw` channel (the "only velocity profile in this
+   chain") schedules elbow flexion from the soft long-arm unlock
+   (`ROWER_DRAW_SOFT_FLEXION` 0.32) to the finish fold
+   (`ROWER_DRAW_FINISH_FLEXION` 2.46 rad), `rowerReachForFlexion` converts that
+   to a shoulder→wrist reach via the law of cosines (≈0.760 → 0.257 m across
+   the draw), and `solveRowerOarYaw(shoulder, pin, signedInboard, bladeRoll,
+   requestedReach, preferredYaw, forceReachBoundary = true)` returns the
+   reach-circle root — the rendered yaw. The authored arc
+   `OAR_YAW_CATCH + draw·OAR_YAW_SPAN` is passed **only as `preferredYaw`**, a
+   branch-selection reference. The port inverts this: `rig_pose.oar_sweep`
+   (the authored arc) is the authority, `pose::rower_targets` derives the
+   handle contact from it, and the two-bone solver bends the arms to reach
+   that handle — so the rendered oar yaw deviates from the web's by up to
+   0.73 rad (fixture), ≈0.5 m of handle travel on the 0.66 m inboard lever.
+   Nothing composes `row_equipment::solve_rower_oar_yaw` (ported and
+   fixture-covered) at runtime; the only consumer is the grip contract. The
+   web's comments record that arm-authority was itself the fix — earlier
+   oar-driven stacks "compressed the visible pull into ~3 frames" and popped
+   the elbow at draw onset — so this is a defect to compose, **not** a
+   legitimate alternative to document away. Fix (scoped, three layers): carry
+   the requested reach (or `armDraw`) from `rig_pose` into `RigTargets`; in
+   `PoseSolver::pose`, for the rower, compute the shoulder positions after the
+   pelvis/torso pass, re-solve the oar yaw with `solve_rower_oar_yaw`, and
+   recompute the hand targets before the arm solves; return the solved yaws so
+   the backend packs them as the oar quaternions instead of
+   `oar_rotations(rig.oar_sweep, …)`. The verification moves with it: the
+   composed yaw is a viewmodel-level result (shoulders in, yaw out), so the
+   `oar_sweep` parity assertion belongs beside `PoseSolver`, fed the fixture's
+   shoulder/target data, not in `rig_pose`'s own test. Needs visual
+   re-verification (CI phase shots; local captures are black, see the capture
+   caveat). Rower `seat`/`sweep`/`dip` values themselves are correct — this is
+   composition, not calibration.
+2. **`solve_skierg` phase calibration** — torso base, hand-path frame
    composition, course-anchored plant; fixture-confirmed, structural (a
    0.7–0.9 m frame-composition disagreement, not a constant).
-2. **Chase camera ghost framing** — web comparison framing unported while
+3. **Chase camera ghost framing** — web comparison framing unported while
    ghosts ship; camera sign conventions unverifiable by quote-check alone.
-3. **Rower composed layer** — confirmed missing at runtime, not just a
-   fixture-layering difference: the runtime oar rotation is
-   `oar_rotations(rower.oar_sweep, …)` from the authored values, and nothing
-   composes `row_equipment::solve_rower_oar_yaw` into it (the reach solve is
-   ported and fixture-covered but dead at runtime), so the rendered oar yaw
-   deviates from the web's composed yaw by the fixture's worst −0.73 rad.
-   Plus the retained Studio handle/torso channels (dead surface);
-   decide compose-vs-delete.
-4. **`stroke_pose_at` web-pipeline corpus** — production path has no
+4. **QA close-up camera is mis-framed** — `closeup_camera_view` aims ~29–31 m
+   from the athlete (one loop radius: it never adds the course placement), so
+   the T8 close-up twins frame venue geometry, not the athlete. It is the
+   instrument meant for judging wrist detail (ranking 1/2), so fix it before
+   the next visual pass: translate by the athlete's world position, and
+   re-verify against the RHEL baseline.
+5. **`stroke_pose_at` web-pipeline corpus** — production path has no
    web-generated sweep over varied inputs.
-5. **Wrist budget sweep** — covered only through the equipment corpus and
+6. **Wrist budget sweep** — covered only through the equipment corpus and
    web-test re-expression.
-6. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
+7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
    table needs a decision (adopt or record), not a fixture per se.
-7. **Motion-graph phase-source gap** — extend a generator to sweep
+8. **Motion-graph phase-source gap** — extend a generator to sweep
    `warpedPhase ≠ phase` (and varied timing) so the input selection is pinned.
-8. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
+9. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
    twice; make that permanent in the camera-test pattern.
 
 ## Stage-2 generator contract
