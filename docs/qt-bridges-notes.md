@@ -267,11 +267,14 @@ correctly. Phase 0's sphere-and-cube smoke capture *does* render, so it is not
 (candidates: the replay scene's `ExtendedSceneEnvironment`/procedural sky
 probe, its post-processing pass, or the platform's Quick 3D texture path).
 
-The failure was invisible because `assert_rendered` samples the **whole
-window**: the sidebar and chrome supply well over 64 distinct colours and keep
-the top colour under 90 %, so twelve all-black phase shots passed for months.
-`ROWPLAY_PHASE_SHOTS=1` therefore produced a black baseline on this machine
-and a real one in CI (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`).
+The failure is silent because `assert_rendered` samples the **whole window**:
+the sidebar and chrome supply well over 64 distinct colours and keep the top
+colour under 90 %, so an all-black viewport passes. The bug is **specific to
+this host**: Phase 7's T8 baseline was captured on the RHEL machine (Wayland,
+Intel UHD 630) and its twelve captures are valid — do not re-shoot that
+baseline on account of this note. On an affected host `ROWPLAY_PHASE_SHOTS=1`
+produces a black baseline while CI (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`)
+produces a real one.
 
 Repro: `ROWPLAY_SMOKE_GATE=1 ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts cargo test -p rowplay-app --test qml_runtime_gate`
 on macOS; `artifacts/phase-*-*.ppm` are black in the viewport region while the
