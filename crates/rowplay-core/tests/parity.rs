@@ -2397,10 +2397,15 @@ fn rower_rig_phase_parity() {
 /// inputs) against `rig_pose::solve_rig_pose`. The generator is
 /// `tools/gen-rig-phase-parity.mjs`.
 ///
-/// The comparisons are raw (no sign or frame fudging), with angles compared
-/// on the circle where they are periodic; the mapping from Rust outputs to
-/// web scene-graph quantities is stated per field. Tolerance 1e-6: both
-/// sides are exact-formula float chains from identical inputs.
+/// Unlike `replay-row-phase-parity.json` (Phase 7, the authored rower seat /
+/// sweep / dip formulas), this fixture records the **composed** scene-graph
+/// state after `animate`, so it also sees the avatar's analytic oar-yaw reach
+/// solve, the torso pitch and the V4 contact landmarks.
+///
+/// The comparisons are raw (no sign or frame fudging beyond the web's own
+/// per-side application, stated per field), with angles compared on the
+/// circle where they are periodic. Tolerance 1e-6: both sides are
+/// exact-formula float chains from identical inputs.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RigPhaseFixture {
@@ -2489,7 +2494,7 @@ fn assert_close(
         actual - expected
     };
     if delta.abs() > 1e-6 {
-        let line = format!("rust {actual:.6} vs web {expected:.6} (delta {delta:+.6})");
+        let line = format!("{field}: rust {actual:.6} vs web {expected:.6} (delta {delta:+.6})");
         // Keep the worst (largest) delta seen per field for the summary.
         let worse = worst
             .get(field)
@@ -2501,7 +2506,7 @@ fn assert_close(
 }
 
 #[test]
-#[ignore = "audit stage 3: first run FAILED on every calibration field - the port mirrors Studio's calibration, not the web's (see docs/parity-coverage.md rows 1-3 and the PR description). Enable with the web-calibration fix."]
+#[ignore = "audit stage 3 follow-up: after Phase 7's rower fix (8732cb5) the rower seat passes - confirming this generator agrees with the shipped fix - but bike pedals (pi inversion) and wheel divisor, all skierg fields, the composed-vs-authored rower oar yaw, and the retained Studio rower handle/torso channels still diverge (docs/parity-coverage.md)."]
 fn rig_phase_parity() {
     let fixture: RigPhaseFixture =
         rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
@@ -2528,7 +2533,10 @@ fn rig_phase_parity() {
                     rig_number(&sample.rig, &["seat", "2"]),
                     false,
                 );
-                // oar_sweep / oar_feather ↔ the right oar's authored yaw / roll.
+                // oar_sweep ↔ the right oar's composed yaw: the web adds the
+                // analytic reach solve (`rowRig.solveRowerOarYaw`, ported in
+                // `row_equipment`) on top of the authored linear sweep the rig
+                // exposes, so this comparison sees both.
                 assert_close(
                     &mut worst,
                     "rower.oar_sweep",
@@ -2536,11 +2544,14 @@ fn rig_phase_parity() {
                     rig_number(&sample.rig, &["oarRightRotation", "1"]),
                     false,
                 );
+                // oar_feather is the side-free dip; the web applies it as
+                // `-oar.side * dip` (renderer3dRowAvatar.ts), so the right
+                // oar's roll is the negated dip.
                 assert_close(
                     &mut worst,
                     "rower.oar_feather",
                     rig.oar_feather,
-                    rig_number(&sample.rig, &["oarRightRotation", "2"]),
+                    -rig_number(&sample.rig, &["oarRightRotation", "2"]),
                     false,
                 );
                 // torso_lean ↔ the torso group's pitch (web: catch +0.56 -> finish -0.30).
