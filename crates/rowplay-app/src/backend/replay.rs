@@ -27,7 +27,7 @@ use rowplay_core::replay::stroke_model::{
 use rowplay_viewmodel::replay::athlete::V4Athlete;
 use rowplay_viewmodel::replay::camera::{CameraInput, CameraState, chase};
 use rowplay_viewmodel::replay::course::{
-    AccentCues, LIVE_LOOP_RADIUS, accents, advance_anim_phase, place,
+    AccentCues, LIVE_LOOP_RADIUS, Placement, accents, advance_anim_phase, place,
 };
 use rowplay_viewmodel::replay::equipment::{
     PoleLeafFit, blade_position, blade_roll_degrees, crank_rotation,
@@ -353,15 +353,26 @@ fn sport_name(sport: Sport) -> &'static str {
 
 /// Athlete close-up framing for the capture walk (T8): a front
 /// three-quarter view locked to the course placement so the torso and the
-/// hands' stroke path fill the frame at every phase. `yaw` is the course
-/// node's rig→world rotation, so the rig-local offset tracks the athlete
-/// through the loop.
-fn closeup_camera_view(yaw: f64) -> ([f64; 3], [f64; 3], f64) {
-    let (sin, cos) = yaw.sin_cos();
+/// hands' stroke path fill the frame at every phase. `placement` is the
+/// athlete's position and rig→world yaw on the loop; the offset is built in
+/// the rig's local frame and then translated to the athlete. Without the
+/// translation the camera sat at the venue centre, ~one loop radius from the
+/// athlete, and the close-up twins framed venue geometry instead of the
+/// athlete.
+fn closeup_camera_view(placement: &Placement) -> ([f64; 3], [f64; 3], f64) {
+    let (sin, cos) = placement.yaw.sin_cos();
     let to_world = |x: f64, y: f64, z: f64| [x * cos + z * sin, y, -x * sin + z * cos];
     let position = to_world(1.15, 0.72, 0.95);
     let aim = to_world(0.0, 0.55, 0.28);
-    (position, aim, 45.0)
+    (
+        [
+            placement.x + position[0],
+            position[1],
+            placement.z + position[2],
+        ],
+        [placement.x + aim[0], aim[1], placement.z + aim[2]],
+        45.0,
+    )
 }
 
 #[qobject(NoQmlElement, ConvertToCamelCase)]
@@ -1085,7 +1096,7 @@ impl ReplayBackend {
         // athlete close-up (chase state untouched, so flipping back to it
         // mid-session resumes smoothly).
         let (camera_position, camera_aim, camera_fov) = if self.closeup_camera {
-            closeup_camera_view(placement.yaw)
+            closeup_camera_view(&placement)
         } else {
             (self.camera.position, self.camera.aim, self.camera.fov)
         };
@@ -1468,6 +1479,50 @@ mod tests {
             replay.workout_id, DEFAULT_WORKOUT_ID,
             "unknown ids fall back to the demo default"
         );
+    }
+
+    /// The capture-walk close-up camera must frame the athlete, not the venue
+    /// centre: it is the lens used to judge wrist and posture detail, and it
+    /// previously sat ~one loop radius away (framing venue geometry on all
+    /// three sports). Assert the camera lands within a couple of metres of the
+    /// athlete's placement, on the far side of the loop too.
+    #[test]
+    fn the_closeup_camera_frames_the_athlete_not_the_venue_centre() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        for (id, expect_sport) in [(1001i64, 0i64), (1003, 1i64), (1004, 2i64)] {
+            replay.load_workout(id);
+            replay.seek(0.5);
+            assert_eq!(replay.sport_index, expect_sport, "workout {id}");
+            replay.set_closeup_camera(true);
+            let f = &replay.frame;
+            let camera = [
+                f[frame::CAMERA_POSITION],
+                f[frame::CAMERA_POSITION + 1],
+                f[frame::CAMERA_POSITION + 2],
+            ];
+            let aim = [
+                f[frame::CAMERA_AIM],
+                f[frame::CAMERA_AIM + 1],
+                f[frame::CAMERA_AIM + 2],
+            ];
+            let athlete = [f[frame::COURSE_X], 0.0f32, f[frame::COURSE_Z]];
+            let camera_distance =
+                ((camera[0] - athlete[0]).powi(2) + (camera[2] - athlete[2]).powi(2)).sqrt();
+            assert!(
+                (0.5..3.0).contains(&camera_distance),
+                "workout {id}: close-up camera is {camera_distance:.2} m from the athlete \
+                 (camera {camera:?}, athlete {athlete:?}) — it must frame the athlete, \
+                 not the venue centre"
+            );
+            let aim_distance =
+                ((aim[0] - athlete[0]).powi(2) + (aim[2] - athlete[2]).powi(2)).sqrt();
+            assert!(
+                aim_distance < 1.0,
+                "workout {id}: close-up aim is {aim_distance:.2} m off the athlete"
+            );
+            replay.set_closeup_camera(false);
+        }
     }
 
     /// Ghost rendering: loading a rival workout produces a ghost frame
