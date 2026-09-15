@@ -7,6 +7,10 @@ Usage: tools/vendor-fixtures.py <rowplay-studio-checkout>
 Copies Tests/RowPlayCoreTests/Fixtures/*.json (plus Concept2/*) into
 tests/fixtures/, then rewrites tests/fixtures/manifest.json with the SHA-256 of
 every file and the source commit (read from the checkout's git HEAD).
+
+Locally generated fixtures (GENERATED_FIXTURES below, produced by the
+generators in tools/) are re-hashed in place so a Studio re-vendor never drops
+them; regenerate them with their own generators first.
 """
 from __future__ import annotations
 
@@ -37,6 +41,17 @@ FILES = [
     "Concept2/bike-steady.fixture.json",
 ]
 
+# Fixtures generated in this repository from the rowplay web sources (not
+# vendored from Studio; see PROVENANCE.md): each generator evaluates the web
+# at a pinned commit under Node. Regenerate them with their generators before
+# re-vendoring after a reference change. The manifest entry records the
+# generator's commit; an existing entry is refreshed in place rather than
+# rewritten, so a recorded pin survives re-vendoring.
+GENERATED_FIXTURES = {
+    "replay-row-phase-parity.json": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
+    "replay-rig-phase-parity.json": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+}
+
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -64,31 +79,29 @@ def main() -> int:
                 },
             }
         )
-    entries.sort(key=lambda e: e["path"])
-    # The row-phase fixture is generated from the rowplay web repo, not
-    # vendored from Studio (see PROVENANCE.md); keep its manifest entry so a
-    # re-vendor does not strand an unrecorded file on disk.
-    local = DEST / "replay-row-phase-parity.json"
-    if local.exists():
-        existing = json.loads((DEST / "manifest.json").read_text()) if (DEST / "manifest.json").exists() else {"fixtures": []}
-        prior = next(
-            (e for e in existing["fixtures"] if e["path"] == "replay-row-phase-parity.json"),
-            None,
-        )
-        data = local.read_bytes()
+    manifest_path = DEST / "manifest.json"
+    existing = (
+        json.loads(manifest_path.read_text()) if manifest_path.exists() else {"fixtures": []}
+    )
+    for rel, generated_commit in GENERATED_FIXTURES.items():
+        target = DEST / rel
+        if not target.exists():
+            continue
+        prior = next((e for e in existing["fixtures"] if e["path"] == rel), None)
         if prior is None:
             prior = {
-                "path": "replay-row-phase-parity.json",
+                "path": rel,
                 "source": {
                     "repository": "https://github.com/shenghaoc/rowplay",
-                    "commit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
-                    "path": "tests/fixtures/replay-row-phase-parity.json",
+                    "commit": generated_commit,
+                    "path": f"tests/fixtures/{rel}",
                 },
             }
+        data = target.read_bytes()
         prior["bytes"] = len(data)
         prior["sha256"] = hashlib.sha256(data).hexdigest()
         entries.append(prior)
-        entries.sort(key=lambda e: e["path"])
+    entries.sort(key=lambda e: e["path"])
     manifest = {
         "schema": "rowplay-qt.fixtures.manifest.v1",
         "description": "Golden parity fixtures vendored from rowplay-studio. Regenerate with tools/vendor-fixtures.py.",
