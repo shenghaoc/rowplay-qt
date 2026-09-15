@@ -26,6 +26,14 @@ struct Source {
     path: String,
 }
 
+/// Repositories a fixture may be sourced from: everything is vendored from
+/// rowplay-studio except `replay-row-phase-parity.json`, which is generated
+/// straight from the rowplay web repo (tools/gen-row-phase-parity.mjs).
+const SOURCE_REPOSITORIES: [&str; 2] = [
+    "https://github.com/shenghaoc/rowplay-studio",
+    "https://github.com/shenghaoc/rowplay",
+];
+
 #[test]
 fn every_fixture_matches_its_manifest_entry() {
     let manifest: Manifest = rowplay_fixtures::load_json("manifest.json").expect("manifest");
@@ -42,9 +50,11 @@ fn every_fixture_matches_its_manifest_entry() {
             "{}: sha256",
             entry.path
         );
-        assert_eq!(
-            entry.source.repository,
-            "https://github.com/shenghaoc/rowplay-studio"
+        assert!(
+            SOURCE_REPOSITORIES.contains(&entry.source.repository.as_str()),
+            "{}: unknown source repository {}",
+            entry.path,
+            entry.source.repository
         );
         assert_eq!(entry.source.commit.len(), 40, "{}: commit", entry.path);
         assert!(

@@ -473,12 +473,28 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
   shoulder internal rotation like production (`distributeSkiElbowTwist`,
   forearm world bit-exact), and the wrist metrics carry the unclamped
   `requested_twist` beside the clamped value so T8 can tell a saturating
-  budget from a frame bug. Measured verdict: no flips or wraps anywhere
-  (tight budgets, case one); the row finish→recovery swing is the
-  feather-window weights slewing, matching the avatar math, to be judged
-  on screen as feathering vs snap.
+  budget from a frame bug. Measured verdict: no flips or wraps anywhere.
+  The row finish→recovery swing whip first traced to the feather-window
+  weights turned out to be those weights interacting with the inverted
+  rower phase (below) — resolved by the phase fix, not by the wrist layer;
+  what remains on it is the full-speed feather read.
+- Rower phase fix (T8 finding): the first T8 capture review caught the
+  rower rig stroking backwards against the equipment — Studio's phase
+  calibration had been ported op-for-op while Studio itself is inverted
+  against the web (seat farthest from the feet at the catch, catch grips
+  behind the torso; the web source comments predict the exact symptom).
+  Fixed fixture-first with a new web-generated fixture
+  (`replay-row-phase-parity.json`, `tools/gen-row-phase-parity.mjs`) that
+  pins the web avatar's seat/sweep/dip-roll mapping per cycle — the corpus
+  had no phase coverage, which is how the inversion slipped through.
+  Post-fix the row wrist demand sweeps −41°…+178° continuously (previously
+  all-negative and clamped most of the cycle) and the feather-window whip
+  halved. Capture tooling gained close-up twins
+  (`ROWPLAY_PHASE_CLOSEUPS=1`, torso-and-hands framing) because the wide
+  shots cannot resolve wrist detail.
 - Remaining: per-stroke verification (T8, including the catch/finish
-  visual on all three sports); docs (T9).
+  visual on all three sports — now against the corrected phase); docs
+  (T9).
 
 ### Phase 8 — Live mode
 

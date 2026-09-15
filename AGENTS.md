@@ -158,6 +158,15 @@ port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
   slice 2) all looked correct in isolation with passing unit tests and were
   caught only because a fixture consumed them. Unit tests cannot substitute
   for parity fixtures on geometry code.
+- A green parity suite means the *covered surface* agrees, not that the port
+  is correct. Phase 7's rower rig stroked backwards against the web for two
+  slices because the corpus covered the web's static rig contracts but had
+  zero samples of the stroke-phase calibration — Studio (the only source for
+  it) was itself inverted, and nothing failed. When porting a calibration or
+  a mapping (not just pure functions), ask what fixture consumes it; if the
+  answer is nothing, write the web-derived fixture first
+  (`tools/gen-row-phase-parity.mjs` is the pattern: evaluate the pinned web
+  commit under Node, record source hashes inside the JSON).
 - Residuals cannot validate orientation: a re-solve absorbs an orientation
   error and reports convergence, so a contact residual measures "did the
   solver find *a* solution", not "is the solution anatomically real" (Phase

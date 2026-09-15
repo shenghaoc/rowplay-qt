@@ -25,37 +25,62 @@
   and look at the catch and the finish on all three sports before trusting
   the numbers — plus the ghost, which runs the same path, so any
   orientation error doubles on screen.
-  Pre-visual verdict from the unclamped demand (`WristMetrics.requested_twist`,
-  swept 40 steps/sport): no sign flips, no wraps anywhere — the budgets are
-  genuinely saturated, not rescuing a frame bug. Per sport: row demand runs
-  −35°…−116°, clamped to −75° through most of the cycle (tight budget, case
-  one). The finish→recovery swing whip (flexion 64°→23°, deviation 29°→80°
-  across three samples) was investigated, not just noted: adjacent-step hand
-  angular velocity hits 47°/step while the clip hand never exceeds 23° and
-  the oar input stays ≤11° — but the driver is the flat-wrist/tilt weights
-  slewing 1→0→1 through the feather window (port matches the avatar math
-  op-for-op, and the web documents the transition as the feather read), not
-  the clamp releasing and not a port bug. T8 still judges it on screen, but
-  what to judge is now precise: feathering vs snap at the window edges.
+  The first T8 review found a bigger upstream defect before the wrist
+  question: the rower rig phase was inverted against the web (Studio's
+  calibration ported op-for-op — seat farthest from the feet at the catch,
+  catch grips behind the torso), making the athlete stroke backwards
+  against the equipment. Fixed fixture-first: `replay-row-phase-parity.json`
+  (generated from the web repo by `tools/gen-row-phase-parity.mjs`) pins the
+  web's seat/sweep/roll mapping,
+  `rower_rig_phase_parity` consumes it, and `solve_rower` now follows the
+  web avatar (divergence row in source-map). The corpus lesson is recorded
+  in AGENTS.md: the equipment fixture was web-generated but phase-agnostic —
+  nothing covered the rig's phase calibration, which is how the inversion
+  ported cleanly past a green parity suite.
+  That inversion also resolves what the earlier 47°/step whip analysis got
+  half right: the mechanism was correctly traced to the flat-wrist/tilt
+  weights slewing 1→0→1 through the feather window, but the cause was those
+  weights interacting with the inverted sweep, not independent authored
+  behaviour — the pre-fix note calling it "not a port bug" was right about
+  the mechanism and wrong about the cause. Post-fix the unclamped demand
+  sweeps −41°…+178° continuously (it was all-negative −35°…−116° and
+  clamped most of the cycle), the in-window rate is ~14°/step (was 47°),
+  and the worst adjacent jump anywhere is 36.7° — a flexion step at the
+  extraction seam, which is where the web authors the feather transition
+  on purpose. The held-phase close-ups show flat wrists with no snap at
+  either window edge, so feathering-vs-snap is answered at stills; what
+  remains of T8's visual is the full-speed read — does the feather look
+  natural in motion, which held frames cannot settle.
   Ski demand swings +77°…−134°…+131° with the keep pegged; the elbow-seam
   excess now splits 50/50 into the humerus like production (ported, with the
   forearm-world bit-exact invariant pinned — see `seam_split_*`), so the
   forearm no longer corkscrews double. Bike demand sits at ~67° all cycle:
   static frame, frozen wrist, in budget — planted hands, but also proof of
   nothing beyond no-misfire when idle.
-  On judging: with twist clamped for most of the row cycle, T8 judges the
-  clamp's output, not the channel alignment. Hands right → the budget is
-  defensible. Hands stiff → 75° is too tight for rowing, not an upstream
-  bug; widen the budget, don't chase the frame.
+  On judging: with the demand now crossing the budget mid-drive instead of
+  pegging it, a stiff-looking wrist at the extremes would indict the 75°
+  budget itself — widen the budget, don't chase the frame. The close-ups
+  show no stiffness, so the budget stands as ported.
   Baseline kept: `artifacts/phase-baseline/` holds the twelve ghost-loaded
   captures (catch/mid-drive/finish/mid-recovery × 3 sports) on the finished
   slice-3 code, with SHA256SUMS and a README (regen command, determinism
   caveat: gate recipe only — local prefs render different pixels). The walk
   steps (Main.qml cases 66–81, behind `ROWPLAY_PHASE_SHOTS=1`) and the gate
   assertions travel with the repo; the PNGs stay local (renderer-dependent).
-  One honest limit: the viewer in this session could not display the
-  captures, so they are verified real (20–27k colours, phases differ) but
-  not yet judged — the three sport questions above are still eyes-on work.
+  Add `ROWPLAY_PHASE_CLOSEUPS=1` for torso-and-hands close-up twins of every
+  phase grab (`Replay.setCloseupCamera`) — the wide shots cannot resolve
+  wrist detail, which is how the first review misread a animating athlete
+  as static. The pre-inversion-fix wide set is preserved under
+  `artifacts/phase-baseline/before-phase-fix/` for before/after comparison.
+  Visual verdict on the post-fix set (this session could display the
+  captures): row catch compressed forward with arms extended ahead onto the
+  handles, finish in layback with the hands drawn to the lower ribs, blades
+  buried through the drive (the `bladeWater` dip working), mid-recovery
+  wrists flat with no snap at the window edges; ski forearms straight with
+  the shoulder split in; bike hands planted, wrists level. The gross
+  anatomy questions are settled — what remains for a human pass at T8 is
+  the subjective read (does the finish→recovery feather read naturally at
+  full speed, not just at the four held phases).
 - [ ] T9 Docs (roadmap, source-map, qt-bridges-notes) + full validation +
   phase PR (R5.1, R5.2).
 

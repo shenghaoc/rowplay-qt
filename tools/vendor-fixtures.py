@@ -65,6 +65,30 @@ def main() -> int:
             }
         )
     entries.sort(key=lambda e: e["path"])
+    # The row-phase fixture is generated from the rowplay web repo, not
+    # vendored from Studio (see PROVENANCE.md); keep its manifest entry so a
+    # re-vendor does not strand an unrecorded file on disk.
+    local = DEST / "replay-row-phase-parity.json"
+    if local.exists():
+        existing = json.loads((DEST / "manifest.json").read_text()) if (DEST / "manifest.json").exists() else {"fixtures": []}
+        prior = next(
+            (e for e in existing["fixtures"] if e["path"] == "replay-row-phase-parity.json"),
+            None,
+        )
+        data = local.read_bytes()
+        if prior is None:
+            prior = {
+                "path": "replay-row-phase-parity.json",
+                "source": {
+                    "repository": "https://github.com/shenghaoc/rowplay",
+                    "commit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
+                    "path": "tests/fixtures/replay-row-phase-parity.json",
+                },
+            }
+        prior["bytes"] = len(data)
+        prior["sha256"] = hashlib.sha256(data).hexdigest()
+        entries.append(prior)
+        entries.sort(key=lambda e: e["path"])
     manifest = {
         "schema": "rowplay-qt.fixtures.manifest.v1",
         "description": "Golden parity fixtures vendored from rowplay-studio. Regenerate with tools/vendor-fixtures.py.",
