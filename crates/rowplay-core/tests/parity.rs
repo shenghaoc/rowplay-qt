@@ -1696,8 +1696,650 @@ fn grip_closure_parity() {
     }
 }
 
+/// Tolerance: 1e-12 is Studio's own bar, kept here unchanged — and it reads
+/// as exact agreement in practice, not a claimed error bound. The port
+/// reproduces the web's operation order in f64, so every sample currently
+/// agrees to a few ULPs; 1e-12 simply detects any geometry drift (one
+/// picometre) without pretending to bound the arithmetic. A toolchain bump
+/// that turns a sample pink is a real signal worth investigating, not noise
+/// to absorb by loosening: nothing downstream re-compares these values at a
+/// looser tolerance, so a failure here can only ever point at this port.
 #[test]
-#[ignore = "Phase 7 (motion): wrist budgets and equipment projections (replay-current-main-equipment.json)"]
 fn equipment_contact_parity() {
-    unreachable!("enable with orientHandToGripChannel + constrainWristFrame");
+    use rowplay_core::replay::bike_equipment as bike;
+    use rowplay_core::replay::bike_saddle as saddle;
+    use rowplay_core::replay::quality::RenderQuality;
+    use rowplay_core::replay::row_equipment as row;
+    use rowplay_core::replay::ski_equipment as ski;
+    use rowplay_core::replay::sport_kinematics::{
+        solve_skier_elbow_direction, solve_skier_kinematics,
+    };
+
+    #[derive(Deserialize)]
+    struct Root {
+        schema: String,
+        #[serde(rename = "sourceCommit")]
+        source_commit: String,
+        #[serde(rename = "generatorVersion")]
+        generator_version: String,
+        #[serde(rename = "sourceFileSha256s")]
+        source_hashes: BTreeMap<String, String>,
+        #[serde(rename = "sampleCount")]
+        sample_count: usize,
+        row: serde_json::Value,
+        ski: serde_json::Value,
+        bike: serde_json::Value,
+        saddle: serde_json::Value,
+        samples: serde_json::Value,
+    }
+    let root: Root = load_json("replay-current-main-equipment.json").expect("equipment fixture");
+    assert_eq!(
+        root.schema,
+        "rowplay.replay.current-main.equipment-parity.v1"
+    );
+    assert_eq!(root.generator_version, "export_rowplay_native_parity/1.0.0");
+    assert_eq!(
+        root.source_commit,
+        "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6"
+    );
+    assert_eq!(root.source_hashes.len(), 9);
+    for (path, hash) in &root.source_hashes {
+        assert_eq!(hash.len(), 64, "{path}");
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()), "{path}");
+    }
+
+    let close = |label: &str, actual: f64, expected: f64| {
+        assert!(
+            (actual - expected).abs() < 1e-12,
+            "{label}: {actual} vs {expected}"
+        );
+    };
+    let value = |object: &serde_json::Value, key: &str| -> f64 {
+        object[key]
+            .as_f64()
+            .unwrap_or_else(|| panic!("number at {key}"))
+    };
+
+    // --- row constant tree (web `rowRig.ts`) ------------------------------
+    close(
+        "row.foot.lateral",
+        value(&root.row["footContact"], "lateral"),
+        row::FOOT_CONTACT[0],
+    );
+    close(
+        "row.foot.y",
+        value(&root.row["footContact"], "y"),
+        row::FOOT_CONTACT[1],
+    );
+    close(
+        "row.foot.z",
+        value(&root.row["footContact"], "z"),
+        row::FOOT_CONTACT[2],
+    );
+    close(
+        "row.stretcher.y",
+        value(&root.row["stretcher"], "centerY"),
+        row::STRETCHER_CENTER_Y,
+    );
+    close(
+        "row.stretcher.z",
+        value(&root.row["stretcher"], "centerZ"),
+        row::STRETCHER_CENTER_Z,
+    );
+    close(
+        "row.stretcher.rot",
+        value(&root.row["stretcher"], "boardRotation"),
+        row::STRETCHER_BOARD_ROTATION,
+    );
+    close(
+        "row.stretcher.catch",
+        value(&root.row["stretcher"], "shoeCatchPitch"),
+        row::STRETCHER_SHOE_CATCH_PITCH,
+    );
+    close(
+        "row.stretcher.finish",
+        value(&root.row["stretcher"], "shoeFinishPitch"),
+        row::STRETCHER_SHOE_FINISH_PITCH,
+    );
+    close(
+        "row.scull.radius",
+        value(&root.row["scullGrip"], "radius"),
+        row::SCULL_GRIP_RADIUS,
+    );
+    close(
+        "row.scull.length",
+        value(&root.row["scullGrip"], "length"),
+        row::SCULL_GRIP_LENGTH,
+    );
+    close(
+        "row.scull.anchor",
+        value(&root.row["scullGrip"], "anchorFromEnd"),
+        row::SCULL_GRIP_ANCHOR_FROM_END,
+    );
+    let pin = &root.row["oarlock"];
+    close("row.oarlock.x", value(pin, "lateral"), row::OARLOCK[0]);
+    close("row.oarlock.y", value(pin, "y"), row::OARLOCK[1]);
+    close("row.oarlock.z", value(pin, "z"), row::OARLOCK[2]);
+    let corridor = &root.row["elbowCorridor"];
+    close(
+        "row.corridor.out",
+        value(corridor, "maxOutboard"),
+        row::ELBOW_CORRIDOR_MAX_OUTBOARD,
+    );
+    close(
+        "row.corridor.in",
+        value(corridor, "maxInboard"),
+        row::ELBOW_CORRIDOR_MAX_INBOARD,
+    );
+    close(
+        "row.corridor.behind",
+        value(corridor, "maxBehindShoulder"),
+        row::ELBOW_CORRIDOR_MAX_BEHIND_SHOULDER,
+    );
+    close(
+        "row.corridor.ratio",
+        value(corridor, "maxOutboardPerRearward"),
+        row::ELBOW_CORRIDOR_MAX_OUTBOARD_PER_REARWARD,
+    );
+    let plane = &root.row["elbowPlane"];
+    close(
+        "row.plane.start",
+        value(plane, "authorityStart"),
+        row::ELBOW_PLANE_AUTHORITY_START,
+    );
+    close(
+        "row.plane.full",
+        value(plane, "authorityFull"),
+        row::ELBOW_PLANE_AUTHORITY_FULL,
+    );
+    for (axis, name) in [(0, "x"), (1, "y"), (2, "z")] {
+        close(
+            "row.plane.relaxed",
+            plane["relaxed"][name].as_f64().expect("v"),
+            row::ELBOW_PLANE_RELAXED[axis],
+        );
+        close(
+            "row.plane.drawn",
+            plane["drawn"][name].as_f64().expect("v"),
+            row::ELBOW_PLANE_DRAWN[axis],
+        );
+    }
+    close(
+        "row.plane.outboard",
+        value(plane, "drawnOutboardWeight"),
+        row::ELBOW_PLANE_DRAWN_OUTBOARD_WEIGHT,
+    );
+    close(
+        "row.plane.down",
+        value(plane, "drawnDownWeight"),
+        row::ELBOW_PLANE_DRAWN_DOWN_WEIGHT,
+    );
+    close(
+        "row.finish",
+        value(&root.row, "drawFinishFlexion"),
+        row::DRAW_FINISH_FLEXION,
+    );
+    close(
+        "row.soft",
+        value(&root.row, "drawSoftFlexion"),
+        row::DRAW_SOFT_FLEXION,
+    );
+
+    // --- ski constant tree (web `skiEquipment.ts`) -------------------------
+    let proportions = &root.ski["athleteProportions"];
+    for (key, actual) in [
+        ("standingHeight", ski::STANDING_HEIGHT),
+        ("shoulderHalfWidth", ski::SHOULDER_HALF_WIDTH),
+        ("hipHalfWidth", ski::HIP_HALF_WIDTH),
+        ("upperArmLength", ski::UPPER_ARM_LENGTH),
+        ("forearmLength", ski::FOREARM_LENGTH),
+        ("thighLength", ski::THIGH_LENGTH),
+        ("shinLength", ski::SHIN_LENGTH),
+        ("skiCenterOffset", ski::SKI_CENTER_OFFSET),
+        ("skiLength", ski::SKI_LENGTH),
+        ("skiWidth", ski::SKI_WIDTH),
+        ("poleLength", ski::POLE_LENGTH),
+        ("polePlantLateralOffset", ski::POLE_PLANT_LATERAL_OFFSET),
+        ("polePlantForwardOffset", ski::POLE_PLANT_FORWARD_OFFSET),
+    ] {
+        close("ski.proportions", value(proportions, key), actual);
+    }
+    close("ski.shift", value(&root.ski, "gripShift"), ski::GRIP_SHIFT);
+    close(
+        "ski.pole.radius",
+        value(&root.ski, "poleGripRadius"),
+        ski::POLE_GRIP_RADIUS,
+    );
+    close(
+        "ski.pole.oppose",
+        value(&root.ski, "poleThumbOppose"),
+        ski::POLE_THUMB_OPPOSE,
+    );
+    for (key, tier) in [
+        ("low", RenderQuality::Low),
+        ("medium", RenderQuality::Medium),
+        ("high", RenderQuality::High),
+        ("ultra", RenderQuality::Ultra),
+    ] {
+        let expected = ski::ski_equipment_detail(tier);
+        let actual = &root.ski["equipmentDetail"][key];
+        assert_eq!(
+            actual["radialSegments"].as_u64().expect("segments") as u32,
+            expected.radial_segments,
+            "ski.detail.{key}"
+        );
+        for flag in [
+            "topSheet",
+            "metalEdges",
+            "bindingRails",
+            "bootClosures",
+            "gripStraps",
+            "basketRibs",
+        ] {
+            let actual_flag = actual[flag]
+                .as_bool()
+                .unwrap_or_else(|| panic!("ski.detail.{key}.{flag}"));
+            let expected_flag = match flag {
+                "topSheet" => expected.top_sheet,
+                "metalEdges" => expected.metal_edges,
+                "bindingRails" => expected.binding_rails,
+                "bootClosures" => expected.boot_closures,
+                "gripStraps" => expected.grip_straps,
+                _ => expected.basket_ribs,
+            };
+            assert_eq!(actual_flag, expected_flag, "ski.detail.{key}.{flag}");
+        }
+    }
+
+    // --- bike constant tree (web `bikeRig.js`) ------------------------------
+    let rig = &root.bike["rig"];
+    close("bike.wheel", value(rig, "wheelRadius"), bike::WHEEL_RADIUS);
+    close("bike.tyre", value(rig, "tyreTube"), bike::TYRE_TUBE);
+    close(
+        "bike.frontAxle",
+        value(rig, "frontAxleZ"),
+        bike::front_axle_z(),
+    );
+    close(
+        "bike.rearAxle",
+        value(rig, "rearAxleZ"),
+        bike::rear_axle_z(),
+    );
+    for (axis, expected) in bike::bottom_bracket().iter().enumerate() {
+        close(
+            "bike.bb",
+            rig["bottomBracket"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::seat_cluster().iter().enumerate() {
+        close(
+            "bike.cluster",
+            rig["seatCluster"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::saddle_clamp().iter().enumerate() {
+        close(
+            "bike.clamp",
+            rig["saddleClamp"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::head_bottom().iter().enumerate() {
+        close(
+            "bike.headBottom",
+            rig["headBottom"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::head_top().iter().enumerate() {
+        close(
+            "bike.headTop",
+            rig["headTop"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::saddle().iter().enumerate() {
+        close(
+            "bike.saddle",
+            rig["saddle"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    close(
+        "bike.pad",
+        value(rig, "saddlePadHalfHeight"),
+        bike::SADDLE_PAD_HALF_HEIGHT,
+    );
+    for (axis, expected) in bike::handlebar_base().iter().enumerate() {
+        close(
+            "bike.bar",
+            rig["handlebar"]["base"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    let grip = bike::handlebar_grip();
+    close(
+        "bike.grip.y",
+        value(&rig["handlebar"]["grip"], "y"),
+        grip[0],
+    );
+    close(
+        "bike.grip.z",
+        value(&rig["handlebar"]["grip"], "z"),
+        grip[1],
+    );
+    close(
+        "bike.grip.span",
+        value(&rig["handlebar"]["grip"], "halfSpan"),
+        grip[2],
+    );
+    close(
+        "bike.hood.rot",
+        value(&rig["handlebar"]["hood"], "rotationX"),
+        bike::HOOD_ROTATION_X,
+    );
+    close(
+        "bike.hood.radius",
+        value(&rig["handlebar"]["hood"], "radius"),
+        bike::HOOD_RADIUS,
+    );
+    close(
+        "bike.saddleClampZ",
+        value(rig, "saddleClampZ"),
+        bike::SADDLE_CLAMP_Z,
+    );
+    close(
+        "bike.crank.lateral",
+        value(&rig["crank"], "lateral"),
+        bike::crank()[0],
+    );
+    close(
+        "bike.crank.radius",
+        value(&rig["crank"], "pedalRadius"),
+        bike::crank()[1],
+    );
+    for (axis, expected) in bike::rider_root().iter().enumerate() {
+        close(
+            "bike.root",
+            rig["rider"]["root"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::rider_pelvis_offset().iter().enumerate() {
+        close(
+            "bike.pelvis",
+            rig["rider"]["pelvisOffset"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    for (axis, expected) in bike::rider_sit_surface_from_hip().iter().enumerate() {
+        close(
+            "bike.sit",
+            rig["rider"]["sitSurfaceFromHip"][axis].as_f64().expect("v"),
+            *expected,
+        );
+    }
+    close(
+        "bike.perineum",
+        value(&rig["rider"], "perineumFromHipY"),
+        bike::PERINEUM_FROM_HIP_Y,
+    );
+    close(
+        "bike.nestle",
+        value(&rig["rider"], "sitNestle"),
+        bike::SIT_NESTLE,
+    );
+    close(
+        "bike.bdc",
+        value(&rig["rider"], "kneeFlexionAtBdc"),
+        bike::KNEE_FLEXION_AT_BDC,
+    );
+    let athlete = bike::rider_athlete();
+    close("bike.thigh", value(&rig["athlete"], "thigh"), athlete[0]);
+    close("bike.shin", value(&rig["athlete"], "shin"), athlete[1]);
+    close("bike.sole", value(&rig["athlete"], "soleDrop"), athlete[2]);
+    close(
+        "bike.wheelAxleY",
+        value(&root.bike, "wheelAxleY"),
+        bike::wheel_axle_y(),
+    );
+    close(
+        "bike.saddleTopY",
+        value(&root.bike, "saddleTopY"),
+        bike::saddle_top_y(),
+    );
+    close(
+        "bike.riderHipY",
+        value(&root.bike, "riderHipY"),
+        bike::derived_rider_hip_y(),
+    );
+
+    // --- saddle constant tree (web `bikeSaddle.js`) --------------------------
+    close(
+        "saddle.shell",
+        value(&root.saddle, "shellThickness"),
+        saddle::SHELL_THICKNESS,
+    );
+    close("saddle.rear", value(&root.saddle, "rearZ"), saddle::REAR_Z);
+    close("saddle.nose", value(&root.saddle, "noseZ"), saddle::NOSE_Z);
+    close(
+        "saddle.length",
+        value(&root.saddle, "length"),
+        saddle::LENGTH,
+    );
+    close(
+        "saddle.width",
+        value(&root.saddle, "maxHalfWidth"),
+        saddle::MAX_HALF_WIDTH,
+    );
+    let stations = root.saddle["stations"].as_array().expect("stations");
+    assert_eq!(stations.len(), saddle::STATIONS.len());
+    for (index, station) in stations.iter().enumerate() {
+        let expected = saddle::STATIONS[index];
+        close("saddle.station.z", value(station, "z"), expected.z);
+        close(
+            "saddle.station.w",
+            value(station, "halfWidth"),
+            expected.half_width,
+        );
+        close(
+            "saddle.station.o",
+            value(station, "dropOuter"),
+            expected.drop_outer,
+        );
+        close(
+            "saddle.station.c",
+            value(station, "dropChannel"),
+            expected.drop_channel,
+        );
+        close(
+            "saddle.station.cut",
+            value(station, "cutout"),
+            expected.cutout,
+        );
+    }
+
+    // --- solver samples -------------------------------------------------------
+    let samples = &root.samples;
+    let oar = samples["oarYaw"].as_array().expect("oarYaw");
+    assert_eq!(oar.len(), 20);
+    for (index, sample) in oar.iter().enumerate() {
+        let input = &sample["input"];
+        let shoulder = input["shoulder"].as_array().expect("shoulder");
+        let actual = row::solve_rower_oar_yaw(
+            [
+                shoulder[0].as_f64().expect("sx"),
+                shoulder[1].as_f64().expect("sy"),
+                shoulder[2].as_f64().expect("sz"),
+            ],
+            value(input, "pinX"),
+            value(input, "pinY"),
+            value(input, "pinZ"),
+            value(input, "signedInboard"),
+            value(input, "bladeRoll"),
+            value(input, "requestedReach"),
+            value(input, "preferredYaw"),
+            input["forceReachBoundary"].as_bool().expect("force"),
+        );
+        close(&format!("oarYaw[{index}]"), actual, value(sample, "output"));
+    }
+    let flexion = samples["elbowFlexion"].as_array().expect("elbowFlexion");
+    assert_eq!(flexion.len(), 10);
+    for (index, sample) in flexion.iter().enumerate() {
+        let actual = row::rower_elbow_flexion(
+            value(sample, "chordLength"),
+            value(sample, "upperArmLength"),
+            value(sample, "forearmLength"),
+        );
+        close(
+            &format!("elbowFlexion[{index}]"),
+            actual,
+            value(sample, "output"),
+        );
+    }
+    let reach = samples["reachForFlexion"]
+        .as_array()
+        .expect("reachForFlexion");
+    assert_eq!(reach.len(), 10);
+    for (index, sample) in reach.iter().enumerate() {
+        let actual = row::rower_reach_for_flexion(
+            value(sample, "flexion"),
+            value(sample, "upperArmLength"),
+            value(sample, "forearmLength"),
+        );
+        close(
+            &format!("reachForFlexion[{index}]"),
+            actual,
+            value(sample, "output"),
+        );
+    }
+    let knee = samples["bikeKneeFlexion"]
+        .as_array()
+        .expect("bikeKneeFlexion");
+    assert_eq!(knee.len(), 16);
+    for (index, sample) in knee.iter().enumerate() {
+        let actual = bike::knee_flexion(value(sample, "angle"));
+        close(
+            &format!("bikeKneeFlexion[{index}]"),
+            actual,
+            value(sample, "output"),
+        );
+    }
+    let saddle_grid = &samples["saddleDrop"];
+    let xs: Vec<f64> = saddle_grid["xs"]
+        .as_array()
+        .expect("xs")
+        .iter()
+        .map(|v| v.as_f64().expect("x"))
+        .collect();
+    let zs: Vec<f64> = saddle_grid["zs"]
+        .as_array()
+        .expect("zs")
+        .iter()
+        .map(|v| v.as_f64().expect("z"))
+        .collect();
+    let drops = saddle_grid["drops"].as_array().expect("drops");
+    assert_eq!(xs.len() * zs.len(), 165);
+    assert_eq!(drops.len(), zs.len());
+    for (z_index, row_drops) in drops.iter().enumerate() {
+        let row_drops = row_drops.as_array().expect("drop row");
+        assert_eq!(row_drops.len(), xs.len());
+        for (x_index, expected) in row_drops.iter().enumerate() {
+            let actual = saddle::drop_at(xs[x_index], zs[z_index]);
+            match (actual, expected.as_f64()) {
+                (None, None) => {}
+                (Some(actual), Some(expected)) => close(
+                    &format!("saddleDrop[{z_index}][{x_index}]"),
+                    actual,
+                    expected,
+                ),
+                (actual, expected) => {
+                    panic!("saddleDrop[{z_index}][{x_index}]: {actual:?} vs {expected:?}")
+                }
+            }
+        }
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct SkierPose {
+        index: usize,
+        phase: f64,
+        warped_phase: f64,
+        cycle_frac: f64,
+        drive_frac: f64,
+        drive: bool,
+        drive_progress: f64,
+        recovery_progress: f64,
+        stroke_seconds: f64,
+        stroke_meters: f64,
+        rate: f64,
+        watts: f64,
+        intensity: f64,
+        amplitude: f64,
+        fatigue: f64,
+        #[serde(default)]
+        real: bool,
+    }
+    let elbows = samples["skierElbowDirection"]
+        .as_array()
+        .expect("skierElbowDirection");
+    assert_eq!(elbows.len(), 32);
+    for (index, sample) in elbows.iter().enumerate() {
+        let pose: SkierPose = serde_json::from_value(sample["pose"].clone()).expect("pose");
+        let stroke_pose = StrokePose {
+            index: pose.index,
+            phase: pose.phase,
+            warped_phase: pose.warped_phase,
+            cycle_frac: pose.cycle_frac,
+            drive_frac: pose.drive_frac,
+            drive: pose.drive,
+            drive_progress: pose.drive_progress,
+            recovery_progress: pose.recovery_progress,
+            stroke_seconds: pose.stroke_seconds,
+            stroke_meters: pose.stroke_meters,
+            rate: pose.rate,
+            watts: pose.watts,
+            intensity: pose.intensity,
+            amplitude: pose.amplitude,
+            fatigue: pose.fatigue,
+            real: pose.real,
+        };
+        let kinematics = solve_skier_kinematics(&stroke_pose);
+        let expected_kinematics = &sample["kinematics"];
+        for (key, actual) in [
+            ("cycle", kinematics.cycle),
+            ("armPress", kinematics.arm_press),
+            ("hipHinge", kinematics.hip_hinge),
+            ("kneeFlex", kinematics.knee_flex),
+            ("poleContact", kinematics.pole_contact),
+            ("poleSweep", kinematics.pole_sweep),
+            ("elbowLoad", kinematics.elbow_load),
+            ("armExtension", kinematics.arm_extension),
+            ("poleLift", kinematics.pole_lift),
+            ("poleFlight", kinematics.pole_flight),
+            ("rebound", kinematics.rebound),
+            ("surge", kinematics.surge),
+        ] {
+            close(
+                &format!("skier[{index}].{key}"),
+                actual,
+                value(expected_kinematics, key),
+            );
+        }
+        let direction = solve_skier_elbow_direction(&kinematics);
+        close(
+            &format!("skier[{index}].vertical"),
+            direction.vertical,
+            value(&sample["direction"], "vertical"),
+        );
+        close(
+            &format!("skier[{index}].foreAft"),
+            direction.fore_aft,
+            value(&sample["direction"], "foreAft"),
+        );
+    }
+    assert_eq!(20 + 10 + 10 + 16 + 165 + 32, root.sample_count);
 }
+

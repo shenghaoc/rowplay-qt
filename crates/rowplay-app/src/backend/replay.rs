@@ -35,6 +35,9 @@ use rowplay_viewmodel::replay::equipment::{
     pole_rotation, roll_rotation, wheel_rotation, yaw_rotation,
 };
 use rowplay_viewmodel::replay::frame;
+use rowplay_viewmodel::replay::grip::{
+    closure_options, collect_hand_chains, grip_frames, solve_grip_table, warped_cycle,
+};
 use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings};
 use rowplay_viewmodel::replay::pose::{PoseSolver, clip_fraction, rig_targets};
 use rowplay_viewmodel::replay::tier::tier_settings_json;
@@ -124,6 +127,11 @@ pub struct ReplayBackend {
     has_workout: bool,
     workout_id: i64,
     emit_count: u64,
+    // Per-sport finger grip table (Phase 7): helper objectName → final
+    // local rotation, solved once per sport switch and applied QML-side.
+    grip_poses: String,
+    /// Contact count of the current table ("n/m digit contacts").
+    grip_contacts: String,
     // Ghost (Phase 5c).
     ghost_playback: Option<Playback>,
     ghost_frame: Vec<f32>,
@@ -282,6 +290,8 @@ impl Default for ReplayBackend {
             has_workout: false,
             workout_id: -1,
             emit_count: 0,
+            grip_poses: String::from("{}"),
+            grip_contacts: String::from("0/0"),
             ghost_playback: None,
             ghost_frame: Vec::new(),
             ghost_camera: CameraState::new(Sport::Rower),
@@ -299,6 +309,7 @@ impl Default for ReplayBackend {
             diag_counter: 0,
         };
         backend.refresh_palette();
+        backend.refresh_grip();
         backend
     }
 }
@@ -438,6 +449,14 @@ impl ReplayBackend {
     qproperty!("hasGhost", Member = has_ghost, Notify = playback_changed);
     qproperty!("gapText", Member = gap_text, Notify = frame_changed);
     qproperty!("verdictText", Member = verdict_text, Notify = frame_changed);
+    // Finger grip table for the current sport (helper → final local
+    // rotation, JSON) and its contact count, solved once per sport switch.
+    qproperty!("gripPoses", Member = grip_poses, Notify = replay_changed);
+    qproperty!(
+        "gripContacts",
+        Member = grip_contacts,
+        Notify = replay_changed
+    );
     // Transport state.
     qproperty!("playing", Member = playing, Notify = playback_changed);
     qproperty!(
@@ -484,6 +503,7 @@ impl ReplayBackend {
         self.sport_index = clamped;
         self.refresh_palette();
         self.refresh_tier();
+        self.refresh_grip();
         self.notify_replay();
     }
 
@@ -798,6 +818,41 @@ impl ReplayBackend {
         self.refresh_venue_plan();
     }
 
+    /// Solve the finger grip table for the current sport: collect both
+    /// hands' digit chains from the athlete's rest hierarchy, close each
+    /// around the sport's equipment surface, and bake the helpers' final
+    /// local rotations for the QML sport walk. A hand whose helpers are
+    /// incomplete keeps the previous table rather than blanking the scene.
+    fn refresh_grip(&mut self) {
+        let sport = SPORTS[self.sport_index as usize];
+        let mut poses = serde_json::Map::new();
+        let mut contacts = 0;
+        let mut digits = 0;
+        for side in [-1.0, 1.0] {
+            let Some(chains) = collect_hand_chains(&self.athlete, side) else {
+                continue;
+            };
+            let options = closure_options(sport, side);
+            let table = solve_grip_table(&chains, &options, &|helper| {
+                self.athlete
+                    .joint_index(helper)
+                    .map(|index| self.athlete.joints[index].rotation)
+            });
+            for (helper, rotation) in &table.poses {
+                poses.insert(
+                    helper.clone(),
+                    serde_json::json!([rotation[0], rotation[1], rotation[2], rotation[3]]),
+                );
+            }
+            contacts += table.contacts;
+            digits += table.digits;
+        }
+        if !poses.is_empty() {
+            self.grip_poses = serde_json::Value::Object(poses).to_string();
+            self.grip_contacts = format!("{contacts}/{digits}");
+        }
+    }
+
     /// The venue plan for the current (sport, effective tier); the scene
     /// (re)loads its venue component whenever this changes.
     fn refresh_venue_plan(&mut self) {
@@ -926,6 +981,12 @@ impl ReplayBackend {
                 clip,
                 fraction * f64::from(clip.duration),
                 &targets.contacts,
+                &grip_frames(
+                    sport,
+                    &rig,
+                    targets.poles,
+                    warped_cycle(stroke.warped_phase),
+                ),
             );
             solver.pack(&posed, &mut self.frame);
         }
@@ -1091,6 +1152,12 @@ impl ReplayBackend {
                     clip,
                     fraction * f64::from(clip.duration),
                     &g_targets.contacts,
+                    &grip_frames(
+                        g_sport,
+                        &g_rig,
+                        g_targets.poles,
+                        warped_cycle(g_stroke.warped_phase),
+                    ),
                 );
                 solver.pack(&posed, &mut self.ghost_frame);
             }

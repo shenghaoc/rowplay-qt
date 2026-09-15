@@ -19,6 +19,7 @@ chrono-tz.workspace = true
 
 [dev-dependencies]
 regex.workspace = true
+rowplay-fixtures.workspace = true
 
 [lints]
 workspace = true

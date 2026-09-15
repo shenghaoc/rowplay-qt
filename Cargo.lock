@@ -1435,6 +1435,7 @@ dependencies = [
  "chrono-tz",
  "regex",
  "rowplay-core",
+ "rowplay-fixtures",
  "serde",
  "serde_json",
  "thiserror 2.0.20",

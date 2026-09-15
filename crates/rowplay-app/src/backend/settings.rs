@@ -45,6 +45,9 @@ pub struct SettingsBackend {
     quality_labels: Vec<String>,
     /// Bench mode: run 600-tick measurements per sport per tier.
     bench_mode: bool,
+    /// Phase-shot mode: capture catch / mid-drive / finish / mid-recovery
+    /// per sport with the ghost loaded (T8 visual baseline).
+    phase_shots: bool,
 }
 
 impl Default for SettingsBackend {
@@ -120,6 +123,7 @@ impl Default for SettingsBackend {
                 "Ultra".to_owned(),
             ],
             bench_mode: crate::backend::test_env("ROWPLAY_REPLAY_BENCH").is_some(),
+            phase_shots: crate::backend::test_env("ROWPLAY_PHASE_SHOTS").is_some(),
         }
     }
 }
@@ -207,6 +211,9 @@ impl SettingsBackend {
     );
     qproperty!("qualityLabels", Member = quality_labels, Constant);
     qproperty!("benchMode", Member = bench_mode, Constant);
+    // Phase-shot mode (ROWPLAY_PHASE_SHOTS): stroke-phase captures per
+    // sport for the T8 visual baseline.
+    qproperty!("phaseShots", Member = phase_shots, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]

@@ -280,6 +280,42 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         );
     }
 
+    // Phase 7: finger grip contacts. The scene logs
+    // "replay grip <sport>: N/M digit contacts" from the applied table after
+    // each applySceneRules; the vendored closures are full-contact (5 digits
+    // × 2 hands), so every line must read N == M == 10, and a FAILED line
+    // anywhere fails the walk — an unsolved hand must fail loudly.
+    assert!(
+        !combined.contains("replay grip FAILED"),
+        "a sport's finger helpers did not resolve\n\napp log:\n{}",
+        common::gate_log_lines(&combined)
+    );
+    for sport in ["row", "ski", "bike"] {
+        let grip_needle = format!("replay grip {sport}:");
+        let lines: Vec<&str> = combined
+            .lines()
+            .filter(|line| line.contains(&grip_needle))
+            .collect();
+        assert!(
+            !lines.is_empty(),
+            "no \"{grip_needle}\" log line — the grip walk did not run for {sport}\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+        for line in lines {
+            let rest = line.split(&grip_needle).nth(1).unwrap_or("");
+            let count = rest.split_whitespace().next().unwrap_or("");
+            let (contacted, total) = count
+                .split_once('/')
+                .and_then(|(n, m)| Some((n.parse::<usize>().ok()?, m.parse::<usize>().ok()?)))
+                .unwrap_or((usize::MAX, 0));
+            assert!(
+                contacted == total && total == 10,
+                "replay grip contacts for {sport}: expected 10/10 digit contacts, \
+                 got \"{count}\" in {line}\n\napp log:\n{}",
+                common::gate_log_lines(&combined)
+            );
+        }
+    }
     // Phase 5c: per-tier texture set assertion. The gate cycles through all
     // four quality tiers on the rower scene. The expected texture set counts
     // are from the environments README table, hardcoded here as the oracle.
@@ -454,6 +490,31 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             // does not render View3D content, so its captures are flat.
             if std::env::var("QSG_RHI_BACKEND").is_ok() {
                 common::assert_shadows(width, height, pixels, &label);
+            }
+        }
+    }
+
+    // Phase 7 T8 baseline: with ROWPLAY_PHASE_SHOTS=1 the walk captures
+    // catch / mid-drive / finish / mid-recovery per sport (ghost loaded),
+    // at deterministic mid-workout stroke fractions. Every shot must be a
+    // real render — the visual baseline future budget/weight changes
+    // compare against.
+    if std::env::var("ROWPLAY_PHASE_SHOTS").is_ok() {
+        if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
+            for sport in ["row", "ski", "bike"] {
+                for phase in ["catch", "middrive", "finish", "midrecovery"] {
+                    let name = format!("phase-{sport}-{phase}");
+                    let ppm = Path::new(&dir).join(format!("{name}.ppm"));
+                    let bytes = std::fs::read(&ppm).unwrap_or_else(|error| {
+                        panic!(
+                            "read {}: {error} — the phase-shot walk must save {name}\n\napp log:\n{}",
+                            ppm.display(),
+                            common::gate_log_lines(&combined)
+                        )
+                    });
+                    let (width, height, pixels) = common::parse_ppm(&bytes);
+                    common::assert_rendered(width, height, pixels, &name);
+                }
             }
         }
     }

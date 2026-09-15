@@ -12,6 +12,8 @@
 //! externally supplied ticks, parsers consume byte slices, and the motion
 //! graph is a deterministic function of a [`stroke_model::StrokePose`].
 
+pub mod bike_equipment;
+pub mod bike_saddle;
 pub mod comparability;
 pub mod engine;
 pub mod ghost_pick;
@@ -23,10 +25,13 @@ pub mod race_gap;
 pub mod race_result;
 pub mod rig_pose;
 pub mod rivals;
+pub mod row_equipment;
+pub mod ski_equipment;
 pub mod sport_kinematics;
 pub mod stroke_model;
 pub mod theme;
 pub mod two_bone;
+pub mod wrist;
 
 pub use comparability::{ComparabilityAxis, ComparableContext, are_comparable, classify_axis};
 pub use engine::{Frame, ReplaySpeed, ReplayState, sample_at, sample_index_at};

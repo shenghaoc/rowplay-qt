@@ -153,6 +153,17 @@ port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
   `tools/vendor-fixtures.py` and update `PROVENANCE.md`.
 - Replay-related fixtures may land early with `#[ignore]` tests that name the
   phase that will enable them.
+- Enable the ignored fixture *before* porting to it, not after: three
+  geometry defects in Phase 7 (two in slice 1, the palm-normal facing in
+  slice 2) all looked correct in isolation with passing unit tests and were
+  caught only because a fixture consumed them. Unit tests cannot substitute
+  for parity fixtures on geometry code.
+- Residuals cannot validate orientation: a re-solve absorbs an orientation
+  error and reports convergence, so a contact residual measures "did the
+  solver find *a* solution", not "is the solution anatomically real" (Phase
+  7 slice 3: the left scull shaft pointed outboard with green residuals).
+  Orientation claims need anatomy assertions — shaft directions, twist
+  budgets, envelope checks — not just closed contacts.
 
 ## Privacy and security invariants (from rowplay-studio)
 
