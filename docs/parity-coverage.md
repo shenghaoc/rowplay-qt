@@ -232,7 +232,9 @@ The `ROWPLAY_PHASE_SHOTS=1` baseline **cannot be produced on macOS**: on this
 host `grabToImage` returns a black Quick 3D viewport while the live window
 renders the scene correctly (docs/qt-bridges-notes.md #17), and the
 whole-window `assert_rendered` did not notice because the sidebar supplies the
-colours. The baseline is therefore captured in the Linux CI gate (Xvfb + Mesa,
+colours. Phase 7's own baseline was captured on the RHEL machine (Wayland,
+Intel UHD 630) and is valid; this caveat is about hosts where `grabToImage`
+returns black. The baseline is captured in the Linux CI gate (Xvfb + Mesa,
 which does render it) and uploaded as `artifacts/phase-*.png`;
 `common::assert_viewport_rendered` now samples the viewport region under a real
 GL backend so a blank 3D area fails instead of riding on the chrome. Verify 3D
