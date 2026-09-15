@@ -2506,159 +2506,210 @@ fn assert_close(
 }
 
 #[test]
-#[ignore = "audit stage 3 follow-up: after Phase 7's rower fix (8732cb5) the rower seat passes - confirming this generator agrees with the shipped fix - but bike pedals (pi inversion) and wheel divisor, all skierg fields, the composed-vs-authored rower oar yaw, and the retained Studio rower handle/torso channels still diverge (docs/parity-coverage.md)."]
-fn rig_phase_parity() {
-    let fixture: RigPhaseFixture =
-        rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
-    assert_eq!(fixture.sample_count, fixture.samples.len());
-
+fn rig_phase_parity_bike() {
     let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
-    for sample in &fixture.samples {
-        let sport = match sample.sport.as_str() {
-            "rower" => Sport::Rower,
-            "skierg" => Sport::Skierg,
-            "bike" => Sport::Bike,
-            other => panic!("unknown sport {other}"),
-        };
+    for sample in rig_phase_samples("bike") {
         let pose = rig_pose_from_echo(&sample.pose);
         let meters = rig_number(&sample.rig, &["meters"]);
-        let solved = solve_rig_pose(sport, &pose, meters, false);
-        match (sport, &solved) {
-            (Sport::Rower, rowplay_core::replay::rig_pose::SportRigPose::Rower(rig)) => {
-                // seat_z ↔ the web seat slide (`rower-athlete.position.z`).
-                assert_close(
-                    &mut worst,
-                    "rower.seat_z",
-                    rig.seat_z,
-                    rig_number(&sample.rig, &["seat", "2"]),
-                    false,
-                );
-                // oar_sweep ↔ the right oar's composed yaw: the web adds the
-                // analytic reach solve (`rowRig.solveRowerOarYaw`, ported in
-                // `row_equipment`) on top of the authored linear sweep the rig
-                // exposes, so this comparison sees both.
-                assert_close(
-                    &mut worst,
-                    "rower.oar_sweep",
-                    rig.oar_sweep,
-                    rig_number(&sample.rig, &["oarRightRotation", "1"]),
-                    false,
-                );
-                // oar_feather is the side-free dip; the web applies it as
-                // `-oar.side * dip` (renderer3dRowAvatar.ts), so the right
-                // oar's roll is the negated dip.
-                assert_close(
-                    &mut worst,
-                    "rower.oar_feather",
-                    rig.oar_feather,
-                    -rig_number(&sample.rig, &["oarRightRotation", "2"]),
-                    false,
-                );
-                // torso_lean ↔ the torso group's pitch (web: catch +0.56 -> finish -0.30).
-                assert_close(
-                    &mut worst,
-                    "rower.torso_lean",
-                    rig.joints.torso_lean,
-                    rig_number(&sample.rig, &["torsoRotation", "0"]),
-                    false,
-                );
-                // handle_y / handle_z ↔ the right scull grip contact, rig-local.
-                assert_close(
-                    &mut worst,
-                    "rower.handle_y",
-                    rig.handle_y,
-                    rig_number(&sample.rig, &["handleContactRight", "1"]),
-                    false,
-                );
-                assert_close(
-                    &mut worst,
-                    "rower.handle_z",
-                    rig.handle_z,
-                    rig_number(&sample.rig, &["handleContactRight", "2"]),
-                    false,
-                );
-            }
-            (Sport::Skierg, rowplay_core::replay::rig_pose::SportRigPose::SkiErg(rig)) => {
-                // torso_lean ↔ the hinging upper group (web: 0.055 + hipHinge*0.56,
-                // plus pelvis/head counter-tilts the port does not model).
-                assert_close(
-                    &mut worst,
-                    "skierg.torso_lean",
-                    rig.joints.torso_lean,
-                    rig_number(&sample.rig, &["upperRotation", "0"]),
-                    false,
-                );
-                // preferred hand path ↔ the V4 left-hand target landmark.
-                assert_close(
-                    &mut worst,
-                    "skierg.preferred_hand_y",
-                    rig.preferred_hand_y,
-                    rig_number(&sample.rig, &["targets", "leftHand", "1"]),
-                    false,
-                );
-                assert_close(
-                    &mut worst,
-                    "skierg.preferred_hand_z",
-                    rig.preferred_hand_z,
-                    rig_number(&sample.rig, &["targets", "leftHand", "2"]),
-                    false,
-                );
-                // plant_basket_z ↔ the left pole tip's rig-local forward coordinate.
-                assert_close(
-                    &mut worst,
-                    "skierg.plant_basket_z",
-                    rig.plant_basket_z,
-                    rig_number(&sample.rig, &["poleTipLeft", "2"]),
-                    false,
-                );
-            }
-            (Sport::Bike, rowplay_core::replay::rig_pose::SportRigPose::Bike(rig)) => {
-                // crank_angle / wheel_angle are periodic; compare on the circle
-                // (the web wheel divides by the 0.31 tyre radius, not 0.335).
-                assert_close(
-                    &mut worst,
-                    "bike.crank_angle",
-                    rig.crank_angle,
-                    rig_number(&sample.rig, &["crankRotation", "0"]),
-                    true,
-                );
-                assert_close(
-                    &mut worst,
-                    "bike.wheel_angle",
-                    rig.wheel_angle,
-                    rig_number(&sample.rig, &["wheelFrontRotation", "0"]),
-                    true,
-                );
-                // pedal_pos ↔ the left pedal relative to the bottom bracket.
-                let (cy, cz) = (
-                    rig_number(&sample.rig, &["crankPosition", "1"]),
-                    rig_number(&sample.rig, &["crankPosition", "2"]),
-                );
-                assert_close(
-                    &mut worst,
-                    "bike.pedal_y_l",
-                    rig.pedal_pos_l.y,
-                    rig_number(&sample.rig, &["pedalLeft", "1"]) - cy,
-                    false,
-                );
-                assert_close(
-                    &mut worst,
-                    "bike.pedal_z_l",
-                    rig.pedal_pos_l.z,
-                    rig_number(&sample.rig, &["pedalLeft", "2"]) - cz,
-                    false,
-                );
-            }
-            _ => panic!("sport mismatch"),
-        }
+        let rowplay_core::replay::rig_pose::SportRigPose::Bike(rig) =
+            solve_rig_pose(Sport::Bike, &pose, meters, false)
+        else {
+            panic!("sport mismatch")
+        };
+        // crank_angle / wheel_angle are periodic; compare on the circle
+        // (the web wheel divides by the 0.31 rim radius, not the 0.335
+        // outer-tyre axle height).
+        assert_close(
+            &mut worst,
+            "bike.crank_angle",
+            rig.crank_angle,
+            rig_number(&sample.rig, &["crankRotation", "0"]),
+            true,
+        );
+        assert_close(
+            &mut worst,
+            "bike.wheel_angle",
+            rig.wheel_angle,
+            rig_number(&sample.rig, &["wheelFrontRotation", "0"]),
+            true,
+        );
+        // pedal_pos ↔ the left pedal relative to the bottom bracket
+        // (web: -(r·cos, r·sin)).
+        let (cy, cz) = (
+            rig_number(&sample.rig, &["crankPosition", "1"]),
+            rig_number(&sample.rig, &["crankPosition", "2"]),
+        );
+        assert_close(
+            &mut worst,
+            "bike.pedal_y_l",
+            rig.pedal_pos_l.y,
+            rig_number(&sample.rig, &["pedalLeft", "1"]) - cy,
+            false,
+        );
+        assert_close(
+            &mut worst,
+            "bike.pedal_z_l",
+            rig.pedal_pos_l.z,
+            rig_number(&sample.rig, &["pedalLeft", "2"]) - cz,
+            false,
+        );
     }
     assert!(
         worst.is_empty(),
-        "rig-phase calibration diverges from the web (worst delta per field):\n  {}",
+        "bike rig-phase calibration diverges from the web (worst delta per field):\n  {}",
         worst
             .values()
             .map(|(_, line)| line.clone())
             .collect::<Vec<_>>()
             .join("\n  ")
     );
+}
+
+#[test]
+#[ignore = "audit stage 3 skierg: torso base (0.18 vs web 0.055 + hipHinge*0.56), preferred-hand frame composition (0.7-0.9 m), course-anchored pole plant - all caught by the rig-phase fixture (docs/parity-coverage.md ranking 2)."]
+fn rig_phase_parity_skierg() {
+    let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
+    for sample in rig_phase_samples("skierg") {
+        let pose = rig_pose_from_echo(&sample.pose);
+        let meters = rig_number(&sample.rig, &["meters"]);
+        let rowplay_core::replay::rig_pose::SportRigPose::SkiErg(rig) =
+            solve_rig_pose(Sport::Skierg, &pose, meters, false)
+        else {
+            panic!("sport mismatch")
+        };
+        // torso_lean ↔ the hinging upper group (web: 0.055 + hipHinge*0.56,
+        // plus pelvis/head counter-tilts the port does not model).
+        assert_close(
+            &mut worst,
+            "skierg.torso_lean",
+            rig.joints.torso_lean,
+            rig_number(&sample.rig, &["upperRotation", "0"]),
+            false,
+        );
+        // preferred hand path ↔ the V4 left-hand target landmark.
+        assert_close(
+            &mut worst,
+            "skierg.preferred_hand_y",
+            rig.preferred_hand_y,
+            rig_number(&sample.rig, &["targets", "leftHand", "1"]),
+            false,
+        );
+        assert_close(
+            &mut worst,
+            "skierg.preferred_hand_z",
+            rig.preferred_hand_z,
+            rig_number(&sample.rig, &["targets", "leftHand", "2"]),
+            false,
+        );
+        // plant_basket_z ↔ the left pole tip's rig-local forward coordinate.
+        assert_close(
+            &mut worst,
+            "skierg.plant_basket_z",
+            rig.plant_basket_z,
+            rig_number(&sample.rig, &["poleTipLeft", "2"]),
+            false,
+        );
+    }
+    assert!(
+        worst.is_empty(),
+        "skierg rig-phase calibration diverges from the web (worst delta per field):\n  {}",
+        worst
+            .values()
+            .map(|(_, line)| line.clone())
+            .collect::<Vec<_>>()
+            .join("\n  ")
+    );
+}
+
+#[test]
+#[ignore = "audit stage 3 rower follow-up: seat passes (confirms this generator agrees with Phase 7's fix); outstanding are the composed-vs-authored oar yaw (the reach solve is ported in row_equipment but nothing composes it into the runtime oar rotation) and the retained Studio handle/torso channels (documented unconsumed) - docs/parity-coverage.md ranking 4."]
+fn rig_phase_parity_rower() {
+    let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
+    for sample in rig_phase_samples("rower") {
+        let pose = rig_pose_from_echo(&sample.pose);
+        let meters = rig_number(&sample.rig, &["meters"]);
+        let rowplay_core::replay::rig_pose::SportRigPose::Rower(rig) =
+            solve_rig_pose(Sport::Rower, &pose, meters, false)
+        else {
+            panic!("sport mismatch")
+        };
+        // seat_z ↔ the web seat slide (`rower-athlete.position.z`).
+        assert_close(
+            &mut worst,
+            "rower.seat_z",
+            rig.seat_z,
+            rig_number(&sample.rig, &["seat", "2"]),
+            false,
+        );
+        // oar_sweep ↔ the right oar's composed yaw: the web adds the
+        // analytic reach solve (`rowRig.solveRowerOarYaw`, ported in
+        // `row_equipment`) on top of the authored linear sweep the rig
+        // exposes, so this comparison sees both.
+        assert_close(
+            &mut worst,
+            "rower.oar_sweep",
+            rig.oar_sweep,
+            rig_number(&sample.rig, &["oarRightRotation", "1"]),
+            false,
+        );
+        // oar_feather is the side-free dip; the web applies it as
+        // `-oar.side * dip` (renderer3dRowAvatar.ts), so the right
+        // oar's roll is the negated dip.
+        assert_close(
+            &mut worst,
+            "rower.oar_feather",
+            rig.oar_feather,
+            -rig_number(&sample.rig, &["oarRightRotation", "2"]),
+            false,
+        );
+        // torso_lean ↔ the torso group's pitch (web: catch +0.56 -> finish -0.30).
+        assert_close(
+            &mut worst,
+            "rower.torso_lean",
+            rig.joints.torso_lean,
+            rig_number(&sample.rig, &["torsoRotation", "0"]),
+            false,
+        );
+        // handle_y / handle_z ↔ the right scull grip contact, rig-local.
+        assert_close(
+            &mut worst,
+            "rower.handle_y",
+            rig.handle_y,
+            rig_number(&sample.rig, &["handleContactRight", "1"]),
+            false,
+        );
+        assert_close(
+            &mut worst,
+            "rower.handle_z",
+            rig.handle_z,
+            rig_number(&sample.rig, &["handleContactRight", "2"]),
+            false,
+        );
+    }
+    assert!(
+        worst.is_empty(),
+        "rower rig-phase calibration diverges from the web (worst delta per field):\n  {}",
+        worst
+            .values()
+            .map(|(_, line)| line.clone())
+            .collect::<Vec<_>>()
+            .join("\n  ")
+    );
+}
+
+/// Load the rig-phase fixture filtered to one sport.
+fn rig_phase_samples(sport: &str) -> Vec<RigPhaseSample> {
+    let fixture: RigPhaseFixture =
+        rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+    assert_eq!(fixture.sample_count, fixture.samples.len());
+    let samples: Vec<RigPhaseSample> = fixture
+        .samples
+        .into_iter()
+        .filter(|sample| sample.sport == sport)
+        .collect();
+    assert!(
+        !samples.is_empty(),
+        "no {sport} samples in replay-rig-phase-parity.json"
+    );
+    samples
 }
