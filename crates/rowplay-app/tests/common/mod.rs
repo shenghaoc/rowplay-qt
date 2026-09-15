@@ -160,3 +160,65 @@ pub fn gate_log_lines(combined: &str) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
+
+/// The 3D viewport bounds within a full-window capture.
+///
+/// The sidebar occupies the left ~27% and the toolbar/transport bars the top
+/// and bottom, so the Quick 3D viewport is the right ~two-thirds of the
+/// middle.
+#[allow(dead_code)]
+pub fn viewport_bounds(width: usize, height: usize) -> (usize, usize, usize, usize) {
+    (
+        (width as f64 * 0.30) as usize,
+        (height as f64 * 0.12) as usize,
+        (width as f64 * 0.95) as usize,
+        (height as f64 * 0.90) as usize,
+    )
+}
+
+/// Asserts the 3D viewport region itself rendered something.
+///
+/// [`assert_rendered`] samples the whole window, so a black Quick 3D viewport
+/// still passes on the strength of the sidebar and chrome. That masks a
+/// capture path returning no scene at all: on macOS/Metal `grabToImage` yields
+/// a black viewport while the live window renders correctly, so a phase-shot
+/// baseline silently becomes black frames. Sampling the viewport region makes
+/// a blank 3D area a failure on any platform.
+#[allow(dead_code)]
+pub fn assert_viewport_rendered(width: usize, height: usize, pixels: &[u8], what: &str) {
+    let (x0, y0, x1, y1) = viewport_bounds(width, height);
+    assert!(
+        x1 > x0 && y1 > y0 && x1 <= width && y1 <= height,
+        "{what}: bad viewport bounds"
+    );
+    let mut samples: Vec<[u8; 3]> = Vec::new();
+    for y in (y0..y1).step_by(7) {
+        for x in (x0..x1).step_by(7) {
+            let at = (y * width + x) * 3;
+            samples.push([pixels[at], pixels[at + 1], pixels[at + 2]]);
+        }
+    }
+    let mut set = std::collections::BTreeSet::new();
+    for sample in &samples {
+        set.insert(*sample);
+    }
+    let distinct = set.len();
+    let mut sum = [0u32; 3];
+    for sample in &samples {
+        for (channel, value) in sample.iter().enumerate() {
+            sum[channel] += u32::from(*value);
+        }
+    }
+    let n = samples.len() as u32;
+    let mean = [sum[0] / n, sum[1] / n, sum[2] / n];
+    let luminance = (mean[0] * 3 + mean[1] * 6 + mean[2]) / 10;
+    assert!(
+        distinct >= 16,
+        "{what}: the 3D viewport has only {distinct} distinct colours (mean RGB {mean:?}) — \
+         it did not render (the sidebar alone satisfies the whole-window check)"
+    );
+    assert!(
+        luminance >= 8,
+        "{what}: the 3D viewport is essentially black (mean RGB {mean:?}) — it did not render"
+    );
+}

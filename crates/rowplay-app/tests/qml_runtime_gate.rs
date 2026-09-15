@@ -514,6 +514,16 @@ fn shell_walk_produces_no_qml_runtime_errors() {
                     });
                     let (width, height, pixels) = common::parse_ppm(&bytes);
                     common::assert_rendered(width, height, pixels, &name);
+                    // The whole-window check passes on a black 3D viewport
+                    // (the sidebar supplies the colours), which is exactly how
+                    // a capture path that returns no scene went unnoticed:
+                    // macOS/Metal `grabToImage` yields a black viewport while
+                    // the live window renders correctly (qt-bridges-notes #16),
+                    // so assert the viewport region itself — under a real GL
+                    // capture backend, like the shadow check.
+                    if std::env::var("QSG_RHI_BACKEND").is_ok() {
+                        common::assert_viewport_rendered(width, height, pixels, &name);
+                    }
                 }
             }
         }

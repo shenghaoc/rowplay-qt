@@ -123,6 +123,13 @@ jobs:
           # The gate walk saves per-screen PNGs (dashboard, settings, detail)
           # next to the smoke screenshot.
           ROWPLAY_SMOKE_SCREENSHOT_DIR: ${{ github.workspace }}/artifacts
+          # Also capture the twelve phase shots (catch/mid-drive/finish/
+          # mid-recovery × 3 sports) as the visual phase baseline. This runs in
+          # CI because grabToImage on macOS/Metal returns the Quick 3D viewport
+          # black (the sidebar still satisfies assert_rendered, so a black
+          # viewport is invisible locally); under Xvfb+Mesa the captures carry
+          # the real scene.
+          ROWPLAY_PHASE_SHOTS: '1'
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: '1'
@@ -150,4 +157,5 @@ jobs:
             artifacts/replay-row.png
             artifacts/replay-ski.png
             artifacts/replay-bike.png
+            artifacts/phase-*.png
           if-no-files-found: error

@@ -255,6 +255,35 @@ Suggestion: make `load_qml_from_file` return a `Result` (Qt has
 `QQmlApplicationEngine::objectCreationFailed` and `rootObjects()` to build it
 from), or have `run()` return non-zero when no root object was created.
 
+## 17. `grabToImage` returns a black Quick 3D viewport on macOS/Metal
+
+Not qtbridge, but it silently corrupted a QA baseline, so it belongs here.
+`QQuickItem::grabToImage` — the gate walk's capture path (`Main.qml`
+`grabScreen`/`grabSettledScene`) — composites the 2D scene graph correctly but
+the `View3D` region comes back **solid black** on this macOS/Metal host
+(Qt 6.11.2, Apple M5), while the live window renders the replay scene
+correctly. Phase 0's sphere-and-cube smoke capture *does* render, so it is not
+"grab is broken for Quick 3D" in general; the cause is not yet identified
+(candidates: the replay scene's `ExtendedSceneEnvironment`/procedural sky
+probe, its post-processing pass, or the platform's Quick 3D texture path).
+
+The failure was invisible because `assert_rendered` samples the **whole
+window**: the sidebar and chrome supply well over 64 distinct colours and keep
+the top colour under 90 %, so twelve all-black phase shots passed for months.
+`ROWPLAY_PHASE_SHOTS=1` therefore produced a black baseline on this machine
+and a real one in CI (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`).
+
+Repro: `ROWPLAY_SMOKE_GATE=1 ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts cargo test -p rowplay-app --test qml_runtime_gate`
+on macOS; `artifacts/phase-*-*.ppm` are black in the viewport region while the
+app's own window shows the scene.
+
+Mitigations in place: `ROWPLAY_PHASE_SHOTS=1` runs in the Linux CI gate (which
+does capture the scene) and uploads `artifacts/phase-*.png`, and
+`common::assert_viewport_rendered` now samples the viewport region under a real
+GL backend so a blank 3D area fails instead of riding on the sidebar's colours.
+Any future capture work on macOS should treat a black viewport as this bug, not
+as a scene regression, and verify against the live window.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`

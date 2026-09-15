@@ -170,11 +170,15 @@ pub mod ski_proportions {
 
 /// Studio `ReplayBikeGripContract` frame geometry (real road geometry).
 pub mod bike_geometry {
-    /// Wheel radius, metres.
+    /// Wheel rotation radius, metres (web `bikeRig.js` `WHEEL_RADIUS`): the
+    /// wheel rolls `distance / WHEEL_RADIUS`, as the web avatar rolls its
+    /// wheels.
     pub const WHEEL_RADIUS: f64 = 0.31;
     /// Tyre tube radius, metres.
     pub const TYRE_TUBE: f64 = 0.025;
-    /// Outer tyre radius; also the axle height, so the tread rests on `y = 0`.
+    /// Outer tyre radius; also the axle height, so the tread rests on `y = 0`
+    /// (web `bikeWheelAxleY`). This is the *placement* contract — wheel
+    /// rotation divides by [`WHEEL_RADIUS`], not by this.
     pub const AXLE_Y: f64 = WHEEL_RADIUS + TYRE_TUBE;
     /// Crank arm length for a rider this size, metres.
     pub const CRANK_RADIUS: f64 = 0.1725;
@@ -365,14 +369,19 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
 fn solve_bike(pose: &StrokePose, distance: f64) -> BikeErgRigPose {
     let graph = sample_bike_motion_graph(pose);
     let crank_angle = graph.crank.angle;
-    // Roll on the tyre's outer contact radius (rim + tube), matching the
-    // axle-height contract so the wheel neither slips nor sinks.
-    let wheel_angle = finite(distance, 0.0) / bike_geometry::AXLE_Y;
+    // Web avatar calibration (renderer3dBikeAvatar.ts `placePedalLegs` /
+    // wheel roll, pinned by the rig-phase parity fixture): the pedals ride
+    // `-(r·cos, r·sin)` around the bottom bracket, and the wheel rolls on
+    // the rim radius `WHEEL_RADIUS` (0.31), not the outer-tyre axle height
+    // (0.335) — the previous divisor under-rotated the wheels ≈7.5% against
+    // the distance travelled, and the un-negated pedals sat π around the
+    // crank circle from the web's.
+    let wheel_angle = finite(distance, 0.0) / bike_geometry::WHEEL_RADIUS;
     let crank_radius = bike_geometry::CRANK_RADIUS;
     let cos_crank = graph.left_pedal.rotation.cos;
     let sin_crank = graph.left_pedal.rotation.sin;
-    let pedal_y_l = crank_radius * cos_crank;
-    let pedal_z_l = crank_radius * sin_crank;
+    let pedal_y_l = -crank_radius * cos_crank;
+    let pedal_z_l = -crank_radius * sin_crank;
     let pedal_y_r = -pedal_y_l;
     let pedal_z_r = -pedal_z_l;
     let rider_sway = graph.body.torso_sway.value * 0.15;
@@ -457,11 +466,11 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
             crank_angle: 0.0,
             wheel_angle: 0.0,
             pedal_pos_l: PedalPosition {
-                y: bike_geometry::CRANK_RADIUS,
+                y: -bike_geometry::CRANK_RADIUS,
                 z: 0.0,
             },
             pedal_pos_r: PedalPosition {
-                y: -bike_geometry::CRANK_RADIUS,
+                y: bike_geometry::CRANK_RADIUS,
                 z: 0.0,
             },
             rider_sway: 0.0,
@@ -708,10 +717,13 @@ mod tests {
             assert!(
                 (rig.pedal_pos_r.y + l.y).abs() < 1e-12 && (rig.pedal_pos_r.z + l.z).abs() < 1e-12
             );
-            assert!((rig.wheel_angle - distance / bike_geometry::AXLE_Y).abs() < 1e-12);
+            assert!((rig.wheel_angle - distance / bike_geometry::WHEEL_RADIUS).abs() < 1e-12);
             assert!((rig.joints.elbow_flex_l - 0.4).abs() < 1e-12);
             assert!(rig.joints.torso_lean > 0.3, "{}", rig.joints.torso_lean);
         }
+        // Two radii, as on the web (`bikeRig.js`): rotation on the rim,
+        // placement on the outer tyre.
+        assert!((bike_geometry::WHEEL_RADIUS - 0.31).abs() < 1e-12);
         assert!((bike_geometry::AXLE_Y - 0.335).abs() < 1e-12);
     }
 
@@ -742,8 +754,8 @@ mod tests {
         }
         match reduced_pose(Sport::Bike) {
             SportRigPose::Bike(rig) => {
-                assert_eq!(rig.pedal_pos_l.y, bike_geometry::CRANK_RADIUS);
-                assert_eq!(rig.pedal_pos_r.y, -bike_geometry::CRANK_RADIUS);
+                assert_eq!(rig.pedal_pos_l.y, -bike_geometry::CRANK_RADIUS);
+                assert_eq!(rig.pedal_pos_r.y, bike_geometry::CRANK_RADIUS);
                 assert_eq!(rig.joints.torso_lean, 0.74);
             }
             _ => panic!("sport mismatch"),
