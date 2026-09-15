@@ -237,3 +237,11 @@ which does render it) and uploaded as `artifacts/phase-*.png`;
 `common::assert_viewport_rendered` now samples the viewport region under a real
 GL backend so a blank 3D area fails instead of riding on the chrome. Verify 3D
 changes on macOS against the live window, not a local capture.
+
+A second capture gap, found while checking the twins: the QA close-up camera
+(`closeup_camera_view`, used only by `ROWPLAY_PHASE_CLOSEUPS`) is **mis-framed
+for all three sports** — the wide shots frame the athlete correctly, but the
+close-ups land on venue geometry (row: flat green wall; bike: a spectator
+pillar), with no athlete in frame. That is a pre-existing QA affordance bug, not
+a parity issue; the close-up capture stays off in CI until it is fixed, so
+twelve mis-framed images are not enshrined as a baseline.
