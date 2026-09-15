@@ -612,7 +612,50 @@ Item {
         initPoleScales()
         console.log("replay scene rules:", materialsApplied, "materials,",
                     templatesPlaced, "templates placed,", leavesHidden, "leaves hidden")
+        walkGripHelpers()
         equipmentCheck()
+    }
+
+    // Finger grip table (Phase 7): the backend solves each sport's digit
+    // closure once per sport switch and exposes the helpers' final local
+    // rotations as JSON. The clips never animate the finger helpers and the
+    // per-frame bundle only carries the 19 semantic joints, so one
+    // application per sport walk sticks. Ghost rigs share the helper names
+    // and get the same table.
+    function collectNodesByName(node, map) {
+        if (!node) return
+        if (node.objectName && node.rotation !== undefined) map[node.objectName] = node
+        var ch = node.children
+        for (var i = 0; ch && i < ch.length; ++i) collectNodesByName(ch[i], map)
+    }
+
+    function walkGripHelpers() {
+        var table = {}
+        try { table = JSON.parse(Replay.gripPoses) } catch (e) { table = {} }
+        var names = Object.keys(table)
+        var playerMap = {}, ghostMap = {}
+        collectNodesByName(athlete, playerMap)
+        collectNodesByName(ghostAthlete, ghostMap)
+        var found = 0, missing = []
+        for (var i = 0; i < names.length; ++i) {
+            var q = table[names[i]]
+            var quat = Qt.quaternion(q[3], q[0], q[1], q[2])
+            var posed = false
+            if (playerMap[names[i]] !== undefined) {
+                playerMap[names[i]].rotation = quat; posed = true
+            }
+            if (ghostMap[names[i]] !== undefined) {
+                ghostMap[names[i]].rotation = quat; posed = true
+            }
+            if (posed) found++
+            else missing.push(names[i])
+        }
+        var sportTag = ["row", "ski", "bike"][Replay.sportIndex]
+        if (missing.length > 0)
+            console.warn("replay grip FAILED " + sportTag + ": missing helpers",
+                         missing.join(","))
+        else console.log("replay grip " + sportTag + ":", Replay.gripContacts,
+                         "digit contacts")
     }
 
     // Structural equipment inventory — fixed counts from the V3 contract's

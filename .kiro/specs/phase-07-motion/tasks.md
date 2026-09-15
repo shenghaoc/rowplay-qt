@@ -11,23 +11,68 @@
   (R1.1, R1.3, R1.4).
 - [x] T4 Enable the grips half of `grip_and_equipment_parity` (drop the
   `#[ignore]`, poses + contacts vs fixture at tolerance) (R1.3).
-- [ ] T5 `orientHandToGripChannel` + `constrainWristFrame` budgets +
+- [x] T5 `orientHandToGripChannel` + `constrainWristFrame` budgets +
   `refineGripSpin/Tilt` port; enable the equipment half of the parity test
   (R2.1, R2.2).
-- [ ] T6 `PoseSolver` applies grip-channel hand orientation per frame with
+- [x] T6 `PoseSolver` applies grip-channel hand orientation per frame with
   wrist budgets; ghost consistency (R2.3, R3.3).
-- [ ] T7 Runtime wiring: per-sport `Replay.gripPoses` table, QML application
+- [x] T7 Runtime wiring: per-sport `Replay.gripPoses` table, QML application
   to finger helper joints on the sport walk, gate grip-contact assertion
   (R3.1, R3.2, R3.4).
 - [ ] T8 Per-stroke variation end-to-end test + source-map architecture note
-  (R4.1, R4.2).
+  (R4.1, R4.2). The wrist budgets (75°/150°, SkiErg 30° keep) are exact on
+  paper and can still look broken at the stroke extremes: run the athlete
+  and look at the catch and the finish on all three sports before trusting
+  the numbers — plus the ghost, which runs the same path, so any
+  orientation error doubles on screen.
+  Pre-visual verdict from the unclamped demand (`WristMetrics.requested_twist`,
+  swept 40 steps/sport): no sign flips, no wraps anywhere — the budgets are
+  genuinely saturated, not rescuing a frame bug. Per sport: row demand runs
+  −35°…−116°, clamped to −75° through most of the cycle (tight budget, case
+  one). The finish→recovery swing whip (flexion 64°→23°, deviation 29°→80°
+  across three samples) was investigated, not just noted: adjacent-step hand
+  angular velocity hits 47°/step while the clip hand never exceeds 23° and
+  the oar input stays ≤11° — but the driver is the flat-wrist/tilt weights
+  slewing 1→0→1 through the feather window (port matches the avatar math
+  op-for-op, and the web documents the transition as the feather read), not
+  the clamp releasing and not a port bug. T8 still judges it on screen, but
+  what to judge is now precise: feathering vs snap at the window edges.
+  Ski demand swings +77°…−134°…+131° with the keep pegged; the elbow-seam
+  excess now splits 50/50 into the humerus like production (ported, with the
+  forearm-world bit-exact invariant pinned — see `seam_split_*`), so the
+  forearm no longer corkscrews double. Bike demand sits at ~67° all cycle:
+  static frame, frozen wrist, in budget — planted hands, but also proof of
+  nothing beyond no-misfire when idle.
+  On judging: with twist clamped for most of the row cycle, T8 judges the
+  clamp's output, not the channel alignment. Hands right → the budget is
+  defensible. Hands stiff → 75° is too tight for rowing, not an upstream
+  bug; widen the budget, don't chase the frame.
+  Baseline kept: `artifacts/phase-baseline/` holds the twelve ghost-loaded
+  captures (catch/mid-drive/finish/mid-recovery × 3 sports) on the finished
+  slice-3 code, with SHA256SUMS and a README (regen command, determinism
+  caveat: gate recipe only — local prefs render different pixels). The walk
+  steps (Main.qml cases 66–81, behind `ROWPLAY_PHASE_SHOTS=1`) and the gate
+  assertions travel with the repo; the PNGs stay local (renderer-dependent).
+  One honest limit: the viewer in this session could not display the
+  captures, so they are verified real (20–27k colours, phases differ) but
+  not yet judged — the three sport questions above are still eyes-on work.
 - [ ] T9 Docs (roadmap, source-map, qt-bridges-notes) + full validation +
   phase PR (R5.1, R5.2).
 
 ## Slice status
 
-Slice 1 (this PR): T1–T4 — the core grip closure port with full parity
+Slice 1 (landed): T1–T4 — the core grip closure port with full parity
 (3 sports × 2 hands, poses + contacts at 1e-9) plus 9 module invariant tests.
-Remaining: T5 (wrist budgets + equipment projections, its own parity half),
-T6–T7 (per-frame hand orientation, runtime posing, gate assertion), T8
-(per-stroke verification), T9 (docs/validation).
+
+Slice 2 (this PR): T5 — the equipment contracts (`row_equipment`,
+`ski_equipment`, `bike_equipment`, `bike_saddle`) with the equipment parity
+half enabled at 1e-12 (253 samples: oar yaw, elbow/reach flexion, knee
+flexion, saddle grid, skier elbow direction), plus the wrist layer
+(`wrist.rs`: grip-channel orientation, spin/tilt relief, swing–twist budgets
+with the SkiErg keep/share rules, 12 unit tests re-expressing the web
+orientation suite). Enabling the fixture first caught one slice-1 defect:
+`hand_palm_normal_out` returned the negated construction ray instead of the
+shipped rig's measured outward normal — corrected, with the constant pinned.
+
+Remaining: T8 (per-stroke verification + the catch/finish visual on all
+three sports), T9 (docs/validation).

@@ -32,6 +32,12 @@ pub const HAND_FIST_REFERENCE_GRIP_RADIUS: f64 = 0.016;
 /// `v4RightHand` contact offset, pinned here so the channel model and the
 /// contact solver cannot drift onto two different palms.
 pub const HAND_PALM_CONTACT: Vec3 = [0.08, -0.01, 0.035];
+/// Outward palm normal measured from the shipped V4 bind geometry (right
+/// hand; x mirrors per side). This is a separate measurement from
+/// [`hand_palm_normal_in`] — the construction ray used to seat a cylinder
+/// inside the hand — and describes the palm's true facing, which the wrist
+/// tilt refinement preserves.
+pub const HAND_PALM_NORMAL_OUT: Vec3 = [-0.1052, -0.8513, 0.514];
 /// Hand long axis — wrist origin toward the middle-finger root.
 pub const HAND_LONG_AXIS: Vec3 = [0.926, 0.105, 0.363];
 /// Palm-cup carrying posture the grip channel was fitted under: rotation
@@ -74,9 +80,20 @@ pub fn hand_grip_seat_flesh() -> f64 {
     distance(HAND_PALM_CONTACT, HAND_FIST_CENTRE) - HAND_FIST_RADIUS
 }
 
-/// Outward palm normal (mirror of the inward normal).
-pub fn hand_palm_normal_out() -> Vec3 {
-    scale(hand_palm_normal_in(), -1.0)
+/// Outward palm normal of the shipped bind geometry (web
+/// `handPalmNormalOut`): the measured [`HAND_PALM_NORMAL_OUT`], mirrored on
+/// x per side and normalised. Distinct from the negated construction ray:
+/// the authored hand bone's metacarpal arch puts the geometric palm facing
+/// well off the palm-contact→fist-centre axis.
+#[must_use]
+pub fn hand_palm_normal_out(side: f64) -> Vec3 {
+    let mirror = side.signum();
+    let mirror = if mirror == 0.0 { 1.0 } else { mirror };
+    normalize([
+        mirror * HAND_PALM_NORMAL_OUT[0],
+        HAND_PALM_NORMAL_OUT[1],
+        HAND_PALM_NORMAL_OUT[2],
+    ])
 }
 
 /// Hand-local centre of the channel that a cylinder of `radius` occupies
@@ -106,33 +123,55 @@ pub fn hand_curl_axis(side: f64) -> Vec3 {
     ])
 }
 
+/// Thumb-ward curl axis: the curl axis signed from the pinky side toward the
+/// thumb/index side, so a stopped handle's thumb end is deterministic.
+#[must_use]
+pub fn hand_curl_axis_thumbward(side: f64) -> Vec3 {
+    let mirror = side.signum();
+    let mirror = if mirror == 0.0 { 1.0 } else { mirror };
+    scale(hand_curl_axis(side), mirror)
+}
+
+/// Hand long axis — wrist origin toward the middle-finger root — measured
+/// from the sealed V4 helper rest transforms (right hand; x mirrors).
+#[must_use]
+pub fn hand_long_axis(side: f64) -> Vec3 {
+    let mirror = side.signum();
+    let mirror = if mirror == 0.0 { 1.0 } else { mirror };
+    normalize([
+        mirror * HAND_LONG_AXIS[0],
+        HAND_LONG_AXIS[1],
+        HAND_LONG_AXIS[2],
+    ])
+}
+
 // --- minimal vector / quaternion algebra ---------------------------------
 
-fn sub(left: Vec3, right: Vec3) -> Vec3 {
+pub(crate) fn sub(left: Vec3, right: Vec3) -> Vec3 {
     [left[0] - right[0], left[1] - right[1], left[2] - right[2]]
 }
 
-fn add(left: Vec3, right: Vec3) -> Vec3 {
+pub(crate) fn add(left: Vec3, right: Vec3) -> Vec3 {
     [left[0] + right[0], left[1] + right[1], left[2] + right[2]]
 }
 
-fn dot(left: Vec3, right: Vec3) -> f64 {
+pub(crate) fn dot(left: Vec3, right: Vec3) -> f64 {
     left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
 }
 
-fn length(vector: Vec3) -> f64 {
+pub(crate) fn length(vector: Vec3) -> f64 {
     dot(vector, vector).sqrt()
 }
 
-fn distance(left: Vec3, right: Vec3) -> f64 {
+pub(crate) fn distance(left: Vec3, right: Vec3) -> f64 {
     length(sub(left, right))
 }
 
-fn scale(vector: Vec3, factor: f64) -> Vec3 {
+pub(crate) fn scale(vector: Vec3, factor: f64) -> Vec3 {
     [vector[0] * factor, vector[1] * factor, vector[2] * factor]
 }
 
-fn add_scaled(base: Vec3, direction: Vec3, factor: f64) -> Vec3 {
+pub(crate) fn add_scaled(base: Vec3, direction: Vec3, factor: f64) -> Vec3 {
     [
         base[0] + direction[0] * factor,
         base[1] + direction[1] * factor,
@@ -140,7 +179,7 @@ fn add_scaled(base: Vec3, direction: Vec3, factor: f64) -> Vec3 {
     ]
 }
 
-fn normalize(vector: Vec3) -> Vec3 {
+pub(crate) fn normalize(vector: Vec3) -> Vec3 {
     let len = length(vector);
     if len == 0.0 {
         return vector;
@@ -150,14 +189,14 @@ fn normalize(vector: Vec3) -> Vec3 {
 
 /// Quaternion for a rotation of `angle` about the unit-ish axis `axis`
 /// (three.js `setFromAxisAngle` normalises the axis).
-fn axis_angle(axis: Vec3, angle: f64) -> Quat {
+pub(crate) fn axis_angle(axis: Vec3, angle: f64) -> Quat {
     let axis = normalize(axis);
     let half = angle / 2.0;
     let s = half.sin();
     [axis[0] * s, axis[1] * s, axis[2] * s, half.cos()]
 }
 
-fn quat_mul(left: Quat, right: Quat) -> Quat {
+pub(crate) fn quat_mul(left: Quat, right: Quat) -> Quat {
     [
         left[3] * right[0] + left[0] * right[3] + left[1] * right[2] - left[2] * right[1],
         left[3] * right[1] - left[0] * right[2] + left[1] * right[3] + left[2] * right[0],
@@ -166,7 +205,7 @@ fn quat_mul(left: Quat, right: Quat) -> Quat {
     ]
 }
 
-fn quat_conjugate(quaternion: Quat) -> Quat {
+pub(crate) fn quat_conjugate(quaternion: Quat) -> Quat {
     [
         -quaternion[0],
         -quaternion[1],
@@ -175,7 +214,7 @@ fn quat_conjugate(quaternion: Quat) -> Quat {
     ]
 }
 
-fn quat_inverse(quaternion: Quat) -> Quat {
+pub(crate) fn quat_inverse(quaternion: Quat) -> Quat {
     let norm_sq = quaternion[0] * quaternion[0]
         + quaternion[1] * quaternion[1]
         + quaternion[2] * quaternion[2]
@@ -183,7 +222,7 @@ fn quat_inverse(quaternion: Quat) -> Quat {
     scale4(quat_conjugate(quaternion), 1.0 / norm_sq)
 }
 
-fn scale4(quaternion: Quat, factor: f64) -> Quat {
+pub(crate) fn scale4(quaternion: Quat, factor: f64) -> Quat {
     [
         quaternion[0] * factor,
         quaternion[1] * factor,
@@ -192,7 +231,7 @@ fn scale4(quaternion: Quat, factor: f64) -> Quat {
     ]
 }
 
-fn quat_rotate(quaternion: Quat, vector: Vec3) -> Vec3 {
+pub(crate) fn quat_rotate(quaternion: Quat, vector: Vec3) -> Vec3 {
     // v' = q * v * q^-1 (expanded; equivalent to three's applyQuaternion).
     let [qx, qy, qz, qw] = quaternion;
     let ix = qw * vector[0] + qy * vector[2] - qz * vector[1];
@@ -319,6 +358,22 @@ fn local_axis(index: usize) -> Vec3 {
 fn side_sign(side: f64) -> f64 {
     let s = side.signum();
     if s == 0.0 { 1.0 } else { s }
+}
+
+/// Apply one solved digit-stage pose to a helper's rest orientation: the
+/// live bone rotation the renderer holds (web `applyGripHelpers`). The
+/// `v4*Fingers` cup helper holds the carrying posture the channel was fitted
+/// in (rest × Y-rotation); every other helper composes rest × oppose (local
+/// Z) × flex (local X). `side` signs the cup like the web (`-side * cup`).
+#[must_use]
+pub fn pose_digit_stage(rest: Quat, flex: f64, oppose: f64, side: f64, is_cup: bool) -> Quat {
+    if is_cup {
+        let sign = side_sign(side);
+        return quat_mul(rest, axis_angle(local_axis(1), -sign * HAND_CLOSURE_CUP));
+    }
+    let secondary = axis_angle(local_axis(2), oppose);
+    let curl = axis_angle(local_axis(0), -flex);
+    quat_mul(rest, quat_mul(secondary, curl))
 }
 
 /// Apply the carrying cup to a finger chain: conjugate every joint by the
@@ -852,6 +907,30 @@ mod tests {
     }
 
     #[test]
+    fn stage_application_composes_rest_oppose_flex() {
+        let rest = [0.0, 0.0, 0.0, 1.0];
+        // Identity rest: oppose then flex about local Z then X.
+        let posed = pose_digit_stage(rest, 0.5, 0.25, 1.0, false);
+        let expected = quat_mul(
+            axis_angle(local_axis(2), 0.25),
+            axis_angle(local_axis(0), -0.5),
+        );
+        for axis in 0..4 {
+            assert!((posed[axis] - expected[axis]).abs() < 1e-15);
+        }
+        // The cup holds the carrying posture, ignoring flex/oppose.
+        let cup = pose_digit_stage(rest, 0.5, 0.25, 1.0, true);
+        let expected_cup = axis_angle(local_axis(1), -HAND_CLOSURE_CUP);
+        for axis in 0..4 {
+            assert!((cup[axis] - expected_cup[axis]).abs() < 1e-15);
+        }
+        // Cup mirrors by side.
+        let cup_left = pose_digit_stage(rest, 0.5, 0.25, -1.0, true);
+        assert!((cup_left[1] + expected_cup[1]).abs() < 1e-15);
+        assert!((cup_left[3] - expected_cup[3]).abs() < 1e-15);
+    }
+
+    #[test]
     fn channel_geometry_matches_its_own_constants() {
         // channelCentre(HAND_FIST_RADIUS) reproduces the pinned fist centre.
         let centre = hand_channel_centre(HAND_FIST_RADIUS, 1.0);
@@ -865,11 +944,25 @@ mod tests {
                 .abs()
                 < 1e-15
         );
-        // Palm normals are opposite unit vectors.
+        // Palm normals: the inward construction ray is unit length, and the
+        // outward facing is the shipped rig's own measured normal (not the
+        // negated ray — the metacarpal arch puts true facing well off axis).
         let inward = hand_palm_normal_in();
-        let outward = hand_palm_normal_out();
         assert!((length(inward) - 1.0).abs() < 1e-12);
-        assert!((dot(inward, outward) + 1.0).abs() < 1e-12);
+        for side in [1.0, -1.0] {
+            let outward = hand_palm_normal_out(side);
+            assert!((length(outward) - 1.0).abs() < 1e-12);
+            let mirror = side.signum();
+            let raw = [
+                mirror * HAND_PALM_NORMAL_OUT[0],
+                HAND_PALM_NORMAL_OUT[1],
+                HAND_PALM_NORMAL_OUT[2],
+            ];
+            let raw_len = length(raw);
+            for axis in 0..3 {
+                assert!((outward[axis] - raw[axis] / raw_len).abs() < 1e-15);
+            }
+        }
     }
 
     #[test]

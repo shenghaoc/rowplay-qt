@@ -419,7 +419,7 @@ Wayland (`cargo run -p rowplay-app`).
 
 ### Phase 7 — Motion
 
-Status: in progress (spec + slice 1 landed).
+Status: in progress (spec + slices 1–2 landed).
 
 The exploration finding (spec R0): the web's V4 is "clip-contact-constrained"
 — the motion graph drives a procedural rig that provides contact targets, and
@@ -437,11 +437,48 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
   contact reports. `grip_closure_parity` is enabled and matches the vendored
   fixture exactly (3 sports × 2 hands, every pose and contact at 1e-9), with
   9 module invariant tests alongside.
-- Remaining: wrist budgets and the equipment projections
-  (`orientHandToGripChannel`, `constrainWristFrame`, spin/tilt refinement) and
-  the equipment parity fixture; per-frame hand orientation in `PoseSolver`;
-  the runtime pose table + gate grip-contact assertion; per-stroke
-  verification; docs.
+- Slice 2 (landed): the equipment contracts — `rowplay_core::replay::{row,
+  ski, bike}_equipment` plus `bike_saddle` (ports of the web's `rowRig.ts`,
+  `skiEquipment.ts`, `bikeRig.js`, `bikeSaddle.js`: shell landmarks, scull /
+  pole / hood contact geometry, the fitted bike derivation chain, the saddle
+  station table and the oar-yaw / elbow / knee / saddle-drop / skier-elbow
+  solves) — with the equipment parity half enabled at Studio's own 1e-12
+  (253 samples green on the first run, including the skier kinematics through
+  the already-pinned motion graph). Alongside it the wrist layer
+  (`replay::wrist`: `orientHandToGripChannel`, spin/tilt relief, the
+  swing–twist `constrainWristFrame` with the 75°/150° budgets and the SkiErg
+  30° keep + 0.5 shoulder-share rules, 12 unit tests re-expressing the web
+  orientation suite). Enabling the equipment fixture first caught one slice-1
+  defect: `hand_palm_normal_out` returned the negated construction ray rather
+  than the shipped rig's measured outward normal — corrected and pinned.
+- Slice 3 (landed): the runtime hand layer. `PoseSolver::pose` takes the
+  per-sport grip frames (`rowplay_viewmodel::replay::grip`, mirroring the
+  three avatar layers: oar/pole/hood shaft, roll reference and base in
+  rig-root space, plus the rower flat-wrist window from the stroke phase)
+  and replaces the clip's authored wrist orientation per frame — channel
+  alignment, sport refinements, swing–twist budgets with the forearm share —
+  then re-closes the hands onto their targets; the two-bone solves and the
+  residual/usability gates are unchanged and hold (worst 1.6 cm row,
+  3.7 cm ski at reach extremes, inside the 9 cm budget). Ghosts ride the
+  same path, so their hands match the player's. The backend solves the
+  install-time finger table per sport (`Replay.gripPoses` + `gripContacts`),
+  the scene applies it to the finger helper joints on the sport walk
+  (player and ghost), and the gate requires `replay grip <sport>: 10/10
+  digit contacts` per sport. Probing the frames anatomically (shafts must
+  run midline-ward) caught one sign bug the residuals could not see: the
+  left scull shaft pointed outboard — the re-solve had hidden it by moving
+  the elbow. Residuals cannot validate orientation; the shaft-direction
+  test pins it instead.
+- Slice 3 follow-up: the SkiErg elbow-seam excess now splits 50/50 into
+  shoulder internal rotation like production (`distributeSkiElbowTwist`,
+  forearm world bit-exact), and the wrist metrics carry the unclamped
+  `requested_twist` beside the clamped value so T8 can tell a saturating
+  budget from a frame bug. Measured verdict: no flips or wraps anywhere
+  (tight budgets, case one); the row finish→recovery swing is the
+  feather-window weights slewing, matching the avatar math, to be judged
+  on screen as feathering vs snap.
+- Remaining: per-stroke verification (T8, including the catch/finish
+  visual on all three sports); docs (T9).
 
 ### Phase 8 — Live mode
 

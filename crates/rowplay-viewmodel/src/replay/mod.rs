@@ -16,6 +16,7 @@ pub mod course;
 pub mod equipment;
 pub mod frame;
 pub mod glb;
+pub mod grip;
 pub mod hud;
 pub mod materials;
 pub mod palette;

@@ -622,10 +622,34 @@ ApplicationWindow {
             case 63: Replay.setQualityIndex(2); break  // High
             case 64: Replay.setQualityIndex(3); break  // Ultra
             case 65: Replay.setQualityIndex(1); break  // back to Medium
-            case 66: Library.closeReplay(); Library.clearSelection(); break
+            // Phase shots (ROWPLAY_PHASE_SHOTS=1): stroke-phase captures
+            // per sport with the ghost loaded — the T8 visual baseline.
+            // Fractions below are deterministic mid-workout stroke phases
+            // computed from the demo timelines (see the phase-scan notes in
+            // the Phase 7 tasks); each seek-then-settle lands the same
+            // frame on every run.
+            case 66:
+                if (!Settings.phaseShots) { root.gateStep = 81; break }
+                break
+            case 67: Replay.loadWorkout(1001); Replay.loadGhost(1002); break
+            case 68: Replay.seek(0.49995); root.grabSettledScene("phase-row-catch"); break
+            case 69: Replay.seek(0.50091); root.grabSettledScene("phase-row-middrive"); break
+            case 70: Replay.seek(0.50187); root.grabSettledScene("phase-row-finish"); break
+            case 71: Replay.seek(0.50343); root.grabSettledScene("phase-row-midrecovery"); break
+            case 72: Replay.loadWorkout(1003); Replay.loadGhost(1005); break
+            case 73: Replay.seek(0.50073); root.grabSettledScene("phase-ski-catch"); break
+            case 74: Replay.seek(0.50201); root.grabSettledScene("phase-ski-middrive"); break
+            case 75: Replay.seek(0.49710); root.grabSettledScene("phase-ski-finish"); break
+            case 76: Replay.seek(0.50500); root.grabSettledScene("phase-ski-midrecovery"); break
+            case 77: Replay.loadWorkout(1004); Replay.loadGhost(1006); break
+            case 78: Replay.seek(0.49937); root.grabSettledScene("phase-bike-catch"); break
+            case 79: Replay.seek(0.50001); root.grabSettledScene("phase-bike-middrive"); break
+            case 80: Replay.seek(0.49960); root.grabSettledScene("phase-bike-finish"); break
+            case 81: Replay.seek(0.50025); root.grabSettledScene("phase-bike-midrecovery"); break
+            case 82: Replay.setQualityIndex(1); Replay.loadGhost(-1); Library.closeReplay(); Library.clearSelection(); break
             // Bench mode (ROWPLAY_REPLAY_BENCH=1): measure 600 frames per
             // sport × tier on hardware GL. Runs after the normal gate.
-            case 67:
+            case 83:
                 if (!Settings.benchMode) { root.gateStep = 999; break }
                 Library.selectWorkout(1001)
                 Library.requestReplay(false)
@@ -635,24 +659,24 @@ ApplicationWindow {
             // measurement so the doubled geometry is settled by the time the
             // 60-frame warmup starts.
             // RowErg × 4 tiers
-            case 68: Replay.loadWorkout(1001); Replay.loadGhost(1002); break
-            case 69: Replay.setQualityIndex(0); Replay.play(); root.benchRun("row-low"); break
-            case 70: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("row-medium"); break
-            case 71: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("row-high"); break
-            case 72: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("row-ultra"); break
+            case 84: Replay.loadWorkout(1001); Replay.loadGhost(1002); break
+            case 85: Replay.setQualityIndex(0); Replay.play(); root.benchRun("row-low"); break
+            case 86: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("row-medium"); break
+            case 87: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("row-high"); break
+            case 88: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("row-ultra"); break
             // SkiErg × 4 tiers
-            case 73: Replay.loadWorkout(1003); Replay.loadGhost(1005); break
-            case 74: Replay.setQualityIndex(0); Replay.play(); root.benchRun("ski-low"); break
-            case 75: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("ski-medium"); break
-            case 76: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("ski-high"); break
-            case 77: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("ski-ultra"); break
+            case 89: Replay.loadWorkout(1003); Replay.loadGhost(1005); break
+            case 90: Replay.setQualityIndex(0); Replay.play(); root.benchRun("ski-low"); break
+            case 91: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("ski-medium"); break
+            case 92: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("ski-high"); break
+            case 93: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("ski-ultra"); break
             // BikeErg × 4 tiers
-            case 78: Replay.loadWorkout(1004); Replay.loadGhost(1006); break
-            case 79: Replay.setQualityIndex(0); Replay.play(); root.benchRun("bike-low"); break
-            case 80: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("bike-medium"); break
-            case 81: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("bike-high"); break
-            case 82: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("bike-ultra"); break
-            case 83: Replay.setQualityIndex(1); Library.closeReplay(); Library.clearSelection(); break
+            case 94: Replay.loadWorkout(1004); Replay.loadGhost(1006); break
+            case 95: Replay.setQualityIndex(0); Replay.play(); root.benchRun("bike-low"); break
+            case 96: Replay.seek(0); Replay.setQualityIndex(1); Replay.play(); root.benchRun("bike-medium"); break
+            case 97: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("bike-high"); break
+            case 98: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("bike-ultra"); break
+            case 99: Replay.setQualityIndex(1); Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

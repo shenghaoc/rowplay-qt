@@ -14,13 +14,22 @@
 //! glTF space, so the contract's bend hints apply unrotated.
 
 use rowplay_core::models::Sport;
+use rowplay_core::replay::hand_grip::{hand_curl_axis, hand_long_axis, hand_palm_normal_out};
 use rowplay_core::replay::rig_pose::{BikeErgRigPose, RowerRigPose, SkiErgRigPose, SportRigPose};
 use rowplay_core::replay::two_bone::{
     add, cross, dot, length, scale, solve_rigid_contact3d, solve3d, sub,
 };
+use rowplay_core::replay::wrist::{
+    WristMetrics, WristRest, constrain_wrist_frame, orient_hand_to_grip_channel,
+    refine_grip_spin_for_wrist, refine_grip_tilt_for_wrist,
+};
 
 use super::athlete::{AssetError, Clip, LocalTransform, V4Athlete};
 use super::frame;
+use super::grip::{
+    GripFrame, ROWER_PALM_TILT, ROWER_PALM_TILT_COMFORT, SKI_FLAT_MAX_SPIN, SKI_PALM_TILT,
+    SKI_PALM_TILT_COMFORT, smoothstep,
+};
 
 /// The web `clipFraction`: map the stroke cycle fraction onto the authored
 /// clip so the source drive end lands on the clip's drive end.
@@ -368,6 +377,8 @@ pub struct Posed {
     pub locals: Vec<LocalTransform>,
     /// Contact residuals.
     pub residuals: Residuals,
+    /// Per-hand wrist metrics (left, right) from the budget pass.
+    pub wrist: [WristMetrics; 2],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -379,6 +390,37 @@ struct Binding {
     bend_hint: [f64; 3],
 }
 
+/// Build one hand's wrist rest frame from the athlete's rest hierarchy
+/// (web `wristRest` construction): the twist axis is the hand joint's own
+/// offset in its parent (the forearm), the rest orientation is aligned so
+/// the hand's long axis continues that bone axis, and flexion/deviation
+/// complete the triad off the curl axis.
+fn build_wrist_rest(athlete: &V4Athlete, hand: usize, side: f64) -> WristRest {
+    let rest = &athlete.joints[hand];
+    let bone_axis_local = normalised_or(rest.translation, [0.0, 1.0, 0.0]);
+    let mut hand_rest = rest.rotation;
+    let long_in_forearm = rotate(hand_rest, hand_long_axis(side));
+    let align = rotation_between(long_in_forearm, bone_axis_local);
+    hand_rest = normalise(quat_mul(align, hand_rest));
+    let mut flex = rotate(hand_rest, hand_curl_axis(side));
+    let along = dot(flex, bone_axis_local);
+    flex = [
+        flex[0] - bone_axis_local[0] * along,
+        flex[1] - bone_axis_local[1] * along,
+        flex[2] - bone_axis_local[2] * along,
+    ];
+    let flex_axis_local = normalised_or(flex, [1.0, 0.0, 0.0]);
+    let dev = cross(bone_axis_local, flex_axis_local);
+    let deviation_axis_local = normalised_or(dev, [0.0, 0.0, 1.0]);
+    WristRest {
+        hand_rest,
+        bone_axis_local,
+        forearm_axis_local: bone_axis_local,
+        flex_axis_local,
+        deviation_axis_local,
+    }
+}
+
 /// The per-athlete solver plan: hierarchy order and the four contact chains.
 #[derive(Debug, Clone)]
 pub struct PoseSolver {
@@ -388,6 +430,8 @@ pub struct PoseSolver {
     semantic: Vec<usize>,
     /// left hand, right hand, left foot, right foot.
     bindings: [Binding; 4],
+    /// Wrist rest frames (left, right) the budget pass measures against.
+    wrists: [WristRest; 2],
 }
 
 impl PoseSolver {
@@ -450,11 +494,18 @@ impl PoseSolver {
             hips,
             semantic: athlete.semantic.clone(),
             bindings,
+            wrists: [
+                build_wrist_rest(athlete, bindings[0].terminal, -1.0),
+                build_wrist_rest(athlete, bindings[1].terminal, 1.0),
+            ],
         })
     }
 
     /// Pose the athlete: sample `clip` at the stroke's clip time, align the
-    /// pelvis and close the four contacts (Studio `solve`, web `constrain`).
+    /// pelvis, close the four contacts (Studio `solve`, web `constrain`),
+    /// then replace the clip's authored wrist orientation with the grip
+    /// channel frame (web `orientHandToGripChannel` + the sport refinements)
+    /// under the wrist budgets, and re-close the hands onto their targets.
     #[must_use]
     pub fn pose(
         &self,
@@ -463,8 +514,15 @@ impl PoseSolver {
         clip: &Clip,
         clip_time: f64,
         targets: &ContactTargets,
+        frames: &[GripFrame; 2],
     ) -> Posed {
         let mut work = Workspace::new(athlete.sample(clip, clip_time), &self.parent, &self.order);
+        // Clip snapshot of both forearm locals: the shoulder-share pass
+        // measures the elbow-seam excess against these after the solves.
+        let snapshot = [
+            work.locals[self.bindings[0].lower].rotation,
+            work.locals[self.bindings[1].lower].rotation,
+        ];
 
         // Row's long reach benefits from an initial arm clearance solve
         // before the pelvis is placed; its clamp results are throwaway.
@@ -520,6 +578,30 @@ impl PoseSolver {
             work.solve_limb(&binding, solve_target);
         }
 
+        // Terminal orientation: the hands adopt the full grip-channel frame
+        // (the clip's authored wrist orientation is replaced for the current
+        // sport), refined per sport and held inside the wrist budgets; the
+        // position pass afterwards re-closes the palm with the solved frame.
+        // A second alternating pass does not converge further (measured:
+        // identical worst residuals) — the extreme-phase shortfall is a
+        // reach limit, inside the usability budget, not an iteration count.
+        let mut wrist = [WristMetrics::default(), WristMetrics::default()];
+        for (index, side) in [(0, -1.0), (1, 1.0)] {
+            let binding = self.bindings[index];
+            let frame = frames[index];
+            wrist[index] = self.orient_hand(&mut work, sport, binding, side, &frame);
+        }
+        for (index, target) in [(0, effective.left_hand), (1, effective.right_hand)] {
+            work.solve_limb(&self.bindings[index], target);
+        }
+        if sport == Sport::Skierg {
+            for (index, side) in [(0, -1.0), (1, 1.0)] {
+                let binding = self.bindings[index];
+                wrist[index].humerus_roll =
+                    self.distribute_ski_elbow_twist(&mut work, snapshot[index], binding, side);
+            }
+        }
+
         let residual = |binding: &Binding, target: [f64; 3]| -> f64 {
             let actual = work.point(binding.offset, binding.terminal);
             let value = length(sub(actual, target));
@@ -547,7 +629,131 @@ impl PoseSolver {
         Posed {
             locals: work.locals,
             residuals,
+            wrist,
         }
+    }
+
+    /// Orient one hand onto its grip frame with the sport's refinements,
+    /// then hold the wrist inside its budgets (web `softOrientEffector` +
+    /// `constrainWristFrame`). Returns the solve metrics.
+    fn orient_hand(
+        &self,
+        work: &mut Workspace<'_>,
+        sport: Sport,
+        binding: Binding,
+        side: f64,
+        frame: &GripFrame,
+    ) -> WristMetrics {
+        let elbow = work.world_pos[binding.lower];
+        let hand = work.world_pos[binding.terminal];
+        let mut forearm = sub(hand, elbow);
+        let forearm_len = length(forearm);
+        if !forearm_len.is_finite() || forearm_len < 1e-6 {
+            return WristMetrics::default();
+        }
+        forearm = scale(forearm, 1.0 / forearm_len);
+        let roll_local = if frame.palm_roll {
+            Some(hand_palm_normal_out(side))
+        } else {
+            None
+        };
+        let mut desired = orient_hand_to_grip_channel(
+            frame.base,
+            side,
+            frame.radius,
+            frame.shaft_thumbward,
+            frame.roll_reference,
+            roll_local,
+        );
+        let shaft = frame.shaft_thumbward;
+        let across = |direction: [f64; 3]| -> f64 {
+            let along = dot(direction, shaft);
+            length(sub(direction, scale(shaft, along)))
+        };
+        match sport {
+            Sport::Skierg => {
+                let weight = smoothstep(across(forearm), 0.12, 0.35);
+                if weight > 1e-4 {
+                    desired = refine_grip_spin_for_wrist(
+                        desired,
+                        side,
+                        shaft,
+                        forearm,
+                        SKI_FLAT_MAX_SPIN * weight,
+                    );
+                }
+                desired = refine_grip_tilt_for_wrist(
+                    desired,
+                    side,
+                    forearm,
+                    SKI_PALM_TILT_COMFORT,
+                    SKI_PALM_TILT,
+                    1.0,
+                );
+            }
+            Sport::Rower => {
+                let weight = frame.flat_window * smoothstep(across(forearm), 0.12, 0.3);
+                if weight > 1e-4 {
+                    desired = flat_wrist_roll(desired, side, shaft, forearm, weight);
+                }
+                desired = refine_grip_tilt_for_wrist(
+                    desired,
+                    side,
+                    forearm,
+                    ROWER_PALM_TILT_COMFORT,
+                    ROWER_PALM_TILT,
+                    weight,
+                );
+            }
+            Sport::Bike => {}
+        }
+        let parent_world = work.world_rot[binding.lower];
+        let local = normalise(quat_mul(conjugate(parent_world), desired));
+        let previous = work.locals[binding.terminal].rotation;
+        work.locals[binding.terminal].rotation = local;
+        work.recompute_subtree(binding.terminal);
+        let rest = &self.wrists[usize::from(side >= 0.0)];
+        let Some(solved) = constrain_wrist_frame(local, rest, sport) else {
+            work.locals[binding.terminal].rotation = previous;
+            work.recompute_subtree(binding.terminal);
+            return WristMetrics::default();
+        };
+        if solved.redistributed {
+            work.locals[binding.lower].rotation = normalise(quat_mul(
+                work.locals[binding.lower].rotation,
+                solved.forearm_twist,
+            ));
+        }
+        work.locals[binding.terminal].rotation = solved.effector;
+        work.recompute_subtree(binding.lower);
+        solved.metrics
+    }
+
+    /// Post-solve shoulder share of the SkiErg pronation (web
+    /// `distributeSkiElbowTwist`): after the passes settle, the forearm's
+    /// local rotation relative to the humerus carries whatever axial twist
+    /// the hold demanded beyond the wrist keep. Measured against the clip
+    /// snapshot's forearm local, the excess rolls into the humerus about its
+    /// own long axis — shoulder internal rotation — and the forearm's world
+    /// orientation is restored, which restores every descendant including
+    /// the solved grip hand. Joint positions and the hand frame are
+    /// bit-exact; only the seam distribution changes. Returns the humerus
+    /// roll (0 below the web's 1e-6 threshold).
+    fn distribute_ski_elbow_twist(
+        &self,
+        work: &mut Workspace<'_>,
+        snapshot_middle: [f64; 4],
+        binding: Binding,
+        side: f64,
+    ) -> f64 {
+        let rest = &self.wrists[usize::from(side >= 0.0)];
+        work.split_seam_excess(&binding, snapshot_middle, rest.forearm_axis_local)
+    }
+
+    /// The wrist rest frame for one side (forearm-local anatomical axes).
+    #[must_use]
+    pub fn wrist_rest(&self, side: f64) -> WristRest {
+        self.wrists[usize::from(side >= 0.0)]
     }
 
     /// Write the 19 semantic joints (translation xyz, rotation xyzw) into
@@ -567,6 +773,40 @@ impl PoseSolver {
             }
         }
     }
+}
+
+/// Rower flat-wrist roll (web `placeArms`): an explicit extra rotation about
+/// the shaft laying the hand's long axis onto the solved forearm —
+/// Concept2's "wrists should be flat" made literal. The weight fades through
+/// the feather window (the caller folds the window in) and guards the ±π
+/// wrap, so the applied roll goes smoothly to zero on both sides of it.
+fn flat_wrist_roll(
+    hand: [f64; 4],
+    side: f64,
+    shaft: [f64; 3],
+    forearm: [f64; 3],
+    weight: f64,
+) -> [f64; 4] {
+    let project = |direction: [f64; 3]| -> [f64; 3] {
+        let along = dot(direction, shaft);
+        sub(direction, scale(shaft, along))
+    };
+    let long = project(rotate(hand, hand_long_axis(side)));
+    let fore = project(forearm);
+    if dot(long, long) <= 1e-8 || dot(fore, fore) <= 1e-8 {
+        return hand;
+    }
+    let long = scale(long, 1.0 / length(long));
+    let fore = scale(fore, 1.0 / length(fore));
+    let cosine = dot(long, fore).clamp(-1.0, 1.0);
+    let sine = dot(cross(long, fore), shaft);
+    let angle = sine.atan2(cosine);
+    let wrap_guard = smoothstep(std::f64::consts::PI - angle.abs(), 0.15, 0.6);
+    let applied = angle * weight * wrap_guard;
+    if applied.abs() < 1e-9 {
+        return hand;
+    }
+    normalise(quat_mul(axis_angle(shaft, applied), hand))
 }
 
 /// Mutable world-transform workspace over the local pose (Studio
@@ -676,6 +916,65 @@ impl<'a> Workspace<'a> {
         let current_contact = self.point(binding.offset, binding.terminal);
         self.aim_joint(binding.lower, new_joint, current_contact, solution.end);
         // The terminal keeps the clip's authored wrist/ankle orientation.
+    }
+
+    /// Split the elbow-seam twist excess between humerus and forearm (web
+    /// `distributeSkiElbowTwist` core): roll the humerus about its own long
+    /// axis by half the snapshot-relative excess and restore the forearm's
+    /// world orientation, preserving every descendant. Returns the humerus
+    /// roll, or 0 when the excess is below threshold or the axis is
+    /// degenerate (locals untouched in both cases).
+    fn split_seam_excess(
+        &mut self,
+        binding: &Binding,
+        snapshot_middle: [f64; 4],
+        forearm_axis: [f64; 3],
+    ) -> f64 {
+        use rowplay_core::replay::wrist::ski_humerus_roll;
+        let delta = quat_mul(
+            conjugate(snapshot_middle),
+            self.locals[binding.lower].rotation,
+        );
+        let dot_twist =
+            delta[0] * forearm_axis[0] + delta[1] * forearm_axis[1] + delta[2] * forearm_axis[2];
+        let mut excess = 2.0 * dot_twist.atan2(delta[3]);
+        if excess > std::f64::consts::PI {
+            excess -= 2.0 * std::f64::consts::PI;
+        } else if excess < -std::f64::consts::PI {
+            excess += 2.0 * std::f64::consts::PI;
+        }
+        let roll = ski_humerus_roll(excess);
+        if roll == 0.0 {
+            return 0.0;
+        }
+        let mut axis = sub(self.world_pos[binding.lower], self.world_pos[binding.upper]);
+        if dot(axis, axis) <= 1e-16 {
+            return 0.0;
+        }
+        axis = scale(axis, 1.0 / length(axis));
+        let saved_middle_world = self.world_rot[binding.lower];
+        let parent_world =
+            self.parent[binding.upper].map_or([0.0, 0.0, 0.0, 1.0], |p| self.world_rot[p]);
+        let rolled_upper_world = normalise(quat_mul(
+            axis_angle(axis, roll),
+            self.world_rot[binding.upper],
+        ));
+        let upper_local = normalise(quat_mul(conjugate(parent_world), rolled_upper_world));
+        if !upper_local.iter().all(|v| v.is_finite()) {
+            return 0.0;
+        }
+        self.locals[binding.upper].rotation = upper_local;
+        self.recompute_subtree(binding.upper);
+        let restored_middle_local = normalise(quat_mul(
+            conjugate(self.world_rot[binding.upper]),
+            saved_middle_world,
+        ));
+        if !restored_middle_local.iter().all(|v| v.is_finite()) {
+            return 0.0;
+        }
+        self.locals[binding.lower].rotation = restored_middle_local;
+        self.recompute_subtree(binding.lower);
+        roll
     }
 
     fn aim_joint(
@@ -922,6 +1221,12 @@ mod tests {
                     clip,
                     fraction * f64::from(clip.duration),
                     &targets,
+                    &crate::replay::grip::grip_frames(
+                        sport,
+                        &rig,
+                        rig_targets(&rig).poles,
+                        crate::replay::grip::warped_cycle(stroke.warped_phase),
+                    ),
                 );
                 assert_eq!(posed.locals.len(), 51);
                 for local in &posed.locals {
@@ -957,6 +1262,281 @@ mod tests {
             }
             eprintln!("{sport:?} worst residuals: {worst:?}");
         }
+    }
+
+    #[test]
+    fn grip_orientation_replaces_the_clip_wrist_within_budgets() {
+        use crate::replay::grip::{grip_frames, warped_cycle};
+        use rowplay_core::replay::wrist::{
+            SKI_WRIST_TWIST_KEEP, WRIST_DEVIATION_BUDGET, WRIST_FLEXION_BUDGET, WRIST_TWIST_BUDGET,
+        };
+        let athlete = vendored();
+        let solver = PoseSolver::new(&athlete).expect("plan");
+        for sport in [Sport::Rower, Sport::Skierg, Sport::Bike] {
+            let clip = athlete.clip_for(sport_name(sport)).expect("clip");
+            let twist_budget = match sport {
+                Sport::Skierg => SKI_WRIST_TWIST_KEEP,
+                Sport::Rower | Sport::Bike => WRIST_TWIST_BUDGET,
+            };
+            for step in 0..40 {
+                let phase = f64::from(step) / 40.0 * std::f64::consts::TAU;
+                let stroke = fallback_stroke_pose(sport, phase, 30.0);
+                let rig = solve_rig_pose(sport, &stroke, f64::from(step) * 3.0, false);
+                let targets = rig_targets(&rig);
+                let frames = grip_frames(
+                    sport,
+                    &rig,
+                    targets.poles,
+                    warped_cycle(stroke.warped_phase),
+                );
+                let clip_time = clip_fraction(
+                    stroke.cycle_frac,
+                    stroke.phase,
+                    stroke.drive_frac,
+                    clip.drive_end,
+                ) * f64::from(clip.duration);
+                let posed =
+                    solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames);
+                // The grip frame replaces the clip's authored wrist: the hand
+                // locals differ from the raw clip sample at the same time.
+                let sampled = athlete.sample(clip, clip_time);
+                for (index, terminal) in [
+                    (0, solver.bindings[0].terminal),
+                    (1, solver.bindings[1].terminal),
+                ] {
+                    let posed_q = posed.locals[terminal].rotation;
+                    let clip_q = sampled[terminal].rotation;
+                    let dot = (posed_q[0] * clip_q[0]
+                        + posed_q[1] * clip_q[1]
+                        + posed_q[2] * clip_q[2]
+                        + posed_q[3] * clip_q[3])
+                        .abs();
+                    assert!(
+                        dot < 1.0 - 1e-6,
+                        "{sport:?} step {step} hand {index}: orientation unchanged"
+                    );
+                    let metrics = posed.wrist[index];
+                    assert!(
+                        metrics.twist.abs() <= twist_budget + 1e-9,
+                        "{sport:?} step {step} hand {index}: twist {}",
+                        metrics.twist
+                    );
+                    assert!(
+                        metrics.flexion.abs() <= WRIST_FLEXION_BUDGET + 1e-9
+                            && metrics.deviation.abs() <= WRIST_DEVIATION_BUDGET + 1e-9,
+                        "{sport:?} step {step} hand {index}: swing {},{}",
+                        metrics.flexion,
+                        metrics.deviation
+                    );
+                    assert!(metrics.clamped_swing >= 0.0);
+                    assert!(metrics.forearm_twist.is_finite());
+                }
+                assert!(posed.residuals.is_usable(), "{sport:?} step {step}");
+            }
+        }
+    }
+
+    #[test]
+    fn requested_twist_stays_continuous_and_engages_the_budgets() {
+        // The unclamped demand distinguishes a saturating budget from an
+        // upstream frame bug: the demand must evolve continuously (a ±2π
+        // wrap or sign flip would read as a ~180°+ adjacent jump) and must
+        // actually exceed the budgets somewhere (otherwise the clamp path
+        // is untested); where nothing redistributes, kept == requested.
+        use crate::replay::grip::{grip_frames, warped_cycle};
+        let athlete = vendored();
+        let solver = PoseSolver::new(&athlete).expect("plan");
+        for sport in [Sport::Rower, Sport::Skierg, Sport::Bike] {
+            let clip = athlete.clip_for(sport_name(sport)).expect("clip");
+            let mut previous: Option<f64> = None;
+            let mut engaged = false;
+            for step in 0..40 {
+                let phase = f64::from(step) / 40.0 * std::f64::consts::TAU;
+                let stroke = fallback_stroke_pose(sport, phase, 30.0);
+                let rig = solve_rig_pose(sport, &stroke, f64::from(step) * 3.0, false);
+                let targets = rig_targets(&rig);
+                let frames = grip_frames(
+                    sport,
+                    &rig,
+                    targets.poles,
+                    warped_cycle(stroke.warped_phase),
+                );
+                let clip_time = clip_fraction(
+                    stroke.cycle_frac,
+                    stroke.phase,
+                    stroke.drive_frac,
+                    clip.drive_end,
+                ) * f64::from(clip.duration);
+                let posed =
+                    solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames);
+                for hand in [0, 1] {
+                    let metrics = posed.wrist[hand];
+                    assert!(
+                        (metrics.requested_twist - (metrics.twist + metrics.forearm_twist)).abs()
+                            < 1e-9,
+                        "{sport:?} step {step} hand {hand}: demand must split exactly"
+                    );
+                    if metrics.forearm_twist.abs() > 1e-9 {
+                        engaged = true;
+                    } else {
+                        assert!(
+                            (metrics.requested_twist - metrics.twist).abs() < 1e-9,
+                            "{sport:?} step {step} hand {hand}: unclamped demand passes through"
+                        );
+                    }
+                }
+                let requested = posed.wrist[0].requested_twist;
+                if let Some(last) = previous {
+                    let mut delta = (requested - last).abs();
+                    if delta > std::f64::consts::PI {
+                        delta = 2.0 * std::f64::consts::PI - delta;
+                    }
+                    assert!(
+                        delta < std::f64::consts::PI / 2.0,
+                        "{sport:?} step {step}: twist demand jumps {delta}"
+                    );
+                }
+                previous = Some(requested);
+            }
+            // The rower and skierg strokes must actually exceed their budgets
+            // somewhere (otherwise the clamp path is untested); the bike's
+            // static hood frame never does — its wrist is frozen by design.
+            if sport == Sport::Bike {
+                assert!(
+                    !engaged,
+                    "{sport:?}: the static frame must not redistribute"
+                );
+            } else {
+                assert!(engaged, "{sport:?}: the budget clamp never engaged");
+            }
+        }
+    }
+
+    #[test]
+    fn seam_split_preserves_the_forearm_world_and_halves_the_excess() {
+        use rowplay_core::replay::wrist::SKI_PRONATION_SHOULDER_SHARE;
+        // Synthetic arm: root → upper → middle → terminal, each 0.3 along
+        // −Y, identity rest rotations.
+        let local = |y: f64| LocalTransform {
+            translation: [0.0, y, 0.0],
+            rotation: [0.0, 0.0, 0.0, 1.0],
+            scale: [1.0, 1.0, 1.0],
+        };
+        let parent: Vec<Option<usize>> = vec![None, Some(0), Some(1), Some(2)];
+        let order = vec![0, 1, 2, 3];
+        let binding = Binding {
+            upper: 1,
+            lower: 2,
+            terminal: 3,
+            offset: [0.0, 0.0, 0.0],
+            bend_hint: [0.0, 0.0, 1.0],
+        };
+        // Twist the forearm 0.8 rad about its long axis past the snapshot.
+        let snapshot = [0.0, 0.0, 0.0, 1.0];
+        let twisted = axis_angle([0.0, 1.0, 0.0], 0.8);
+        let mut work = Workspace::new(
+            vec![local(0.0), local(-0.3), local(-0.3), local(-0.3)],
+            &parent,
+            &order,
+        );
+        work.locals[2].rotation = twisted;
+        work.recompute_subtree(2);
+        let middle_world_before = work.world_rot[2];
+        let roll = work.split_seam_excess(&binding, snapshot, [0.0, 1.0, 0.0]);
+        assert!(
+            (roll - 0.8 * SKI_PRONATION_SHOULDER_SHARE).abs() < 1e-12,
+            "{roll}"
+        );
+        // The forearm world (and therefore every descendant) is bit-exact.
+        for (axis, expected) in middle_world_before.iter().enumerate() {
+            assert!((work.world_rot[2][axis] - expected).abs() < 1e-12, "{axis}");
+        }
+        // The humerus visibly carries the roll: its world orientation moved
+        // about its own (downward, elbow-minus-shoulder) long axis by
+        // exactly the roll.
+        let upper_world_after = work.world_rot[1];
+        let expected = axis_angle([0.0, -1.0, 0.0], roll);
+        for axis in 0..4 {
+            assert!(
+                (upper_world_after[axis] - expected[axis]).abs() < 1e-12,
+                "{upper_world_after:?}"
+            );
+        }
+        // Below-threshold excess is a no-op returning 0.
+        let mut still = Workspace::new(
+            vec![local(0.0), local(-0.3), local(-0.3), local(-0.3)],
+            &parent,
+            &order,
+        );
+        assert_eq!(
+            still.split_seam_excess(&binding, snapshot, [0.0, 1.0, 0.0]),
+            0.0
+        );
+        // A degenerate humerus axis (shoulder == elbow) is a no-op too.
+        let mut collapsed = Workspace::new(
+            vec![local(0.0), local(-0.3), local(0.0), local(-0.3)],
+            &parent,
+            &order,
+        );
+        collapsed.locals[2].rotation = twisted;
+        collapsed.recompute_subtree(2);
+        assert_eq!(
+            collapsed.split_seam_excess(&binding, snapshot, [0.0, 1.0, 0.0]),
+            0.0
+        );
+    }
+
+    #[test]
+    fn ski_shoulder_share_engages_on_the_water_and_rests_on_land() {
+        // Pose-level: the share is SkiErg-only and engages where the seam
+        // demand runs hot.
+        let athlete = vendored();
+        let solver = PoseSolver::new(&athlete).expect("plan");
+        use crate::replay::grip::{grip_frames, warped_cycle};
+        let poser = |sport: Sport, step: u32| -> Posed {
+            let name = match sport {
+                Sport::Rower => "rower",
+                Sport::Skierg => "skierg",
+                Sport::Bike => "bike",
+            };
+            let clip = athlete.clip_for(name).expect("clip");
+            let phase = f64::from(step) / 40.0 * std::f64::consts::TAU;
+            let stroke = fallback_stroke_pose(sport, phase, 30.0);
+            let rig = solve_rig_pose(sport, &stroke, f64::from(step) * 3.0, false);
+            let targets = rig_targets(&rig);
+            let frames = grip_frames(
+                sport,
+                &rig,
+                targets.poles,
+                warped_cycle(stroke.warped_phase),
+            );
+            let clip_time = clip_fraction(
+                stroke.cycle_frac,
+                stroke.phase,
+                stroke.drive_frac,
+                clip.drive_end,
+            ) * f64::from(clip.duration);
+            solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames)
+        };
+        for sport in [Sport::Rower, Sport::Bike] {
+            for step in (0..40).step_by(5) {
+                let posed = poser(sport, step);
+                assert_eq!(posed.wrist[0].humerus_roll, 0.0);
+                assert_eq!(posed.wrist[1].humerus_roll, 0.0);
+            }
+        }
+        let mut engaged = false;
+        for step in 0..40 {
+            let posed = poser(Sport::Skierg, step);
+            for hand in [0, 1] {
+                let roll = posed.wrist[hand].humerus_roll;
+                assert!(roll.is_finite());
+                if roll.abs() > 1e-9 {
+                    engaged = true;
+                }
+            }
+        }
+        assert!(engaged, "the shoulder share never engaged");
     }
 
     #[test]
