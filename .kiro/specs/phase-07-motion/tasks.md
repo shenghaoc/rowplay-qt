@@ -51,6 +51,12 @@
   either window edge, so feathering-vs-snap is answered at stills; what
   remains of T8's visual is the full-speed read — does the feather look
   natural in motion, which held frames cannot settle.
+  Ownership (recorded after this was misassigned twice): the reviewer of
+  uploaded captures has no display, no GPU and no way to run the app —
+  every eyes-on item belongs to the development-machine side, never to
+  "whoever reads this note next". The at-speed feather read is assigned
+  there: run the app (`cargo run -p rowplay-app`), or assemble a
+  true-frame-rate video from deterministic seeks and watch that.
   Ski demand swings +77°…−134°…+131° with the keep pegged; the elbow-seam
   excess now splits 50/50 into the humerus like production (ported, with the
   forearm-world bit-exact invariant pinned — see `seam_split_*`), so the
@@ -78,9 +84,8 @@
   buried through the drive (the `bladeWater` dip working), mid-recovery
   wrists flat with no snap at the window edges; ski forearms straight with
   the shoulder split in; bike hands planted, wrists level. The gross
-  anatomy questions are settled — what remains for a human pass at T8 is
-  the subjective read (does the finish→recovery feather read naturally at
-  full speed, not just at the four held phases).
+  anatomy questions are settled — what remains is the subjective full-speed
+  feather read above, on the development machine (see the ownership note).
 - [ ] T9 Docs (roadmap, source-map, qt-bridges-notes) + full validation +
   phase PR (R5.1, R5.2).
 
