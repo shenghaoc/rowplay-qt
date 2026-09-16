@@ -113,13 +113,25 @@ pub struct SkiErgRigPose {
     pub pelvis_y: f64,
     /// Pelvis forward carry (`upper.position.z` = `hipHinge · 0.055`).
     pub pelvis_z: f64,
+    /// Pelvis local counter-tilt in the upper frame (web `hips.rotation.x`
+    /// = `-hipHinge · SKI_PELVIS_COUNTER_TILT 0.14`). Applied on top of
+    /// the torso hinge, this keeps the pelvis less pitched forward than
+    /// the torso — the same connected-spine cue the web comments name.
+    pub hip_counter_tilt: f64,
     /// Pole rotation angle.
     pub pole_rotation: f64,
     /// 0..1 closure of the basket-to-course contact channel.
     pub pole_contact: f64,
-    /// Forward coordinate of the deterministic course plant: the current /
-    /// next catch's ground point minus the travel since it, so a planted
-    /// basket does not slide with the athlete under seeks or playback.
+    /// Forward coordinate of the port's deterministic course-anchored
+    /// plant: the current / next catch's ground point minus the travel
+    /// since it, so a planted basket does not slide with the athlete
+    /// under seeks. **Port model divergence from the web** (see
+    /// docs/source-map.md, docs/parity-coverage.md): the web treats the
+    /// SkiErg athlete as physically stationary and keeps `poleTipLeft.z`
+    /// at ~0.24 through the whole contact, while this formula retreats
+    /// to ~-1.76 m at cyc=0.25 mid-drive. Reconciling requires rewriting
+    /// the `pose::skierg_targets` mix-blend into a per-frame IK — bigger
+    /// than a rig_pose change.
     pub plant_basket_z: f64,
     /// Preferred hand height: the web's shoulder-arc hand path evaluated in
     /// the hinging torso frame (the V4 clip's hand keys follow it).
@@ -315,6 +327,7 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     // fixture caught them (docs/parity-coverage.md ranking 2).
     let torso_lean = 0.055 + hinge * 0.56;
     let head_local_pitch = -hinge * 0.38;
+    let hip_counter_tilt = -hinge * 0.14;
     // `pose::skierg_targets` composes the pole carry as
     // `carried = normalize([side·0.12, -cos(θ).max(0.18), sin(θ)])` with
     // axes X=lateral, Y=up, Z=forward. `θ = 0` puts the pole straight down
@@ -346,6 +359,18 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     // rather than the previously rendered frame: on a locally straight
     // course, subtracting the travel since that catch keeps the basket
     // stationary in course space and deterministic under shuffled seeks.
+    // Note: the rig-phase fixture records `poleTipLeft.z ≈ 0.24` in
+    // rig-local through the whole contact (the web keeps the plant
+    // stationary in rig-local, treating the SkiErg athlete as physically
+    // stationary), while this port formula drives `plant_basket_z` to
+    // ≈−1.76 m at cyc=0.25. The two models diverge and the port's
+    // `pose::skierg_targets` blend into `free_basket` via `pole_contact`
+    // depends on `plant_basket` tracking `free_basket` to keep the
+    // requested wrist twist continuous — collapsing `plant_basket_z` to
+    // a constant broke the viewmodel's `requested_twist_stays_continuous`
+    // guard by ~106° at step 8. Documented as a port model divergence
+    // (docs/source-map.md, docs/parity-coverage.md); reconciling it
+    // needs the pose solver's blend rewritten too, out of scope here.
     let index = pose.index as f64;
     let plant_cycle = index
         + if pose.cycle_frac >= SKI_POLE_APPROACH_START_CYCLE {
@@ -418,6 +443,7 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
         hip_compression: finite(hip_compression, 0.0),
         pelvis_y: finite(pelvis_carry_y, 0.735),
         pelvis_z: finite(pelvis_carry_z, 0.0),
+        hip_counter_tilt: finite(hip_counter_tilt, 0.0),
         pole_rotation: finite(pole_rotation, -0.1),
         pole_contact: finite(pole_contact, 0.0),
         plant_basket_z: finite(plant_basket_z, 0.24),
@@ -511,6 +537,7 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
             hip_compression: 0.0,
             pelvis_y: 0.735,
             pelvis_z: 0.0,
+            hip_counter_tilt: 0.0,
             pole_rotation: -0.2,
             pole_contact: 0.0,
             plant_basket_z: ski_proportions::POLE_PLANT_FORWARD_OFFSET,
@@ -815,6 +842,7 @@ mod tests {
                 assert_eq!(rig.joints.torso_lean, 0.055);
                 assert_eq!(rig.joints.knee_flex_l, -0.05);
                 assert_eq!((rig.pelvis_y, rig.pelvis_z), (0.735, 0.0));
+                assert_eq!(rig.hip_counter_tilt, 0.0);
                 assert_eq!(rig.plant_basket_z, 0.24);
                 assert_eq!((rig.preferred_hand_y, rig.preferred_hand_z), (0.663, 0.094));
                 assert_eq!((rig.shoulder_y, rig.shoulder_z), (1.271, 0.080));

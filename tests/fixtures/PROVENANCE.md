@@ -48,10 +48,14 @@ either.
 | `performance-predictor-parity.json` | 1304 | `46cdec99696325feacdd1bd1df89409fdc5704b2fefc2bf34f995ecc2343712d` |
 | `replay-current-main-2d.json` | 112327 | `407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693` |
 <<<<<<< HEAD
+<<<<<<< HEAD
 | `replay-rig-phase-parity.json` | 951697 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` |
 =======
 | `replay-rig-phase-parity.json` | 980726 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` (avatar parented to a throwaway `THREE.Scene` so `placePoleArms` runs; numbers serialised through `toPrecision(17)` for byte-identity across Node versions) |
 >>>>>>> 8431d68 (fix: skierg preferred_hand recovery parity + generator reproducibility)
+=======
+| `replay-rig-phase-parity.json` | 1002844 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` (avatar parented to a throwaway `THREE.Scene` so `placePoleArms` runs; numbers serialised through `toPrecision(17)` for byte-identity across Node versions; skierg samples record `hipsRotation` and left `shoulderLeft` position) |
+>>>>>>> f15cb1e (fix: skierg hip counter-tilt + shoulder parity; record plant model divergence)
 | `replay-current-main-equipment.json` | 61418 | `d403eb47c835dc2c8766ac13f235c7a6313962f2157bf5854e37932921f9d865` |
 | `replay-current-main-grips.json` | 55216 | `50940759fe637d35267a3b20eb60f92fb8bc5debff6ce7f43c087b39563b962b` |
 | `replay-current-main-motion.json` | 482320 | `e47ffdf5e2332ce86911bda2b8b963f5b3ec559f252feee8aa8aaf9bbfdee230` |

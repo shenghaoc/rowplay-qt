@@ -127,9 +127,8 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | Comparability guard | `comparability::*` | `comparabilityGuard.ts` | web | Unit re-expression over workout-type → axis mapping and band rules. | Discrete classification; a fixture would restate the same table. Not worth closing (recorded reason). |
 | Ghost pick | `ghost_pick::*` | `ghostPick.ts` | web | Unit re-expression of the ranking semantics with exact winner ids. | Same as above — total ordering pinned by units; Studio's hardening intentionally not ported (documented). Not worth closing (recorded reason). |
 | Quality budgets | `quality::RenderQuality::budgets` | `renderer3d.ts` `QUALITY` (lines 65–138) | Studio | Budget table pinned exactly — **against Studio's documented tiers**. | Not an inversion risk, but the portable fields that are comparable **numerically disagree with the web**: wake 0/16/28/44 vs web 0/20/32/52; spray 0/40/48/72 vs 0/64/80/112; per-catch 0/4/4/6 vs 0/7/8/10; ring segments 48/72/96/144 vs lane segments 48/80/112/160 (only `buoysPerRing` 12/18/22/28 matches). Needs either a per-field divergence record or adoption of the web values. |
-| **SkiErg `preferred_hand_*` — contact and next-plant-approach windows** | `rig_pose::solve_skierg` (feeds `pose::skierg_targets` as the pole-solve hand target) | `renderer3dSkiAvatar.skiPreferredHand` writes to `arm.handTarget` (pre-solve); `placePoleArms` then runs `solve_rigid_contact3d` / `skiGripReachSolver` which pull `arm.hand` off the authored polar arc during pole contact and off the Bezier return during the next-plant approach | web (rebuilt fixture with the avatar parented; `rig_phase_parity_skierg` pins the recovery window) | The rig-phase fixture now records real oracle values (the generator adds a throwaway `THREE.Scene` and parents the avatar to it, so `placePoleArms` — which early-returns on `!group.parent` at renderer3dSkiAvatar.ts:828 — runs). Within the pure recovery window `SKI_POLE_OFF_CYCLE + 0.005 < cyc < SKI_POLE_APPROACH_START_CYCLE - 0.005` the port matches the web at 1e-6 (both use `skiPreferredHand`'s Bezier alone). Outside that window the fixture's `arm.hand` is the pole-solved position, not `skiPreferredHand`'s output — measured deltas: 0.58 m of y and 0.37 m of z at cyc=0.25 (contact), 0.23 m of y at cyc=0.98 (next-plant approach). The port's `preferred_hand_*` is the *pre*-solve target, so comparing per-sample against `arm.hand` is comparing different quantities. | The comparable web quantity is `arm.handTarget`, but the fixture cannot read it: `arm.handTarget` lives on the arm object closed over inside `makeSkierAvatar` and is not exposed on `avatar.v4Targets`. Two ways to close: (a) modify the reference to expose the arm targets and record them in the generator; (b) write a dedicated pure-function generator that evaluates `skiPreferredHand`'s formula directly per sample (extract constants + polar/Bezier from source, echo motion cues from the fixture, self-check by running the web function). |
-| **SkiErg `plant_basket_z`** | `rig_pose::solve_skierg` (deterministic course-anchored plant: `POLE_PLANT_FORWARD_OFFSET − distance_since_plant`) | `renderer3dSkiAvatar.placePoleArms` per-frame IK from the pole tip toward a plant point in course space, blended by `motion.poleContact` with a free-flight tip driven by `poleAngle` | port-specific model | The rig-phase fixture now records real `poleTipLeft` positions, but the port's model is deliberately different from the web's: a course-anchored deterministic plant that does not slide under seeks (verified by the unit test `skierg_plant_tracks_the_catch_not_the_frame`), where the web is a per-frame IK. Comparing per-sample is not a parity check but a model-alignment check — meaningful only over the pure contact window when the port's plant should agree with the web's rendered pole tip. | Recording the divergence permanently and closing this as a "recorded, unit-test-guarded" entry is defensible. Alternatively, extend the parity test with a pole-tip comparison over the contact window (`cyc < SKI_POLE_OFF_CYCLE`) and treat any delta as a port model bug to reconcile. |
-| **SkiErg `shoulder_y` / `shoulder_z`** | `rig_pose::solve_skierg` (composed from pelvis carry + torso pitch — the same `in_root_frame` as `preferred_hand_*`) | shoulder position in the hinging torso frame, `(shoulderHalfWidth, 0.54, 0.05)` transformed by `upper.matrixWorld` | web | The fixture's `sample()` does not record the shoulder position (no scene-graph node named `skierg-shoulder-*` in the ski avatar and no `arm.shoulderPoint` mirror on `v4Targets`). | Cheapest fix: extend the generator's skierg branch to compute the shoulder from `SKI_ATHLETE_PROPORTIONS.shoulderHalfWidth` and `upper.matrixWorld` applied to `(halfWidth, 0.54, 0.05)`, then pin. Follow-up. |
+| **SkiErg `preferred_hand_*` — contact and next-plant-approach windows** | `rig_pose::solve_skierg` (feeds `pose::skierg_targets` as the pole-solve hand target) | `renderer3dSkiAvatar.skiPreferredHand` writes to `arm.handTarget` (pre-solve); `placePoleArms` then runs `solve_rigid_contact3d` / `skiGripReachSolver` which pull `arm.hand` off the authored polar arc during pole contact and off the Bezier return during the next-plant approach | web (`rig_phase_parity_skierg` pins the recovery window) | The rig-phase fixture records real oracle values now (avatar parented to a scene in the generator, so `placePoleArms` runs). Within the pure recovery window `SKI_POLE_OFF_CYCLE + 0.005 < cyc < SKI_POLE_APPROACH_START_CYCLE - 0.005` the port matches the web at 1e-6 (both use `skiPreferredHand`'s Bezier alone). Outside that window the fixture's `arm.hand` is the pole-solved position, not `skiPreferredHand`'s output — measured deltas: 0.58 m of y and 0.37 m of z at cyc=0.25 (contact), 0.23 m of y at cyc=0.98 (next-plant approach). The port's `preferred_hand_*` is the *pre*-solve target, so comparing per-sample against `arm.hand` is comparing different quantities. | The comparable web quantity is `arm.handTarget`, but the fixture cannot read it: `arm.handTarget` lives on the arm object closed over inside `makeSkierAvatar` and is not exposed on `avatar.v4Targets`. **Cheapest fix is a one-line upstream change to rowplay** — the author's own repo, so a small PR is available: add `leftHandTarget: leftArm.handTarget, rightHandTarget: rightArm.handTarget` to the `v4Targets` return in `makeSkierAvatar` (and the rower / bike equivalents), then extend the generator's `sample()` to read them. Contact + approach coverage lands as soon as the next reference pin is bumped past that change. Alternative: a dedicated pure-function generator that evaluates `skiPreferredHand`'s formula directly per sample (extract constants + polar / Bezier from source, echo motion cues from the fixture, self-check by running the web function). |
+| **SkiErg `plant_basket_z`** — port model divergence | `rig_pose::solve_skierg` (`POLE_PLANT_FORWARD_OFFSET − cycle_frac · stroke_meters`, retreating course-anchored plant) | `renderer3dSkiAvatar.placePoleArms` keeps the plant stationary in rig-local — `poleTipLeft.z ≈ 0.24` across the whole contact (SkiErg athlete does not physically translate; the web treats "distance" as effort, not travel) | port | The rig-phase fixture is a clean oracle: web ≈ 0.24 through contact vs port at −1.76 m at cyc=0.25. Reconciling by collapsing the port to a constant matches the fixture but breaks the viewmodel's `pose::skierg_targets` mix-blend continuity — `requested_twist_stays_continuous_and_engages_the_budgets` fails with a 106° jump at step 8 because the blend assumes `plant_basket` tracks `free_basket`. So the collapse was tried, verified to fail the continuity guard, and reverted; the port's course-anchored formula ships as-is and the divergence is recorded. | The proper fix rewrites the port's `pose::skierg_targets` blend into a per-frame IK closer to the web's `placePoleArms` (solve for the pole shaft direction from `arm.handTarget` and the plant at 0.24), which is scoped beyond a rig_pose change. Visual impact of the current model: the SkiErg pole tip drifts back with the athlete during the drive rather than staying planted in front, a per-cycle 2 m rearward slide vs the web's plant. |
 
 ## rowplay-viewmodel — `crates/rowplay-viewmodel/src/replay/`
 
@@ -407,28 +406,36 @@ caught a defect — never adjust a fixture to match the port.
 - Stage 3: rower landed as Phase 7's `cf85cdb`; **bike landed next** (pedal
   π-inversion and the 0.31 wheel rotation radius — `rig_phase_parity_bike`
   green across all 128 bike samples). **Skierg landed after that**, against
-  the same rig-phase fixture (`bf8d77f` base): the port's `torso_lean` /
-  `head_pitch` calibrations were Studio-inverted-and-off-scale against the
-  web avatar (`0.18 + hipHinge · 0.55` for the torso, `torso_lean · 0.2` for
-  the head), fixed to the web's `0.055 + hipHinge · 0.56` and `-hipHinge ·
-  0.38`; the pelvis carry was exposed as `pelvis_y`/`pelvis_z` and
-  pinned against `upper.position` — `rig_phase_parity_skierg` no longer
-  `#[ignore]`d. The former `preferred_hand_*` / `plant_basket_z`
-  comparisons were retired: the fixture's `targets.leftHand` /
-  `poleTipLeft` sit at the pelvis origin for every sample because the web
-  `placePoleArms` needs the runtime's V4 shoulder data through
-  `refineV4Targets` (no V4 skin in Node), and the deltas measured
-  port-target-vs-pelvis rather than any deviation from the web's placement.
-  The rig-phase generator now parents the avatar to a throwaway
-  `THREE.Scene` (fixing the `placePoleArms` early-return) and serialises
-  numbers through `toPrecision(17)` (fixing byte-identity across V8
-  versions). `rig_phase_parity_skierg` gains a recovery-window
-  `preferred_hand_*` comparison at 1e-6; contact and next-plant-approach
-  windows are recorded in the None table because their oracle is
-  `arm.handTarget` (closure-scoped in the reference, not reachable
-  without modifying it) rather than the fixture's post-solve `arm.hand`.
-  `plant_basket_z` and `shoulder_y`/`shoulder_z` are also None entries
-  with the fix path named.
+  a rebuilt rig-phase fixture (avatar parented to a throwaway
+  `THREE.Scene` so `placePoleArms` runs; skierg samples now record
+  `hipsRotation` and `shoulderLeft`; numbers pass through
+  `toPrecision(17)` for byte-identity across Node/V8 versions). Fixed in
+  `solve_skierg`: `torso_lean` `0.18 + hipHinge · 0.55` → `0.055 +
+  hipHinge · 0.56`; `head_pitch` `torso_lean · 0.2` → `-hipHinge · 0.38`;
+  new `hip_counter_tilt = -hipHinge · 0.14` for the pelvis local
+  counter-tilt. Pelvis carry exposed as `pelvis_y`/`pelvis_z`.
+  `plant_basket_z` was investigated with the new oracle: the web
+  keeps it at ~0.24 through contact while the port retreats to −1.76 m
+  at cyc=0.25. Collapsing the port to a constant matched the fixture
+  but broke `requested_twist_stays_continuous_and_engages_the_budgets`
+  in the viewmodel (~106° jump at step 8) because
+  `pose::skierg_targets`'s mix-blend of `plant_basket` and
+  `free_basket` assumes the two track each other. The collapse was
+  reverted; the divergence is documented (the proper fix is a per-frame
+  IK in the port's blend, scoped beyond a rig_pose change). Visible
+  effect of the current port: the SkiErg pole tip slides 2 m rearward
+  during the pull rather than staying planted in front.
+  `rig_phase_parity_skierg` pins six fields at 1e-6 (`torso_lean`,
+  `head_pitch`, `hip_counter_tilt`, `pelvis_y/z`, `shoulder_y/z`) and
+  `preferred_hand_*` in the pure recovery window at 1e-6; the earlier
+  `#[ignore]` is gone.
+  Two windows remain uncovered:
+  `preferred_hand_*` contact and next-plant-approach need the web's
+  `arm.handTarget` as oracle, closure-scoped inside `makeSkierAvatar`.
+  A one-line upstream change to rowplay would add `leftHandTarget` /
+  `rightHandTarget` to the `v4Targets` return and close it (the
+  reference is the author's own repo, so a small PR is available);
+  `plant_basket_z` needs the pose-solver rewrite described above.
   Outstanding: the rower composed layer (ranking 2 — the reach solve is
   dead at runtime, confirmed by trace) and the remaining stage-2 groups.
 
