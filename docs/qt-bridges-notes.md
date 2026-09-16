@@ -287,6 +287,16 @@ GL backend so a blank 3D area fails instead of riding on the sidebar's colours.
 Any future capture work on macOS should treat a black viewport as this bug, not
 as a scene regression, and verify against the live window.
 
+A related capture-path defect, found while checking the phase twins and fixed
+in `bf8d77f`: the QA close-up camera (`closeup_camera_view`, only under
+`ROWPLAY_PHASE_CLOSEUPS`) **measured ~29–31 m from the athlete on `bf8d77f`** —
+one loop radius — because the offset was rotated into the rig frame but never
+translated to the athlete's placement, so the twins framed venue geometry. Note
+the measurement is of `bf8d77f` only: the function is unchanged since Phase 7
+introduced it (`cf85cdb`) and Phase 7's own T8 notes record close-up judgement,
+so how those earlier close-ups were framed is an open question
+(`docs/parity-coverage.md`, ranking 4) — not a settled "it never worked".
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`

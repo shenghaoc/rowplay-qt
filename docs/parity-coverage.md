@@ -207,12 +207,22 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    0.7–0.9 m frame-composition disagreement, not a constant).
 3. **Chase camera ghost framing** — web comparison framing unported while
    ghosts ship; camera sign conventions unverifiable by quote-check alone.
-4. **QA close-up camera is mis-framed** — `closeup_camera_view` aims ~29–31 m
-   from the athlete (one loop radius: it never adds the course placement), so
-   the T8 close-up twins frame venue geometry, not the athlete. It is the
-   instrument meant for judging wrist detail (ranking 1/2), so fix it before
-   the next visual pass: translate by the athlete's world position, and
-   re-verify against the RHEL baseline.
+4. **QA close-up camera framing** — **measured on `bf8d77f`**: the camera sat
+   ~29–31 m from the athlete (one loop radius). The offset was rotated into
+   the rig frame but never translated to the athlete's placement, so the twins
+   framed venue geometry (row: a flat wall; bike: a spectator pillar). Fixed
+   by translating the offset (`bf8d77f`, #25), with a test pinning 0.5–3.0 m
+   from the athlete on all three sports. **Open question, not settled:** the
+   camera code is unchanged since Phase 7 introduced it (`cf85cdb` — after the
+   Phase 6 venues), yet Phase 7's T8 notes record close-up judgement ("the
+   held-phase close-ups show flat wrists with no snap at either window edge";
+   "the close-ups show no stiffness, so the budget stands as ported") and the
+   feather read went through `Replay.setCloseupCamera`. So *something*
+   produced athlete-framed close-ups then, and this measurement does not
+   explain what. Either the feather/close-up work used a path other than the
+   phase-shot grab, or those judgements were made on the wide set. Resolve
+   against the RHEL `artifacts/phase-baseline/` before relying on either
+   reading — and do not write it up as "the close-up never worked".
 5. **`stroke_pose_at` web-pipeline corpus** — production path has no
    web-generated sweep over varied inputs.
 6. **Wrist budget sweep** — covered only through the equipment corpus and
@@ -336,10 +346,11 @@ which does render it) and uploaded as `artifacts/phase-*.png`;
 GL backend so a blank 3D area fails instead of riding on the chrome. Verify 3D
 changes on macOS against the live window, not a local capture.
 
-A second capture gap, found while checking the twins: the QA close-up camera
-(`closeup_camera_view`, used only by `ROWPLAY_PHASE_CLOSEUPS`) is **mis-framed
-for all three sports** — the wide shots frame the athlete correctly, but the
-close-ups land on venue geometry (row: flat green wall; bike: a spectator
-pillar), with no athlete in frame. That is a pre-existing QA affordance bug, not
-a parity issue; the close-up capture stays off in CI until it is fixed, so
-twelve mis-framed images are not enshrined as a baseline.
+A second capture gap: the QA close-up camera (`closeup_camera_view`, used only
+under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f`
+(one loop radius) — the offset was rotated into the rig frame but never
+translated to the athlete, so the twins framed venue geometry (row: a flat
+wall; bike: a spectator pillar). Fixed in `bf8d77f` (#25) with a framing test;
+the capture stays off in CI until the fixed framing is reviewed on the next
+visual pass. The measurement is of `bf8d77f` only — see ranking 4 for the
+unresolved history (Phase 7's notes do record close-up judgement).
