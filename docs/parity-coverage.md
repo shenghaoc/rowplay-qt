@@ -343,5 +343,13 @@ under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f
 (one loop radius) — the offset was rotated into the rig frame but never
 translated to the athlete, so the twins framed venue geometry (row: a flat
 wall; bike: a spectator pillar). Fixed in `bf8d77f` (#25) with a framing test, and
-re-enabled in CI so the fixed framing is exercised and reviewed. The measurement is of `bf8d77f` only — see ranking 4 for the
+re-enabled in CI so the fixed framing is exercised and reviewed. **Reviewed on
+the row twins** (the oar-fix PR's CI artifact): the athlete is now framed at
+close range in every phase — middrive and midrecovery compose well (head,
+torso and both hands on the sculls, the framing the Phase 7 notes describe),
+while catch and finish crop the near body against the frame edge because a
+fixed rig-relative camera does not follow the 0.44 m seat slide and the torso
+layback. Usable for wrist judgement at mid-drive/recovery; a phase-tracking or
+slightly wider offset would make all four phases equally readable (follow-up,
+not a blocker). The measurement is of `bf8d77f` only — see ranking 4 for the
 unresolved history (Phase 7's notes do record close-up judgement).
