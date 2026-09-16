@@ -127,6 +127,9 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | Comparability guard | `comparability::*` | `comparabilityGuard.ts` | web | Unit re-expression over workout-type → axis mapping and band rules. | Discrete classification; a fixture would restate the same table. Not worth closing (recorded reason). |
 | Ghost pick | `ghost_pick::*` | `ghostPick.ts` | web | Unit re-expression of the ranking semantics with exact winner ids. | Same as above — total ordering pinned by units; Studio's hardening intentionally not ported (documented). Not worth closing (recorded reason). |
 | Quality budgets | `quality::RenderQuality::budgets` | `renderer3d.ts` `QUALITY` (lines 65–138) | Studio | Budget table pinned exactly — **against Studio's documented tiers**. | Not an inversion risk, but the portable fields that are comparable **numerically disagree with the web**: wake 0/16/28/44 vs web 0/20/32/52; spray 0/40/48/72 vs 0/64/80/112; per-catch 0/4/4/6 vs 0/7/8/10; ring segments 48/72/96/144 vs lane segments 48/80/112/160 (only `buoysPerRing` 12/18/22/28 matches). Needs either a per-field divergence record or adoption of the web values. |
+| **SkiErg `preferred_hand_y` / `preferred_hand_z`** | `rig_pose::solve_skierg` (feeds `pose::skierg_targets` as the pole-solve hand target) | `renderer3dSkiAvatar.skiPreferredHand` (polar arc around the shoulder during contact, cubic Bezier return during recovery, hard reach clamp) | web | The `replay-rig-phase-parity.json` fixture records `targets.leftHand` — the V4 `arm.hand` world position after `resolveWorldContacts` — but `placePoleArms` early-returns on `!group.parent` (the generator constructs the avatar detached from any scene), so `arm.hand` stays at the pelvis for every sample. **The audit's stage-2 test compared the port's rig-frame target against that pelvis oracle** and the resulting 0.7–0.9 m deltas measured `port-target-minus-pelvis`, not any deviation from the web's placement. | The polar-arc-plus-Bezier formula is a real authored calibration a port can get wrong (constants, Bezier control points, recovery threshold, reach clamp) and has no pin at all today. Closing it needs one of: (a) rerun the generator with the avatar parented to a scene so `placePoleArms` actually writes `arm.hand`, then re-enable the comparison; or (b) a dedicated pure-function generator that extracts the polar-arc constants from source and calls the web-equivalent `skiPreferredHand` per sample (input: motion cues + a shoulder input from the fixture's `upper.position` + the avatar's `shoulderHalfWidth` / `0.54` / `0.05` constants; output: hand y/z in the hinging torso frame). Neither is complex; option (a) is smaller and would also revive `plant_basket_z` and `shoulder_y`/`shoulder_z` coverage. |
+| **SkiErg `plant_basket_z`** | `rig_pose::solve_skierg` (deterministic course-anchored plant: `POLE_PLANT_FORWARD_OFFSET − distance_since_plant`) | `renderer3dSkiAvatar.placePoleArms` per-frame IK from the pole tip toward a plant point in course space, blended with a free-flight tip driven by `poleAngle` | port-specific model | The rig-phase fixture records `poleTipLeft` (world position of `skierg-pole-tip-left`), but `placePoleArms` early-returns without a scene parent so the pole tip sits at the pelvis for every sample — the retired assertion had no oracle. The port's model is deliberately different from the web's: a course-anchored plant that does not slide under seeks, verified only by the unit test `skierg_plant_tracks_the_catch_not_the_frame`. | The port's model has no direct web equivalent to parity-check against, and the audit's fixture cannot serve as one until `placePoleArms` runs. Options: (a) same scene-parented regeneration as above; or (b) record this as a permanent documented divergence with the unit test as its guarantee, drop it from the fixture ranking. |
+| **SkiErg `shoulder_y` / `shoulder_z`** | `rig_pose::solve_skierg` (composed from pelvis carry + torso pitch — the same `in_root_frame` as `preferred_hand_*`) | shoulder position in the hinging torso frame, `(shoulderHalfWidth, 0.54, 0.05)` transformed by `upper` | web | Same fixture artifact as `preferred_hand_*`: the fixture's `targets.leftShoulder` isn't sampled (the generator's `sample` function does not record the shoulder), so no oracle exists. | Cheapest fix: extend the generator to record `sampledV4Shoulders`-equivalent (compute the shoulder from `SKI_ATHLETE_PROPORTIONS.shoulderHalfWidth` and `upper.matrixWorld` applied to `(halfWidth, 0.54, 0.05)`), then compare. Ships with the same regeneration as the preferred-hand fix. |
 
 ## rowplay-viewmodel — `crates/rowplay-viewmodel/src/replay/`
 
@@ -293,27 +296,58 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     move with the clip, which only widens the attainable set beyond these
     recorded geometries.
 
-The former ranking 2 (`solve_skierg` phase calibration — torso base and head
-counter-tilt) is closed: the fix ports the web `renderer3dSkiAvatar.animate`
-constants (`SKI_NEUTRAL_TORSO_PITCH 0.055 + hipHinge · SKI_TORSO_HINGE_RANGE
-0.56` for the torso, `-hipHinge · SKI_HEAD_GAZE_COUNTER_TILT 0.38` for the
-head), exposes the pelvis carry as `pelvis_y`/`pelvis_z` and pins all three
-against the rig-phase fixture's `upperRotation` / `headRotation` /
-`upper.position` (`rig_phase_parity_skierg` no longer `#[ignore]`d).
+The former ranking 2 (`solve_skierg` phase calibration — torso base, head
+counter-tilt, pole rotation) is closed: the fix ports the web
+`renderer3dSkiAvatar.animate` and `placePoleArms` constants
+(`SKI_NEUTRAL_TORSO_PITCH 0.055 + hipHinge · SKI_TORSO_HINGE_RANGE 0.56`
+for the torso, `-hipHinge · SKI_HEAD_GAZE_COUNTER_TILT 0.38` for the head,
+`-degToRad(80 - poleSweep · 57)` for the pole carry — the negation keeps
+the downstream `pose::skierg_targets` composition intact so
+`sin(pole_rotation)` reads as the web's `-sin(poleAngle)`, the deep-at-reach
+/ horizontal-at-finish direction the web renders), exposes the pelvis carry
+as `pelvis_y`/`pelvis_z` and pins all three against the rig-phase fixture's
+`upperRotation` / `headRotation` / `upper.position` (`rig_phase_parity_skierg`
+no longer `#[ignore]`d). Studio's `-0.20 - poleSweep · 0.92` was the same
+phase-inverted family the rower and bike were caught in — pole mostly
+horizontal at the reach, straight down at the finish, the opposite of the
+on-snow attitude the web comments cite.
+
 The parity test's former `preferred_hand_*` / `plant_basket_z` comparisons
 against `targets.leftHand` / `poleTipLeft` were retired because the fixture
-records those pole/hand slots at the pelvis origin for every sample — the
-web `placePoleArms` (called from `resolveWorldContacts`) needs the Rust
-runtime's V4 shoulder positions handed in via `refineV4Targets`, and Node
-has no V4 skin — so the old deltas measured the port-target-vs-pelvis gap,
-not any deviation from the web's placement. The hip counter-tilt
-(`-hipHinge · 0.14`) still lacks a scene-graph oracle in the committed
-fixture (the generator does not read `hips.rotation`); adding it needs a
-byte-identical regeneration environment and is deferred (queue item, this
-document's task list). Pole rotation convention (Rust `-0.20 - poleSweep ·
-0.92` vs web `degToRad(80 - poleSweep · 57)`) remains a documented
-divergence; downstream `pose::skierg_targets` composes it into a pole
-direction that would flip vertically under the web convention.
+records those pole/hand slots at the pelvis origin for every sample —
+`placePoleArms` early-returns on `!group.parent` (line 828 of
+`renderer3dSkiAvatar.ts`) and the generator constructs the avatar
+detached. The old deltas measured "port-target minus pelvis", not any
+deviation from the web's placement. Both surfaces (plus `shoulder_y` /
+`shoulder_z`) are now recorded in this document's None table with the
+cheapest fix named: rerun the generator with the avatar parented to a
+throwaway `THREE.Scene` so `placePoleArms` actually writes `arm.hand` and
+`skierg-pole-tip-*`. That path also revives coverage of the hip local
+counter-tilt (`-hipHinge · SKI_PELVIS_COUNTER_TILT 0.14`, missing from the
+current generator's `sample` function — the walk doesn't read
+`hips.rotation`). Deferred as a coverage-follow-up because it also
+requires the byte-identity fix below.
+
+**Stage-2 fixture reproducibility is version-sensitive and not currently
+pinned.** The audit's claim that its generators produce byte-identical
+output across runs holds within one environment but not across
+environments: regenerating `replay-rig-phase-parity.json` under
+Node 22.22.2 or 24.5.0 (both with the same `reference/rowplay` lockfile,
+so `three@0.184.x` unchanged) produces ~270 lines of drift against the
+committed bytes at ULP scale — e.g. `0.1249269234996172` vs
+`0.12492692349961732`, the same IEEE-754 double serialised through V8's
+shortest-round-trip formatter differently across versions. Every parity
+test tolerates ≥ 1e-6 so this drift is functionally invisible, but a CI
+regeneration check would fail and any future generator inherits the same
+fragility. Options for the follow-up:
+- Pin the exact Node version and stamp it into the fixture header, the
+  way `tools/bake-venues/bake.sh` requires Node ≥ 24 for the venue bake.
+- Serialise doubles with fixed precision instead of relying on V8's
+  formatter (e.g. `toFixed(17)` or a canonical-JSON writer with a set
+  digit budget), which keeps the fixture text stable across runtimes.
+The second is portable; the first matches how the venue bake handles it.
+Neither is scoped into this PR — recorded here so the next generator
+lands with a pinned reproducibility strategy from the start.
 
 ## Stage-2 generator contract
 
@@ -360,7 +394,10 @@ caught a defect — never adjust a fixture to match the port.
   `head_pitch` calibrations were Studio-inverted-and-off-scale against the
   web avatar (`0.18 + hipHinge · 0.55` for the torso, `torso_lean · 0.2` for
   the head), fixed to the web's `0.055 + hipHinge · 0.56` and `-hipHinge ·
-  0.38`, and the pelvis carry was exposed as `pelvis_y`/`pelvis_z` and
+  0.38`; pole rotation was `-0.20 - poleSweep · 0.92` — the same phase
+  inversion, fixed to `-degToRad(80 - poleSweep · 57)` (negated so the
+  downstream carry composition stays intact); the pelvis carry was exposed
+  as `pelvis_y`/`pelvis_z` and
   pinned against `upper.position` — `rig_phase_parity_skierg` no longer
   `#[ignore]`d. The former `preferred_hand_*` / `plant_basket_z`
   comparisons were retired: the fixture's `targets.leftHand` /
@@ -368,6 +405,13 @@ caught a defect — never adjust a fixture to match the port.
   `placePoleArms` needs the runtime's V4 shoulder data through
   `refineV4Targets` (no V4 skin in Node), and the deltas measured
   port-target-vs-pelvis rather than any deviation from the web's placement.
+  The `preferred_hand_*` / `plant_basket_z` / `shoulder_*` surfaces are
+  now recorded in the None table with the fix path named (re-parent the
+  avatar in the generator, or write a dedicated pure-function generator).
+  A separate reproducibility finding — the generator's byte-identity
+  breaks across Node versions at ULP scale — is recorded above the audit
+  state; every test tolerates the drift but the CI-regeneration story
+  needs a fixed-precision writer or a pinned Node.
   Outstanding: the rower composed layer (ranking 2 — the reach solve is
   dead at runtime, confirmed by trace) and the remaining stage-2 groups.
 

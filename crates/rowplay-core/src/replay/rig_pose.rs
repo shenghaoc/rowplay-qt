@@ -315,7 +315,21 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     // fixture caught them (docs/parity-coverage.md ranking 2).
     let torso_lean = 0.055 + hinge * 0.56;
     let head_local_pitch = -hinge * 0.38;
-    let pole_rotation = -0.20 - pole_sweep * 0.92;
+    // Web `renderer3dSkiAvatar.placePoleArms` authors the free pole as
+    // `poleAngle = degToRad(80 - poleSweep · 57)` (steep ~80° at the reach,
+    // shallowest ~23° at pole-off — the on-snow values the web comments
+    // cite): the tip's desired vertical is `-sin(poleAngle) · POLE_LENGTH`,
+    // so the tip sits deep at the reach and rises toward horizontal at the
+    // finish. Studio's `-0.20 - poleSweep · 0.92` inverted that phase
+    // (mostly horizontal at the reach, deep at the finish) — the same
+    // Studio-inverted family the rower and bike were caught in
+    // (docs/parity-coverage.md, docs/source-map.md). The port's downstream
+    // `pose::skierg_targets` composes the carry direction as
+    // `[-cos(θ).max(0.18), sin(θ), 0]`; keeping that composition intact and
+    // negating the web angle (`θ = -degToRad(80 - poleSweep · 57)`) makes
+    // `sin(θ) = -sin(poleAngle)` — the exact vertical the web writes —
+    // without a downstream rewrite. Range: `[-1.396, -0.401]`.
+    let pole_rotation = -(80.0 - pole_sweep * 57.0) * std::f64::consts::PI / 180.0;
     // Reconstruct the current / next catch's ground point from pose state
     // rather than the previously rendered frame: on a locally straight
     // course, subtracting the travel since that catch keeps the basket
@@ -392,7 +406,7 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
         hip_compression: finite(hip_compression, 0.0),
         pelvis_y: finite(pelvis_carry_y, 0.735),
         pelvis_z: finite(pelvis_carry_z, 0.0),
-        pole_rotation: finite(pole_rotation, -0.1),
+        pole_rotation: finite(pole_rotation, -1.396),
         pole_contact: finite(pole_contact, 0.0),
         plant_basket_z: finite(plant_basket_z, 0.24),
         preferred_hand_y: finite(preferred_hand.0, 0.66),
@@ -485,7 +499,11 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
             hip_compression: 0.0,
             pelvis_y: 0.735,
             pelvis_z: 0.0,
-            pole_rotation: -0.2,
+            // Web `poleAngle` at poleSweep=0 is `degToRad(80)` = 1.396 rad;
+            // the port's `pole_rotation` negates it so `sin(pole_rotation)`
+            // reads as the web's `-sin(poleAngle)` (tip below the hand) in
+            // `pose::skierg_targets`.
+            pole_rotation: -80.0 * std::f64::consts::PI / 180.0,
             pole_contact: 0.0,
             plant_basket_z: ski_proportions::POLE_PLANT_FORWARD_OFFSET,
             preferred_hand_y: 0.663,
@@ -689,7 +707,7 @@ mod tests {
             assert!((0.0..=1.0).contains(&rig.hip_compression));
             assert!((0.0..=1.0).contains(&rig.pole_contact));
             assert!(
-                (-1.12..=-0.20).contains(&rig.pole_rotation),
+                (-1.397..=-0.401).contains(&rig.pole_rotation),
                 "{}",
                 rig.pole_rotation
             );
