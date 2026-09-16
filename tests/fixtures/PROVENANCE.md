@@ -47,7 +47,7 @@ either.
 | `duration-band-parity.json` | 6120 | `b25819daecb6458eb1a32d226965aeeb66335d2166028dfdbfaca8cb4d918ee4` |
 | `performance-predictor-parity.json` | 1304 | `46cdec99696325feacdd1bd1df89409fdc5704b2fefc2bf34f995ecc2343712d` |
 | `replay-current-main-2d.json` | 112327 | `407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693` |
-| `replay-rig-phase-parity.json` | 861062 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` |
+| `replay-rig-phase-parity.json` | 951697 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` |
 | `replay-current-main-equipment.json` | 61418 | `d403eb47c835dc2c8766ac13f235c7a6313962f2157bf5854e37932921f9d865` |
 | `replay-current-main-grips.json` | 55216 | `50940759fe637d35267a3b20eb60f92fb8bc5debff6ce7f43c087b39563b962b` |
 | `replay-current-main-motion.json` | 482320 | `e47ffdf5e2332ce86911bda2b8b963f5b3ec559f252feee8aa8aaf9bbfdee230` |
