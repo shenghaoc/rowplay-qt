@@ -107,6 +107,12 @@ pub struct SkiErgRigPose {
     pub joints: AthleteJointPose,
     /// Hip compression, 0 = tall, 1 = fully compressed.
     pub hip_compression: f64,
+    /// Pelvis carry height in rig root space (web
+    /// `renderer3dSkiAvatar.animate` `upper.position.y` — the pinned
+    /// `SKI_STANDING_PELVIS_Y - kneeFlex·0.11 + rebound·0.045`).
+    pub pelvis_y: f64,
+    /// Pelvis forward carry (`upper.position.z` = `hipHinge · 0.055`).
+    pub pelvis_z: f64,
     /// Pole rotation angle.
     pub pole_rotation: f64,
     /// 0..1 closure of the basket-to-course contact channel.
@@ -298,7 +304,17 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     let arm_extension = unit(graph.body.arm_extension.value);
     let pole_contact = unit(graph.contacts.pole_plant.value);
     let hip_compression = unit(graph.body.torso_compression.value);
-    let torso_lean = 0.18 + hinge * 0.55;
+    // Web `renderer3dSkiAvatar.animate` (pinned by
+    // `replay-rig-phase-parity.json` for skierg): the torso pitch is
+    // `SKI_NEUTRAL_TORSO_PITCH 0.055 + hipHinge · SKI_TORSO_HINGE_RANGE 0.56`,
+    // and the head counter-tilts locally by `-hipHinge · 0.38` so the gaze
+    // stays down-course while the torso hinges. Studio's `0.18 + 0.55·hinge`
+    // torso base and `torso_lean · 0.2` head derivation are op-for-op with
+    // Studio's `ReplayRigPose` and phase-inverted / off-scale against the web
+    // avatar the SkiErg scene actually mirrors — the audit's rig-phase
+    // fixture caught them (docs/parity-coverage.md ranking 2).
+    let torso_lean = 0.055 + hinge * 0.56;
+    let head_local_pitch = -hinge * 0.38;
     let pole_rotation = -0.20 - pole_sweep * 0.92;
     // Reconstruct the current / next catch's ground point from pose state
     // rather than the previously rendered frame: on a locally straight
@@ -341,23 +357,24 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     }
     // Hinging torso frame: pelvis carry plus forward pitch; the shoulder
     // rides the same frame so the rigid pole contact stays inside the arm's
-    // reach annulus the way the web does.
+    // reach annulus the way the web does. Pelvis carry and torso pitch are
+    // the same authored values the web `animate` writes to `upper.position`
+    // and `upper.rotation.x`; `torso_lean` above is that pitch.
     let pelvis_carry_y = 0.735 - knees * 0.11 + rebound * 0.045;
     let pelvis_carry_z = hinge * 0.055;
-    let torso_pitch = 0.055 + hinge * 0.56;
     let in_root_frame = |y: f64, z: f64| -> (f64, f64) {
         (
-            pelvis_carry_y + y * torso_pitch.cos() - z * torso_pitch.sin(),
-            pelvis_carry_z + y * torso_pitch.sin() + z * torso_pitch.cos(),
+            pelvis_carry_y + y * torso_lean.cos() - z * torso_lean.sin(),
+            pelvis_carry_z + y * torso_lean.sin() + z * torso_lean.cos(),
         )
     };
     let preferred_hand = in_root_frame(hand_local_y, hand_local_z);
     let shoulder = in_root_frame(0.54, 0.05);
 
     let joints = AthleteJointPose {
-        torso_lean: finite(torso_lean, 0.2),
+        torso_lean: finite(torso_lean, 0.055),
         torso_tilt: 0.0,
-        head_pitch: finite(torso_lean * 0.2, 0.0),
+        head_pitch: finite(head_local_pitch, 0.0),
         shoulder_flex_l: finite(shoulder_flex, 0.0),
         shoulder_flex_r: finite(shoulder_flex, 0.0),
         elbow_flex_l: finite(elbow_flex, 0.0),
@@ -373,6 +390,8 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     SkiErgRigPose {
         joints,
         hip_compression: finite(hip_compression, 0.0),
+        pelvis_y: finite(pelvis_carry_y, 0.735),
+        pelvis_z: finite(pelvis_carry_z, 0.0),
         pole_rotation: finite(pole_rotation, -0.1),
         pole_contact: finite(pole_contact, 0.0),
         plant_basket_z: finite(plant_basket_z, 0.24),
@@ -456,7 +475,7 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
         }),
         Sport::Skierg => SportRigPose::SkiErg(SkiErgRigPose {
             joints: AthleteJointPose {
-                torso_lean: 0.2,
+                torso_lean: 0.055,
                 hip_flex_l: 0.08,
                 hip_flex_r: 0.08,
                 knee_flex_l: -0.05,
@@ -464,6 +483,8 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
                 ..AthleteJointPose::NEUTRAL
             },
             hip_compression: 0.0,
+            pelvis_y: 0.735,
+            pelvis_z: 0.0,
             pole_rotation: -0.2,
             pole_contact: 0.0,
             plant_basket_z: ski_proportions::POLE_PLANT_FORWARD_OFFSET,
@@ -765,8 +786,9 @@ mod tests {
         }
         match reduced_pose(Sport::Skierg) {
             SportRigPose::SkiErg(rig) => {
-                assert_eq!(rig.joints.torso_lean, 0.2);
+                assert_eq!(rig.joints.torso_lean, 0.055);
                 assert_eq!(rig.joints.knee_flex_l, -0.05);
+                assert_eq!((rig.pelvis_y, rig.pelvis_z), (0.735, 0.0));
                 assert_eq!(rig.plant_basket_z, 0.24);
                 assert_eq!((rig.preferred_hand_y, rig.preferred_hand_z), (0.663, 0.094));
                 assert_eq!((rig.shoulder_y, rig.shoulder_z), (1.271, 0.080));
