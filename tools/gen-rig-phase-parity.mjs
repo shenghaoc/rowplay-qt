@@ -231,6 +231,34 @@ function sample(avatar, sport, pose, meters, scratch) {
     out.upper = [upper.position.x, upper.position.y, upper.position.z];
     out.upperRotation = euler(upper);
     out.headRotation = euler(named(upper, "athlete:head"));
+    // Hips node is added anonymously (line 466 in renderer3dSkiAvatar.ts:
+    // `const hips = ellipsoid(...)`) with only its ReplayAssetSlot userData
+    // tag to identify it — no `.name`. Find it by scanning `upper`'s
+    // children for `userData.replayAssetSlot === "athlete:pelvis"`. This
+    // records the local counter-tilt `-hipHinge · SKI_PELVIS_COUNTER_TILT
+    // 0.14` that `animate` writes to `hips.rotation.x` beside the torso
+    // hinge on `upper.rotation.x`.
+    let hips = null;
+    upper.traverse((n) => {
+      if (n.userData && n.userData.replayAssetSlot === "athlete:pelvis") {
+        hips = n;
+      }
+    });
+    if (!hips) throw new Error("no athlete:pelvis under skierg-upper");
+    out.hipsRotation = euler(hips);
+    // Shoulder position that `placePoleArms` sets on `arm.shoulderPoint`
+    // when `hasSampledV4Shoulders` is false (Node has no V4 skin so this
+    // branch always runs): `(side * SKI_ATHLETE_PROPORTIONS.shoulderHalfWidth
+    // 0.25, 0.54, 0.05)` in the upper's local frame, converted to world.
+    // Recording it here gives the port a scene-graph oracle for
+    // `SkiErgRigPose.shoulder_y` / `shoulder_z` — the port composes the
+    // same values through `in_root_frame(0.54, 0.05)`. Reuse `scratch`
+    // (it's already reset at every call site below).
+    const SKI_SHOULDER_HALF_WIDTH = 0.25;
+    scratch.set(-SKI_SHOULDER_HALF_WIDTH, 0.54, 0.05);
+    upper.updateMatrixWorld(true);
+    upper.localToWorld(scratch);
+    out.shoulderLeft = [scratch.x, scratch.y, scratch.z];
     out.handLeft = worldPosition(named(t, "skierg-hand-left"), scratch);
     out.handRight = worldPosition(named(t, "skierg-hand-right"), scratch);
     out.poleShaftLeftRotation = euler(named(t, "skierg-pole-shaft-left"));

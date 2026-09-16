@@ -2678,6 +2678,51 @@ fn rig_phase_parity_skierg() {
             rig_number(&sample.rig, &["upper", "2"]),
             false,
         );
+        // Hip local counter-tilt ↔ `hips.rotation.x` (`-hipHinge ·
+        // SKI_PELVIS_COUNTER_TILT 0.14`). The generator finds the pelvis
+        // node by scanning `upper` for `userData.replayAssetSlot ===
+        // "athlete:pelvis"` (the node has no `.name`).
+        assert_close(
+            &mut worst,
+            "skierg.hip_counter_tilt",
+            rig.hip_counter_tilt,
+            rig_number(&sample.rig, &["hipsRotation", "0"]),
+            false,
+        );
+        // Shoulder (left side) in the rig-root frame ↔ the shoulder
+        // position `placePoleArms` writes to `arm.shoulderPoint` when
+        // `hasSampledV4Shoulders` is false (Node has no V4 skin so this
+        // branch always runs): `(side * shoulderHalfWidth, 0.54, 0.05)`
+        // in the upper's local frame, converted to world by the
+        // generator. The port composes the same values through
+        // `in_root_frame(0.54, 0.05)`; the X component is uniformly
+        // `side * SKI_SHOULDER_HALF_WIDTH 0.25` (unchanged by the
+        // torso's X-axis rotation).
+        assert_close(
+            &mut worst,
+            "skierg.shoulder_y",
+            rig.shoulder_y,
+            rig_number(&sample.rig, &["shoulderLeft", "1"]),
+            false,
+        );
+        assert_close(
+            &mut worst,
+            "skierg.shoulder_z",
+            rig.shoulder_z,
+            rig_number(&sample.rig, &["shoulderLeft", "2"]),
+            false,
+        );
+        // `plant_basket_z` is a documented port model divergence
+        // (docs/source-map.md, docs/parity-coverage.md): the port
+        // retreats the plant with `cycle_frac · stroke_meters` while
+        // the web keeps it stationary at `poleTipLeft.z ≈ 0.24` through
+        // the whole contact. Collapsing the port to a constant matches
+        // the web's oracle but breaks the viewmodel's
+        // `pose::skierg_targets` mix-blend continuity (`requested_twist`
+        // jumps 106° at step 8 in `requested_twist_stays_continuous`),
+        // because the blend assumes `plant_basket` tracks `free_basket`.
+        // Reconciling wants a per-frame IK in `skierg_targets` rather
+        // than a rig_pose change; scoped to a follow-up.
         // Preferred hand path in the rig-root frame ↔ the V4 left-hand
         // target's world position, **pure recovery only** (`pose.cycle_frac`
         // strictly between `SKI_POLE_OFF_CYCLE` and
