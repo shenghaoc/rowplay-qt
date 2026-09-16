@@ -2603,34 +2603,34 @@ fn rig_phase_parity_bike() {
     );
 }
 
-/// SkiErg rig-phase parity, at the layer the fixture can meaningfully pin.
+/// SkiErg rig-phase parity, against the composed-avatar fixture.
 ///
-/// The `renderer3dSkiAvatar.animate` function only writes four scene-graph
-/// values before it returns: the pelvis carry (`upper.position`), the torso
-/// hinge (`upper.rotation.x`), the local head counter-tilt
-/// (`headGroup.rotation.x`), and the local hip counter-tilt
-/// (`hips.rotation.x`). The rest of the scene — the arm chain, the hand
-/// targets, and the pole shafts / tips — is placed by `placePoleArms`
-/// (called via `resolveWorldContacts`), and only after the runtime feeds
-/// world-space V4 shoulder positions in through `refineV4Targets`. The Node
-/// generator can call `animate` and `resolveWorldContacts` but never
-/// `refineV4Targets` (there is no V4 skin running headless), so `arm.hand`,
-/// `skierg-hand-*` and `skierg-pole-tip-*` come back at the pelvis origin —
-/// the fixture pins `targets.leftHand == handLeft == poleTipLeft ==
-/// upper.position` for every skierg sample. Comparing the port's
-/// pre-composition `preferred_hand_*` and `plant_basket_z` (both live
-/// inputs to `PoseSolver`) against those pole-at-pelvis oracle values was
-/// meaningless: they measured the rig-frame gap between the pelvis and the
-/// port's target, not any deviation from the web's placement. Once the fix
-/// removes those false comparisons only the four scene-graph values remain,
-/// and the previously failing "torso base" reduces to the constant defect
-/// the audit named (Studio's `0.18 + hinge·0.55` → web's `0.055 +
-/// hinge·0.56`), fixed in `solve_skierg`.
+/// The fixture (`replay-rig-phase-parity.json`) is generated with the ski
+/// avatar parented to a throwaway `THREE.Scene` so
+/// `renderer3dSkiAvatar.placePoleArms` (which early-returns on
+/// `!group.parent`) runs headless. Under that setup the fixture pins the
+/// three authored calibrations `animate` writes (pelvis carry, torso
+/// hinge, head local counter-tilt) plus the composed pole/hand targets
+/// that `placePoleArms` writes with the default shoulder position (Node
+/// has no V4 skin, so `hasSampledV4Shoulders` stays false and the arm's
+/// shoulder falls through to the same
+/// `(shoulderHalfWidth, 0.54, 0.05)` reference the port uses in
+/// `pose::skierg_targets`).
 ///
-/// The hip counter-tilt (`-hipHinge · 0.14`) is not compared here because
-/// `hipsRotation` is not yet in the fixture (deferred generator extension,
-/// docs/parity-coverage.md); the head counter-tilt already reads back on
-/// `headRotation.x` and is the fix's coverage guard.
+/// Comparisons here match the port's authored values against the
+/// scene-graph oracle at 1e-6. The port's `preferred_hand_y`/`_z` are
+/// composed in the rig-root frame (`in_root_frame(hand_local_y,
+/// hand_local_z)` = pelvis carry + rotate by torso pitch), which under
+/// the web is `upper.localToWorld(arm.handTarget)` — same rotation, same
+/// pelvis, so the Y and Z components should agree. The pole tip is
+/// compared against `plant_basket_z` only while `pole_contact ≈ 1` (the
+/// port models a course-anchored plant that the web reaches through IK
+/// blending); reporting a range rather than a per-sample match keeps the
+/// port's model divergence visible instead of hidden.
+///
+/// Hip local counter-tilt (`-hipHinge · SKI_PELVIS_COUNTER_TILT 0.14`) is
+/// still not pinned because the generator's `sample()` does not read
+/// `hips.rotation` — deferred (docs/parity-coverage.md).
 #[test]
 fn rig_phase_parity_skierg() {
     let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
@@ -2678,6 +2678,58 @@ fn rig_phase_parity_skierg() {
             rig_number(&sample.rig, &["upper", "2"]),
             false,
         );
+        // Preferred hand path in the rig-root frame ↔ the V4 left-hand
+        // target's world position, **pure recovery only** (`pose.cycle_frac`
+        // strictly between `SKI_POLE_OFF_CYCLE` and
+        // `SKI_POLE_APPROACH_START_CYCLE`). Two windows are skipped and
+        // documented in docs/parity-coverage.md's None table:
+        //
+        // - **Contact phase** (`cycle_frac ≤ SKI_POLE_OFF_CYCLE = 0.29`):
+        //   the port's `preferred_hand_*` is the pre-pole-solve target
+        //   fed to `pose::solve_rigid_contact3d`, but the fixture
+        //   records `arm.hand.getWorldPosition()` **after**
+        //   `placePoleArms` runs its IK and pole-blend passes, which
+        //   pull the hand off the authored polar arc (measured up to
+        //   0.58 m of y and 0.37 m of z at cyc=0.25 mid-drive). The
+        //   comparable web quantity is `arm.handTarget`, which
+        //   `skiPreferredHand` writes but the fixture cannot read —
+        //   `arm.handTarget` lives on the arm object closed over inside
+        //   `makeSkierAvatar` and is not exposed on `avatar.v4Targets`.
+        //   Coverage needs either a generator that also records
+        //   `arm.handTarget` (requires reference modification) or a
+        //   dedicated pure-function generator around `skiPreferredHand`.
+        //
+        // - **Next-plant approach** (`cycle_frac ≥
+        //   SKI_POLE_APPROACH_START_CYCLE = 0.88`): the web reads
+        //   `motion.poleContact` and starts blending toward the NEXT
+        //   cycle's plant, pulling `arm.hand` off the Bezier return
+        //   (measured: at cyc=0.984 the web sits at y=1.39 while the
+        //   port's Bezier still finishes at y=1.62). Same shape as the
+        //   contact-phase gap — needs the same `arm.handTarget` fix.
+        //
+        // Between those windows the recovery Bezier's endpoints and
+        // interior control points run without pole-solve interference
+        // and the port matches at 1e-6.
+        let cycle_frac = rig_number(&sample.pose, &["cycleFrac"]);
+        if cycle_frac > rowplay_core::replay::motion_graph::SKI_POLE_OFF_CYCLE + 0.005
+            && cycle_frac
+                < rowplay_core::replay::motion_graph::SKI_POLE_APPROACH_START_CYCLE - 0.005
+        {
+            assert_close(
+                &mut worst,
+                "skierg.preferred_hand_y",
+                rig.preferred_hand_y,
+                rig_number(&sample.rig, &["targets", "leftHand", "1"]),
+                false,
+            );
+            assert_close(
+                &mut worst,
+                "skierg.preferred_hand_z",
+                rig.preferred_hand_z,
+                rig_number(&sample.rig, &["targets", "leftHand", "2"]),
+                false,
+            );
+        }
     }
     assert!(
         worst.is_empty(),

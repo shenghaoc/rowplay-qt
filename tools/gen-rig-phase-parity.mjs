@@ -97,6 +97,45 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+/**
+ * Serialise `value` as JSON, formatting every finite number with 17
+ * significant digits (via `Number.prototype.toPrecision(17)`, which is the
+ * IEEE-754 double round-trip length). V8's default `JSON.stringify` uses
+ * the shortest string that round-trips, and that "shortest" length has
+ * shifted across V8 releases — so the same double serialises as
+ * `0.1249269234996172` on one Node and `0.12492692349961732` on another,
+ * differing by ULPs of text without differing in the double. Every parity
+ * test tolerates >= 1e-6 so the drift is functionally invisible, but a CI
+ * regeneration check compares the bytes and would fail. Fixed-precision
+ * output makes the fixture byte-stable across Node/V8 versions (and stays
+ * exactly round-trippable through the parsers on both sides).
+ *
+ * NaN and Infinity aren't valid JSON so they still throw (caller should
+ * scrub or record them as strings before serialising if that ever comes
+ * up).
+ */
+function stableStringify(value, { indent = 1 } = {}) {
+  const PLACEHOLDER = "__STABLE_NUMBER__";
+  const numbers = [];
+  const replacer = (_key, v) => {
+    if (typeof v === "number") {
+      if (!Number.isFinite(v)) throw new Error(`non-finite number ${v}`);
+      // Integers get exact decimal form (`toPrecision(17)` would print `0`
+      // as "0.0000000000000000", which is stable but ugly for indices).
+      const literal =
+        Number.isInteger(v) && Object.is(v, Math.trunc(v)) && Math.abs(v) < 1e17
+          ? v.toString()
+          : v.toPrecision(17);
+      numbers.push(literal);
+      return PLACEHOLDER;
+    }
+    return v;
+  };
+  const rendered = JSON.stringify(value, replacer, indent);
+  let cursor = 0;
+  return rendered.replace(new RegExp(`"${PLACEHOLDER}"`, "g"), () => numbers[cursor++]);
+}
+
 function gitHead() {
   return execFileSync("git", ["-C", REFERENCE, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 }
@@ -366,14 +405,43 @@ async function main() {
   const samples = [];
   for (const [sport, factory] of Object.entries(factories)) {
     const avatar = factory(AVATAR_ARGS.accent, AVATAR_ARGS.castShadow, AVATAR_ARGS.opacity, AVATAR_ARGS.bodySegments, AVATAR_ARGS.quality);
-    // The avatar group stays at the origin and unrotated, so world
-    // coordinates are rig-local coordinates (the fixture's frame).
+    // Parent the avatar to a throwaway scene so `renderer3dSkiAvatar.placePoleArms`
+    // (and any other `resolveWorldContacts` code that reads `group.parent`
+    // before running) actually runs. Detached, `placePoleArms` early-returns on
+    // `!group.parent` (renderer3dSkiAvatar.ts:828) and `arm.hand` and the
+    // pole tips stay at the pelvis origin for every sample — the previous
+    // fixture's `targets.leftHand` / `poleTipLeft` / `handLeft` all
+    // collapsed to the pelvis, giving nothing to parity-check the port's
+    // `preferred_hand_*` / `plant_basket_z` / `shoulder_*` against. The
+    // scene stays at the origin so its world frame equals the avatar's
+    // rig-local frame (what the fixture records).
+    const scene = new THREE.Scene();
+    scene.add(avatar.group);
     const scratch = new THREE.Vector3();
     for (const sweep of SWEEPS[sport]) {
       for (let i = 0; i < SAMPLES_PER_SWEEP; i++) {
         const pose = poseFor(sport, sweep, i);
         const meters = sport === "bike" ? i * 0.35 : 0;
-        const cues = avatar.animate(pose.phase, false, pose, meters);
+        // Warm up the avatar's damped kinematics against this pose before
+        // sampling. `solveSkierKinematics` (and the equivalents for the
+        // rower and bike) evolves an internal state — `motion.cycle`,
+        // `motion.poleContact`, `motion.rebound`, ... — through low-pass
+        // filters, so a single `animate` call from an arbitrary prior
+        // state does not represent the pose. `renderer3dSkiAvatar`'s
+        // recovery Bezier gate reads `motion.cycle`; the port
+        // (`solve_skierg`) reads `pose.cycle_frac`. Without a warm-up the
+        // fixture's `motion.cycle` for the very first skierg sample is
+        // 0.984 while `pose.cycle_frac` is 0, and the two branches
+        // (Bezier vs polar arc) diverge by up to a metre on the hand
+        // path — a scan artifact, not a port defect. Ten `animate` calls
+        // per sample let the filters converge to within a fraction of a
+        // percent (the smoothing time constants are well below ten
+        // frames); the sample is recorded from the last call.
+        let cues;
+        const WARMUP_ITERATIONS = 10;
+        for (let w = 0; w < WARMUP_ITERATIONS; w++) {
+          cues = avatar.animate(pose.phase, false, pose, meters);
+        }
         avatar.resolveWorldContacts?.();
         const recorded = sample(avatar, sport, pose, meters, scratch);
         recorded.cues = cues;
@@ -404,7 +472,7 @@ async function main() {
     samples,
   };
   await mkdir(dirname(out), { recursive: true });
-  await writeFile(out, JSON.stringify(fixture, null, 1) + "\n");
+  await writeFile(out, stableStringify(fixture) + "\n");
   console.log(`wrote ${out} (${samples.length} samples, ${Object.keys(sourceFileSha256s).length} hashed sources)`);
   return 0;
 }
