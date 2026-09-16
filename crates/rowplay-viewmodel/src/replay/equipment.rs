@@ -123,6 +123,27 @@ pub fn oar_rotations(sweep: f64, feather: f64) -> [[f64; 4]; 2] {
     [side(-1.0), side(1.0)]
 }
 
+/// The oar-rig instance rotations `[left, right]` for a per-side solved yaw
+/// pair (the arm-authority solve's output) and a shared feather.
+///
+/// Same rigid-circle construction as [`oar_rotations`], but each side takes
+/// its own solved yaw (the web solves per side from that side's shoulder).
+/// `yaws` is `[left, right]`, already signed.
+#[must_use]
+pub fn oar_rotations_from_yaws(yaws: [f64; 2], feather: f64) -> [[f64; 4]; 2] {
+    let side = |sign: f64, yaw_angle: f64| -> [f64; 4] {
+        let yaw = axis_angle([0.0, 1.0, 0.0], yaw_angle);
+        let roll = axis_angle([0.0, 0.0, 1.0], -feather * sign);
+        let mirror = if sign < 0.0 {
+            axis_angle([0.0, 1.0, 0.0], PI)
+        } else {
+            [0.0, 0.0, 0.0, 1.0]
+        };
+        quat_mul(roll, quat_mul(yaw, mirror))
+    };
+    [side(-1.0, yaws[0]), side(1.0, yaws[1])]
+}
+
 /// The blade's roll about the shaft in degrees (web `oar.blade.rotation.x =
 /// (1 − bladeFeather) · π/2`): squared through the drive, flat in recovery.
 #[must_use]

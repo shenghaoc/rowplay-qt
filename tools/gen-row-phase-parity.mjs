@@ -106,6 +106,33 @@ function extractConstant(source, name) {
   return Number(match[1]);
 }
 
+/**
+ * The body of an exported pure function, as a `return` statement, so a
+ * formula can be evaluated without importing a module whose other imports
+ * (three.js IK, DOM) the fixture does not need. Throws if the source shape
+ * changes, which is the desired failure: the fixture must re-record.
+ */
+function extractFunctionBody(source, name) {
+  const start = source.indexOf(`export function ${name}(`);
+  if (start === -1) throw new Error(`Function ${name} not found in the web source`);
+  const open = source.indexOf("{", start);
+  let depth = 0;
+  let end = -1;
+  for (let i = open; i < source.length; i += 1) {
+    if (source[i] === "{") depth += 1;
+    else if (source[i] === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  if (end === -1) throw new Error(`Unbalanced braces in ${name}`);
+  const body = source.slice(open + 1, end);
+  return `"use strict";${body}\n`;
+}
+
 const repository = resolve(argument("--rowplay-repo", "reference/rowplay"));
 const commit = argument("--commit", PINNED_COMMIT);
 
@@ -120,10 +147,18 @@ const CONSTANTS = [
   "OAR_DRAW_YAW",
   "BLADE_DIP",
   "HANDLE_RISE_ROLL",
+  "UPPER_ARM_LENGTH",
+  "FOREARM_LENGTH",
 ];
 const constants = {};
 for (const name of CONSTANTS) {
   constants[name] = extractConstant(avatarSource, name);
+}
+// The draw schedule lives in rowRig.ts, not the avatar.
+const rowRigSource = git(repository, ["show", `${commit}:src/lib/replay/rowRig.ts`]);
+const drawConstants = {};
+for (const name of ["ROWER_DRAW_SOFT_FLEXION", "ROWER_DRAW_FINISH_FLEXION"]) {
+  drawConstants[name] = extractConstant(rowRigSource, name);
 }
 
 const nodeModules = join(repository, "node_modules");
@@ -140,6 +175,19 @@ try {
   const load = async (name) =>
     import(`${pathToFileURL(join(temporaryDirectory, name)).href}?commit=${commit}`);
   const motion = await load("motionGraph.ts");
+  // The web's own law-of-cosines conversion, evaluated from its source (the
+  // module imports figurePose, whose IK is not needed here), so the schedule
+  // is pinned by evaluating the web formula rather than re-deriving it. The
+  // body uses `THREE.MathUtils.clamp`, which is a plain min/max clamp.
+  const rowerReachForFlexion = new Function(
+    "THREE",
+    "flexion",
+    "upperArmLength",
+    "forearmLength",
+    `${extractFunctionBody(rowRigSource, "rowerReachForFlexion")}`,
+  ).bind(null, { MathUtils: { clamp: (v, lo, hi) => Math.min(hi, Math.max(lo, v)) } });
+  const baseArmReach = constants.UPPER_ARM_LENGTH + constants.FOREARM_LENGTH;
+  const upperArmShare = constants.UPPER_ARM_LENGTH / baseArmReach;
 
   const samples = [];
   for (let phaseIndex = 0; phaseIndex < SAMPLE_COUNT; phaseIndex += 1) {
@@ -148,6 +196,21 @@ try {
     const pelvisTravel = graph.body.pelvisTravel.value;
     const handleTravel = graph.body.handleTravel.value;
     const bladeWater = graph.contacts.bladeWater.value;
+    // Arm-authority schedule (web `placeArms` + `requestedRowerWristReach`):
+    // armDraw schedules the elbow flexion, the law of cosines converts it to a
+    // requested shoulder→wrist reach, and the oar yaw is solved to meet it.
+    const armDraw = Math.max(0, Math.min(1, graph.body.armDraw.value));
+    const upperArmLength = baseArmReach * upperArmShare;
+    const forearmLength = baseArmReach - upperArmLength;
+    const requestedReach =
+      rowerReachForFlexion(
+        drawConstants.ROWER_DRAW_SOFT_FLEXION +
+          armDraw * (drawConstants.ROWER_DRAW_FINISH_FLEXION - drawConstants.ROWER_DRAW_SOFT_FLEXION),
+        upperArmLength,
+        forearmLength,
+      ) - 0.002;
+    const authoredYaw =
+      constants.OAR_YAW_CATCH + armDraw * (constants.OAR_DRAW_YAW - constants.OAR_YAW_CATCH);
     samples.push({
       phaseIndex,
       pose,
@@ -155,8 +218,17 @@ try {
       handleTravel,
       bladeWater,
       seatZ: constants.SEAT_CATCH_Z + pelvisTravel * constants.SEAT_TRAVEL,
-      oarYaw: constants.OAR_YAW_CATCH + handleTravel * (constants.OAR_DRAW_YAW - constants.OAR_YAW_CATCH),
-      oarRollZ: -(bladeWater * constants.BLADE_DIP + handleTravel * constants.HANDLE_RISE_ROLL),
+      // The oar sweep rides armDraw, NOT the aggregate handleTravel: the web
+      // passes `equipmentHandleTravel = graph.body.armDraw.value` to placeOars
+      // and warns that the aggregate channel "would include its leg
+      // contribution and pull the grip through the knees and torso too early".
+      oarYaw: authoredYaw,
+      // The roll's handle-rise term also rides armDraw (`handleProgress` in
+      // `placeOars` is the value passed in, i.e. armDraw), not handleTravel.
+      oarRollZ: -(bladeWater * constants.BLADE_DIP + armDraw * constants.HANDLE_RISE_ROLL),
+      armDraw,
+      requestedReach,
+      authoredYaw,
     });
   }
 
@@ -167,14 +239,23 @@ try {
     sourceFileSha256s: {
       [AVATAR_PATH]: sha256(avatarSource),
       [MOTION_PATH]: sha256(motionSource),
+      "src/lib/replay/rowRig.ts": sha256(rowRigSource),
     },
     sampleCount: SAMPLE_COUNT,
     constants,
+    drawConstants,
     mapping: {
       seatZ: "SEAT_CATCH_Z + pelvisTravel * SEAT_TRAVEL (rower group z; catch closest to the feet)",
-      oarYaw: "OAR_YAW_CATCH + handleTravel * (OAR_DRAW_YAW - OAR_YAW_CATCH) (unsigned; apply per side)",
-      oarRollZ: "-(bladeWater * BLADE_DIP + handleTravel * HANDLE_RISE_ROLL) (unsigned; apply per side)",
+      oarYaw: "OAR_YAW_CATCH + armDraw * (OAR_DRAW_YAW - OAR_YAW_CATCH) (unsigned; apply per side) — the authored preferred yaw; the web then solves the reach boundary on top (armAuthority)",
+      oarRollZ: "-(bladeWater * BLADE_DIP + armDraw * HANDLE_RISE_ROLL) (unsigned; apply per side)",
+      armDraw: "clamp(graph.body.armDraw.value, 0, 1) — the arm-authority velocity profile",
+      requestedReach:
+        "rowerReachForFlexion(SOFT + armDraw*(FINISH-SOFT), upper, fore) - 0.002 (web requestedRowerWristReach): the shoulder→wrist reach the oar yaw is solved to meet",
+      authoredYaw:
+        "OAR_YAW_CATCH + armDraw*(OAR_DRAW_YAW - OAR_YAW_CATCH) — the solve's preferredYaw fallback, NOT the rendered yaw",
     },
+    armAuthority:
+      "The oar yaw is solved (rowRig.solveRowerOarYaw with forceReachBoundary) to place the inboard grip at requestedReach from the shoulder; the authored arc is only the branch-selection fallback. Rendered yaw depends on the shoulder position, which comes from the V4 clip, so the fixture pins the shoulder-independent schedule (armDraw → requestedReach → authoredYaw) and the port asserts the reach identity with its own solved shoulder.",
     samples,
   };
 

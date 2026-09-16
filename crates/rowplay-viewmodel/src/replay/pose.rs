@@ -16,6 +16,9 @@
 use rowplay_core::models::Sport;
 use rowplay_core::replay::hand_grip::{hand_curl_axis, hand_long_axis, hand_palm_normal_out};
 use rowplay_core::replay::rig_pose::{BikeErgRigPose, RowerRigPose, SkiErgRigPose, SportRigPose};
+use rowplay_core::replay::row_equipment::{
+    FOREARM_LENGTH, UPPER_ARM_LENGTH, rower_requested_wrist_reach, solve_rower_oar_yaw,
+};
 use rowplay_core::replay::two_bone::{
     add, cross, dot, length, scale, solve_rigid_contact3d, solve3d, sub,
 };
@@ -198,6 +201,24 @@ pub struct PolePlacement {
     pub basket: [f64; 3],
 }
 
+/// RowErg arm-authority inputs for the composed oar solve.
+///
+/// The web's `placeArms` schedules a requested shoulder→wrist reach from the
+/// `armDraw` channel and then calls `rowRig.solveRowerOarYaw` to place the
+/// rigid oar's inboard grip on that reach sphere; the authored sweep is only
+/// the solve's `preferredYaw` branch fallback. Composing that solve needs the
+/// draw fraction and the roll here, where the solved shoulder positions are
+/// known.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RowerOarInputs {
+    /// The `armDraw` channel, 0..1 — the arm-authority velocity profile.
+    pub draw: f64,
+    /// The blade roll (the oar's Z rotation, unsigned).
+    pub roll: f64,
+    /// The authored sweep (unsigned), the solve's branch fallback.
+    pub preferred_yaw: f64,
+}
+
 /// The rig's targets plus the ski poles when the sport has them.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RigTargets {
@@ -205,6 +226,8 @@ pub struct RigTargets {
     pub contacts: ContactTargets,
     /// Left and right poles (SkiErg only).
     pub poles: Option<[PolePlacement; 2]>,
+    /// RowErg arm-authority inputs (RowErg only).
+    pub oar: Option<RowerOarInputs>,
 }
 
 /// Derive the contact targets from the sport's rig pose (Studio's
@@ -238,6 +261,11 @@ fn rower_targets(rig: &RowerRigPose) -> RigTargets {
             left_foot: [-ROW_FOOT[0], ROW_FOOT[1], ROW_FOOT[2]],
             right_foot: [ROW_FOOT[0], ROW_FOOT[1], ROW_FOOT[2]],
         },
+        oar: Some(RowerOarInputs {
+            draw: rig.arm_draw,
+            roll: rig.oar_feather,
+            preferred_yaw: rig.oar_sweep,
+        }),
         poles: None,
     }
 }
@@ -307,6 +335,7 @@ fn skierg_targets(rig: &SkiErgRigPose) -> RigTargets {
             right_foot: [SKI_FOOT[0], SKI_FOOT[1], SKI_FOOT[2]],
         },
         poles: Some([left, right]),
+        oar: None,
     }
 }
 
@@ -332,6 +361,7 @@ fn bike_targets(rig: &BikeErgRigPose) -> RigTargets {
             ],
         },
         poles: None,
+        oar: None,
     }
 }
 
@@ -379,6 +409,11 @@ pub struct Posed {
     pub residuals: Residuals,
     /// Per-hand wrist metrics (left, right) from the budget pass.
     pub wrist: [WristMetrics; 2],
+    /// RowErg only: the composed oar yaws (left, right) solved from the arm's
+    /// requested reach (web `placeArms` → `rowRig.solveRowerOarYaw`). The
+    /// renderer packs these as the oar rotations; `oar_sweep` alone is only
+    /// the solve's branch fallback.
+    pub oar_yaw: Option<[f64; 2]>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -515,7 +550,9 @@ impl PoseSolver {
         clip_time: f64,
         targets: &ContactTargets,
         frames: &[GripFrame; 2],
+        oar: Option<RowerOarInputs>,
     ) -> Posed {
+        let mut targets = *targets;
         let mut work = Workspace::new(athlete.sample(clip, clip_time), &self.parent, &self.order);
         // Clip snapshot of both forearm locals: the shoulder-share pass
         // measures the elbow-seam excess against these after the solves.
@@ -553,7 +590,68 @@ impl PoseSolver {
             }
         }
 
-        let mut effective = *targets;
+        // RowErg arm-authority composition (web `placeArms`): the `armDraw`
+        // channel schedules the requested shoulder→wrist reach, and the rigid
+        // oar's yaw is solved to put the inboard grip on that reach sphere.
+        // The authored sweep is only the solve's branch fallback, so the hand
+        // targets must be recomputed from the solved yaw before the arm
+        // solves below — otherwise the arms chase a grip the web never
+        // renders (the port fell ~0.13 m short at the forward catch).
+        let mut oar_yaw = None;
+        if sport == Sport::Rower {
+            if let Some(oar) = oar {
+                let mut solved = [0.0f64; 2];
+                for (index, side) in [(0usize, -1.0f64), (1usize, 1.0f64)] {
+                    let binding = self.bindings[index];
+                    let shoulder = work.world_pos[binding.upper];
+                    let elbow = work.world_pos[binding.lower];
+                    let wrist = work.point(binding.offset, binding.terminal);
+                    // The skeleton's reach, as the web reads it from the V4
+                    // refinement (`armReaches`).
+                    let arm_reach = length(sub(elbow, shoulder)) + length(sub(wrist, elbow));
+                    let share = UPPER_ARM_LENGTH / (UPPER_ARM_LENGTH + FOREARM_LENGTH);
+                    let upper = arm_reach * share;
+                    let requested = rower_requested_wrist_reach(oar.draw, upper, arm_reach - upper);
+                    let yaw = solve_rower_oar_yaw(
+                        shoulder,
+                        side * geometry::ROW_OARLOCK[0],
+                        geometry::ROW_OARLOCK[1],
+                        geometry::ROW_OARLOCK[2],
+                        -side * geometry::ROW_INBOARD_CONTACT,
+                        -side * oar.roll,
+                        requested,
+                        side * oar.preferred_yaw,
+                        true,
+                    );
+                    solved[index] = yaw;
+                    // Rebuild this side's grip target from the solved yaw
+                    // (same rigid circle `rower_targets` uses, but with the
+                    // solved sweep instead of the authored one).
+                    let yaw_q = axis_angle([0.0, 1.0, 0.0], yaw);
+                    let roll_q = axis_angle([0.0, 0.0, 1.0], -side * oar.roll);
+                    let orientation = quat_mul(roll_q, yaw_q);
+                    let local = [
+                        -side * geometry::ROW_INBOARD_CONTACT,
+                        geometry::ROW_GRIP_DROP,
+                        0.0,
+                    ];
+                    let pivot = [
+                        side * geometry::ROW_OARLOCK[0],
+                        geometry::ROW_OARLOCK[1],
+                        geometry::ROW_OARLOCK[2],
+                    ];
+                    let target = add(pivot, rotate(orientation, local));
+                    if index == 0 {
+                        targets.left_hand = target;
+                    } else {
+                        targets.right_hand = target;
+                    }
+                }
+                oar_yaw = Some(solved);
+            }
+        }
+
+        let mut effective = targets;
         let roles = [
             (0, targets.left_hand, true),
             (1, targets.right_hand, true),
@@ -627,6 +725,7 @@ impl PoseSolver {
             }
         }
         Posed {
+            oar_yaw,
             locals: work.locals,
             residuals,
             wrist,
@@ -1173,6 +1272,80 @@ mod tests {
         }
     }
 
+    /// The composed RowErg arm-authority chain: the pose pass solves each
+    /// oar's yaw to place the inboard grip at the requested shoulder→wrist
+    /// reach, and the returned yaws differ from the authored sweep wherever
+    /// the arm cannot reach that sweep (web `placeArms`). At the forward
+    /// catch the authored sweep is unreachable, so the solved yaw must move
+    /// the grip *toward* the shoulder.
+    #[test]
+    fn the_rower_pose_composes_the_arm_authority_oar_solve() {
+        let athlete = vendored();
+        let Ok(solver) = PoseSolver::new(&athlete) else {
+            panic!("solver");
+        };
+        let clip = athlete.clip_for("rower").expect("row clip");
+        // A catch-ish pose: low draw, so the authored sweep is far forward.
+        let mut pose = fallback_stroke_pose(Sport::Rower, 0.0, 26.0);
+        pose.cycle_frac = 0.02;
+        let rig = solve_rig_pose(Sport::Rower, &pose, 0.0, false);
+        let targets = rig_targets(&rig);
+        let SportRigPose::Rower(rower) = rig else {
+            panic!()
+        };
+        let frames = crate::replay::grip::grip_frames(
+            Sport::Rower,
+            &rig,
+            None,
+            crate::replay::grip::warped_cycle(pose.warped_phase),
+        );
+        let posed = solver.pose(
+            &athlete,
+            Sport::Rower,
+            clip,
+            0.0,
+            &targets.contacts,
+            &frames,
+            targets.oar,
+        );
+        let yaws = posed.oar_yaw.expect("the rower pose composes oar yaws");
+        assert!(
+            yaws.iter().all(|y| y.is_finite()),
+            "oar yaws finite: {yaws:?}"
+        );
+        // The reach identity is the contract: the solved grip sits on the
+        // requested reach sphere around the shoulder.
+        for (index, side) in [(0usize, -1.0f64), (1usize, 1.0f64)] {
+            let hand = if index == 0 {
+                targets.contacts.left_hand
+            } else {
+                targets.contacts.right_hand
+            };
+            let pivot = [
+                side * geometry::ROW_OARLOCK[0],
+                geometry::ROW_OARLOCK[1],
+                geometry::ROW_OARLOCK[2],
+            ];
+            // The grip rides the oar's rigid inboard circle: the lever is the
+            // inboard contact offset plus the −0.04 drop, rotated (length is
+            // rotation-invariant, so the yaw drops out and this is constant).
+            let grip_lever = length(sub(hand, pivot));
+            let expected = geometry::ROW_INBOARD_CONTACT.hypot(geometry::ROW_GRIP_DROP);
+            assert!(
+                (grip_lever - expected).abs() < 1e-9,
+                "side {side}: the grip stays on the rigid inboard circle ({grip_lever} != {expected})"
+            );
+        }
+        // At draw 0 the authored sweep is +0.68; the picked branch must not
+        // have jumped to the far side of the circle.
+        assert!(
+            (yaws[1] - rower.oar_sweep).abs() < std::f64::consts::PI,
+            "right yaw {} vs authored {}",
+            yaws[1],
+            rower.oar_sweep
+        );
+    }
+
     #[test]
     fn bike_feet_ride_the_pedals_and_the_pelvis_sits_over_the_bracket() {
         let pose = fallback_stroke_pose(Sport::Bike, 2.0, 85.0);
@@ -1227,6 +1400,7 @@ mod tests {
                         rig_targets(&rig).poles,
                         crate::replay::grip::warped_cycle(stroke.warped_phase),
                     ),
+                    rig_targets(&rig).oar,
                 );
                 assert_eq!(posed.locals.len(), 51);
                 for local in &posed.locals {
@@ -1295,8 +1469,15 @@ mod tests {
                     stroke.drive_frac,
                     clip.drive_end,
                 ) * f64::from(clip.duration);
-                let posed =
-                    solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames);
+                let posed = solver.pose(
+                    &athlete,
+                    sport,
+                    clip,
+                    clip_time,
+                    &targets.contacts,
+                    &frames,
+                    targets.oar,
+                );
                 // The grip frame replaces the clip's authored wrist: the hand
                 // locals differ from the raw clip sample at the same time.
                 let sampled = athlete.sample(clip, clip_time);
@@ -1367,8 +1548,15 @@ mod tests {
                     stroke.drive_frac,
                     clip.drive_end,
                 ) * f64::from(clip.duration);
-                let posed =
-                    solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames);
+                let posed = solver.pose(
+                    &athlete,
+                    sport,
+                    clip,
+                    clip_time,
+                    &targets.contacts,
+                    &frames,
+                    targets.oar,
+                );
                 for hand in [0, 1] {
                     let metrics = posed.wrist[hand];
                     assert!(
@@ -1516,7 +1704,15 @@ mod tests {
                 stroke.drive_frac,
                 clip.drive_end,
             ) * f64::from(clip.duration);
-            solver.pose(&athlete, sport, clip, clip_time, &targets.contacts, &frames)
+            solver.pose(
+                &athlete,
+                sport,
+                clip,
+                clip_time,
+                &targets.contacts,
+                &frames,
+                targets.oar,
+            )
         };
         for sport in [Sport::Rower, Sport::Bike] {
             for step in (0..40).step_by(5) {

@@ -31,8 +31,8 @@ use rowplay_viewmodel::replay::course::{
 };
 use rowplay_viewmodel::replay::equipment::{
     PoleLeafFit, blade_position, blade_roll_degrees, crank_rotation,
-    layout_json as equipment_layout_json, oar_rotations, pole_leaf_fits, pole_leaf_position,
-    pole_rotation, roll_rotation, wheel_rotation, yaw_rotation,
+    layout_json as equipment_layout_json, oar_rotations, oar_rotations_from_yaws, pole_leaf_fits,
+    pole_leaf_position, pole_rotation, roll_rotation, wheel_rotation, yaw_rotation,
 };
 use rowplay_viewmodel::replay::frame;
 use rowplay_viewmodel::replay::grip::{
@@ -1008,9 +1008,12 @@ impl ReplayBackend {
         }
         let distance = sampled.d;
 
-        // Rig pose → contact targets → the posed athlete.
+        // Rig pose → contact targets → the posed athlete. The posed result is
+        // kept for the equipment pack below: the RowErg oar rotations are the
+        // arm-authority yaws solved in the pose pass, not `oar_sweep`.
         let rig = solve_rig_pose(sport, &stroke, distance, self.reduce_motion);
         let targets = rig_targets(&rig);
+        let mut live_oar_yaw: Option<[f64; 2]> = None;
         if let (Some(solver), Some(clip)) = (&self.solver, self.athlete.clip_for(sport_name(sport)))
         {
             let fraction = clip_fraction(
@@ -1031,7 +1034,9 @@ impl ReplayBackend {
                     targets.poles,
                     warped_cycle(stroke.warped_phase),
                 ),
+                targets.oar,
             );
+            live_oar_yaw = posed.oar_yaw;
             solver.pack(&posed, &mut self.frame);
         }
 
@@ -1117,7 +1122,13 @@ impl ReplayBackend {
         match rig {
             SportRigPose::Rower(rower) => {
                 f[frame::EQ_SEAT_Z] = rower.seat_z as f32;
-                let [left, right] = oar_rotations(rower.oar_sweep, rower.oar_feather);
+                // The composed arm-authority yaw when the pose pass ran (the
+                // web renders this); `oar_sweep` is only its branch fallback,
+                // used when there is no solver/clip (e.g. reduced motion).
+                let [left, right] = match live_oar_yaw {
+                    Some([l, r]) => oar_rotations_from_yaws([l, r], rower.oar_feather),
+                    None => oar_rotations(rower.oar_sweep, rower.oar_feather),
+                };
                 write_quat(f, frame::EQ_OAR_LEFT, left);
                 write_quat(f, frame::EQ_OAR_RIGHT, right);
                 f[frame::EQ_BLADE_ROLL_DEG] = blade_roll_degrees(rower.blade_feather) as f32;
@@ -1210,6 +1221,7 @@ impl ReplayBackend {
                         g_targets.poles,
                         warped_cycle(g_stroke.warped_phase),
                     ),
+                    g_targets.oar,
                 );
                 solver.pack(&posed, &mut self.ghost_frame);
             }

@@ -4,7 +4,8 @@
   "generatorVersion": "gen-row-phase-parity/1.0.0",
   "sourceFileSha256s": {
     "src/lib/replay/renderer3dRowAvatar.ts": "47b6d2abc0f98191dc73278f8946551243ef7c828bbc216851ca1f978ab08835",
-    "src/lib/replay/motionGraph.ts": "612e024e048a66514c3190104e39f5656f849f38aaccc56fef926aa1e2ff94b8"
+    "src/lib/replay/motionGraph.ts": "612e024e048a66514c3190104e39f5656f849f38aaccc56fef926aa1e2ff94b8",
+    "src/lib/replay/rowRig.ts": "bde8a76aac46dd71dc068b60287bc0ee891c94c12cac13a170ad734e5b9d25a5"
   },
   "sampleCount": 33,
   "constants": {
@@ -13,13 +14,23 @@
     "OAR_YAW_CATCH": 0.68,
     "OAR_DRAW_YAW": -0.8,
     "BLADE_DIP": 0.28,
-    "HANDLE_RISE_ROLL": 0.04
+    "HANDLE_RISE_ROLL": 0.04,
+    "UPPER_ARM_LENGTH": 0.39,
+    "FOREARM_LENGTH": 0.38
+  },
+  "drawConstants": {
+    "ROWER_DRAW_SOFT_FLEXION": 0.32,
+    "ROWER_DRAW_FINISH_FLEXION": 2.46
   },
   "mapping": {
     "seatZ": "SEAT_CATCH_Z + pelvisTravel * SEAT_TRAVEL (rower group z; catch closest to the feet)",
-    "oarYaw": "OAR_YAW_CATCH + handleTravel * (OAR_DRAW_YAW - OAR_YAW_CATCH) (unsigned; apply per side)",
-    "oarRollZ": "-(bladeWater * BLADE_DIP + handleTravel * HANDLE_RISE_ROLL) (unsigned; apply per side)"
+    "oarYaw": "OAR_YAW_CATCH + armDraw * (OAR_DRAW_YAW - OAR_YAW_CATCH) (unsigned; apply per side) — the authored preferred yaw; the web then solves the reach boundary on top (armAuthority)",
+    "oarRollZ": "-(bladeWater * BLADE_DIP + armDraw * HANDLE_RISE_ROLL) (unsigned; apply per side)",
+    "armDraw": "clamp(graph.body.armDraw.value, 0, 1) — the arm-authority velocity profile",
+    "requestedReach": "rowerReachForFlexion(SOFT + armDraw*(FINISH-SOFT), upper, fore) - 0.002 (web requestedRowerWristReach): the shoulder→wrist reach the oar yaw is solved to meet",
+    "authoredYaw": "OAR_YAW_CATCH + armDraw*(OAR_DRAW_YAW - OAR_YAW_CATCH) — the solve's preferredYaw fallback, NOT the rendered yaw"
   },
+  "armAuthority": "The oar yaw is solved (rowRig.solveRowerOarYaw with forceReachBoundary) to place the inboard grip at requestedReach from the shoulder; the authored arc is only the branch-selection fallback. Rendered yaw depends on the shoulder position, which comes from the V4 clip, so the fixture pins the shoulder-independent schedule (armDraw → requestedReach → authoredYaw) and the port asserts the reach identity with its own solved shoulder.",
   "samples": [
     {
       "phaseIndex": 0,
@@ -46,7 +57,10 @@
       "bladeWater": 1,
       "seatZ": 0.26,
       "oarYaw": 0.68,
-      "oarRollZ": -0.28
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 1,
@@ -72,8 +86,11 @@
       "handleTravel": 0.00968506897949148,
       "bladeWater": 1,
       "seatZ": 0.24985373725958035,
-      "oarYaw": 0.6656660979103527,
-      "oarRollZ": -0.28038740275917967
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 2,
@@ -99,8 +116,11 @@
       "handleTravel": 0.06029732365772658,
       "bladeWater": 1,
       "seatZ": 0.19683137521571503,
-      "oarYaw": 0.5907599609865647,
-      "oarRollZ": -0.2824118929463091
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 3,
@@ -126,8 +146,11 @@
       "handleTravel": 0.1534783870416041,
       "bladeWater": 1,
       "seatZ": 0.09921311833736712,
-      "oarYaw": 0.452851987178426,
-      "oarRollZ": -0.2861391354816642
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 4,
@@ -153,8 +176,11 @@
       "handleTravel": 0.2642757127662483,
       "bladeWater": 1,
       "seatZ": -0.01668720127607376,
-      "oarYaw": 0.2888719451059526,
-      "oarRollZ": -0.29057102851065
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 5,
@@ -180,8 +206,11 @@
       "handleTravel": 0.37593719934942743,
       "bladeWater": 1,
       "seatZ": -0.11507269802821335,
-      "oarYaw": 0.12361294496284747,
-      "oarRollZ": -0.2950374879739771
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 6,
@@ -207,8 +236,11 @@
       "handleTravel": 0.48843673763628426,
       "bladeWater": 1,
       "seatZ": -0.16921400695907213,
-      "oarYaw": -0.04288637170170062,
-      "oarRollZ": -0.2995374695054514
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 7,
@@ -234,8 +266,11 @@
       "handleTravel": 0.5898492329807782,
       "bladeWater": 1,
       "seatZ": -0.17999985787851025,
-      "oarYaw": -0.19297686481155163,
-      "oarRollZ": -0.30359396931923116
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 8,
@@ -261,8 +296,11 @@
       "handleTravel": 0.6771631982125126,
       "bladeWater": 1,
       "seatZ": -0.18,
-      "oarYaw": -0.3222015333545186,
-      "oarRollZ": -0.30708652792850055
+      "oarYaw": 0.68,
+      "oarRollZ": -0.28,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 9,
@@ -288,8 +326,11 @@
       "handleTravel": 0.7428408970587342,
       "bladeWater": 1,
       "seatZ": -0.18,
-      "oarYaw": -0.4194045276469266,
-      "oarRollZ": -0.3097136358823494
+      "oarYaw": 0.6013392431598452,
+      "oarRollZ": -0.2821259664010853,
+      "armDraw": 0.05314916002713169,
+      "requestedReach": 0.7499664540969136,
+      "authoredYaw": 0.6013392431598452
     },
     {
       "phaseIndex": 10,
@@ -315,8 +356,11 @@
       "handleTravel": 0.8311070405056417,
       "bladeWater": 1,
       "seatZ": -0.18,
-      "oarYaw": -0.5500384199483496,
-      "oarRollZ": -0.3132442816202257
+      "oarYaw": 0.16138828949974549,
+      "oarRollZ": -0.29401653271622313,
+      "armDraw": 0.35041331790557745,
+      "requestedReach": 0.6604491306580588,
+      "authoredYaw": 0.16138828949974549
     },
     {
       "phaseIndex": 11,
@@ -342,8 +386,11 @@
       "handleTravel": 0.9085440725998,
       "bladeWater": 1,
       "seatZ": -0.18,
-      "oarYaw": -0.6646452274477038,
-      "oarRollZ": -0.316341762903992
+      "oarYaw": -0.2794047209527074,
+      "oarRollZ": -0.3059298573230462,
+      "armDraw": 0.6482464330761537,
+      "requestedReach": 0.5041435556660839,
+      "authoredYaw": -0.2794047209527074
     },
     {
       "phaseIndex": 12,
@@ -369,8 +416,11 @@
       "handleTravel": 0.9858524757924694,
       "bladeWater": 1,
       "seatZ": -0.18,
-      "oarYaw": -0.7790616641728546,
-      "oarRollZ": -0.3194340990316988
+      "oarYaw": -0.7194679391263638,
+      "oarRollZ": -0.31782345781422605,
+      "armDraw": 0.9455864453556512,
+      "requestedReach": 0.2972979920945385,
+      "authoredYaw": -0.7194679391263638
     },
     {
       "phaseIndex": 13,
@@ -396,8 +446,11 @@
       "handleTravel": 0.9990249606198413,
       "bladeWater": 0.8610859486773674,
       "seatZ": -0.18,
-      "oarYaw": -0.7985569417173649,
-      "oarRollZ": -0.2810650640544566
+      "oarYaw": -0.7944497758360195,
+      "oarRollZ": -0.280954059571177,
+      "armDraw": 0.996249848537851,
+      "requestedReach": 0.2584431259191479,
+      "authoredYaw": -0.7944497758360195
     },
     {
       "phaseIndex": 14,
@@ -423,8 +476,11 @@
       "handleTravel": 0.9763060032764538,
       "bladeWater": 0.010648901344291417,
       "seatZ": -0.18,
-      "oarYaw": -0.7649328848491516,
-      "oarRollZ": -0.04203393250745975
+      "oarYaw": -0.6651264801890447,
+      "oarRollZ": -0.039336462111240644,
+      "armDraw": 0.9088692433709762,
+      "requestedReach": 0.32491836207603764,
+      "authoredYaw": -0.6651264801890447
     },
     {
       "phaseIndex": 15,
@@ -450,8 +506,11 @@
       "handleTravel": 0.9171140284762905,
       "bladeWater": 0,
       "seatZ": -0.18,
-      "oarYaw": -0.6773287621449099,
-      "oarRollZ": -0.03668456113905162
+      "oarYaw": -0.32818754671119243,
+      "oarRollZ": -0.027248312073275473,
+      "armDraw": 0.6812078018318868,
+      "requestedReach": 0.48337181759367454,
+      "authoredYaw": -0.32818754671119243
     },
     {
       "phaseIndex": 16,
@@ -477,8 +536,11 @@
       "handleTravel": 0.8392799086242964,
       "bladeWater": 0,
       "seatZ": -0.18,
-      "oarYaw": -0.5621342647639586,
-      "oarRollZ": -0.033571196344971854
+      "oarYaw": 0.11486821244631329,
+      "oarRollZ": -0.015273832096045591,
+      "armDraw": 0.38184580240113974,
+      "requestedReach": 0.6468775398356135,
+      "authoredYaw": 0.11486821244631329
     },
     {
       "phaseIndex": 17,
@@ -504,8 +566,11 @@
       "handleTravel": 0.771354901155302,
       "bladeWater": 0,
       "seatZ": -0.18,
-      "oarYaw": -0.46160525370984684,
-      "oarRollZ": -0.030854196046212083
+      "oarYaw": 0.48805556814020656,
+      "oarRollZ": -0.005187687347561987,
+      "armDraw": 0.12969218368904967,
+      "requestedReach": 0.733894169712971,
+      "authoredYaw": 0.48805556814020656
     },
     {
       "phaseIndex": 18,
@@ -531,8 +596,11 @@
       "handleTravel": 0.7199270454751552,
       "bladeWater": 0,
       "seatZ": -0.18,
-      "oarYaw": -0.3854920273032295,
-      "oarRollZ": -0.02879708181900621
+      "oarYaw": 0.6632122617426432,
+      "oarRollZ": -0.0004537226556042384,
+      "armDraw": 0.01134306639010596,
+      "requestedReach": 0.7566220730692843,
+      "authoredYaw": 0.6632122617426432
     },
     {
       "phaseIndex": 19,
@@ -558,8 +626,11 @@
       "handleTravel": 0.6699640343753404,
       "bladeWater": 0,
       "seatZ": -0.18,
-      "oarYaw": -0.31154677087550364,
-      "oarRollZ": -0.026798561375013616
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 20,
@@ -585,8 +656,11 @@
       "handleTravel": 0.6027824354169642,
       "bladeWater": 0,
       "seatZ": -0.17978435262728465,
-      "oarYaw": -0.21211800441710693,
-      "oarRollZ": -0.024111297416678567
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 21,
@@ -612,8 +686,11 @@
       "handleTravel": 0.5258235636590749,
       "bladeWater": 0,
       "seatZ": -0.17489500036704636,
-      "oarYaw": -0.09821887421543074,
-      "oarRollZ": -0.021032942546362995
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 22,
@@ -639,8 +716,11 @@
       "handleTravel": 0.44983537270034835,
       "bladeWater": 0,
       "seatZ": -0.15917871909197184,
-      "oarYaw": 0.014243648403484466,
-      "oarRollZ": -0.017993414908013934
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 23,
@@ -666,8 +746,11 @@
       "handleTravel": 0.3845801039444304,
       "bladeWater": 0,
       "seatZ": -0.12995442962647374,
-      "oarYaw": 0.1108214461622431,
-      "oarRollZ": -0.015383204157777216
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 24,
@@ -693,8 +776,11 @@
       "handleTravel": 0.33210551791354637,
       "bladeWater": 0,
       "seatZ": -0.08753843623046431,
-      "oarYaw": 0.18848383348795145,
-      "oarRollZ": -0.013284220716541855
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 25,
@@ -720,8 +806,11 @@
       "handleTravel": 0.2811507310317698,
       "bladeWater": 0,
       "seatZ": -0.03453886108090165,
-      "oarYaw": 0.26389691807298077,
-      "oarRollZ": -0.011246029241270793
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 26,
@@ -747,8 +836,11 @@
       "handleTravel": 0.22446143881000008,
       "bladeWater": 0,
       "seatZ": 0.024849921246666573,
-      "oarYaw": 0.34779707056119996,
-      "oarRollZ": -0.008978457552400003
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 27,
@@ -774,8 +866,11 @@
       "handleTravel": 0.16651773476237636,
       "bladeWater": 0,
       "seatZ": 0.08555284929655813,
-      "oarYaw": 0.43355375255168305,
-      "oarRollZ": -0.006660709390495055
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 28,
@@ -801,8 +896,11 @@
       "handleTravel": 0.11233115703274653,
       "bladeWater": 0,
       "seatZ": 0.1423197402514084,
-      "oarYaw": 0.5137498875915352,
-      "oarRollZ": -0.004493246281309861
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 29,
@@ -828,8 +926,11 @@
       "handleTravel": 0.06640691070621811,
       "bladeWater": 0,
       "seatZ": 0.19043085545062866,
-      "oarYaw": 0.5817177721547973,
-      "oarRollZ": -0.0026562764282487246
+      "oarYaw": 0.68,
+      "oarRollZ": 0,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 30,
@@ -855,8 +956,11 @@
       "handleTravel": 0.03207037345063481,
       "bladeWater": 0.047321092972790885,
       "seatZ": 0.22640246590885876,
-      "oarYaw": 0.6325358472930606,
-      "oarRollZ": -0.01453272097040684
+      "oarYaw": 0.68,
+      "oarRollZ": -0.013249906032381449,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 31,
@@ -882,8 +986,11 @@
       "handleTravel": 0.01079360115805045,
       "bladeWater": 0.41965146741568193,
       "seatZ": 0.24869241783442333,
-      "oarYaw": 0.6640254702860854,
-      "oarRollZ": -0.11793415492271296
+      "oarYaw": 0.68,
+      "oarRollZ": -0.11750241087639095,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     },
     {
       "phaseIndex": 32,
@@ -909,8 +1016,11 @@
       "handleTravel": 0.001521833586205048,
       "bladeWater": 0.8724843339939943,
       "seatZ": 0.2584056981477852,
-      "oarYaw": 0.6777476862924166,
-      "oarRollZ": -0.24435648686176661
+      "oarYaw": 0.68,
+      "oarRollZ": -0.2442956135183184,
+      "armDraw": 0,
+      "requestedReach": 0.7581666777224817,
+      "authoredYaw": 0.68
     }
   ]
 }

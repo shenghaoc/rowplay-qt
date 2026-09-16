@@ -109,7 +109,8 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 | Surface | Rust | Web | Via | Evidence | Gap and risk |
 | --- | --- | --- | --- | --- | --- |
-| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike enabled and green** after its fix; rower and skierg `#[ignore]`d with recorded verdicts. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` −0.73 — the composed yaw comes from the web's arm-authority reach solve, which the runtime never composes (**an inverted chain, not a layering indifference** — ranking 3 has the full finding and the fix plan); dip +0.029 residual from the composed damping; Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). |
+| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike enabled and green**; rower and skierg `#[ignore]`d with recorded verdicts. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` — the port now rides `armDraw` (corrected channel) but still omits the arm-authority reach solve the web applies on top (**an inverted chain, not a layering indifference** — ranking 1 has the full finding and the fix plan); Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). |
+| **Rower oar channel** | `rig_pose::solve_rower` (`armDraw` in) | `renderer3dRowAvatar.ts` `placeOars(equipmentHandleTravel = graph.body.armDraw.value)` | web | `rower_rig_phase_parity` (corrected fixture, 33 samples at 1e-10, green). The audit found the port (and Phase 7's own generator) keyed the oar sweep and the roll's handle-rise on `handleTravel`; the web's comment warns that channel "would include its leg contribution and pull the grip through the knees and torso too early". The channel error is up to 1.05 rad at mid-drive, and its handle-rise half exactly explained the previously-unexplained +0.029 rad roll residual. |
 | Motion-graph timing parameters | `motion_graph::timing_into` etc. | `motionGraph.ts` `timingInto` | web | Corpus sweeps phase at one fixed timing per sport; drive-fraction clamps and rate-dependent timing unit-pinned exactly (motion_graph.rs tests, re-expressing web tests). | No corpus varies `driveFrac`/`secondsPerCycle`/rate inputs. A regressed clamp would fail only the unit pins, which were written from the port. **Phase-source choice unpinned**: the graph reads `pose.phase` (motion_graph.rs, matching the web), but because the corpus pins `warpedPhase = phase`, a regression to `warped_phase` would pass every existing test. Sign error unlikely; input-selection error possible. |
 | Stroke pose, web pipeline (production path) | `stroke_model::{build_stroke_timeline, stroke_pose_at}` | `strokeModel.ts` `buildStrokeTimeline`, `strokePoseAt` | web | Unit tests pin timeline arithmetic, the web amplitude law `clamp(0.94 + i·0.12, 0.94, 1.06)` and drive-fraction law exactly; the app renderer uses this path (backend `replay.rs`, not `compute_at_time`). Verified: the web 3D renderer itself never calls `strokePoseAt` per frame — the Svelte page does, then hands `pose.phase` to the avatar — so the Rust production chain (page-equivalent path) matches the web's shape. | No web-generated corpus of `stroke_pose_at` outputs over varied rate/intensity/fatigue/duration inputs; the existing fixture drives the Studio path with 3 range cases predating the web's #171 rework. Intensity/fatigue composition could drift undetected. Inversion unlikely (progress/amplitude laws pinned). |
 | Warp stroke phase | `motion::warp_stroke_phase[_rate]` | `motion.ts` `warpStrokePhase` | web (deliberate divergence) | Boundary mapping (0.4·τ → π), identity at f = 0.5, monotonicity and C1/periodicity guard tests. | The port is intentionally C1 where the web is C0 — a web-generated fixture would fail by design; the divergence row is the contract. Residual risk: the documented contract itself is only enforced at the pins, not swept. |
@@ -167,41 +168,32 @@ much of the scene inherits the error). The original 1–3 family was the
 Studio-authored rig calibration: Phase 7 fixed the rower (`cf85cdb`), the
 audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
 
-1. **Rower arm/oar authority — inverted chain (confirmed defect; the oar
-   reach solve is the missing layer).** The web makes the **arm** the
-   authority and solves the oar yaw to meet it. `renderer3dRowAvatar.ts`
-   `placeArms`: the `armDraw` channel (the "only velocity profile in this
-   chain") schedules elbow flexion from the soft long-arm unlock
-   (`ROWER_DRAW_SOFT_FLEXION` 0.32) to the finish fold
-   (`ROWER_DRAW_FINISH_FLEXION` 2.46 rad), `rowerReachForFlexion` converts that
-   to a shoulder→wrist reach via the law of cosines (≈0.760 → 0.257 m across
-   the draw), and `solveRowerOarYaw(shoulder, pin, signedInboard, bladeRoll,
-   requestedReach, preferredYaw, forceReachBoundary = true)` returns the
-   reach-circle root — the rendered yaw. The authored arc
-   `OAR_YAW_CATCH + draw·OAR_YAW_SPAN` is passed **only as `preferredYaw`**, a
-   branch-selection reference. The port inverts this: `rig_pose.oar_sweep`
-   (the authored arc) is the authority, `pose::rower_targets` derives the
-   handle contact from it, and the two-bone solver bends the arms to reach
-   that handle — so the rendered oar yaw deviates from the web's by up to
-   0.73 rad (fixture), ≈0.5 m of handle travel on the 0.66 m inboard lever.
-   Nothing composes `row_equipment::solve_rower_oar_yaw` (ported and
-   fixture-covered) at runtime; the only consumer is the grip contract. The
-   web's comments record that arm-authority was itself the fix — earlier
-   oar-driven stacks "compressed the visible pull into ~3 frames" and popped
-   the elbow at draw onset — so this is a defect to compose, **not** a
-   legitimate alternative to document away. Fix (scoped, three layers): carry
-   the requested reach (or `armDraw`) from `rig_pose` into `RigTargets`; in
-   `PoseSolver::pose`, for the rower, compute the shoulder positions after the
-   pelvis/torso pass, re-solve the oar yaw with `solve_rower_oar_yaw`, and
-   recompute the hand targets before the arm solves; return the solved yaws so
-   the backend packs them as the oar quaternions instead of
-   `oar_rotations(rig.oar_sweep, …)`. The verification moves with it: the
-   composed yaw is a viewmodel-level result (shoulders in, yaw out), so the
-   `oar_sweep` parity assertion belongs beside `PoseSolver`, fed the fixture's
-   shoulder/target data, not in `rig_pose`'s own test. Needs visual
-   re-verification (CI phase shots; local captures are black, see the capture
-   caveat). Rower `seat`/`sweep`/`dip` values themselves are correct — this is
-   composition, not calibration.
+1. **Rower arm/oar authority — inverted chain. FIXED.**
+   The web makes the **arm** the authority and solves the oar yaw to meet it.
+   `renderer3dRowAvatar.ts` `placeArms`: the `armDraw` channel (the "only
+   velocity profile in this chain") schedules elbow flexion from the soft
+   long-arm unlock (`ROWER_DRAW_SOFT_FLEXION` 0.32) to the finish fold
+   (`ROWER_DRAW_FINISH_FLEXION` 2.46 rad), `rowerReachForFlexion` converts
+   that to a shoulder→wrist reach via the law of cosines (≈0.758 → 0.258 m),
+   and `solveRowerOarYaw(..., requestedReach, preferredYaw,
+   forceReachBoundary = true)` returns the reach-circle root — the rendered
+   yaw. The authored arc is **only** `preferredYaw`, a branch-selection
+   fallback. The port had inverted this (`oar_sweep` authoritative, arms bent
+   to reach it), *and* keyed the oar on the wrong channel: `handleTravel`
+   where the web passes `armDraw`, which its own comment warns "would include
+   its leg contribution and pull the grip through the knees and torso too
+   early". Both are now fixed: the sweep and the roll's handle-rise ride
+   `armDraw` (`rig_pose::solve_rower`), and the reach solve is composed in
+   `PoseSolver::pose` (requested reach from the shoulder positions after the
+   pelvis/torso pass → `solve_rower_oar_yaw` per side → grip targets
+   recomputed → `Posed::oar_yaw` packed as the oar rotations instead of
+   `oar_rotations(oar_sweep, …)`). Evidence: the corrected fixture
+   (`rower_rig_phase_parity`, schedule at 1e-10 — it failed 1.05 rad before);
+   `the_rower_pose_composes_the_arm_authority_oar_solve` (reach identity,
+   branch continuity); and the two contact-pass tests that failed by 0.127 m
+   when the channel fix landed alone, which is what proved the composition was
+   required rather than optional. Visual re-verification on the next CI
+   phase-shot pass.
 2. **`solve_skierg` phase calibration** — torso base, hand-path frame
    composition, course-anchored plant; fixture-confirmed, structural (a
    0.7–0.9 m frame-composition disagreement, not a constant).
@@ -350,7 +342,6 @@ A second capture gap: the QA close-up camera (`closeup_camera_view`, used only
 under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f`
 (one loop radius) — the offset was rotated into the rig frame but never
 translated to the athlete, so the twins framed venue geometry (row: a flat
-wall; bike: a spectator pillar). Fixed in `bf8d77f` (#25) with a framing test;
-the capture stays off in CI until the fixed framing is reviewed on the next
-visual pass. The measurement is of `bf8d77f` only — see ranking 4 for the
+wall; bike: a spectator pillar). Fixed in `bf8d77f` (#25) with a framing test, and
+re-enabled in CI so the fixed framing is exercised and reviewed. The measurement is of `bf8d77f` only — see ranking 4 for the
 unresolved history (Phase 7's notes do record close-up judgement).

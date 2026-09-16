@@ -91,6 +91,13 @@ pub struct RowerRigPose {
     /// The motion graph's `blade_feather` contact channel, 0..1 (the web
     /// squares the spoon with `(1 − bladeFeather) · π/2` about the shaft).
     pub blade_feather: f64,
+    /// The motion graph's `arm_draw` channel, 0..1 — the arm-authority
+    /// velocity profile. The web schedules the requested shoulder→wrist reach
+    /// from it and solves the oar yaw to meet that reach
+    /// (`renderer3dRowAvatar.ts` `placeArms` + `rowRig.solveRowerOarYaw`), so
+    /// the pose layer needs it to compose the solve; `oar_sweep` is only the
+    /// solve's `preferredYaw` branch fallback.
+    pub arm_draw: f64,
 }
 
 /// SkiErg rig pose (Studio `ReplaySkiErgRigPose`).
@@ -215,20 +222,29 @@ fn solve_rower(pose: &StrokePose) -> RowerRigPose {
     // The web avatar's phase calibration (renderer3dRowAvatar.ts `animate`),
     // pinned sample-by-sample by the replay-row-phase-parity fixture: the
     // seat rides `pelvisTravel` from the catch z +0.26 — CLOSEST to the
-    // fixed feet — through −0.44 of travel; the oar sweep rides
-    // `handleTravel` from the catch yaw +0.68 (grips ahead of the shoulders
-    // toward the stretcher) to the draw's −0.80; the dip roll rides
-    // `bladeWater` with a small handle-rise. Studio's ranges here (seat
-    // −0.20 + legs·0.40, sweep −0.58 + handle·1.16, roll −0.06 +
-    // feather·0.34) are phase-inverted against the web — its seat starts
-    // farthest from the feet and its catch grips sit behind the torso; see
-    // the divergence row in docs/source-map.md.
+    // fixed feet — through −0.44 of travel; the **oar** sweep and the roll's
+    // handle-rise term ride `armDraw`, the arm-authority profile, from the
+    // catch yaw +0.68 (grips ahead of the shoulders toward the stretcher) to
+    // the draw's −0.80. The web passes
+    // `equipmentHandleTravel = graph.body.armDraw.value` to `placeOars` and
+    // warns that the aggregate handle channel "would include its leg
+    // contribution and pull the grip through the knees and torso too early" —
+    // during the leg drive the athlete slides away from a nearly stationary
+    // catch handle, so the oar must stay at the catch yaw while `handleTravel`
+    // is already rising. Studio's ranges here (seat −0.20 + legs·0.40, sweep
+    // −0.58 + handle·1.16, roll −0.06 + feather·0.34) are phase-inverted
+    // against the web — its seat starts farthest from the feet and its catch
+    // grips sit behind the torso; see the divergence row in
+    // docs/source-map.md.
     let pelvis_travel = unit(graph.body.pelvis_travel.value);
+    // `handleTravel` is retained only for Studio's unconsumed `handle_*`
+    // joint outputs below; nothing the scene renders uses it.
     let handle = unit(graph.body.handle_travel.value);
+    let draw = unit(graph.body.arm_draw.value);
     let blade_water = unit(graph.contacts.blade_water.value);
     let seat_z = 0.26 + pelvis_travel * -0.44;
-    let oar_sweep = 0.68 + handle * (-0.8 - 0.68);
-    let oar_feather = blade_water * 0.28 + handle * 0.04;
+    let oar_sweep = 0.68 + draw * (-0.8 - 0.68);
+    let oar_feather = blade_water * 0.28 + draw * 0.04;
 
     // The remaining channels are Studio's joint-pose outputs; the Qt port
     // poses the athlete from the V4 clip plus the contact targets above, so
@@ -268,6 +284,7 @@ fn solve_rower(pose: &StrokePose) -> RowerRigPose {
         oar_sweep: finite(oar_sweep, 0.0),
         oar_feather: finite(oar_feather, -0.06),
         blade_feather: feather,
+        arm_draw: draw,
     }
 }
 
@@ -435,6 +452,7 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
             oar_sweep: 0.0,
             oar_feather: -0.06,
             blade_feather: 0.0,
+            arm_draw: 0.0,
         }),
         Sport::Skierg => SportRigPose::SkiErg(SkiErgRigPose {
             joints: AthleteJointPose {
@@ -571,8 +589,11 @@ mod tests {
             assert!((0.0..=0.32).contains(&rig.oar_feather));
             assert!((0.0..=1.0).contains(&rig.blade_feather));
             let graph = sample_rower_motion_graph(&pose);
+            // The roll's handle-rise term rides armDraw, not handleTravel
+            // (web `placeOars(equipmentHandleTravel = armDraw)`) — see the
+            // channel note in `solve_rower`.
             let expected_feather = unit(graph.contacts.blade_water.value) * 0.28
-                + unit(graph.body.handle_travel.value) * 0.04;
+                + unit(graph.body.arm_draw.value) * 0.04;
             assert!((rig.oar_feather - expected_feather).abs() < 1e-12);
             assert!((-0.28..=0.18).contains(&rig.joints.torso_lean));
             // Knee and hip flexion share the leg-extension cue: 0.82 : 0.48.

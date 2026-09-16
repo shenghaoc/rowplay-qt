@@ -58,6 +58,42 @@ pub const ELBOW_PLANE_DRAWN_OUTBOARD_WEIGHT: f64 = 0.24;
 /// Chord-frame down station of the drawn elbow on its circle
 /// (web `Math.sqrt(1 - 0.24 * 0.24)`; pinned here so the pair stays unit).
 pub const ELBOW_PLANE_DRAWN_DOWN_WEIGHT: f64 = 0.970_772_887_960_927_8;
+/// Authored oar yaw at the catch (rad, web `OAR_YAW_CATCH`): positive puts the
+/// inboard grip ahead of the shoulders toward the stretcher.
+pub const OAR_YAW_CATCH: f64 = 0.68;
+/// Authored oar yaw at the finish (rad, web `OAR_DRAW_YAW`): the drive crosses
+/// the pin normal and finishes on the athlete-facing side at the lower ribs.
+pub const OAR_YAW_DRAW: f64 = -0.8;
+/// Upper-arm length the web's procedural avatar reach is built from (m).
+pub const UPPER_ARM_LENGTH: f64 = 0.39;
+/// Forearm length the web's procedural avatar reach is built from (m).
+pub const FOREARM_LENGTH: f64 = 0.38;
+
+/// The web's requested shoulder→wrist reach for a given `armDraw`
+/// (`renderer3dRowAvatar.ts` `requestedRowerWristReach`).
+///
+/// The armDraw channel is the **only velocity profile in the arm chain**: it
+/// schedules the elbow's interior flexion affinely from the soft long-arm
+/// unlock ([`DRAW_SOFT_FLEXION`]) to the measured production finish fold
+/// ([`DRAW_FINISH_FLEXION`]), the law of cosines converts that flexion into a
+/// reach, and the rigid-oar solve places the handle on that shrinking sphere.
+/// The web subtracts a 2 mm grip-contact bias. This is the arm-authority
+/// schedule: the oar yaw is solved to *meet* this reach, not the reverse.
+#[must_use]
+pub fn rower_requested_wrist_reach(arm_draw: f64, upper_arm: f64, forearm: f64) -> f64 {
+    let draw = clamp(arm_draw, 0.0, 1.0);
+    let flexion = DRAW_SOFT_FLEXION + draw * (DRAW_FINISH_FLEXION - DRAW_SOFT_FLEXION);
+    rower_reach_for_flexion(flexion, upper_arm, forearm) - 0.002
+}
+
+/// The web's authored oar yaw for a draw fraction (`OAR_YAW_CATCH +
+/// draw·(OAR_YAW_DRAW − OAR_YAW_CATCH)`): the staged branch the reach solve
+/// falls back to and wraps onto, not the rendered yaw.
+#[must_use]
+pub fn rower_authored_oar_yaw(arm_draw: f64) -> f64 {
+    let draw = clamp(arm_draw, 0.0, 1.0);
+    OAR_YAW_CATCH + draw * (OAR_YAW_DRAW - OAR_YAW_CATCH)
+}
 
 fn clamp(value: f64, min: f64, max: f64) -> f64 {
     if value.is_finite() {

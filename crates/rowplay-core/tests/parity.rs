@@ -2364,6 +2364,9 @@ fn rower_rig_phase_parity() {
         seat_z: f64,
         oar_yaw: f64,
         oar_roll_z: f64,
+        arm_draw: f64,
+        requested_reach: f64,
+        authored_yaw: f64,
     }
 
     let fixture: Fixture = load_json("replay-row-phase-parity.json").expect("fixture");
@@ -2388,6 +2391,41 @@ fn rower_rig_phase_parity() {
                 sample.phase_index
             );
         }
+        // Arm-authority schedule: the composed oar yaw is solved to put the
+        // grip at `requestedReach` from the shoulder, so the schedule itself
+        // is pinned here — `armDraw` → `requestedReach` (the web's
+        // law-of-cosines demand at the base arm length) and the solver's
+        // `preferredYaw` fallback (`authoredYaw`, which `oar_sweep` feeds).
+        use rowplay_core::replay::row_equipment::{
+            FOREARM_LENGTH, OAR_YAW_CATCH, OAR_YAW_DRAW, UPPER_ARM_LENGTH,
+            rower_requested_wrist_reach,
+        };
+        let expected_reach =
+            rower_requested_wrist_reach(sample.arm_draw, UPPER_ARM_LENGTH, FOREARM_LENGTH);
+        assert!(
+            (expected_reach - sample.requested_reach).abs() <= 1e-10,
+            "phase {} requestedReach: {expected_reach} != {}",
+            sample.phase_index,
+            sample.requested_reach
+        );
+        let expected_authored = OAR_YAW_CATCH + sample.arm_draw * (OAR_YAW_DRAW - OAR_YAW_CATCH);
+        assert!(
+            (expected_authored - sample.authored_yaw).abs() <= 1e-10,
+            "phase {} authoredYaw: {expected_authored} != {}",
+            sample.phase_index,
+            sample.authored_yaw
+        );
+        // The rendered sweep is the authored fallback only when the arm
+        // cannot reach it; the fixture's `oarYaw` is that authored value, so
+        // `oar_sweep` must track it (the reach solve is composed in the pose
+        // layer, above `rig_pose`).
+        assert!(
+            (rower.oar_sweep - sample.authored_yaw).abs() <= 1e-10,
+            "phase {}: oar_sweep {} != authored {}",
+            sample.phase_index,
+            rower.oar_sweep,
+            sample.authored_yaw
+        );
     }
 }
 
@@ -2622,7 +2660,7 @@ fn rig_phase_parity_skierg() {
 }
 
 #[test]
-#[ignore = "audit stage 3 rower follow-up: seat passes (confirms this generator agrees with Phase 7's fix); outstanding are the composed-vs-authored oar yaw (the reach solve is ported in row_equipment but nothing composes it into the runtime oar rotation) and the retained Studio handle/torso channels (documented unconsumed) - docs/parity-coverage.md ranking 4."]
+#[ignore = "the rower fields this test can reach are settled: seat passes, oar sweep rides armDraw (rower_rig_phase_parity), and the composed oar yaw is now solved in the pose layer (the_rower_pose_composes_the_arm_authority_oar_solve). What remains is (a) the retained Studio handle_y/handle_z/torso_lean channels, documented unconsumed dead surface, and (b) this test's oarRightRotation comparison, which is the web's COMPOSED yaw and therefore belongs at the pose layer, not rig_pose - see docs/parity-coverage.md ranking 1."]
 fn rig_phase_parity_rower() {
     let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
     for sample in rig_phase_samples("rower") {
