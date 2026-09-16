@@ -351,26 +351,45 @@ fn sport_name(sport: Sport) -> &'static str {
     }
 }
 
-/// Athlete close-up framing for the capture walk (T8): a front
-/// three-quarter view locked to the course placement so the torso and the
-/// hands' stroke path fill the frame at every phase. `placement` is the
-/// athlete's position and rig→world yaw on the loop; the offset is built in
-/// the rig's local frame and then translated to the athlete. Without the
-/// translation the camera sat at the venue centre, ~one loop radius from the
-/// athlete, and the close-up twins framed venue geometry instead of the
-/// athlete.
-fn closeup_camera_view(placement: &Placement) -> ([f64; 3], [f64; 3], f64) {
+/// Athlete close-up framing for the capture walk (T8): a front three-quarter
+/// view of the torso and the hands' stroke path, in rig-local space.
+///
+/// `placement` places the rig on the loop and gives its rig→world yaw.
+/// `aim_local` is the point to frame, in rig-local coordinates — the midpoint
+/// of the athlete's torso and hands for the current frame. The camera offset
+/// is *not* a fixed rig offset: the seat slides 0.44 m and the torso lays
+/// back, so a fixed offset cropped the near body at the catch and the finish
+/// (the two phases the lens exists to judge) while mid-drive framed well.
+/// Following the contact midpoint keeps the athlete in frame through the
+/// stroke. `distance` scales the offset: small for a tight wrist read, larger
+/// to keep the whole draw path inside the frustum at its extremes.
+/// Camera stand-off for the close-up walk: far enough that the reach and the
+/// layback stay inside the frustum at both stroke extremes, close enough to
+/// read the wrist and the draw onset.
+const CLOSEUP_DISTANCE: f64 = 2.4;
+
+fn closeup_camera_view(
+    placement: &Placement,
+    aim_local: [f64; 3],
+    distance: f64,
+) -> ([f64; 3], [f64; 3], f64) {
     let (sin, cos) = placement.yaw.sin_cos();
     let to_world = |x: f64, y: f64, z: f64| [x * cos + z * sin, y, -x * sin + z * cos];
-    let position = to_world(1.15, 0.72, 0.95);
-    let aim = to_world(0.0, 0.55, 0.28);
+    // Front three-quarter: inboard of the athlete and above, ahead of the aim
+    // along rig +z (the direction the athlete faces).
+    let back = 0.55 * distance;
+    let lateral = 0.62 * distance;
+    let height = 0.20 * distance;
+    let offset = to_world(lateral, height, back);
+    let aim = to_world(aim_local[0], aim_local[1], aim_local[2]);
+    let position = [
+        placement.x + offset[0],
+        aim_local[1] + offset[1],
+        placement.z + offset[2],
+    ];
     (
-        [
-            placement.x + position[0],
-            position[1],
-            placement.z + position[2],
-        ],
-        [placement.x + aim[0], aim[1], placement.z + aim[2]],
+        position,
+        [placement.x + aim[0], aim_local[1], placement.z + aim[2]],
         45.0,
     )
 }
@@ -1100,8 +1119,18 @@ impl ReplayBackend {
         // Camera for this frame: the chase view, or the capture walk's
         // athlete close-up (chase state untouched, so flipping back to it
         // mid-session resumes smoothly).
+        // The close-up frames the midpoint of the pelvis and the hands: those
+        // follow the seat slide and the torso layback, so the athlete stays in
+        // frame at the catch and the finish where a fixed rig offset cropped
+        // the near body. Rig-local, matching `contacts`.
+        let contacts = targets.contacts;
+        let closeup_aim = [
+            (contacts.pelvis[0] + contacts.left_hand[0] + contacts.right_hand[0]) / 3.0,
+            (contacts.pelvis[1] + contacts.left_hand[1] + contacts.right_hand[1]) / 3.0,
+            (contacts.pelvis[2] + contacts.left_hand[2] + contacts.right_hand[2]) / 3.0,
+        ];
         let (camera_position, camera_aim, camera_fov) = if self.closeup_camera {
-            closeup_camera_view(&placement)
+            closeup_camera_view(&placement, closeup_aim, CLOSEUP_DISTANCE)
         } else {
             (self.camera.position, self.camera.aim, self.camera.fov)
         };
@@ -1498,6 +1527,46 @@ mod tests {
     /// previously sat ~one loop radius away (framing venue geometry on all
     /// three sports). Assert the camera lands within a couple of metres of the
     /// athlete's placement, on the far side of the loop too.
+    ///
+    /// It must also *track* the stroke: a fixed rig offset cropped the near
+    /// body at the catch and the finish (where the seat slide and layback are
+    /// extreme) — the two phases this lens exists to judge. The aim follows
+    /// the contact midpoint, so it must move between catch and finish.
+    #[test]
+    fn the_closeup_camera_tracks_the_athlete_through_the_stroke() {
+        seed_demo_library();
+        let replay_state = |fraction: f64| {
+            let mut replay = ReplayBackend::default();
+            replay.load_workout(1001);
+            replay.seek(fraction);
+            replay.set_closeup_camera(true);
+            let frame = replay.frame.clone();
+            (
+                [
+                    frame[frame::CAMERA_POSITION],
+                    frame[frame::CAMERA_POSITION + 1],
+                    frame[frame::CAMERA_POSITION + 2],
+                ],
+                [
+                    frame[frame::CAMERA_AIM],
+                    frame[frame::CAMERA_AIM + 1],
+                    frame[frame::CAMERA_AIM + 2],
+                ],
+            )
+        };
+        // Catch and finish are the two extremes of the stroke.
+        let (_, catch_aim) = replay_state(0.49995);
+        let (_, finish_aim) = replay_state(0.50187);
+        let moved = ((catch_aim[0] - finish_aim[0]).powi(2)
+            + (catch_aim[2] - finish_aim[2]).powi(2))
+        .sqrt();
+        assert!(
+            moved > 0.05,
+            "the close-up aim barely moves between catch {catch_aim:?} and finish {finish_aim:?} \
+             ({moved:.3} m) — it must follow the athlete, not a fixed rig offset"
+        );
+    }
+
     #[test]
     fn the_closeup_camera_frames_the_athlete_not_the_venue_centre() {
         seed_demo_library();
@@ -1522,7 +1591,7 @@ mod tests {
             let camera_distance =
                 ((camera[0] - athlete[0]).powi(2) + (camera[2] - athlete[2]).powi(2)).sqrt();
             assert!(
-                (0.5..3.0).contains(&camera_distance),
+                (1.0..5.0).contains(&camera_distance),
                 "workout {id}: close-up camera is {camera_distance:.2} m from the athlete \
                  (camera {camera:?}, athlete {athlete:?}) — it must frame the athlete, \
                  not the venue centre"
@@ -1530,7 +1599,7 @@ mod tests {
             let aim_distance =
                 ((aim[0] - athlete[0]).powi(2) + (aim[2] - athlete[2]).powi(2)).sqrt();
             assert!(
-                aim_distance < 1.0,
+                aim_distance < 1.2,
                 "workout {id}: close-up aim is {aim_distance:.2} m off the athlete"
             );
             replay.set_closeup_camera(false);

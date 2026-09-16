@@ -192,8 +192,13 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    `the_rower_pose_composes_the_arm_authority_oar_solve` (reach identity,
    branch continuity); and the two contact-pass tests that failed by 0.127 m
    when the channel fix landed alone, which is what proved the composition was
-   required rather than optional. Visual re-verification on the next CI
-   phase-shot pass.
+   required rather than optional. **Pinned against the web's rendered output**:
+   the fixture now records, per sample and side, the arguments the web's
+   `solveRowerOarYaw` received and the yaw the avatar rendered, and refuses to
+   write unless it reproduces the rendered value —
+   `the_composed_oar_yaw_matches_the_web_rendered_yaw` feeds that recording
+   through the port's solver and matches the rendered yaw across all 256
+   samples at 1e-9. Visual re-verification on the next CI phase-shot pass.
 2. **`solve_skierg` phase calibration** — torso base, hand-path frame
    composition, course-anchored plant; fixture-confirmed, structural (a
    0.7–0.9 m frame-composition disagreement, not a constant).
@@ -291,8 +296,17 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
 
 ## Stage-2 generator contract
 
-Follow the in-repo pattern (`tools/gen-row-phase-parity.mjs`, Phase 7, and
-`tools/gen-rig-phase-parity.mjs`, this audit): evaluate the **web source** at
+**Record what the web renders, not how it computes it** (AGENTS.md). Phase 7's
+row-phase generator re-implemented the web's formula — including the porter's
+`handleTravel` channel choice — and asserted the port matched itself; this
+audit's rig-phase generator builds the real avatar, samples its animated
+transforms, and re-solves from its own recording to prove the recording is
+faithful, which is what exposed the 1.05 rad channel error. Where a quantity is
+only reachable as a pure function, record that function's inputs *and* output
+per sample, and self-check the reconstruction against the rendered value.
+
+Otherwise follow the in-repo pattern (`tools/gen-row-phase-parity.mjs`, Phase 7,
+and `tools/gen-rig-phase-parity.mjs`, this audit): evaluate the **web source** at
 a pinned commit under Node ≥ 23.6 (Studio's exporter reads via `git show`;
 the rig-phase generator asserts the checkout's HEAD equals the pin and
 records per-file SHA-256s), sweep the input space the surface spans (a phase
@@ -344,12 +358,10 @@ under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f
 translated to the athlete, so the twins framed venue geometry (row: a flat
 wall; bike: a spectator pillar). Fixed in `bf8d77f` (#25) with a framing test, and
 re-enabled in CI so the fixed framing is exercised and reviewed. **Reviewed on
-the row twins** (the oar-fix PR's CI artifact): the athlete is now framed at
-close range in every phase — middrive and midrecovery compose well (head,
-torso and both hands on the sculls, the framing the Phase 7 notes describe),
-while catch and finish crop the near body against the frame edge because a
-fixed rig-relative camera does not follow the 0.44 m seat slide and the torso
-layback. Usable for wrist judgement at mid-drive/recovery; a phase-tracking or
-slightly wider offset would make all four phases equally readable (follow-up,
-not a blocker). The measurement is of `bf8d77f` only — see ranking 4 for the
+the row twins**: the athlete is framed at close range in every phase, and the
+aim follows the contact midpoint (pelvis + hands), so the lens tracks the
+0.44 m seat slide and the layback instead of cropping the near body at the
+catch and the finish — the two phases the instrument exists to judge. A fixed
+rig offset framed mid-drive well and clipped the extremes; the aim now moves
+1.56 m between catch and finish (`the_closeup_camera_tracks_the_athlete_through_the_stroke`). The measurement is of `bf8d77f` only — see ranking 4 for the
 unresolved history (Phase 7's notes do record close-up judgement).

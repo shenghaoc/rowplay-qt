@@ -167,6 +167,21 @@ port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
   answer is nothing, write the web-derived fixture first
   (`tools/gen-row-phase-parity.mjs` is the pattern: evaluate the pinned web
   commit under Node, record source hashes inside the JSON).
+- Record what the web *renders*, not how the web *computes*. A generator
+  that re-derives the web's formula in JavaScript inherits whatever the
+  porter believed at port time and then asserts the port matches itself; it
+  can only ever confirm the port's own reading of the source. A generator
+  that builds the web's real object and samples its animated output records
+  independent observables, so a wrong channel or a missing layer shows up as
+  a diff. Phase 7's `replay-row-phase-parity.json` re-implemented
+  `OAR_YAW_CATCH + handleTravel·span` in the generator (the port's own
+  channel choice) and passed; the audit's `replay-rig-phase-parity.json`
+  sampled the avatar's rendered transforms and caught that the web actually
+  drives the oar from `armDraw` — a 1.05 rad error, plus the reach solve the
+  port never composed. Where a quantity is only reachable as a pure function,
+  record that function's *inputs and output* at each sample and feed them to
+  the port verbatim; and have the generator assert its reconstruction equals
+  the rendered value, so wrong observables cannot be recorded silently.
 - Residuals cannot validate orientation: a re-solve absorbs an orientation
   error and reports convergence, so a contact residual measures "did the
   solver find *a* solution", not "is the solution anatomically real" (Phase

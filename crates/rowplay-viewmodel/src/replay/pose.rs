@@ -1272,6 +1272,65 @@ mod tests {
         }
     }
 
+    /// The solved RowErg oar yaw against the web's **rendered** yaw, across
+    /// every fixture sample (AGENTS.md: record what the web renders, not how
+    /// it computes).
+    ///
+    /// `replay-rig-phase-parity.json` records, per sample, the arguments the
+    /// web's `solveRowerOarYaw` received (shoulder→pin delta, signed inboard
+    /// lever, blade roll, requested reach, preferred yaw) and the yaw the
+    /// avatar actually rendered. The generator re-solves from its own
+    /// recording and refuses to write the fixture unless it reproduces the
+    /// rendered value, so these inputs are trustworthy. Feeding them through
+    /// the same solver the pose pass calls and matching the rendered yaw is
+    /// what pins the composition to the web rather than to itself.
+    #[test]
+    fn the_composed_oar_yaw_matches_the_web_rendered_yaw() {
+        let fixture: serde_json::Value =
+            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+        let samples = fixture["samples"].as_array().expect("samples");
+        let mut checked = 0;
+        for sample in samples {
+            if sample["sport"].as_str() != Some("rower") {
+                continue;
+            }
+            let solve = &sample["rig"]["oarSolve"];
+            for side in solve["sides"].as_array().expect("sides") {
+                let number = |key: &str| -> f64 {
+                    side[key]
+                        .as_f64()
+                        .unwrap_or_else(|| panic!("oarSolve.{key} missing"))
+                };
+                let pin = side["pinDelta"].as_array().expect("pinDelta");
+                let pin = |index: usize| pin[index].as_f64().expect("pinDelta value");
+                let yaw = rowplay_core::replay::row_equipment::solve_rower_oar_yaw(
+                    [0.0, 0.0, 0.0],
+                    pin(0),
+                    pin(1),
+                    pin(2),
+                    number("inboard"),
+                    number("roll"),
+                    number("requestedReach"),
+                    number("preferredYaw"),
+                    true,
+                );
+                let rendered = number("renderedYaw");
+                let delta = (yaw - rendered).rem_euclid(std::f64::consts::TAU);
+                let delta = delta.min(std::f64::consts::TAU - delta).abs();
+                assert!(
+                    delta <= 1e-9,
+                    "phase {}: solved yaw {yaw} != web rendered {rendered} (delta {delta})",
+                    sample["phaseIndex"]
+                );
+                checked += 1;
+            }
+        }
+        assert_eq!(
+            checked, 256,
+            "the rower fixture carries 128 samples × 2 sides"
+        );
+    }
+
     /// The composed RowErg arm-authority chain: the pose pass solves each
     /// oar's yaw to place the inboard grip at the requested shoulder→wrist
     /// reach, and the returned yaws differ from the authored sweep wherever

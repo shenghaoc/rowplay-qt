@@ -145,7 +145,18 @@ function named(root, name) {
   return found;
 }
 
-/** Collect the rig-local quantities the fixture pins, per sport. */
+/**
+ * The RowErg oar solve's inputs and output, read from the animated scene.
+ *
+ * `solveRowerOarYaw` is a pure function of (shoulder→pin delta, signed inboard
+ * lever, blade roll, requested reach, preferred yaw); the rendered yaw is its
+ * return. Recording the real arguments lets a Rust test feed them back
+ * verbatim and compare against what the web actually rendered — the
+ * "record what the web renders" rule (AGENTS.md) applied where the quantity
+ * is only observable as a function call. The generator then re-solves from
+ * its own recording and asserts it reproduces the rendered yaw, so wrong
+ * observables cannot be recorded silently.
+ */
 function sample(avatar, sport, pose, meters, scratch) {
   avatar.group.updateMatrixWorld(true);
   const v4 = avatar.v4Targets;
@@ -201,6 +212,61 @@ function sample(avatar, sport, pose, meters, scratch) {
   return out;
 }
 
+function rowerOarSolve(avatar, armDraw, solve) {
+  const root = avatar.group;
+  const rower = named(root, "rower-athlete");
+  const wrap = (value) => Math.atan2(Math.sin(value), Math.cos(value));
+  const sides = [];
+  for (const side of [-1, 1]) {
+    const suffix = side < 0 ? "left" : "right";
+    const oar = named(root, `rower-oar-${suffix}`);
+    const shoulderNode = named(root, `rower-shoulder-${suffix}`);
+    const inboard = named(root, `rower-hand-contact-${suffix}`).position.x;
+    const roll = oar.rotation.z;
+    // The web passes `oar.group.position - rower.position` as the pin and
+    // `arm.shoulderPoint` (the shoulder node's local position, rower frame) as
+    // the shoulder; only their difference reaches the solve. Each side uses
+    // its own shoulder and pin — mirroring the right side's delta was the
+    // error the self-check below caught.
+    const pin = [
+      oar.position.x - rower.position.x,
+      oar.position.y - rower.position.y,
+      oar.position.z - rower.position.z,
+    ];
+    const shoulder = [
+      shoulderNode.position.x,
+      shoulderNode.position.y,
+      shoulderNode.position.z,
+    ];
+    const pinDelta = [pin[0] - shoulder[0], pin[1] - shoulder[1], pin[2] - shoulder[2]];
+    const requestedReach = solve.requestedReach(armDraw);
+    const preferredYaw = solve.preferredYaw(side, armDraw);
+    const renderedYaw = oar.rotation.y;
+    // Re-solve from the recording; a mismatch means an observable above is
+    // not what the web passed, so the fixture must not be written.
+    const reproduced = solve.fn(
+      { x: 0, y: 0, z: 0 },
+      pinDelta[0],
+      pinDelta[1],
+      pinDelta[2],
+      inboard,
+      roll,
+      requestedReach,
+      preferredYaw,
+      true,
+    );
+    const delta = Math.abs(wrap(reproduced - renderedYaw));
+    if (!(delta < 1e-9)) {
+      throw new Error(
+        `RowErg oar-solve self-check failed (side ${side}): recording reproduces ${reproduced}, ` +
+          `rendered ${renderedYaw} (delta ${delta}) — an observable is wrong; do not write the fixture`,
+      );
+    }
+    sides.push({ side, pinDelta, inboard, roll, requestedReach, preferredYaw, renderedYaw });
+  }
+  return { armDraw, sides };
+}
+
 async function main() {
   const out = process.argv[2] ? resolve(process.argv[2]) : OUT_DEFAULT;
   const head = gitHead();
@@ -223,6 +289,75 @@ async function main() {
   const { makeBikeAvatar } = await import(url("renderer3dBikeAvatar.ts"));
   const THREE = await import("three");
 
+  // The RowErg oar solve, evaluated from the web sources so the fixture pins
+  // the real function's inputs and output (see `rowerOarSolve`).
+  const { readFile } = await import("node:fs/promises");
+  const readSource = async (file) => readFile(join(REPLAY, file), "utf8");
+  const rowAvatarSource = await readSource("renderer3dRowAvatar.ts");
+  const rowRigSource = await readSource("rowRig.ts");
+  const constant = (source, name) => {
+    const match = source.match(new RegExp(`const ${name} = (-?[0-9.]+);`));
+    if (!match) throw new Error(`constant ${name} not found`);
+    return Number(match[1]);
+  };
+  const clamp = (value, lo, hi) => Math.min(hi, Math.max(lo, value));
+  const functionBody = (source, name) => {
+    const start = source.indexOf(`export function ${name}(`);
+    if (start === -1) throw new Error(`function ${name} not found`);
+    const open = source.indexOf("{", start);
+    let depth = 0;
+    for (let i = open; i < source.length; i += 1) {
+      if (source[i] === "{") depth += 1;
+      else if (source[i] === "}") {
+        depth -= 1;
+        if (depth === 0) return `"use strict";${source.slice(open + 1, i)}\n`;
+      }
+    }
+    throw new Error(`unbalanced braces in ${name}`);
+  };
+  const solveRowerOarYaw = new Function(
+    "THREE",
+    "shoulder",
+    "pinX",
+    "pinY",
+    "pinZ",
+    "signedInboard",
+    "bladeRoll",
+    "requestedReach",
+    "preferredYaw",
+    "forceReachBoundary",
+    functionBody(rowRigSource, "solveRowerOarYaw"),
+  ).bind(null, { MathUtils: { clamp } });
+  const reachForFlexion = new Function(
+    "THREE",
+    "flexion",
+    "upperArmLength",
+    "forearmLength",
+    functionBody(rowRigSource, "rowerReachForFlexion"),
+  ).bind(null, { MathUtils: { clamp } });
+  const oarYawCatch = constant(rowAvatarSource, "OAR_YAW_CATCH");
+  const oarYawDraw = constant(rowAvatarSource, "OAR_DRAW_YAW");
+  const upperArmLength = constant(rowAvatarSource, "UPPER_ARM_LENGTH");
+  const forearmLength = constant(rowAvatarSource, "FOREARM_LENGTH");
+  const baseArmReach = upperArmLength + forearmLength;
+  const drawSoft = constant(rowRigSource, "ROWER_DRAW_SOFT_FLEXION");
+  const drawFinish = constant(rowRigSource, "ROWER_DRAW_FINISH_FLEXION");
+  const oarSolve = {
+    fn: solveRowerOarYaw,
+    // The web's `requestedRowerWristReach` at the base arm length (the
+    // procedural avatar has no V4 refinement to override it).
+    requestedReach: (draw) =>
+      reachForFlexion(
+        drawSoft + clamp(draw, 0, 1) * (drawFinish - drawSoft),
+        baseArmReach * (upperArmLength / baseArmReach),
+        baseArmReach - baseArmReach * (upperArmLength / baseArmReach),
+      ) - 0.002,
+    preferredYaw: (side, draw) => side * (oarYawCatch + clamp(draw, 0, 1) * (oarYawDraw - oarYawCatch)),
+  };
+
+  // The graph channel the arm-authority solve is scheduled from.
+  const { sampleRowerMotionGraph } = await import(url("motionGraph.ts"));
+
   const factories = {
     rower: makeRowerAvatar,
     skierg: makeSkierAvatar,
@@ -242,6 +377,14 @@ async function main() {
         avatar.resolveWorldContacts?.();
         const recorded = sample(avatar, sport, pose, meters, scratch);
         recorded.cues = cues;
+        if (sport === "rower") {
+          const graph = sampleRowerMotionGraph(pose);
+          recorded.oarSolve = rowerOarSolve(
+            avatar,
+            clamp(graph.body.armDraw.value, 0, 1),
+            oarSolve,
+          );
+        }
         samples.push({ sport, sweep: sweep.id, phaseIndex: i, pose, rig: recorded });
       }
     }
