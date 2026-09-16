@@ -154,8 +154,8 @@
     },
     {
       "path": "replay-row-phase-parity.json",
-      "bytes": 25569,
-      "sha256": "ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d",
+      "bytes": 29459,
+      "sha256": "2cad1d4eb53d7f0a68e1715d4d2881b3d0c294930b00d4a90de8e7338de59598",
       "source": {
         "repository": "https://github.com/shenghaoc/rowplay",
         "commit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",

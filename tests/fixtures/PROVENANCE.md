@@ -55,7 +55,7 @@ either.
 | `replay-race-result-parity.json` | 6401 | `98558fd0dbaa9c73f1467e3e7479a23495d226734d1ed01fc38d52b9e2df5ff7` |
 | `replay-rival-sources-parity.json` | 5404 | `35e252dcd69a3df8d40fbaa4855ba059f2e1571d25495bf525a256c34f05e04d` |
 | `stroke-pose-parity.json` | 2385 | `b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae` |
-| `replay-row-phase-parity.json` | 25569 | `ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d` |
+| `replay-row-phase-parity.json` | 29459 | `ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d` |
 
 ## Licence
 
