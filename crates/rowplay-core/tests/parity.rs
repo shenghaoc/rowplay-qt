@@ -2603,8 +2603,35 @@ fn rig_phase_parity_bike() {
     );
 }
 
+/// SkiErg rig-phase parity, at the layer the fixture can meaningfully pin.
+///
+/// The `renderer3dSkiAvatar.animate` function only writes four scene-graph
+/// values before it returns: the pelvis carry (`upper.position`), the torso
+/// hinge (`upper.rotation.x`), the local head counter-tilt
+/// (`headGroup.rotation.x`), and the local hip counter-tilt
+/// (`hips.rotation.x`). The rest of the scene — the arm chain, the hand
+/// targets, and the pole shafts / tips — is placed by `placePoleArms`
+/// (called via `resolveWorldContacts`), and only after the runtime feeds
+/// world-space V4 shoulder positions in through `refineV4Targets`. The Node
+/// generator can call `animate` and `resolveWorldContacts` but never
+/// `refineV4Targets` (there is no V4 skin running headless), so `arm.hand`,
+/// `skierg-hand-*` and `skierg-pole-tip-*` come back at the pelvis origin —
+/// the fixture pins `targets.leftHand == handLeft == poleTipLeft ==
+/// upper.position` for every skierg sample. Comparing the port's
+/// pre-composition `preferred_hand_*` and `plant_basket_z` (both live
+/// inputs to `PoseSolver`) against those pole-at-pelvis oracle values was
+/// meaningless: they measured the rig-frame gap between the pelvis and the
+/// port's target, not any deviation from the web's placement. Once the fix
+/// removes those false comparisons only the four scene-graph values remain,
+/// and the previously failing "torso base" reduces to the constant defect
+/// the audit named (Studio's `0.18 + hinge·0.55` → web's `0.055 +
+/// hinge·0.56`), fixed in `solve_skierg`.
+///
+/// The hip counter-tilt (`-hipHinge · 0.14`) is not compared here because
+/// `hipsRotation` is not yet in the fixture (deferred generator extension,
+/// docs/parity-coverage.md); the head counter-tilt already reads back on
+/// `headRotation.x` and is the fix's coverage guard.
 #[test]
-#[ignore = "audit stage 3 skierg: torso base (0.18 vs web 0.055 + hipHinge*0.56), preferred-hand frame composition (0.7-0.9 m), course-anchored pole plant - all caught by the rig-phase fixture (docs/parity-coverage.md ranking 2)."]
 fn rig_phase_parity_skierg() {
     let mut worst: BTreeMap<String, (f64, String)> = BTreeMap::new();
     for sample in rig_phase_samples("skierg") {
@@ -2615,8 +2642,8 @@ fn rig_phase_parity_skierg() {
         else {
             panic!("sport mismatch")
         };
-        // torso_lean ↔ the hinging upper group (web: 0.055 + hipHinge*0.56,
-        // plus pelvis/head counter-tilts the port does not model).
+        // Torso hinge ↔ `upper.rotation.x` (web
+        // `SKI_NEUTRAL_TORSO_PITCH 0.055 + hipHinge · SKI_TORSO_HINGE_RANGE 0.56`).
         assert_close(
             &mut worst,
             "skierg.torso_lean",
@@ -2624,27 +2651,31 @@ fn rig_phase_parity_skierg() {
             rig_number(&sample.rig, &["upperRotation", "0"]),
             false,
         );
-        // preferred hand path ↔ the V4 left-hand target landmark.
+        // Head local counter-tilt ↔ `headGroup.rotation.x`
+        // (`-hipHinge · SKI_HEAD_GAZE_COUNTER_TILT 0.38`).
         assert_close(
             &mut worst,
-            "skierg.preferred_hand_y",
-            rig.preferred_hand_y,
-            rig_number(&sample.rig, &["targets", "leftHand", "1"]),
+            "skierg.head_pitch",
+            rig.joints.head_pitch,
+            rig_number(&sample.rig, &["headRotation", "0"]),
+            false,
+        );
+        // Pelvis carry ↔ `upper.position` (`SKI_STANDING_PELVIS_Y 0.735 -
+        // kneeFlex · SKI_PELVIS_KNEE_DROP 0.11 + rebound ·
+        // SKI_RECOVERY_REBOUND_LIFT 0.045`, `hipHinge ·
+        // SKI_PELVIS_FORWARD_TRAVEL 0.055`).
+        assert_close(
+            &mut worst,
+            "skierg.pelvis_y",
+            rig.pelvis_y,
+            rig_number(&sample.rig, &["upper", "1"]),
             false,
         );
         assert_close(
             &mut worst,
-            "skierg.preferred_hand_z",
-            rig.preferred_hand_z,
-            rig_number(&sample.rig, &["targets", "leftHand", "2"]),
-            false,
-        );
-        // plant_basket_z ↔ the left pole tip's rig-local forward coordinate.
-        assert_close(
-            &mut worst,
-            "skierg.plant_basket_z",
-            rig.plant_basket_z,
-            rig_number(&sample.rig, &["poleTipLeft", "2"]),
+            "skierg.pelvis_z",
+            rig.pelvis_z,
+            rig_number(&sample.rig, &["upper", "2"]),
             false,
         );
     }

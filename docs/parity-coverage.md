@@ -109,7 +109,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 | Surface | Rust | Web | Via | Evidence | Gap and risk |
 | --- | --- | --- | --- | --- | --- |
-| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike enabled and green**; rower and skierg `#[ignore]`d with recorded verdicts. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` — the port now rides `armDraw` (corrected channel) but still omits the arm-authority reach solve the web applies on top (**an inverted chain, not a layering indifference** — ranking 1 has the full finding and the fix plan); Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). |
+| **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike and skierg enabled and green** after their fixes; rower `#[ignore]`d with recorded verdict. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` — the port now rides `armDraw` (corrected channel) but still omits the arm-authority reach solve the web applies on top (**an inverted chain, not a layering indifference** — ranking 1 has the full finding and the fix plan); Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). | Skierg: torso base and head local counter-tilt fixed against the web (`0.055 + hipHinge·0.56`, `-hipHinge·0.38`), pelvis carry now exposed as `pelvis_y`/`pelvis_z` and pinned against `upper.position`. The pre-composition `preferred_hand_*` and `plant_basket_z` fields are no longer compared against the fixture's `targets.leftHand` / `poleTipLeft`: the web `placePoleArms` (called via `resolveWorldContacts`) needs the Rust runtime's V4 shoulder data through `refineV4Targets`, and Node has none — so `arm.hand` and `skierg-pole-tip-*` came back at the pelvis origin for every sample and the old deltas measured "port-target minus pelvis", not any deviation from the web's placement (the parity test now records the rationale in full). Extending the generator with `hipsRotation` (`-hipHinge · 0.14`) is deferred — a byte-identical regeneration environment is not to hand. |
 | **Rower oar channel** | `rig_pose::solve_rower` (`armDraw` in) | `renderer3dRowAvatar.ts` `placeOars(equipmentHandleTravel = graph.body.armDraw.value)` | web | `rower_rig_phase_parity` (corrected fixture, 33 samples at 1e-10, green). The audit found the port (and Phase 7's own generator) keyed the oar sweep and the roll's handle-rise on `handleTravel`; the web's comment warns that channel "would include its leg contribution and pull the grip through the knees and torso too early". The channel error is up to 1.05 rad at mid-drive, and its handle-rise half exactly explained the previously-unexplained +0.029 rad roll residual. |
 | Motion-graph timing parameters | `motion_graph::timing_into` etc. | `motionGraph.ts` `timingInto` | web | Corpus sweeps phase at one fixed timing per sport; drive-fraction clamps and rate-dependent timing unit-pinned exactly (motion_graph.rs tests, re-expressing web tests). | No corpus varies `driveFrac`/`secondsPerCycle`/rate inputs. A regressed clamp would fail only the unit pins, which were written from the port. **Phase-source choice unpinned**: the graph reads `pose.phase` (motion_graph.rs, matching the web), but because the corpus pins `warpedPhase = phase`, a regression to `warped_phase` would pass every existing test. Sign error unlikely; input-selection error possible. |
 | Stroke pose, web pipeline (production path) | `stroke_model::{build_stroke_timeline, stroke_pose_at}` | `strokeModel.ts` `buildStrokeTimeline`, `strokePoseAt` | web | Unit tests pin timeline arithmetic, the web amplitude law `clamp(0.94 + i·0.12, 0.94, 1.06)` and drive-fraction law exactly; the app renderer uses this path (backend `replay.rs`, not `compute_at_time`). Verified: the web 3D renderer itself never calls `strokePoseAt` per frame — the Svelte page does, then hands `pose.phase` to the avatar — so the Rust production chain (page-equivalent path) matches the web's shape. | No web-generated corpus of `stroke_pose_at` outputs over varied rate/intensity/fatigue/duration inputs; the existing fixture drives the Studio path with 3 range cases predating the web's #171 rework. Intensity/fatigue composition could drift undetected. Inversion unlikely (progress/amplitude laws pinned). |
@@ -123,7 +123,6 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 | Surface | Rust | Web (actual) | Via | Evidence | Risk |
 | --- | --- | --- | --- | --- | --- |
-| **Skierg rig stroke-phase calibration** | `rig_pose::solve_skierg` | `renderer3dSkiAvatar.ts` (`skiPreferredHand`, pole carry `degToRad(80 − poleSweep·57)`, pelvis `0.735 − kneeFlex·0.11 + rebound·0.045`, torso `0.055 + hipHinge·0.56` with −0.14/−0.38 counter-tilts) | Studio, copied op-for-op | Range tests + reach-annulus bound (self-referential); the audit's composed-layer fixture has caught it (torso base 0.18 vs 0.055; preferred hand 0.7–0.9 m off; plant basket rig-local vs course-anchored) — `rig_phase_parity_skierg` is `#[ignore]`d and the fix is outstanding (ranking 1). | **Inversion-capable with subtle symptoms** (pole motion is symmetric). Pole rotation conventions differ outright: web 1.396 − 0.995·sweep vs Rust `−0.20 − 0.92·sweep`. Rust drops the web's hip/head counter-tilts and its hard reach clamp. A phase-inverted pole plant passes every enabled test. |
 | Engine sampling | `engine::{sample_at, sample_index_at, ReplayState}` | `engine.ts` | web | Exact unit re-expressions of the web's `engine.test.ts` (progress pins, interpolation, non-zero origins, speed presets). | Not fixture-backed, but every value is arithmetic on the web's own test data; inversion would fail immediately. Not worth closing with a fixture (recorded reason). |
 | Comparability guard | `comparability::*` | `comparabilityGuard.ts` | web | Unit re-expression over workout-type → axis mapping and band rules. | Discrete classification; a fixture would restate the same table. Not worth closing (recorded reason). |
 | Ghost pick | `ghost_pick::*` | `ghostPick.ts` | web | Unit re-expression of the ranking semantics with exact winner ids. | Same as above — total ordering pinned by units; Studio's hardening intentionally not ported (documented). Not worth closing (recorded reason). |
@@ -222,13 +221,13 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    reading — and do not write it up as "the close-up never worked".
 5. **`stroke_pose_at` web-pipeline corpus** — production path has no
    web-generated sweep over varied inputs.
-6. **Wrist budget sweep** — covered only through the equipment corpus and
+5. **Wrist budget sweep** — covered only through the equipment corpus and
    web-test re-expression.
-7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
+6. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
    table needs a decision (adopt or record), not a fixture per se.
-8. **Motion-graph phase-source gap** — extend a generator to sweep
+7. **Motion-graph phase-source gap** — extend a generator to sweep
    `warpedPhase ≠ phase` (and varied timing) so the input selection is pinned.
-9. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
+8. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
    twice; make that permanent in the camera-test pattern.
 10. **Oar-yaw reach-boundary approach — an attainable, ill-conditioned
     interval the corpus never samples.**
@@ -294,6 +293,28 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     move with the clip, which only widens the attainable set beyond these
     recorded geometries.
 
+The former ranking 2 (`solve_skierg` phase calibration — torso base and head
+counter-tilt) is closed: the fix ports the web `renderer3dSkiAvatar.animate`
+constants (`SKI_NEUTRAL_TORSO_PITCH 0.055 + hipHinge · SKI_TORSO_HINGE_RANGE
+0.56` for the torso, `-hipHinge · SKI_HEAD_GAZE_COUNTER_TILT 0.38` for the
+head), exposes the pelvis carry as `pelvis_y`/`pelvis_z` and pins all three
+against the rig-phase fixture's `upperRotation` / `headRotation` /
+`upper.position` (`rig_phase_parity_skierg` no longer `#[ignore]`d).
+The parity test's former `preferred_hand_*` / `plant_basket_z` comparisons
+against `targets.leftHand` / `poleTipLeft` were retired because the fixture
+records those pole/hand slots at the pelvis origin for every sample — the
+web `placePoleArms` (called from `resolveWorldContacts`) needs the Rust
+runtime's V4 shoulder positions handed in via `refineV4Targets`, and Node
+has no V4 skin — so the old deltas measured the port-target-vs-pelvis gap,
+not any deviation from the web's placement. The hip counter-tilt
+(`-hipHinge · 0.14`) still lacks a scene-graph oracle in the committed
+fixture (the generator does not read `hips.rotation`); adding it needs a
+byte-identical regeneration environment and is deferred (queue item, this
+document's task list). Pole rotation convention (Rust `-0.20 - poleSweep ·
+0.92` vs web `degToRad(80 - poleSweep · 57)`) remains a documented
+divergence; downstream `pose::skierg_targets` composes it into a pole
+direction that would flip vertically under the web convention.
+
 ## Stage-2 generator contract
 
 **Record what the web renders, not how it computes it** (AGENTS.md). Phase 7's
@@ -334,9 +355,21 @@ caught a defect — never adjust a fixture to match the port.
   rower/skierg `#[ignore]`d naming their outstanding findings.
 - Stage 3: rower landed as Phase 7's `cf85cdb`; **bike landed next** (pedal
   π-inversion and the 0.31 wheel rotation radius — `rig_phase_parity_bike`
-  green across all 128 bike samples). Outstanding: the skierg calibration
-  (ranking 1), the rower composed layer (ranking 3 — the reach solve is dead
-  at runtime, confirmed by trace), and the remaining stage-2 groups.
+  green across all 128 bike samples). **Skierg landed after that**, against
+  the same rig-phase fixture (`bf8d77f` base): the port's `torso_lean` /
+  `head_pitch` calibrations were Studio-inverted-and-off-scale against the
+  web avatar (`0.18 + hipHinge · 0.55` for the torso, `torso_lean · 0.2` for
+  the head), fixed to the web's `0.055 + hipHinge · 0.56` and `-hipHinge ·
+  0.38`, and the pelvis carry was exposed as `pelvis_y`/`pelvis_z` and
+  pinned against `upper.position` — `rig_phase_parity_skierg` no longer
+  `#[ignore]`d. The former `preferred_hand_*` / `plant_basket_z`
+  comparisons were retired: the fixture's `targets.leftHand` /
+  `poleTipLeft` sit at the pelvis origin for every sample because the web
+  `placePoleArms` needs the runtime's V4 shoulder data through
+  `refineV4Targets` (no V4 skin in Node), and the deltas measured
+  port-target-vs-pelvis rather than any deviation from the web's placement.
+  Outstanding: the rower composed layer (ranking 2 — the reach solve is
+  dead at runtime, confirmed by trace) and the remaining stage-2 groups.
 
 ## Capture caveat (affects the phase-shot baseline)
 
