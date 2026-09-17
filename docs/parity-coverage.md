@@ -144,7 +144,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 
 | Surface | Rust | Web | Via | Evidence | Gap and risk |
 | --- | --- | --- | --- | --- | --- |
-| **Chase camera** | `camera::{rig, chase}` | `renderer3d.ts` camera block | web | The repo's only source quote-check (`constants_match_the_web_source_…`): 11 verbatim web lines — rig table, damping rates, snap thresholds, `aspect < 1.25`, `5.4 + ghostPullback`, FOV constants. Behavioural tests pin the composed dynamics to Rust's own constants. | The quote-check pins constants, not composition: nothing numeric verifies the chase assembly's sign conventions against the web, and the check silently skips when `reference/` is absent (CI). **The web's ghost-comparison framing is not ported**: `ghostPullback 1.05`, midpoint focus, `comparisonPullback` from the horizontal FOV, and the with-ghost narrow scales (2.12/1.38) — yet Phase 5c shipped ghost racing, so the ghost can sit outside the framed lane. The module doc still says "no ghost lane (Phase 5c)". |
+| **Chase camera** | `camera::{rig, chase}` | `renderer3d.ts` camera block | web | The repo's source quote-check (`constants_match_the_web_source_…`): 16 verbatim web lines — the original 11 (rig table, damping rates, snap thresholds, `aspect < 1.25`, `5.4 + ghostPullback`, FOV constants) plus the 5 ghost-framing lines (`GHOST_PULLBACK 1.05`, the with-ghost narrow-scale ternary `2.12`/`2.1`/`1.38`/`1.2`, `comparisonMargin` per sport, `Math.tan(horizontalHalfFov) * 0.9`, `Math.min(2.5, comparisonSpan * 0.16)`). Three behavioural tests pin the composition: `ghost_pullback_and_midpoint_focus_engage_when_ghost_is_placed` (BikeErg, midpoint focus + height addend + `GHOST_PULLBACK` on top of `rig.back`), `narrow_ghost_widens_the_pullback_scale_per_sport` (narrow rower `2.12` vs skierg `1.38`), `a_wide_pair_forces_comparison_pullback_from_the_horizontal_fov` (200 m pair forces back derived from horizontal half-tangent, height caps at `2.5`). | The quote-check still silently skips when `reference/` is absent (CI); the behavioural tests pin composition against Rust-side computed values rather than a web-sampled fixture. A full parity fixture sampling the web `render`'s camera output per (sport, aspect, focus, ghost placement, speed) state would upgrade this to `covered` and catch damping-rate drift — same pattern as the rig-phase fixture. |
 | **Course placement & loop radii** | `course::{place, accents, profile}` | `renderer3d.ts` `placeAvatar`/`SPORT_PROFILES`, `renderer3dAvatarKit.ts` `COURSE_LOOP_METERS` | web | Exact unit tests of the circle math and accents. **Verified against the web source at both audit passes** (`011e830` reference): `LIVE_LOOP_RADIUS 30` = web `loopRadius` (renderer3d.ts:825), `GHOST_LOOP_RADIUS 26` = web `ghostRadius` (:826), loop 1000 ✓, profiles (0.13/0.48, 0.08/1.45, 0.03/0) ✓, rower surge negation ✓, roll law ✓, `animPhase` rate ✓. The audit brief's suspicion ("set in 5b without a web check") is true of the process but the values agree. | No quote-check or fixture — the agreement is verified here, and a web change would not surface. `GHOST_LOOP_RADIUS` is not referenced by any test at all. Cheap to close: a `course` quote-check in the camera-test pattern plus one placement assertion. |
 | Athlete posing composition | `pose::{rig_targets, PoseSolver}`, `equipment::{oar_rotations, blade_roll_degrees, …}` | V4 clip mapping + `rowRig.ts`/`skiEquipment.ts`/`bikeRig.js` constants; avatar assembly conventions | web+Studio | `clip_fraction` pinned to the web mapping exactly; geometry constants cited and pinned (oarlock 0.88/0.51/0.28 ✓, pole 1.37 ✓, axle 0.335 ✓, blade offset 1.82/−0.06 ✓, head angle 73° ✓); quaternion assembly tests exact-analytic. **Phase 7 fixed the burial-roll keying** the stage-1 pass flagged: `solve_rower` now keys the dip on `blade_water`, not the feather channel. | The rower's remaining Studio leftovers (`handle_y`/`handle_z`/`torso_lean`, feather-keyed) are documented as unconsumed — the V4 clip plus contact targets pose the athlete — so their divergence from the web avatar (fixture: handle off by 0.18/0.79, torso −0.28 vs +0.56) is dead-surface debt, not a live defect. `equipment::blade_roll_degrees`' 90°→0° spoon square matches the web's squaring convention. No web-generated fixture for the composed posing layer beyond the rig-phase corpus. |
 | Runtime hand layer | `grip` (per-sport grip frames, `gripContractFor`, digit-chain collector, pose table), `PoseSolver` wrist orientation | `renderer3d{Row,Ski,Bike}Avatar.ts` grip frames + `handGrip.ts` runtime closure | web | Per-sport frames mirror the avatars (source-map Phase 7 row); unit tests + the gate's 10/10 grip-contact assertions; wrist orientation consumes the covered `wrist` budgets. | Runtime composition (frames + closure + budgets per frame) has no web-generated fixture — the web's runtime is a renderer; the closest oracle is the phase-shot baseline (visual). Phase 7 slice 3. |
@@ -200,11 +200,19 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    `the_composed_oar_yaw_matches_the_web_rendered_yaw` feeds that recording
    through the port's solver and matches the rendered yaw across all 256
    samples at 1e-9. Visual re-verification on the next CI phase-shot pass.
-2. **`solve_skierg` phase calibration** — torso base, hand-path frame
-   composition, course-anchored plant; fixture-confirmed, structural (a
-   0.7–0.9 m frame-composition disagreement, not a constant).
-3. **Chase camera ghost framing** — web comparison framing unported while
-   ghosts ship; camera sign conventions unverifiable by quote-check alone.
+2. **`solve_skierg` phase calibration — CLOSED.** Ported to the web
+   avatar's `animate` constants (torso hinge, head counter-tilt, pelvis
+   carry, shoulder recording) and pinned by `rig_phase_parity_skierg` —
+   eight comparisons at 1e-6 across all 128 skierg samples. Full account
+   below.
+3. **Chase camera ghost framing — CLOSED.** `GHOST_PULLBACK 1.05`,
+   midpoint focus, `comparisonPullback` from the horizontal FOV,
+   with-ghost narrow scales `2.12`/`1.38`, and the height addend from
+   `comparisonSpan` are composed in `camera::chase` and driven from the
+   backend via `CameraInput.ghost_placement`; 5 added quote-check
+   web-lines and 3 behavioural tests pin the constants and composition.
+   Remaining (see the chase row): a web-sampled parity fixture would
+   upgrade it partial → covered.
 4. **QA close-up camera framing** — **measured on `bf8d77f`**: the camera sat
    ~29–31 m from the athlete (one loop radius). The offset was rotated into
    the rig frame but never translated to the athlete's placement, so the twins
@@ -223,13 +231,13 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    reading — and do not write it up as "the close-up never worked".
 5. **`stroke_pose_at` web-pipeline corpus** — production path has no
    web-generated sweep over varied inputs.
-5. **Wrist budget sweep** — covered only through the equipment corpus and
+6. **Wrist budget sweep** — covered only through the equipment corpus and
    web-test re-expression.
-6. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
+7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
    table needs a decision (adopt or record), not a fixture per se.
-7. **Motion-graph phase-source gap** — extend a generator to sweep
+8. **Motion-graph phase-source gap** — extend a generator to sweep
    `warpedPhase ≠ phase` (and varied timing) so the input selection is pinned.
-8. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
+9. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
    twice; make that permanent in the camera-test pattern.
 10. **Oar-yaw reach-boundary approach — an attainable, ill-conditioned
     interval the corpus never samples.**
@@ -303,6 +311,17 @@ SKI_HEAD_GAZE_COUNTER_TILT 0.38` for the head), exposes the pelvis carry
 as `pelvis_y`/`pelvis_z` and pins all three against the rig-phase fixture's
 `upperRotation` / `headRotation` / `upper.position` (`rig_phase_parity_skierg`
 no longer `#[ignore]`d).
+
+The former ranking 3 (chase camera ghost framing) is closed: `GHOST_PULLBACK`,
+midpoint focus, `comparisonPullback` from the horizontal FOV, with-ghost narrow
+scales `2.12`/`1.38`, and the height addend from `comparisonSpan` are all
+composed in `camera::chase` and driven from the backend via
+`CameraInput.ghost_placement`. Behavioural tests plus 5 additional quote-check
+web-lines pin the constants and composition; the module doc lost its "no
+ghost lane (Phase 5c)" caveat. A full web-sampled parity fixture for the
+whole chase camera (all constants, damping, aspect / ghost combinations)
+remains as the "upgrade `partial` → `covered`" follow-up, same pattern as
+the rig-phase fixture.
 
 Pole rotation was investigated too and left as Studio's `-0.20 - poleSweep
 · 0.92`. Reading the port's composition through

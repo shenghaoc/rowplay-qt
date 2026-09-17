@@ -1090,6 +1090,28 @@ impl ReplayBackend {
         // Chase camera.
         let advanced = distance - self.last_distance;
         self.last_distance = distance;
+        // Ghost placement for the chase camera's midpoint framing +
+        // comparison pullback: use the ghost's current course position (its
+        // packed `COURSE_X/Z`) if the ghost pipeline has run at least once
+        // this session (i.e. the frame carries non-default values). The
+        // ghost pipeline runs after this camera call, so on the first
+        // ghost-enabled frame the pack is still at its default zero; that
+        // still trips the `is_finite && != 0` filter below cleanly on the
+        // next tick, and the frame-to-frame position lag is invisible in
+        // the damped chase. The web samples `this.ghostPlacement` set by
+        // its own ghost render pass; both apps have the same one-tick
+        // lag on the first activation.
+        let ghost_placement = if self.ghost_playback.is_some() {
+            let gx = f64::from(self.ghost_frame[frame::COURSE_X]);
+            let gz = f64::from(self.ghost_frame[frame::COURSE_Z]);
+            if gx.is_finite() && gz.is_finite() && (gx != 0.0 || gz != 0.0) {
+                Some((gx, gz))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         self.camera = chase(
             sport,
             CameraInput {
@@ -1102,6 +1124,7 @@ impl ReplayBackend {
                 playing,
                 aspect: self.aspect,
                 reduce_motion: self.reduce_motion,
+                ghost_placement,
             },
             self.camera,
         );
