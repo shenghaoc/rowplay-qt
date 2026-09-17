@@ -149,7 +149,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | Ghost pick | `ghost_pick::*` | `ghostPick.ts` | web | Unit re-expression of the ranking semantics with exact winner ids. | Same as above — total ordering pinned by units; Studio's hardening intentionally not ported (documented). Not worth closing (recorded reason). |
 | Quality budgets | `quality::RenderQuality::budgets` | `renderer3d.ts` `QUALITY` (lines 65–138) | Studio | Budget table pinned exactly — **against Studio's documented tiers**. | Not an inversion risk, but the portable fields that are comparable **numerically disagree with the web**: wake 0/16/28/44 vs web 0/20/32/52; spray 0/40/48/72 vs 0/64/80/112; per-catch 0/4/4/6 vs 0/7/8/10; ring segments 48/72/96/144 vs lane segments 48/80/112/160 (only `buoysPerRing` 12/18/22/28 matches). Needs either a per-field divergence record or adoption of the web values. |
 | **SkiErg `preferred_hand_*` — contact and next-plant-approach windows** — **CLOSED at reference `173c6fa`** | `pose::skierg_targets`'s solved contact (`rig_targets().contacts`, the port's `solve_rigid_contact3d` output) | `v4HandTargets` (rowplay#199: each avatar exposes the pre-IK `handTarget`; for skierg `placePoleArms`'s contact pass overwrites it with the solved hand, so the surface is the post-pole-solve target) | web | `the_skierg_solved_hand_matches_the_web_post_pole_solve_hand_target` (viewmodel) over the regenerated `replay-rig-phase-parity.json`'s new `handTargets` field: **recovery window machine epsilon (6.6e-16)** — the port's solve composes the same Bezier law — while **contact worst 0.977 m** and **approach worst 0.033 m** are measured, bounded by regression guards, and attributed to the documented `plant_basket_z` model divergence (row below): the web pins the tip at rig-local (−0.46, 0.081, 0.24) through contact while the port's plant retreats with travel. First run before any port change; bike (`the_bike_bar_contact_matches_the_web_handlebar_anchor`, exact) and rower (`the_composed_oar_grip_target_matches_the_web_hand_target`, exact at 1e-9 after the order fix) are pinned in the same change. | The 0.977 m contact / 0.033 m approach deltas are the `plant_basket_z` defect seen through a second observable, not new surface: the source-map's scoped follow-up (per-frame IK + blend rewrite + visual verification) closes both this row's windows and that row together. Once landed, tighten the bounds to 1e-6. |
-| **SkiErg `plant_basket_z`** — known-wrong rendering | `rig_pose::solve_skierg` (`POLE_PLANT_FORWARD_OFFSET − cycle_frac · stroke_meters`, retreating course-anchored plant) | `renderer3dSkiAvatar.placePoleArms` keeps the plant stationary in rig-local — `poleTipLeft.z ≈ 0.24` across the whole contact (SkiErg athlete does not physically translate; the web treats "distance" as effort, not travel) | port | The rig-phase fixture is a clean oracle: web ≈ 0.24 through contact vs port at −1.76 m at cyc=0.25 mid-drive. **This is a rendering defect, not a design choice**: the port's pole basket drifts ~2 m rearward through every SkiErg stroke — visible on screen, the last unfixed defect the audit has found in the replay scene. Collapsing `plant_basket_z` to a constant matched the fixture but broke `requested_twist_stays_continuous_and_engages_the_budgets` in the viewmodel (~106° jump at step 8) — the existing `pose::skierg_targets` blend assumes `plant_basket` tracks `free_basket`, an assumption that only holds because the port's plant moves. That guard is information about the blend, not a reason to keep the plant moving. The collapse was reverted; the follow-up ships both changes together. | **One `pose::skierg_targets` rewrite closes it, not two.** Replace the current `plant_basket` / `free_basket` mix-blend with a per-frame IK against the fixed rig-local plant at `POLE_PLANT_FORWARD_OFFSET` (mirror what `placePoleArms` does): solve the pole shaft direction from `arm.handTarget` and the plant, drop the retreat term in `plant_basket_z` in the same edit. Requires visual verification on a host that captures Quick 3D correctly (any Linux session with Xvfb + Mesa, the Linux CI leg, or the author's RHEL box — see docs/qt-bridges-notes.md #17 for the narrow macOS/Metal exception), and a re-shot ski phase baseline (wide and close-up, keep the before set alongside). |
+| **SkiErg `plant_basket_z`** — known-wrong rendering | `rig_pose::solve_skierg` (`POLE_PLANT_FORWARD_OFFSET − cycle_frac · stroke_meters`, retreating course-anchored plant) | `renderer3dSkiAvatar.placePoleArms` keeps the plant stationary in rig-local — `poleTipLeft.z ≈ 0.24` across the whole contact (SkiErg athlete does not physically translate; the web treats "distance" as effort, not travel) | port | The rig-phase fixture is a clean oracle: web ≈ 0.24 through contact vs port at −1.76 m at cyc=0.25 mid-drive. **This is a rendering defect, not a design choice**: the port's pole basket drifts ~2 m rearward through every SkiErg stroke — visible on screen, the last unfixed defect the audit has found in the replay scene. Collapsing `plant_basket_z` to a constant matched the fixture but broke `requested_twist_stays_continuous_and_engages_the_budgets` in the viewmodel (~106° jump at step 8) — the existing `pose::skierg_targets` blend assumes `plant_basket` tracks `free_basket`, an assumption that only holds because the port's plant moves. That guard is information about the blend, not a reason to keep the plant moving. The collapse was reverted; the follow-up ships both changes together. | **One `pose::skierg_targets` rewrite closes it, not two.** Replace the current `plant_basket` / `free_basket` mix-blend with a per-frame IK against the fixed rig-local plant at `POLE_PLANT_FORWARD_OFFSET` (mirror what `placePoleArms` does): solve the pole shaft direction from `arm.handTarget` and the plant, drop the retreat term in `plant_basket_z` in the same edit. Requires visual verification on a host that captures Quick 3D correctly (any Linux session with Xvfb + Mesa, the Linux CI leg, or the author's RHEL box — see docs/qt-bridges-notes.md #17 for the narrow macOS/Metal exception), and a re-shot ski phase baseline (wide and close-up, keep the before set alongside). **Watch items (author-set): the failure to look for is what the rewrite introduces at the extremes, not the drift returning** — basket below the snow, rendered pole length changing (direction and length must be solved together), a visible snap at the blend handover. Shoot the before-captures first and keep both sets side by side. |
 
 ## rowplay-viewmodel — `crates/rowplay-viewmodel/src/replay/`
 
@@ -336,16 +336,44 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    asked for (twist/flexion/deviation against the web's budget
    constants across all phases — the metrics are exposed in
    `WristMetrics`).
-   **The multi-axis sweep across the port** (same audit pass): safe by
-   construction — single-axis (wheel, crank, pole-shaft `pole_rotation`,
-   `blade.rotation.x`); forced-FK accumulation with no order choice
-   (`grip.rs` rest-chain walk, `hand_grip` digit FK, `Workspace`
-   skeleton FK); or already pinned by composed-result fixtures
-   (`equipment::oar_rotations{,_from_yaws}` — the new combined-order
-   unit test plus `handTargets` parity). One residual worth naming:
-   `frame::pack` writes rotations as f32; a composition error below
-   ~1e-7 rad is unobservable on screen by construction, which is a
-   property of the pipeline, not coverage.
+   **The multi-axis sweep across the port** (same audit pass), by
+   category with the pose solver's passes named explicitly — not folded
+   into an "FK" bucket:
+   - **Single-axis, no order choice exists**: wheel, crank, pole-shaft
+     `pole_rotation`, `blade.rotation.x`.
+   - **Forced-FK accumulation** (parent ⊗ child, the only order that
+     walks a rest chain): `grip.rs` rest-chain walk, `hand_grip` digit
+     FK, `Workspace` skeleton FK.
+   - **Pose-solver passes — inspected individually, each order-free by
+     construction, not by inspection of a *choice***: the pelvis
+     alignment is **translation-only** (root-local shift + subtree
+     recompute; no quaternion written); the two-bone IK contact pass
+     (`solve_limb` → `aim_joint`) aims each joint with a single minimal
+     swing (`rotation_between`) and its only composition is the forced
+     `delta ⊗ world` then `conjugate(parent) ⊗ desired` world→local
+     conversion — the sole valid order, since converting local-first
+     would compute the delta in the wrong frame; the post-orient
+     re-close is a re-run of the same `solve_limb` machinery (a
+     sequence, not an order choice). The pass *sequence* (arm-authority
+     → pelvis → IK → orient → re-close → seam-split) is pinned end-to-
+     end by the rig-phase fixture's rendered `handLeft/Right` and
+     `poleTipLeft/Right` positions and the `handTargets` tests.
+   - **Genuine a⊗b choice sites, all accounted for**:
+     `equipment::oar_rotations{,_from_yaws}` — fixed and pinned by the
+     combined-order unit test plus `handTargets` parity; the rower
+     arm-authority recompose (`pose::pose` rower branch) — same fix,
+     same pins; the ski seam split (`split_seam_excess`) — named in the
+     exposure above with the wrist chain.
+   One residual worth naming: `frame::pack` writes rotations as f32, so
+   a composition error below ~1e-7 rad is unobservable on screen by
+   construction — a property of the pipeline, not coverage. And that
+   tolerance reasoning generalises as a triage rule (same distinction
+   as ranking 10): **any replay-geometry comparison whose value ends up
+   in the frame pack is asserting precision the renderer discards below
+   ~1e-7. A tight test is not wrong — catching a systematic difference
+   early is worth it — but a 1e-12 miss on a frame-packed quantity is
+   parity hygiene, a 1e-3 miss is a rendering defect. Do not treat all
+   failures as equal.**
 7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
    table needs a decision (adopt or record), not a fixture per se.
 8. **Motion-graph phase-source gap** — extend a generator to sweep
@@ -581,6 +609,16 @@ match the port.
   see docs/qt-bridges-notes.md #17) and re-shot ski phase baselines
   (wide + close-up, keep the before set alongside). Deferred as a
   follow-up.
+  **Watch items beyond the drift itself** (author-set): fixing the plant
+  means the tip stays put while the athlete travels, so the
+  hand-to-plant direction sweeps far wider than the blend has ever
+  seen. The failure to look for is **not the drift returning — it is
+  what the rewrite introduces at the extremes**: the basket dropping
+  below the snow surface, the pole's rendered length changing if shaft
+  direction and pole length are not solved together, or a visible snap
+  where the blend hands over from plant to free. Shoot the ski wide
+  captures **before** the change and keep them; a metre of drift is
+  unmistakable side by side, and so is anything the fix adds.
   `rig_phase_parity_skierg` pins six fields at 1e-6 (`torso_lean`,
   `head_pitch`, `hip_counter_tilt`, `pelvis_y/z`, `shoulder_y/z`) and
   `preferred_hand_*` in the pure recovery window at 1e-6; the earlier
