@@ -128,7 +128,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | Ghost pick | `ghost_pick::*` | `ghostPick.ts` | web | Unit re-expression of the ranking semantics with exact winner ids. | Same as above — total ordering pinned by units; Studio's hardening intentionally not ported (documented). Not worth closing (recorded reason). |
 | Quality budgets | `quality::RenderQuality::budgets` | `renderer3d.ts` `QUALITY` (lines 65–138) | Studio | Budget table pinned exactly — **against Studio's documented tiers**. | Not an inversion risk, but the portable fields that are comparable **numerically disagree with the web**: wake 0/16/28/44 vs web 0/20/32/52; spray 0/40/48/72 vs 0/64/80/112; per-catch 0/4/4/6 vs 0/7/8/10; ring segments 48/72/96/144 vs lane segments 48/80/112/160 (only `buoysPerRing` 12/18/22/28 matches). Needs either a per-field divergence record or adoption of the web values. |
 | **SkiErg `preferred_hand_*` — contact and next-plant-approach windows** | `rig_pose::solve_skierg` (feeds `pose::skierg_targets` as the pole-solve hand target) | `renderer3dSkiAvatar.skiPreferredHand` writes to `arm.handTarget` (pre-solve); `placePoleArms` then runs `solve_rigid_contact3d` / `skiGripReachSolver` which pull `arm.hand` off the authored polar arc during pole contact and off the Bezier return during the next-plant approach | web (`rig_phase_parity_skierg` pins the recovery window) | The rig-phase fixture records real oracle values now (avatar parented to a scene in the generator, so `placePoleArms` runs). Within the pure recovery window `SKI_POLE_OFF_CYCLE + 0.005 < cyc < SKI_POLE_APPROACH_START_CYCLE - 0.005` the port matches the web at 1e-6 (both use `skiPreferredHand`'s Bezier alone). Outside that window the fixture's `arm.hand` is the pole-solved position, not `skiPreferredHand`'s output — measured deltas: 0.58 m of y and 0.37 m of z at cyc=0.25 (contact), 0.23 m of y at cyc=0.98 (next-plant approach). The port's `preferred_hand_*` is the *pre*-solve target, so comparing per-sample against `arm.hand` is comparing different quantities. | The comparable web quantity is `arm.handTarget`, but the fixture cannot read it: `arm.handTarget` lives on the arm object closed over inside `makeSkierAvatar` and is not exposed on `avatar.v4Targets`. **Cheapest fix is a one-line upstream change to rowplay** (the author's own repo). The exact patch, ready to send: in `src/lib/replay/renderer3dSkiAvatar.ts` inside `makeSkierAvatar`'s return, add `leftHandTarget: leftArm.handTarget,` and `rightHandTarget: rightArm.handTarget,` next to `leftHand`/`rightHand`. The rower and bike avatars need the same two lines in their equivalents (`renderer3dRowAvatar.ts`, `renderer3dBikeAvatar.ts`). If the `Avatar` type in `renderer3dAvatarKit.ts` types `v4Targets` explicitly, extend it with `leftHandTarget?: THREE.Vector3; rightHandTarget?: THREE.Vector3;` (optional so consumers that only need positions don't need to change). Once merged: bump the pinned reference commit in `docs/source-map.md` and `tools/gen-rig-phase-parity.mjs` (`PINNED_COMMIT`), extend the generator's skierg `sample()` to also record `worldPosition(named-or-refetch of leftHandTarget)` — actually a direct `avatar.v4Targets.leftHandTarget` in the upper's local frame plus `upper.localToWorld` (it is a `THREE.Vector3`, not a scene node). Then re-enable the two `preferred_hand_*` comparisons across the full cycle. Alternative if the upstream PR stalls: a dedicated pure-function generator that evaluates `skiPreferredHand`'s formula directly per sample (extract constants + polar / Bezier from source, echo motion cues from the fixture, self-check by running the web function). |
-| **SkiErg `plant_basket_z`** — known-wrong rendering | `rig_pose::solve_skierg` (`POLE_PLANT_FORWARD_OFFSET − cycle_frac · stroke_meters`, retreating course-anchored plant) | `renderer3dSkiAvatar.placePoleArms` keeps the plant stationary in rig-local — `poleTipLeft.z ≈ 0.24` across the whole contact (SkiErg athlete does not physically translate; the web treats "distance" as effort, not travel) | port | The rig-phase fixture is a clean oracle: web ≈ 0.24 through contact vs port at −1.76 m at cyc=0.25 mid-drive. **This is a rendering defect, not a design choice**: the port's pole basket drifts ~2 m rearward through every SkiErg stroke — visible on screen, the last unfixed defect the audit has found in the replay scene. Collapsing `plant_basket_z` to a constant matched the fixture but broke `requested_twist_stays_continuous_and_engages_the_budgets` in the viewmodel (~106° jump at step 8) — the existing `pose::skierg_targets` blend assumes `plant_basket` tracks `free_basket`, an assumption that only holds because the port's plant moves. That guard is information about the blend, not a reason to keep the plant moving. The collapse was reverted; the follow-up ships both changes together. | **One `pose::skierg_targets` rewrite closes it, not two.** Replace the current `plant_basket` / `free_basket` mix-blend with a per-frame IK against the fixed rig-local plant at `POLE_PLANT_FORWARD_OFFSET` (mirror what `placePoleArms` does): solve the pole shaft direction from `arm.handTarget` and the plant, drop the retreat term in `plant_basket_z` in the same edit. Requires visual verification on the RHEL box (macOS `grabToImage` returns black on Quick 3D — docs/qt-bridges-notes.md #17), and a re-shot ski phase baseline. |
+| **SkiErg `plant_basket_z`** — known-wrong rendering | `rig_pose::solve_skierg` (`POLE_PLANT_FORWARD_OFFSET − cycle_frac · stroke_meters`, retreating course-anchored plant) | `renderer3dSkiAvatar.placePoleArms` keeps the plant stationary in rig-local — `poleTipLeft.z ≈ 0.24` across the whole contact (SkiErg athlete does not physically translate; the web treats "distance" as effort, not travel) | port | The rig-phase fixture is a clean oracle: web ≈ 0.24 through contact vs port at −1.76 m at cyc=0.25 mid-drive. **This is a rendering defect, not a design choice**: the port's pole basket drifts ~2 m rearward through every SkiErg stroke — visible on screen, the last unfixed defect the audit has found in the replay scene. Collapsing `plant_basket_z` to a constant matched the fixture but broke `requested_twist_stays_continuous_and_engages_the_budgets` in the viewmodel (~106° jump at step 8) — the existing `pose::skierg_targets` blend assumes `plant_basket` tracks `free_basket`, an assumption that only holds because the port's plant moves. That guard is information about the blend, not a reason to keep the plant moving. The collapse was reverted; the follow-up ships both changes together. | **One `pose::skierg_targets` rewrite closes it, not two.** Replace the current `plant_basket` / `free_basket` mix-blend with a per-frame IK against the fixed rig-local plant at `POLE_PLANT_FORWARD_OFFSET` (mirror what `placePoleArms` does): solve the pole shaft direction from `arm.handTarget` and the plant, drop the retreat term in `plant_basket_z` in the same edit. Requires visual verification on a host that captures Quick 3D correctly (any Linux session with Xvfb + Mesa, the Linux CI leg, or the author's RHEL box — see docs/qt-bridges-notes.md #17 for the narrow macOS/Metal exception), and a re-shot ski phase baseline (wide and close-up, keep the before set alongside). |
 
 ## rowplay-viewmodel — `crates/rowplay-viewmodel/src/replay/`
 
@@ -428,8 +428,12 @@ caught a defect — never adjust a fixture to match the port.
   keep the plant moving. The fix is one edit scoped to
   `pose::skierg_targets`: rewrite the blend as a per-frame IK against
   the fixed rig-local plant at 0.24, drop the retreat term in the same
-  change. Requires visual verification on the RHEL box and a re-shot
-  ski phase baseline; deferred as a follow-up.
+  change. Requires visual verification on a host that captures Quick 3D
+  correctly (any Linux + Xvfb + Mesa session, the Linux CI leg, or the
+  author's RHEL box — the black-viewport bug is macOS/Metal-specific;
+  see docs/qt-bridges-notes.md #17) and re-shot ski phase baselines
+  (wide + close-up, keep the before set alongside). Deferred as a
+  follow-up.
   `rig_phase_parity_skierg` pins six fields at 1e-6 (`torso_lean`,
   `head_pitch`, `hip_counter_tilt`, `pelvis_y/z`, `shoulder_y/z`) and
   `preferred_hand_*` in the pure recovery window at 1e-6; the earlier
@@ -444,19 +448,36 @@ caught a defect — never adjust a fixture to match the port.
   Outstanding: the rower composed layer (ranking 2 — the reach solve is
   dead at runtime, confirmed by trace) and the remaining stage-2 groups.
 
-## Capture caveat (affects the phase-shot baseline)
+## Capture caveat (narrower than the earlier wording suggested)
 
-The `ROWPLAY_PHASE_SHOTS=1` baseline **cannot be produced on macOS**: on this
-host `grabToImage` returns a black Quick 3D viewport while the live window
-renders the scene correctly (docs/qt-bridges-notes.md #17), and the
-whole-window `assert_rendered` did not notice because the sidebar supplies the
-colours. Phase 7's own baseline was captured on the RHEL machine (Wayland,
-Intel UHD 630) and is valid; this caveat is about hosts where `grabToImage`
-returns black. The baseline is captured in the Linux CI gate (Xvfb + Mesa,
-which does render it) and uploaded as `artifacts/phase-*.png`;
-`common::assert_viewport_rendered` now samples the viewport region under a real
-GL backend so a blank 3D area fails instead of riding on the chrome. Verify 3D
-changes on macOS against the live window, not a local capture.
+The `ROWPLAY_PHASE_SHOTS=1` baseline **cannot be produced on the one
+macOS/Metal host that hit `grabToImage`'s black-viewport bug**
+(docs/qt-bridges-notes.md #17). That was one previous session's host;
+it is not a general property. Verified paths that DO capture the 3D
+scene:
+
+- The Linux CI gate (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`) — uploads
+  `artifacts/phase-*.png`.
+- A local Linux session with the same env vars
+  (`xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate`
+  under `QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl
+  LIBGL_ALWAYS_SOFTWARE=1`). Verified 2026-09 in this session: the
+  gate walk produced `replay-{row,ski,bike}.ppm` with the venue
+  palettes (row teal water, ski near-white snow, bike cream terrace)
+  and zero black samples across a 96-point grid over the `View3D`
+  region.
+- The author's RHEL box (Wayland, Intel UHD 630), used for the Phase 7
+  T8 baseline.
+
+`common::assert_viewport_rendered` samples the viewport region under a
+real GL backend so a blank 3D area fails instead of riding on the
+chrome; that's the guard for the black-viewport case regardless of
+host.
+
+**Do not read the earlier "verify on the RHEL box" phrasing as a
+requirement.** On the affected macOS host, yes — verify against the
+live window, not a local capture. Everywhere else (any Linux session
+with Xvfb + Mesa), local visual verification is a valid path.
 
 A second capture gap: the QA close-up camera (`closeup_camera_view`, used only
 under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f`
