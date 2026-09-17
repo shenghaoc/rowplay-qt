@@ -67,8 +67,8 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
     permutation and **`warpedPhase = phase`** — so nothing the corpus pins can
     distinguish a consumer that keys on warped phase from one that keys on
     raw phase. `watts`, `amplitude`, `fatigue` stay fixed.
-- **Web-generated in this repository** (the audit's stage-2 pattern, both
-  recording `sourceCommit` and per-file SHA-256s inside the JSON):
+- **Web-generated in this repository** (the audit's stage-2 pattern, all
+  three recording `sourceCommit` and per-file SHA-256s inside the JSON):
   - `replay-row-phase-parity.json` (Phase 7, `tools/gen-row-phase-parity.mjs`,
     web commit `4d96480`): 33 cycle samples of the **authored** rower
     calibration formulas — seat slide, oar sweep yaw, dip roll — evaluated
@@ -81,6 +81,27 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
     and the V4 contact landmarks after `animate` + `resolveWorldContacts`.
     Pins a strictly deeper layer than the row-phase fixture: it also sees the
     analytic oar-yaw reach solve, the torso pitch, and the contact rig.
+  - `replay-stroke-model-parity.json` (audit ranking 5,
+    `tools/gen-stroke-model-parity.mjs`, web commit `011e830`): 129 pose
+    samples of the **production stroke-pose pipeline** — the web's real
+    `strokeModel.ts` imported and called (`buildStrokeTimeline`,
+    `strokePoseAt`, `fallbackStrokePose`), not re-derived in the generator.
+    Nine timelines sweep the input space the surface spans: real and
+    synthetic, three sports, interval rests, a non-advancing anchor,
+    degenerate rows (spm 0 / spm past the rate ceiling / no distance / no hr)
+    and an empty timeline, each queried at every row's start, midpoint and
+    end plus outside the timeline. `driveFrac` spans its whole clamp range
+    (0.28–0.5) and `intensity`/`fatigue`/`amplitude` each take dozens of
+    distinct values across the sweep.
+    These three fixtures serialise doubles at `toPrecision(17)`, which
+    serde_json's default fast parser mis-rounds by 1 ULP for a fraction of
+    such literals (the Studio-exported corpora hit the same class through
+    V8's shortest round-trip form); exact parsing — serde_json's
+    `float_roundtrip` feature, landed as its own PR ahead of this stack — is
+    pinned by `crates/rowplay-fixtures/tests/float_roundtrip.rs` as a
+    property over every fixture: each float literal reads back bit-identical
+    to its nearest double (see ranking 5 — a 1 ULP shift is what made that
+    ranking's first run fail).
 - **Studio-semantics** (`stroke-pose-parity`, `replay-race-gap/result/rival-*`,
   `Concept2/*`, predictor/duration-band): hand-verified or Studio-computed
   expectations. `stroke-pose-parity.json` predates the web's 2026-07 stroke
@@ -104,6 +125,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | Race result | `race_result::race_result` | `replayGap.ts` (finish) via Studio's interpolated crossing | Studio | `replay-race-result-parity.json`; the interpolated crossing is a documented deliberate deviation (source-map divergences). |
 | Rival sources | `rivals::{constant_pace_strokes, parse_rival_file}` | `sources.ts` + Studio hardening | web+Studio | `replay-rival-sources-parity.json`: endpoints 1e-3, bike divisor exact, CSV/TCX/FIT normalisation. Hardening documented. |
 | Stroke pose, Studio path | `stroke_model::compute_at_time` | Studio `ReplayStrokePose.computeAtTime` | Studio | `stroke-pose-parity.json`: 3 cases (one per sport), index/drive exact, scalars as hand-verified **ranges**. Kept only for this fixture; not the production path. |
+| **Stroke pose, web pipeline (production path)** | `stroke_model::{build_stroke_timeline, stroke_pose_at, fallback_stroke_pose}` | `strokeModel.ts` `buildStrokeTimeline`, `strokePoseAt`, `fallbackStrokePose` | web | `stroke_model_web_pipeline_parity` over `replay-stroke-model-parity.json` (audit ranking 5; the web module imported at the pinned commit, outputs recorded verbatim): 9 timelines × boundary-inclusive query sweep + 8 fallback poses, every timeline entry field, aggregate and pose field at 1e-10 — except `warped_phase`, pinned as cycle + seam-side only (plus exact at `driveFrac = 0.5`, where both warp laws are the identity) because the port's C1 warp is a documented deliberate divergence. The app renderer uses this path (backend `replay.rs`, not `compute_at_time`). |
 
 ### Partial
 
@@ -112,8 +134,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | **Rig phase calibration, composed layer** | `rig_pose::{solve_rower, solve_skierg, solve_bike}` | `renderer3d{Row,Ski,Bike}Avatar.ts` composed `animate` state | web | `replay-rig-phase-parity.json` (this audit, 384 samples × 2 timing sweeps). Per-sport tests: **bike and skierg enabled and green** after their fixes; rower `#[ignore]`d with recorded verdict. Post-Phase-7 re-run: **rower `seat_z` passes** — independent confirmation that this fixture agrees with the shipped fix — and crank passes. | Rower outstanding: `oar_sweep` — the port now rides `armDraw` (corrected channel) but still omits the arm-authority reach solve the web applies on top (**an inverted chain, not a layering indifference** — ranking 1 has the full finding and the fix plan); Studio handle/torso channels are dead surface. Skierg outstanding: torso base, hand-path frame composition (0.7–0.9 m), course-anchored plant (ranking 2). | Skierg: torso base and head local counter-tilt fixed against the web (`0.055 + hipHinge·0.56`, `-hipHinge·0.38`), pelvis carry now exposed as `pelvis_y`/`pelvis_z` and pinned against `upper.position`. The pre-composition `preferred_hand_*` and `plant_basket_z` fields are no longer compared against the fixture's `targets.leftHand` / `poleTipLeft`: the web `placePoleArms` (called via `resolveWorldContacts`) needs the Rust runtime's V4 shoulder data through `refineV4Targets`, and Node has none — so `arm.hand` and `skierg-pole-tip-*` came back at the pelvis origin for every sample and the old deltas measured "port-target minus pelvis", not any deviation from the web's placement (the parity test now records the rationale in full). Extending the generator with `hipsRotation` (`-hipHinge · 0.14`) is deferred — a byte-identical regeneration environment is not to hand. |
 | **Rower oar channel** | `rig_pose::solve_rower` (`armDraw` in) | `renderer3dRowAvatar.ts` `placeOars(equipmentHandleTravel = graph.body.armDraw.value)` | web | `rower_rig_phase_parity` (corrected fixture, 33 samples at 1e-10, green). The audit found the port (and Phase 7's own generator) keyed the oar sweep and the roll's handle-rise on `handleTravel`; the web's comment warns that channel "would include its leg contribution and pull the grip through the knees and torso too early". The channel error is up to 1.05 rad at mid-drive, and its handle-rise half exactly explained the previously-unexplained +0.029 rad roll residual. |
 | Motion-graph timing parameters | `motion_graph::timing_into` etc. | `motionGraph.ts` `timingInto` | web | Corpus sweeps phase at one fixed timing per sport; drive-fraction clamps and rate-dependent timing unit-pinned exactly (motion_graph.rs tests, re-expressing web tests). | No corpus varies `driveFrac`/`secondsPerCycle`/rate inputs. A regressed clamp would fail only the unit pins, which were written from the port. **Phase-source choice unpinned**: the graph reads `pose.phase` (motion_graph.rs, matching the web), but because the corpus pins `warpedPhase = phase`, a regression to `warped_phase` would pass every existing test. Sign error unlikely; input-selection error possible. |
-| Stroke pose, web pipeline (production path) | `stroke_model::{build_stroke_timeline, stroke_pose_at}` | `strokeModel.ts` `buildStrokeTimeline`, `strokePoseAt` | web | Unit tests pin timeline arithmetic, the web amplitude law `clamp(0.94 + i·0.12, 0.94, 1.06)` and drive-fraction law exactly; the app renderer uses this path (backend `replay.rs`, not `compute_at_time`). Verified: the web 3D renderer itself never calls `strokePoseAt` per frame — the Svelte page does, then hands `pose.phase` to the avatar — so the Rust production chain (page-equivalent path) matches the web's shape. | No web-generated corpus of `stroke_pose_at` outputs over varied rate/intensity/fatigue/duration inputs; the existing fixture drives the Studio path with 3 range cases predating the web's #171 rework. Intensity/fatigue composition could drift undetected. Inversion unlikely (progress/amplitude laws pinned). |
-| Warp stroke phase | `motion::warp_stroke_phase[_rate]` | `motion.ts` `warpStrokePhase` | web (deliberate divergence) | Boundary mapping (0.4·τ → π), identity at f = 0.5, monotonicity and C1/periodicity guard tests. | The port is intentionally C1 where the web is C0 — a web-generated fixture would fail by design; the divergence row is the contract. Residual risk: the documented contract itself is only enforced at the pins, not swept. |
+| Warp stroke phase | `motion::warp_stroke_phase[_rate]` | `motion.ts` `warpStrokePhase` | web (deliberate divergence) | Boundary mapping (0.4·τ → π), identity at f = 0.5, monotonicity and C1/periodicity guard tests. The stroke-model corpus (`replay-stroke-model-parity.json`) now sweeps the divergence contract itself: every recorded pose's `warped_phase` must share the web's cycle and seam side, and match exactly at `driveFrac = 0.5`. | The raw web `warpedPhase` values cannot be pinned — the port is intentionally C1 where the web is C0, and a value-level comparison would fail by design; the divergence row is the contract. The band-structure sweep covers that contract at 129 points, but not the curve shape between the pins (no oracle exists by definition). |
 | PerfGovernor | `motion::PerfGovernor` | `motion.ts` `PerfGovernor` | web (deliberate divergence) | Scenario tests pin the calibrated budget caps (44.0 = 2×22, 25.6 = 1.6×16) and the rollback ladder. | Documented divergence (66 ms outlier clamp, ≥10% payoff check, rollback+lock vs the web's monotone levels). Web defaults (22 ms / 60 / 90 / 30, 250 ms ignore) are the floor; nothing regenerates if the web retunes. |
 | `meters_per_cycle` | `motion::meters_per_cycle` | `motion.ts` `METERS_PER_CYCLE` | web | Constants 11/8/5 exercised transitively by the motion corpus (`generator_pose`); unit test asserts only `> 0`. | No direct pin of the table; low risk (values confirmed against the web source in this audit). |
 | Two-bone IK | `two_bone::*` | `figurePose.ts` `solveTwoBone3D` / `solveRigidContactPoint3D` | Studio naming, web geometry | Exact analytic unit tests; since Phase 7 also exercised transitively at 1e-12 through `row_equipment::solve_rower_arm` in the equipment corpus. | No direct web-generated sweep of the two-bone solver's own input space (folded/overextended/hint-flip); risk low — the geometry is exact and now consumed under fixture load. |
@@ -229,8 +250,33 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    phase-shot grab, or those judgements were made on the wide set. Resolve
    against the RHEL `artifacts/phase-baseline/` before relying on either
    reading — and do not write it up as "the close-up never worked".
-5. **`stroke_pose_at` web-pipeline corpus** — production path has no
-   web-generated sweep over varied inputs.
+5. **`stroke_pose_at` web-pipeline corpus. CLOSED.**
+   The production path had no web-generated sweep over varied inputs — the
+   only fixture drove the Studio path with 3 range cases predating the web's
+   #171 rework. `tools/gen-stroke-model-parity.mjs` now imports the web's
+   real `strokeModel.ts` at the pinned commit (the stage-2 contract: record
+   what the web returns, never re-derive it) and
+   `replay-stroke-model-parity.json` pins `buildStrokeTimeline` +
+   `strokePoseAt` + `fallbackStrokePose` over 9 timelines and 129 pose
+   samples at 1e-10 (`stroke_model_web_pipeline_parity`; row moved to
+   Covered). `warped_phase` is exempt by design — the port's C1 warp is the
+   documented divergence — and is pinned as cycle + seam-side, plus exact at
+   the `driveFrac = 0.5` identity. **The first run failed on one field, and
+   the fault was in the harness, not the port**: serde_json's default fast
+   float parser lands 1 ULP off a fraction of the fixtures' long literals —
+   4283 of them across every float-bearing corpus, generated and
+   Studio-exported alike, so every parity comparison had been running on
+   perturbed inputs — which pushed one bike-midpoint `cycleFrac` from
+   `0.4999999999999992` to exactly `0.5` and flipped the `drive` flag. That
+   fix landed first, as its own PR ahead of this stack: exact float parsing
+   workspace-wide (serde_json's `float_roundtrip` feature) plus the property
+   pin `crates/rowplay-fixtures/tests/float_roundtrip.rs` — every float
+   literal in every fixture must read back bit-identical to its nearest
+   double — and the AGENTS.md rule it motivates (the harness is a suspect
+   equal to the port). After it, every
+   recorded timeline field, aggregate and pose field agreed at 1e-10 with no
+   port change — the production intensity/fatigue/drive-fraction composition
+   is confirmed against the web pipeline, not just its own unit pins.
 6. **Wrist budget sweep** — covered only through the equipment corpus and
    web-test re-expression.
 7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
@@ -395,18 +441,27 @@ faithful, which is what exposed the 1.05 rad channel error. Where a quantity is
 only reachable as a pure function, record that function's inputs *and* output
 per sample, and self-check the reconstruction against the rendered value.
 
-Otherwise follow the in-repo pattern (`tools/gen-row-phase-parity.mjs`, Phase 7,
-and `tools/gen-rig-phase-parity.mjs`, this audit): evaluate the **web source** at
-a pinned commit under Node ≥ 23.6 (Studio's exporter reads via `git show`;
-the rig-phase generator asserts the checkout's HEAD equals the pin and
-records per-file SHA-256s), sweep the input space the surface spans (a phase
-calibration needs samples across the full cycle at varied `driveFrac`/rate,
-not one fixed timing), and record provenance in the fixture so a reference
-change surfaces as a diff. Commit the generator under `tools/`, register the
+Follow the in-repo pattern (`tools/gen-row-phase-parity.mjs`, Phase 7,
+`tools/gen-rig-phase-parity.mjs`, this audit, and
+`tools/gen-stroke-model-parity.mjs`, ranking 5): evaluate the **web source**
+at a pinned commit under Node ≥ 23.6 (Studio's exporter reads via `git show`;
+the rig-phase and stroke-model generators assert the checkout's HEAD equals
+the pin and record per-file SHA-256s), sweep the input space the surface
+spans (a phase calibration needs samples across the full cycle at varied
+`driveFrac`/rate, not one fixed timing), and record provenance in the
+fixture so a reference change surfaces as a diff. Where the quantity is
+reachable as a module, **import the web's module and call it** (the
+stroke-model generator imports the real `strokeModel.ts`); re-deriving its
+formula in the generator records the porter's reading of the source instead
+of the web's behaviour. Commit the generator under `tools/`, register the
 fixture in `tests/fixtures/manifest.json` and `PROVENANCE.md`, and add it to
-`GENERATED_FIXTURES` in `tools/vendor-fixtures.py`. **Run the test before
-fixing anything** and state in the PR whether the fixture passed first run or
-caught a defect — never adjust a fixture to match the port.
+`GENERATED_FIXTURES` in `tools/vendor-fixtures.py`. Serialise doubles at
+`toPrecision(17)` (`stableStringify`) for byte-stable output — and note the
+Rust side must parse them with serde_json's `float_roundtrip` feature (see
+ranking 5); the default fast parser is 1 ULP off on ~9% of such literals.
+**Run the test before fixing anything** and state in the PR whether the
+fixture passed first run or caught a defect — never adjust a fixture to
+match the port.
 
 ## State of this audit
 
@@ -464,8 +519,23 @@ caught a defect — never adjust a fixture to match the port.
   `rightHandTarget` to the `v4Targets` return and close it (the
   reference is the author's own repo, so a small PR is available);
   `plant_basket_z` needs the pose-solver rewrite described above.
-  Outstanding: the rower composed layer (ranking 2 — the reach solve is
-  dead at runtime, confirmed by trace) and the remaining stage-2 groups.
+  The rower composed layer landed with the armDraw channel +
+  reach-solve composition (PR #27; the composed yaw is pinned by the
+  rig-phase fixture's `oarSolve` recording and the viewmodel pose test).
+  Remaining: the stage-2 follow-ups and rankings 6–10.
+  (ranking 1), the rower composed layer (ranking 3 — the reach solve is dead
+  at runtime, confirmed by trace), and the remaining stage-2 groups.
+- Ranking 5 (stroke-model web pipeline): closed against `bf8d77f`. The
+  fixture caught a **harness** defect, not a port defect — serde_json's
+  default float parser is off by 1 ULP on a fraction of the fixtures' long
+  literals (4283 of them across every float-bearing corpus, generated and
+  Studio-exported alike, silently perturbing the parsed inputs of every
+  parity comparison). The fix landed first, as its own PR: exact float
+  parsing workspace-wide (serde_json's `float_roundtrip`) plus the
+  property pin `float_roundtrip.rs`, plus the AGENTS.md rule that the
+  harness is a suspect equal to the port. The port itself agreed at 1e-10
+  once it was fed the web's exact doubles. Rankings 1–4 are
+  in flight as PRs #25–#28; check those before starting any of them.
 
 ## Capture caveat (narrower than the earlier wording suggested)
 

@@ -16,7 +16,7 @@ checked by `crates/rowplay-fixtures` tests.
 Redaction policy: see `Concept2/REDACTION.md` (copied from Studio). No fixture
 contains real athlete data, tokens, cookies, or hardware identifiers.
 
-Two fixtures are generated locally rather than vendored:
+Three fixtures are generated locally rather than vendored:
 
 - `replay-row-phase-parity.json` pins the web avatar's rower stroke-phase
   calibration (seat slide, oar sweep yaw, oar dip roll per cycle) directly
@@ -32,10 +32,32 @@ Two fixtures are generated locally rather than vendored:
   contact landmarks from `renderer3d{Row,Ski,Bike}Avatar.ts` at the pinned
   rowplay commit `011e8303` (384 samples × 2 timing sweeps). Regenerate with
   `node --experimental-transform-types tools/gen-rig-phase-parity.mjs`.
+- `replay-stroke-model-parity.json` (parity coverage audit ranking 5,
+  `docs/parity-coverage.md`) pins the **production stroke-pose pipeline**:
+  `buildStrokeTimeline`, `strokePoseAt` and `fallbackStrokePose` imported from
+  `src/lib/replay/strokeModel.ts` at the pinned rowplay commit `011e8303` and
+  fed nine varied timelines (real and synthetic, interval rests, a
+  non-advancing anchor, degenerate rows, an empty timeline) plus a
+  boundary-inclusive query-time sweep — 129 pose samples. The sibling
+  `stroke-pose-parity.json` drives the Studio-semantics `compute_at_time`
+  instead and predates the web's 2026-07 rework (#171). Regenerate with
+  `node tools/gen-stroke-model-parity.mjs --rowplay-repo reference/rowplay`
+  (Node ≥ 23.6; no node_modules needed).
 
-Both record the web source-file SHA-256s inside the JSON, and
+All three record the web source-file SHA-256s inside the JSON, and
 `tools/vendor-fixtures.py` preserves their manifest entries. Never hand-edit
-either.
+any of them.
+
+Float parsing note: the generated fixtures serialise every double at 17
+significant digits (`toPrecision(17)`), and serde_json's **default** fast
+float parser mis-rounds a fraction of such literals by 1 ULP (the
+Studio-exported corpora hit the same class) — enough to flip a knife-edge
+comparison like the `cycleFrac < driveFrac` seam (it flipped one sample of
+this fixture on its first run). The workspace therefore enables serde_json's
+`float_roundtrip` feature (root `Cargo.toml`, landed as its own PR ahead of
+this fixture); `crates/rowplay-fixtures/tests/float_roundtrip.rs` pins the
+property — every float literal in every fixture reads back bit-identical to
+its nearest double.
 
 | Fixture | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -56,6 +78,7 @@ either.
 | `replay-rival-sources-parity.json` | 5404 | `35e252dcd69a3df8d40fbaa4855ba059f2e1571d25495bf525a256c34f05e04d` |
 | `stroke-pose-parity.json` | 2385 | `b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae` |
 | `replay-row-phase-parity.json` | 29459 | `ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d` |
+| `replay-stroke-model-parity.json` | 96504 | `11e3072f42921050af59d33a1e07d3c2475dd94078e2a3daca5a28499c3673a1` |
 
 ## Licence
 

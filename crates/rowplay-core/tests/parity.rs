@@ -27,7 +27,10 @@ use rowplay_core::replay::rivals::{ParsedTrace, constant_pace_strokes, parse_riv
 use rowplay_core::replay::sport_kinematics::{
     solve_bike_kinematics, solve_rower_kinematics, solve_skier_kinematics,
 };
-use rowplay_core::replay::stroke_model::{PoseContext, StrokePose, compute_at_time};
+use rowplay_core::replay::stroke_model::{
+    PoseContext, StrokePose, build_stroke_timeline, compute_at_time, fallback_stroke_pose,
+    stroke_pose_at,
+};
 use rowplay_core::replay::theme::{
     COLORS_DARK, COLORS_LIGHT, VenuePalette, venues_dark, venues_light,
 };
@@ -497,6 +500,458 @@ fn stroke_pose_parity() {
         in_range(pose.fatigue, &case.expected.fatigue_range, "fatigue");
         in_range(pose.amplitude, &case.expected.amplitude_range, "amplitude");
     }
+}
+
+/// The web pipeline's production path (`build_stroke_timeline` +
+/// `stroke_pose_at` + `fallback_stroke_pose`) over the web-generated corpus
+/// `replay-stroke-model-parity.json` (tools/gen-stroke-model-parity.mjs, web
+/// at the pinned commit): nine timelines — real and synthetic, interval
+/// rests, a non-advancing anchor, degenerate rows, an empty timeline — with
+/// every pose the web returned at a boundary-inclusive query sweep
+/// (row start/mid/end, before/after the timeline).
+///
+/// Tolerance: 1e-10 on every recorded timeline and pose field (the port
+/// evaluates the web formulas on IEEE doubles; the recorded values are the
+/// web's own doubles at full round-trip precision). The one exempt field is
+/// `warped_phase`: the port's warp is deliberately C1 where the web's is C0
+/// (source-map divergence, `motion.rs`), so a web-generated value would fail
+/// by design. This test pins what the divergence row guarantees instead —
+/// same cycle, warped fraction on the same side of the drive/recovery seam —
+/// and exact agreement wherever `drive_frac == 0.5`, where both laws reduce
+/// to the identity (every bike sample).
+#[test]
+fn stroke_model_web_pipeline_parity() {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Fixture {
+        schema: String,
+        source_commit: String,
+        case_count: usize,
+        query_count: usize,
+        cases: Vec<Case>,
+        fallback_poses: Vec<Fallback>,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Case {
+        name: String,
+        sport: Sport,
+        real: bool,
+        strokes: Vec<Stroke>,
+        timeline: ExpectedTimeline,
+        queries: Vec<Query>,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ExpectedTimeline {
+        sport: Sport,
+        real: bool,
+        entries: Vec<ExpectedEntry>,
+        duration: f64,
+        distance: f64,
+        median_watts: f64,
+        peak_watts: f64,
+        median_dps: f64,
+        median_hr: f64,
+        max_hr: f64,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ExpectedEntry {
+        index: usize,
+        start_cycle: f64,
+        end_cycle: f64,
+        start_t: f64,
+        end_t: f64,
+        start_d: f64,
+        end_d: f64,
+        pace: f64,
+        spm: f64,
+        #[serde(default)]
+        hr: Option<f64>,
+        watts: f64,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Query {
+        t: f64,
+        pose: ExpectedPose,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Fallback {
+        sport: Sport,
+        phase: f64,
+        rate: f64,
+        pose: ExpectedPose,
+    }
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ExpectedPose {
+        index: usize,
+        phase: f64,
+        warped_phase: f64,
+        cycle_frac: f64,
+        drive_frac: f64,
+        drive: bool,
+        drive_progress: f64,
+        recovery_progress: f64,
+        stroke_seconds: f64,
+        stroke_meters: f64,
+        rate: f64,
+        watts: f64,
+        intensity: f64,
+        amplitude: f64,
+        fatigue: f64,
+        real: bool,
+    }
+
+    const TOLERANCE: f64 = 1e-10;
+    type Worst = BTreeMap<String, (f64, String)>;
+
+    fn close(worst: &mut Worst, context: &str, field: &str, actual: f64, expected: f64) {
+        let delta = actual - expected;
+        if delta.abs() > TOLERANCE {
+            let key = format!("{context}:{field}");
+            let line =
+                format!("{key}: rust {actual:.12} vs web {expected:.12} (delta {delta:+.3e})");
+            let worse = worst
+                .get(&key)
+                .is_none_or(|(prev, _)| delta.abs() > prev.abs());
+            if worse {
+                worst.insert(key, (delta.abs(), line));
+            }
+        }
+    }
+
+    fn flag(worst: &mut Worst, context: &str, field: &str, actual: &str, expected: &str) {
+        let key = format!("{context}:{field}");
+        worst.entry(key.clone()).or_insert_with(|| {
+            (
+                f64::INFINITY,
+                format!("{key}: rust {actual} vs web {expected}"),
+            )
+        });
+    }
+
+    /// The divergence-exempt field: cycle + seam side, and exact agreement at
+    /// the identity point `drive_frac == 0.5` (both laws reduce to w = u).
+    fn warp_band(worst: &mut Worst, context: &str, actual: f64, expected: f64, drive_frac: f64) {
+        const TAU: f64 = std::f64::consts::TAU;
+        if (drive_frac - 0.5).abs() < f64::EPSILON {
+            close(worst, context, "warpedPhase(identity)", actual, expected);
+            return;
+        }
+        let actual_cycle = (actual / TAU).floor();
+        let expected_cycle = (expected / TAU).floor();
+        if actual_cycle != expected_cycle {
+            flag(
+                worst,
+                context,
+                "warpedPhase(cycle)",
+                &actual_cycle.to_string(),
+                &expected_cycle.to_string(),
+            );
+        }
+        // Both laws are monotonic with w(u = driveFrac) = 0.5, so the warped
+        // fraction's side of the seam must agree even though the curves
+        // between the pins do not (that is the documented divergence).
+        let actual_frac = actual / TAU - actual_cycle;
+        let expected_frac = expected / TAU - expected_cycle;
+        if (actual_frac < 0.5) != (expected_frac < 0.5) {
+            flag(
+                worst,
+                context,
+                "warpedPhase(seam)",
+                &format!("{actual_frac:.9}"),
+                &format!("{expected_frac:.9}"),
+            );
+        }
+    }
+
+    fn pose_close(worst: &mut Worst, context: &str, actual: &StrokePose, expected: &ExpectedPose) {
+        if actual.index != expected.index {
+            flag(
+                worst,
+                context,
+                "index",
+                &actual.index.to_string(),
+                &expected.index.to_string(),
+            );
+        }
+        if actual.drive != expected.drive {
+            flag(
+                worst,
+                context,
+                "drive",
+                &actual.drive.to_string(),
+                &expected.drive.to_string(),
+            );
+        }
+        if actual.real != expected.real {
+            flag(
+                worst,
+                context,
+                "real",
+                &actual.real.to_string(),
+                &expected.real.to_string(),
+            );
+        }
+        close(worst, context, "phase", actual.phase, expected.phase);
+        warp_band(
+            worst,
+            context,
+            actual.warped_phase,
+            expected.warped_phase,
+            expected.drive_frac,
+        );
+        close(
+            worst,
+            context,
+            "cycleFrac",
+            actual.cycle_frac,
+            expected.cycle_frac,
+        );
+        close(
+            worst,
+            context,
+            "driveFrac",
+            actual.drive_frac,
+            expected.drive_frac,
+        );
+        close(
+            worst,
+            context,
+            "driveProgress",
+            actual.drive_progress,
+            expected.drive_progress,
+        );
+        close(
+            worst,
+            context,
+            "recoveryProgress",
+            actual.recovery_progress,
+            expected.recovery_progress,
+        );
+        close(
+            worst,
+            context,
+            "strokeSeconds",
+            actual.stroke_seconds,
+            expected.stroke_seconds,
+        );
+        close(
+            worst,
+            context,
+            "strokeMeters",
+            actual.stroke_meters,
+            expected.stroke_meters,
+        );
+        close(worst, context, "rate", actual.rate, expected.rate);
+        close(worst, context, "watts", actual.watts, expected.watts);
+        close(
+            worst,
+            context,
+            "intensity",
+            actual.intensity,
+            expected.intensity,
+        );
+        close(
+            worst,
+            context,
+            "amplitude",
+            actual.amplitude,
+            expected.amplitude,
+        );
+        close(worst, context, "fatigue", actual.fatigue, expected.fatigue);
+    }
+
+    let fixture: Fixture = load_json("replay-stroke-model-parity.json").expect("fixture");
+    assert_eq!(fixture.schema, "rowplay.replay.stroke-model-parity.v1");
+    assert_eq!(
+        fixture.source_commit, "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+        "fixture pin drifted from docs/source-map.md"
+    );
+    assert_eq!(fixture.case_count, fixture.cases.len());
+
+    let mut worst: Worst = BTreeMap::new();
+    let mut query_count = 0;
+    for case in &fixture.cases {
+        // The recorded stroke rows go to the port verbatim.
+        let timeline = build_stroke_timeline(&case.strokes, case.sport, case.real);
+        let context = case.name.as_str();
+
+        if timeline.sport != case.timeline.sport {
+            flag(
+                &mut worst,
+                context,
+                "sport",
+                &format!("{:?}", timeline.sport),
+                &format!("{:?}", case.timeline.sport),
+            );
+        }
+        if timeline.real != case.timeline.real {
+            flag(
+                &mut worst,
+                context,
+                "timelineReal",
+                &timeline.real.to_string(),
+                &case.timeline.real.to_string(),
+            );
+        }
+        // Structural mismatch (anchor skipping) makes the field comparisons
+        // meaningless; report and continue to the next case.
+        if timeline.entries.len() == case.timeline.entries.len() {
+            for (actual, expected) in timeline.entries.iter().zip(&case.timeline.entries) {
+                let entry = format!("{context}/entry{}", expected.index);
+                if actual.index != expected.index {
+                    flag(
+                        &mut worst,
+                        &entry,
+                        "index",
+                        &actual.index.to_string(),
+                        &expected.index.to_string(),
+                    );
+                }
+                if actual.hr != expected.hr {
+                    flag(
+                        &mut worst,
+                        &entry,
+                        "hr",
+                        &format!("{:?}", actual.hr),
+                        &format!("{:?}", expected.hr),
+                    );
+                }
+                close(
+                    &mut worst,
+                    &entry,
+                    "startCycle",
+                    actual.start_cycle,
+                    expected.start_cycle,
+                );
+                close(
+                    &mut worst,
+                    &entry,
+                    "endCycle",
+                    actual.end_cycle,
+                    expected.end_cycle,
+                );
+                close(
+                    &mut worst,
+                    &entry,
+                    "startT",
+                    actual.start_t,
+                    expected.start_t,
+                );
+                close(&mut worst, &entry, "endT", actual.end_t, expected.end_t);
+                close(
+                    &mut worst,
+                    &entry,
+                    "startD",
+                    actual.start_d,
+                    expected.start_d,
+                );
+                close(&mut worst, &entry, "endD", actual.end_d, expected.end_d);
+                close(&mut worst, &entry, "pace", actual.pace, expected.pace);
+                close(&mut worst, &entry, "spm", actual.spm, expected.spm);
+                close(&mut worst, &entry, "watts", actual.watts, expected.watts);
+            }
+        } else {
+            flag(
+                &mut worst,
+                context,
+                "entryCount",
+                &timeline.entries.len().to_string(),
+                &case.timeline.entries.len().to_string(),
+            );
+        }
+        close(
+            &mut worst,
+            context,
+            "duration",
+            timeline.duration,
+            case.timeline.duration,
+        );
+        close(
+            &mut worst,
+            context,
+            "distance",
+            timeline.distance,
+            case.timeline.distance,
+        );
+        close(
+            &mut worst,
+            context,
+            "medianWatts",
+            timeline.median_watts,
+            case.timeline.median_watts,
+        );
+        close(
+            &mut worst,
+            context,
+            "peakWatts",
+            timeline.peak_watts,
+            case.timeline.peak_watts,
+        );
+        close(
+            &mut worst,
+            context,
+            "medianDps",
+            timeline.median_dps,
+            case.timeline.median_dps,
+        );
+        close(
+            &mut worst,
+            context,
+            "medianHr",
+            timeline.median_hr,
+            case.timeline.median_hr,
+        );
+        close(
+            &mut worst,
+            context,
+            "maxHr",
+            timeline.max_hr,
+            case.timeline.max_hr,
+        );
+
+        for query in &case.queries {
+            let pose = stroke_pose_at(&timeline, query.t);
+            pose_close(
+                &mut worst,
+                &format!("{context}@{:.6}", query.t),
+                &pose,
+                &query.pose,
+            );
+            query_count += 1;
+        }
+    }
+
+    for fallback in &fixture.fallback_poses {
+        let pose = fallback_stroke_pose(fallback.sport, fallback.phase, fallback.rate);
+        pose_close(
+            &mut worst,
+            &format!(
+                "fallback/{:?}@{:.6}/{}",
+                fallback.sport, fallback.phase, fallback.rate
+            ),
+            &pose,
+            &fallback.pose,
+        );
+        query_count += 1;
+    }
+    assert_eq!(query_count, fixture.query_count);
+
+    assert!(
+        worst.is_empty(),
+        "{} stroke-model field(s) diverge from the web corpus:\n  {}",
+        worst.len(),
+        worst
+            .values()
+            .map(|(_, line)| line.clone())
+            .collect::<Vec<_>>()
+            .join("\n  ")
+    );
 }
 
 /// Tolerance: gap metres/seconds and ghost distances at 1e-6 (exact web math).

@@ -1,0 +1,3919 @@
+{
+ "schema": "rowplay.replay.stroke-model-parity.v1",
+ "sourceCommit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+ "generatorVersion": "gen-stroke-model-parity/1.0.0",
+ "sourceFileSha256s": {
+  "src/lib/replay/strokeModel.ts": "b9d6d7a1e93b2f2b19bb67966e00efbe997d7c1333a79e64feef137557807569",
+  "src/lib/replay/motion.ts": "38086301e5e59ce1a7884ddb55b0623827677125244692b070cec6f0658d576a"
+ },
+ "mapping": {
+  "timeline": "buildStrokeTimeline(strokes, sport, real) — entries + aggregates, recorded verbatim",
+  "pose": "strokePoseAt(timeline, t) — recorded verbatim at every query time",
+  "fallback": "fallbackStrokePose(sport, phase, rate) — recorded verbatim",
+  "warpedPhase": "the web's C0 warpStrokePhase; the port is deliberately C1 (source-map divergence), so the Rust test pins only the band structure (same cycle, same drive/recovery half) for this field and compares every other field at 1e-10"
+ },
+ "caseCount": 9,
+ "queryCount": 129,
+ "cases": [
+  {
+   "name": "rower-steady-state",
+   "sport": "rower",
+   "real": true,
+   "strokes": [
+    {
+     "t": 2.1428571428571428,
+     "d": 11.199999999999999,
+     "pace": 120,
+     "spm": 28,
+     "watts": 190,
+     "hr": 140
+    },
+    {
+     "t": 4.2857142857142856,
+     "d": 22.399999999999999,
+     "pace": 120,
+     "spm": 28,
+     "watts": 202,
+     "hr": 144
+    },
+    {
+     "t": 6.4285714285714288,
+     "d": 33.599999999999994,
+     "pace": 120,
+     "spm": 28,
+     "watts": 214,
+     "hr": 148
+    },
+    {
+     "t": 8.5714285714285712,
+     "d": 44.799999999999997,
+     "pace": 120,
+     "spm": 28,
+     "watts": 190,
+     "hr": 152
+    },
+    {
+     "t": 10.714285714285714,
+     "d": 56,
+     "pace": 120,
+     "spm": 28,
+     "watts": 202,
+     "hr": 156
+    },
+    {
+     "t": 12.857142857142856,
+     "d": 67.200000000000003,
+     "pace": 120,
+     "spm": 28,
+     "watts": 214,
+     "hr": 160
+    },
+    {
+     "t": 14.999999999999998,
+     "d": 78.400000000000006,
+     "pace": 120,
+     "spm": 28,
+     "watts": 190,
+     "hr": 164
+    },
+    {
+     "t": 17.142857142857142,
+     "d": 89.600000000000009,
+     "pace": 120,
+     "spm": 28,
+     "watts": 202,
+     "hr": 168
+    }
+   ],
+   "timeline": {
+    "sport": "rower",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 2.1428571428571428,
+      "startD": 0,
+      "endD": 11.199999999999999,
+      "pace": 120,
+      "spm": 28,
+      "hr": 140,
+      "watts": 190,
+      "startCycle": 0,
+      "endCycle": 1
+     },
+     {
+      "index": 1,
+      "startT": 2.1428571428571428,
+      "endT": 4.2857142857142856,
+      "startD": 11.199999999999999,
+      "endD": 22.399999999999999,
+      "pace": 120,
+      "spm": 28,
+      "hr": 144,
+      "watts": 202,
+      "startCycle": 1,
+      "endCycle": 2
+     },
+     {
+      "index": 2,
+      "startT": 4.2857142857142856,
+      "endT": 6.4285714285714288,
+      "startD": 22.399999999999999,
+      "endD": 33.599999999999994,
+      "pace": 120,
+      "spm": 28,
+      "hr": 148,
+      "watts": 214,
+      "startCycle": 2,
+      "endCycle": 3
+     },
+     {
+      "index": 3,
+      "startT": 6.4285714285714288,
+      "endT": 8.5714285714285712,
+      "startD": 33.599999999999994,
+      "endD": 44.799999999999997,
+      "pace": 120,
+      "spm": 28,
+      "hr": 152,
+      "watts": 190,
+      "startCycle": 3,
+      "endCycle": 4
+     },
+     {
+      "index": 4,
+      "startT": 8.5714285714285712,
+      "endT": 10.714285714285714,
+      "startD": 44.799999999999997,
+      "endD": 56,
+      "pace": 120,
+      "spm": 28,
+      "hr": 156,
+      "watts": 202,
+      "startCycle": 4,
+      "endCycle": 5
+     },
+     {
+      "index": 5,
+      "startT": 10.714285714285714,
+      "endT": 12.857142857142856,
+      "startD": 56,
+      "endD": 67.200000000000003,
+      "pace": 120,
+      "spm": 28,
+      "hr": 160,
+      "watts": 214,
+      "startCycle": 5,
+      "endCycle": 6
+     },
+     {
+      "index": 6,
+      "startT": 12.857142857142856,
+      "endT": 14.999999999999998,
+      "startD": 67.200000000000003,
+      "endD": 78.400000000000006,
+      "pace": 120,
+      "spm": 28,
+      "hr": 164,
+      "watts": 190,
+      "startCycle": 6,
+      "endCycle": 7
+     },
+     {
+      "index": 7,
+      "startT": 14.999999999999998,
+      "endT": 17.142857142857142,
+      "startD": 78.400000000000006,
+      "endD": 89.600000000000009,
+      "pace": 120,
+      "spm": 28,
+      "hr": 168,
+      "watts": 202,
+      "startCycle": 7,
+      "endCycle": 8
+     }
+    ],
+    "duration": 17.142857142857142,
+    "distance": 89.600000000000009,
+    "medianWatts": 202,
+    "peakWatts": 214,
+    "medianDps": 11.200000000000003,
+    "medianHr": 154,
+    "maxHr": 168
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.38709333517486916,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 11.199999999999999,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015036,
+      "amplitude": 1.0374257170480179,
+      "fatigue": 0.037438097540015036,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.38709333517486916,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 11.199999999999999,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015036,
+      "amplitude": 1.0374257170480179,
+      "fatigue": 0.037438097540015036,
+      "real": true
+     }
+    },
+    {
+     "t": 1.0714285714285714,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 3.7203214700844836,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.38709333517486916,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18421510370970492,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 11.199999999999999,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015036,
+      "amplitude": 1.0374257170480179,
+      "fatigue": 0.037438097540015036,
+      "real": true
+     }
+    },
+    {
+     "t": 2.1428571428571428,
+     "pose": {
+      "index": 1,
+      "phase": 6.2831853071795862,
+      "warpedPhase": 6.2831853071795862,
+      "cycleFrac": 0,
+      "driveFrac": 0.38956062489449533,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 11.199999999999999,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.071772209689547756,
+      "real": true
+     }
+    },
+    {
+     "t": 3.2142857142857144,
+     "pose": {
+      "index": 1,
+      "phase": 9.4247779607693793,
+      "warpedPhase": 9.9931481276488263,
+      "cycleFrac": 0.50000000000000011,
+      "driveFrac": 0.38956062489449533,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18091784312965906,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 11.199999999999999,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.071772209689547756,
+      "real": true
+     }
+    },
+    {
+     "t": 4.2857142857142856,
+     "pose": {
+      "index": 2,
+      "phase": 12.566370614359172,
+      "warpedPhase": 12.566370614359172,
+      "cycleFrac": 0,
+      "driveFrac": 0.39202791461412145,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571432,
+      "strokeMeters": 11.199999999999996,
+      "rate": 28,
+      "watts": 214,
+      "intensity": 0.87356321839080453,
+      "amplitude": 1.0448275862068965,
+      "fatigue": 0.10610632183908045,
+      "real": true
+     }
+    },
+    {
+     "t": 5.3571428571428577,
+     "pose": {
+      "index": 2,
+      "phase": 15.707963267948966,
+      "warpedPhase": 16.265890709676416,
+      "cycleFrac": 0.50000000000000022,
+      "driveFrac": 0.39202791461412145,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.17759382047507843,
+      "strokeSeconds": 2.1428571428571432,
+      "strokeMeters": 11.199999999999996,
+      "rate": 28,
+      "watts": 214,
+      "intensity": 0.87356321839080453,
+      "amplitude": 1.0448275862068965,
+      "fatigue": 0.10610632183908045,
+      "real": true
+     }
+    },
+    {
+     "t": 6.4285714285714288,
+     "pose": {
+      "index": 3,
+      "phase": 18.849555921538759,
+      "warpedPhase": 18.849555921538759,
+      "cycleFrac": 0,
+      "driveFrac": 0.38709333517486927,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015047,
+      "amplitude": 1.0374257170480181,
+      "fatigue": 0.21243809754001503,
+      "real": true
+     }
+    },
+    {
+     "t": 7.5000000000000000,
+     "pose": {
+      "index": 3,
+      "phase": 21.991148575128552,
+      "warpedPhase": 22.569877391623244,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.38709333517486927,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18421510370970481,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015047,
+      "amplitude": 1.0374257170480181,
+      "fatigue": 0.21243809754001503,
+      "real": true
+     }
+    },
+    {
+     "t": 8.5714285714285712,
+     "pose": {
+      "index": 4,
+      "phase": 25.132741228718345,
+      "warpedPhase": 25.132741228718345,
+      "cycleFrac": 0,
+      "driveFrac": 0.38956062489449539,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.35510554302288105,
+      "real": true
+     }
+    },
+    {
+     "t": 9.6428571428571423,
+     "pose": {
+      "index": 4,
+      "phase": 28.274333882308138,
+      "warpedPhase": 28.842704049187585,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.38956062489449539,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18091784312965878,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.35510554302288105,
+      "real": true
+     }
+    },
+    {
+     "t": 10.714285714285714,
+     "pose": {
+      "index": 5,
+      "phase": 31.415926535897931,
+      "warpedPhase": 31.415926535897931,
+      "cycleFrac": 0,
+      "driveFrac": 0.39202791461412156,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 214,
+      "intensity": 0.87356321839080464,
+      "amplitude": 1.0448275862068965,
+      "fatigue": 0.49777298850574714,
+      "real": true
+     }
+    },
+    {
+     "t": 11.785714285714285,
+     "pose": {
+      "index": 5,
+      "phase": 34.557519189487721,
+      "warpedPhase": 35.115446631215171,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.39202791461412156,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.17759382047507791,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 214,
+      "intensity": 0.87356321839080464,
+      "amplitude": 1.0448275862068965,
+      "fatigue": 0.49777298850574714,
+      "real": true
+     }
+    },
+    {
+     "t": 12.857142857142856,
+     "pose": {
+      "index": 6,
+      "phase": 37.699111843077517,
+      "warpedPhase": 37.699111843077517,
+      "cycleFrac": 0,
+      "driveFrac": 0.38709333517486927,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015047,
+      "amplitude": 1.0374257170480181,
+      "fatigue": 0.63118809754001504,
+      "real": true
+     }
+    },
+    {
+     "t": 13.928571428571427,
+     "pose": {
+      "index": 6,
+      "phase": 40.840704496667314,
+      "warpedPhase": 41.419433313162003,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.38709333517486927,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18421510370970481,
+      "strokeSeconds": 2.1428571428571423,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 190,
+      "intensity": 0.81188097540015047,
+      "amplitude": 1.0374257170480181,
+      "fatigue": 0.63118809754001504,
+      "real": true
+     }
+    },
+    {
+     "t": 14.999999999999998,
+     "pose": {
+      "index": 7,
+      "phase": 43.982297150257104,
+      "warpedPhase": 43.982297150257104,
+      "cycleFrac": 0,
+      "driveFrac": 0.38956062489449517,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571441,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.77385554302288106,
+      "real": true
+     }
+    },
+    {
+     "t": 16.071428571428569,
+     "pose": {
+      "index": 7,
+      "phase": 47.123889803846893,
+      "warpedPhase": 47.692259970726340,
+      "cycleFrac": 0.49999999999999961,
+      "driveFrac": 0.38956062489449517,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.18091784312965845,
+      "strokeSeconds": 2.1428571428571441,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.77385554302288106,
+      "real": true
+     }
+    },
+    {
+     "t": 17.142857142857142,
+     "pose": {
+      "index": 7,
+      "phase": 50.265476174251383,
+      "warpedPhase": 50.265477310991720,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.38956062489449517,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999836183568624,
+      "strokeSeconds": 2.1428571428571441,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.77385554302288106,
+      "real": true
+     }
+    },
+    {
+     "t": 22.142857142857142,
+     "pose": {
+      "index": 7,
+      "phase": 50.265476174251383,
+      "warpedPhase": 50.265477310991720,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.38956062489449517,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999836183568624,
+      "strokeSeconds": 2.1428571428571441,
+      "strokeMeters": 11.200000000000003,
+      "rate": 28,
+      "watts": 202,
+      "intensity": 0.84272209689547750,
+      "amplitude": 1.0411266516274573,
+      "fatigue": 0.77385554302288106,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "rower-sprint-no-hr",
+   "sport": "rower",
+   "real": true,
+   "strokes": [
+    {
+     "t": 1.8750000000000000,
+     "d": 12.500000000000000,
+     "pace": 104,
+     "spm": 32,
+     "watts": 320
+    },
+    {
+     "t": 3.6931818181818183,
+     "d": 24.600000000000001,
+     "pace": 105,
+     "spm": 33,
+     "watts": 350
+    },
+    {
+     "t": 5.4578877005347595,
+     "d": 36.299999999999997,
+     "pace": 106,
+     "spm": 34,
+     "watts": 380
+    },
+    {
+     "t": 7.1721734148204739,
+     "d": 47.599999999999994,
+     "pace": 107,
+     "spm": 35,
+     "watts": 410
+    },
+    {
+     "t": 8.8388400814871400,
+     "d": 58.499999999999993,
+     "pace": 108,
+     "spm": 36,
+     "watts": 440
+    },
+    {
+     "t": 10.460461703108761,
+     "d": 69,
+     "pace": 109,
+     "spm": 37,
+     "watts": 470
+    },
+    {
+     "t": 11.889033131680190,
+     "d": 79.099999999999994,
+     "pace": 110,
+     "spm": 42,
+     "watts": 500
+    }
+   ],
+   "timeline": {
+    "sport": "rower",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 1.8750000000000000,
+      "startD": 0,
+      "endD": 12.500000000000000,
+      "pace": 104,
+      "spm": 32,
+      "watts": 320,
+      "startCycle": 0,
+      "endCycle": 1
+     },
+     {
+      "index": 1,
+      "startT": 1.8750000000000000,
+      "endT": 3.6931818181818183,
+      "startD": 12.500000000000000,
+      "endD": 24.600000000000001,
+      "pace": 105,
+      "spm": 33,
+      "watts": 350,
+      "startCycle": 1,
+      "endCycle": 2
+     },
+     {
+      "index": 2,
+      "startT": 3.6931818181818183,
+      "endT": 5.4578877005347595,
+      "startD": 24.600000000000001,
+      "endD": 36.299999999999997,
+      "pace": 106,
+      "spm": 34,
+      "watts": 380,
+      "startCycle": 2,
+      "endCycle": 3
+     },
+     {
+      "index": 3,
+      "startT": 5.4578877005347595,
+      "endT": 7.1721734148204739,
+      "startD": 36.299999999999997,
+      "endD": 47.599999999999994,
+      "pace": 107,
+      "spm": 35,
+      "watts": 410,
+      "startCycle": 3,
+      "endCycle": 4
+     },
+     {
+      "index": 4,
+      "startT": 7.1721734148204739,
+      "endT": 8.8388400814871400,
+      "startD": 47.599999999999994,
+      "endD": 58.499999999999993,
+      "pace": 108,
+      "spm": 36,
+      "watts": 440,
+      "startCycle": 4,
+      "endCycle": 5
+     },
+     {
+      "index": 5,
+      "startT": 8.8388400814871400,
+      "endT": 10.460461703108761,
+      "startD": 58.499999999999993,
+      "endD": 69,
+      "pace": 109,
+      "spm": 37,
+      "watts": 470,
+      "startCycle": 5,
+      "endCycle": 6
+     },
+     {
+      "index": 6,
+      "startT": 10.460461703108761,
+      "endT": 11.889033131680190,
+      "startD": 69,
+      "endD": 79.099999999999994,
+      "pace": 110,
+      "spm": 42,
+      "watts": 500,
+      "startCycle": 6,
+      "endCycle": 7
+     }
+    ],
+    "duration": 11.889033131680190,
+    "distance": 79.099999999999994,
+    "medianWatts": 410,
+    "peakWatts": 500,
+    "medianDps": 11.299999999999997,
+    "medianHr": 0,
+    "maxHr": 0
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 12.500000000000000,
+      "rate": 32,
+      "watts": 320,
+      "intensity": 0.71420120028481349,
+      "amplitude": 1.0257041440341776,
+      "fatigue": 0.039427091741458961,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 12.500000000000000,
+      "rate": 32,
+      "watts": 320,
+      "intensity": 0.71420120028481349,
+      "amplitude": 1.0257041440341776,
+      "fatigue": 0.039427091741458961,
+      "real": true
+     }
+    },
+    {
+     "t": 0.93750000000000000,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 3.3743032205223700,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 12.500000000000000,
+      "rate": 32,
+      "watts": 320,
+      "intensity": 0.71420120028481349,
+      "amplitude": 1.0257041440341776,
+      "fatigue": 0.039427091741458961,
+      "real": true
+     }
+    },
+    {
+     "t": 1.8750000000000000,
+     "pose": {
+      "index": 1,
+      "phase": 6.2831853071795862,
+      "warpedPhase": 6.2831853071795862,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.8181818181818183,
+      "strokeMeters": 12.100000000000001,
+      "rate": 33,
+      "watts": 350,
+      "intensity": 0.74404409520903270,
+      "amplitude": 1.0292852914250838,
+      "fatigue": 0.077659423127116142,
+      "real": true
+     }
+    },
+    {
+     "t": 2.7840909090909092,
+     "pose": {
+      "index": 1,
+      "phase": 9.4247779607693793,
+      "warpedPhase": 9.6574885277019558,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.8181818181818183,
+      "strokeMeters": 12.100000000000001,
+      "rate": 33,
+      "watts": 350,
+      "intensity": 0.74404409520903270,
+      "amplitude": 1.0292852914250838,
+      "fatigue": 0.077659423127116142,
+      "real": true
+     }
+    },
+    {
+     "t": 3.6931818181818183,
+     "pose": {
+      "index": 2,
+      "phase": 12.566370614359172,
+      "warpedPhase": 12.566370614359172,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.7647058823529411,
+      "strokeMeters": 11.699999999999996,
+      "rate": 34,
+      "watts": 380,
+      "intensity": 0.77388699013325191,
+      "amplitude": 1.0328664388159903,
+      "fatigue": 0.11715597319122624,
+      "real": true
+     }
+    },
+    {
+     "t": 4.5755347593582893,
+     "pose": {
+      "index": 2,
+      "phase": 15.707963267948966,
+      "warpedPhase": 15.940673834881544,
+      "cycleFrac": 0.50000000000000022,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074445,
+      "strokeSeconds": 1.7647058823529411,
+      "strokeMeters": 11.699999999999996,
+      "rate": 34,
+      "watts": 380,
+      "intensity": 0.77388699013325191,
+      "amplitude": 1.0328664388159903,
+      "fatigue": 0.11715597319122624,
+      "real": true
+     }
+    },
+    {
+     "t": 5.4578877005347595,
+     "pose": {
+      "index": 3,
+      "phase": 18.849555921538759,
+      "warpedPhase": 18.849555921538759,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.7142857142857144,
+      "strokeMeters": 11.299999999999997,
+      "rate": 35,
+      "watts": 410,
+      "intensity": 0.80372988505747123,
+      "amplitude": 1.0364475862068965,
+      "fatigue": 0.15618788941869638,
+      "real": true
+     }
+    },
+    {
+     "t": 6.3150305576776162,
+     "pose": {
+      "index": 3,
+      "phase": 21.991148575128548,
+      "warpedPhase": 22.223859142061126,
+      "cycleFrac": 0.49999999999999972,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074073515,
+      "strokeSeconds": 1.7142857142857144,
+      "strokeMeters": 11.299999999999997,
+      "rate": 35,
+      "watts": 410,
+      "intensity": 0.80372988505747123,
+      "amplitude": 1.0364475862068965,
+      "fatigue": 0.15618788941869638,
+      "real": true
+     }
+    },
+    {
+     "t": 7.1721734148204739,
+     "pose": {
+      "index": 4,
+      "phase": 25.132741228718345,
+      "warpedPhase": 25.132741228718345,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6666666666666661,
+      "strokeMeters": 10.899999999999999,
+      "rate": 36,
+      "watts": 440,
+      "intensity": 0.83357277998169066,
+      "amplitude": 1.0400287335978029,
+      "fatigue": 0.19421848268130404,
+      "real": true
+     }
+    },
+    {
+     "t": 8.0055067481538060,
+     "pose": {
+      "index": 4,
+      "phase": 28.274333882308131,
+      "warpedPhase": 28.507044449240709,
+      "cycleFrac": 0.49999999999999944,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074073001,
+      "strokeSeconds": 1.6666666666666661,
+      "strokeMeters": 10.899999999999999,
+      "rate": 36,
+      "watts": 440,
+      "intensity": 0.83357277998169066,
+      "amplitude": 1.0400287335978029,
+      "fatigue": 0.19421848268130404,
+      "real": true
+     }
+    },
+    {
+     "t": 8.8388400814871400,
+     "pose": {
+      "index": 5,
+      "phase": 31.415926535897931,
+      "warpedPhase": 31.415926535897931,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6216216216216210,
+      "strokeMeters": 10.500000000000007,
+      "rate": 37,
+      "watts": 470,
+      "intensity": 0.86341567490591009,
+      "amplitude": 1.0436098809887091,
+      "fatigue": 0.23130187854471751,
+      "real": true
+     }
+    },
+    {
+     "t": 9.6496508922979505,
+     "pose": {
+      "index": 5,
+      "phase": 34.557519189487721,
+      "warpedPhase": 34.790229756420295,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.6216216216216210,
+      "strokeMeters": 10.500000000000007,
+      "rate": 37,
+      "watts": 470,
+      "intensity": 0.86341567490591009,
+      "amplitude": 1.0436098809887091,
+      "fatigue": 0.23130187854471751,
+      "real": true
+     }
+    },
+    {
+     "t": 10.460461703108761,
+     "pose": {
+      "index": 6,
+      "phase": 37.699111843077517,
+      "warpedPhase": 37.699111843077517,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.4285714285714288,
+      "strokeMeters": 10.099999999999994,
+      "rate": 42,
+      "watts": 500,
+      "intensity": 0.90992523649679591,
+      "amplitude": 1.0491910283796155,
+      "fatigue": 0.26599252364967957,
+      "real": true
+     }
+    },
+    {
+     "t": 11.174747417394475,
+     "pose": {
+      "index": 6,
+      "phase": 40.840704496667307,
+      "warpedPhase": 41.073415063599882,
+      "cycleFrac": 0.49999999999999939,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074072904,
+      "strokeSeconds": 1.4285714285714288,
+      "strokeMeters": 10.099999999999994,
+      "rate": 42,
+      "watts": 500,
+      "intensity": 0.90992523649679591,
+      "amplitude": 1.0491910283796155,
+      "fatigue": 0.26599252364967957,
+      "real": true
+     }
+    },
+    {
+     "t": 11.889033131680190,
+     "pose": {
+      "index": 6,
+      "phase": 43.982290867071796,
+      "warpedPhase": 43.982291332492927,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999814814814791,
+      "strokeSeconds": 1.4285714285714288,
+      "strokeMeters": 10.099999999999994,
+      "rate": 42,
+      "watts": 500,
+      "intensity": 0.90992523649679591,
+      "amplitude": 1.0491910283796155,
+      "fatigue": 0.26599252364967957,
+      "real": true
+     }
+    },
+    {
+     "t": 16.889033131680190,
+     "pose": {
+      "index": 6,
+      "phase": 43.982290867071796,
+      "warpedPhase": 43.982291332492927,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999814814814791,
+      "strokeSeconds": 1.4285714285714288,
+      "strokeMeters": 10.099999999999994,
+      "rate": 42,
+      "watts": 500,
+      "intensity": 0.90992523649679591,
+      "amplitude": 1.0491910283796155,
+      "fatigue": 0.26599252364967957,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "skierg-intervals-rest-anchor",
+   "sport": "skierg",
+   "real": true,
+   "strokes": [
+    {
+     "t": 2.5000000000000000,
+     "d": 8.4000000000000004,
+     "pace": 138,
+     "spm": 24,
+     "watts": 210,
+     "hr": 152
+    },
+    {
+     "t": 4.1666666666666670,
+     "d": 16.800000000000001,
+     "pace": 138,
+     "spm": 36,
+     "watts": 228,
+     "hr": 155
+    },
+    {
+     "t": 6.6666666666666670,
+     "d": 16.800000000000001,
+     "pace": 0,
+     "spm": 24,
+     "watts": 0
+    },
+    {
+     "t": 8.3333333333333339,
+     "d": 25.200000000000003,
+     "pace": 138,
+     "spm": 36,
+     "watts": 264,
+     "hr": 161
+    },
+    {
+     "t": 10.833333333333334,
+     "d": 33.600000000000001,
+     "pace": 138,
+     "spm": 24,
+     "watts": 210,
+     "hr": 164
+    },
+    {
+     "t": 12.500000000000000,
+     "d": 33.600000000000001,
+     "pace": 0,
+     "spm": 36,
+     "watts": 0,
+     "hr": 0
+    },
+    {
+     "t": 12.500000000000000,
+     "d": 33.600000000000001,
+     "pace": 0,
+     "spm": 36,
+     "watts": 0
+    },
+    {
+     "t": 15,
+     "d": 42,
+     "pace": 138,
+     "spm": 24,
+     "watts": 246,
+     "hr": 170
+    },
+    {
+     "t": 16.666666666666668,
+     "d": 50.399999999999999,
+     "pace": 138,
+     "spm": 36,
+     "watts": 264,
+     "hr": 173
+    },
+    {
+     "t": 19.166666666666668,
+     "d": 50.399999999999999,
+     "pace": 0,
+     "spm": 24,
+     "watts": 0
+    }
+   ],
+   "timeline": {
+    "sport": "skierg",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 2.5000000000000000,
+      "startD": 0,
+      "endD": 8.4000000000000004,
+      "pace": 138,
+      "spm": 24,
+      "hr": 152,
+      "watts": 210,
+      "startCycle": 0,
+      "endCycle": 1
+     },
+     {
+      "index": 1,
+      "startT": 2.5000000000000000,
+      "endT": 4.1666666666666670,
+      "startD": 8.4000000000000004,
+      "endD": 16.800000000000001,
+      "pace": 138,
+      "spm": 36,
+      "hr": 155,
+      "watts": 228,
+      "startCycle": 1,
+      "endCycle": 2
+     },
+     {
+      "index": 2,
+      "startT": 4.1666666666666670,
+      "endT": 6.6666666666666670,
+      "startD": 16.800000000000001,
+      "endD": 16.800000000000001,
+      "pace": 0,
+      "spm": 24,
+      "watts": 0,
+      "startCycle": 2,
+      "endCycle": 3
+     },
+     {
+      "index": 3,
+      "startT": 6.6666666666666670,
+      "endT": 8.3333333333333339,
+      "startD": 16.800000000000001,
+      "endD": 25.200000000000003,
+      "pace": 138,
+      "spm": 36,
+      "hr": 161,
+      "watts": 264,
+      "startCycle": 3,
+      "endCycle": 4
+     },
+     {
+      "index": 4,
+      "startT": 8.3333333333333339,
+      "endT": 10.833333333333334,
+      "startD": 25.200000000000003,
+      "endD": 33.600000000000001,
+      "pace": 138,
+      "spm": 24,
+      "hr": 164,
+      "watts": 210,
+      "startCycle": 4,
+      "endCycle": 5
+     },
+     {
+      "index": 5,
+      "startT": 10.833333333333334,
+      "endT": 12.500000000000000,
+      "startD": 33.600000000000001,
+      "endD": 33.600000000000001,
+      "pace": 0,
+      "spm": 36,
+      "hr": 0,
+      "watts": 0,
+      "startCycle": 5,
+      "endCycle": 6
+     },
+     {
+      "index": 6,
+      "startT": 12.500000000000000,
+      "endT": 15,
+      "startD": 33.600000000000001,
+      "endD": 42,
+      "pace": 138,
+      "spm": 24,
+      "hr": 170,
+      "watts": 246,
+      "startCycle": 6,
+      "endCycle": 7
+     },
+     {
+      "index": 7,
+      "startT": 15,
+      "endT": 16.666666666666668,
+      "startD": 42,
+      "endD": 50.399999999999999,
+      "pace": 138,
+      "spm": 36,
+      "hr": 173,
+      "watts": 264,
+      "startCycle": 7,
+      "endCycle": 8
+     },
+     {
+      "index": 8,
+      "startT": 16.666666666666668,
+      "endT": 19.166666666666668,
+      "startD": 50.399999999999999,
+      "endD": 50.399999999999999,
+      "pace": 0,
+      "spm": 24,
+      "watts": 0,
+      "startCycle": 8,
+      "endCycle": 9
+     }
+    ],
+    "duration": 19.166666666666668,
+    "distance": 50.399999999999999,
+    "medianWatts": 237,
+    "peakWatts": 264,
+    "medianDps": 8.3999999999999986,
+    "medianHr": 162.50000000000000,
+    "maxHr": 173
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.4000000000000004,
+      "rate": 24,
+      "watts": 210,
+      "intensity": 0.74439655172413799,
+      "amplitude": 1.0293275862068965,
+      "fatigue": 0.032608695652173912,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.4000000000000004,
+      "rate": 24,
+      "watts": 210,
+      "intensity": 0.74439655172413799,
+      "amplitude": 1.0293275862068965,
+      "fatigue": 0.032608695652173912,
+      "real": true
+     }
+    },
+    {
+     "t": 1.2500000000000000,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 4.1015237421866741,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.4000000000000004,
+      "rate": 24,
+      "watts": 210,
+      "intensity": 0.74439655172413799,
+      "amplitude": 1.0293275862068965,
+      "fatigue": 0.032608695652173912,
+      "real": true
+     }
+    },
+    {
+     "t": 2.5000000000000000,
+     "pose": {
+      "index": 1,
+      "phase": 6.2831853071795862,
+      "warpedPhase": 6.2831853071795862,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6666666666666670,
+      "strokeMeters": 8.4000000000000004,
+      "rate": 36,
+      "watts": 228,
+      "intensity": 0.83189655172413801,
+      "amplitude": 1.0398275862068964,
+      "fatigue": 0.062537481259370323,
+      "real": true
+     }
+    },
+    {
+     "t": 3.3333333333333335,
+     "pose": {
+      "index": 1,
+      "phase": 9.4247779607693793,
+      "warpedPhase": 9.6574885277019558,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.6666666666666670,
+      "strokeMeters": 8.4000000000000004,
+      "rate": 36,
+      "watts": 228,
+      "intensity": 0.83189655172413801,
+      "amplitude": 1.0398275862068964,
+      "fatigue": 0.062537481259370323,
+      "real": true
+     }
+    },
+    {
+     "t": 4.1666666666666670,
+     "pose": {
+      "index": 2,
+      "phase": 12.566370614359172,
+      "warpedPhase": 12.566370614359172,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.086956521739130432,
+      "real": true
+     }
+    },
+    {
+     "t": 5.4166666666666670,
+     "pose": {
+      "index": 2,
+      "phase": 15.707963267948966,
+      "warpedPhase": 16.667894356545848,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.086956521739130432,
+      "real": true
+     }
+    },
+    {
+     "t": 6.6666666666666670,
+     "pose": {
+      "index": 3,
+      "phase": 18.849555921538759,
+      "warpedPhase": 18.849555921538759,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6666666666666670,
+      "strokeMeters": 8.4000000000000021,
+      "rate": 36,
+      "watts": 264,
+      "intensity": 0.90689655172413808,
+      "amplitude": 1.0488275862068965,
+      "fatigue": 0.23536091710242443,
+      "real": true
+     }
+    },
+    {
+     "t": 7.5000000000000000,
+     "pose": {
+      "index": 3,
+      "phase": 21.991148575128548,
+      "warpedPhase": 22.223859142061126,
+      "cycleFrac": 0.49999999999999972,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074073515,
+      "strokeSeconds": 1.6666666666666670,
+      "strokeMeters": 8.4000000000000021,
+      "rate": 36,
+      "watts": 264,
+      "intensity": 0.90689655172413808,
+      "amplitude": 1.0488275862068965,
+      "fatigue": 0.23536091710242443,
+      "real": true
+     }
+    },
+    {
+     "t": 8.3333333333333339,
+     "pose": {
+      "index": 4,
+      "phase": 25.132741228718345,
+      "warpedPhase": 25.132741228718345,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 24,
+      "watts": 210,
+      "intensity": 0.74439655172413788,
+      "amplitude": 1.0293275862068965,
+      "fatigue": 0.34740190880169675,
+      "real": true
+     }
+    },
+    {
+     "t": 9.5833333333333339,
+     "pose": {
+      "index": 4,
+      "phase": 28.274333882308138,
+      "warpedPhase": 29.234264970905020,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 24,
+      "watts": 210,
+      "intensity": 0.74439655172413788,
+      "amplitude": 1.0293275862068965,
+      "fatigue": 0.34740190880169675,
+      "real": true
+     }
+    },
+    {
+     "t": 10.833333333333334,
+     "pose": {
+      "index": 5,
+      "phase": 31.415926535897931,
+      "warpedPhase": 31.415926535897931,
+      "cycleFrac": 0,
+      "driveFrac": 0.45366666666666677,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6666666666666661,
+      "strokeMeters": 0,
+      "rate": 36,
+      "watts": 0,
+      "intensity": 0.14999999999999999,
+      "amplitude": 0.95799999999999996,
+      "fatigue": 0.16304347826086957,
+      "real": true
+     }
+    },
+    {
+     "t": 11.666666666666668,
+     "pose": {
+      "index": 5,
+      "phase": 34.557519189487728,
+      "warpedPhase": 34.823950781219871,
+      "cycleFrac": 0.50000000000000056,
+      "driveFrac": 0.45366666666666677,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.084807809640025239,
+      "strokeSeconds": 1.6666666666666661,
+      "strokeMeters": 0,
+      "rate": 36,
+      "watts": 0,
+      "intensity": 0.14999999999999999,
+      "amplitude": 0.95799999999999996,
+      "fatigue": 0.16304347826086957,
+      "real": true
+     }
+    },
+    {
+     "t": 12.500000000000000,
+     "pose": {
+      "index": 6,
+      "phase": 37.699111843077517,
+      "warpedPhase": 37.699111843077517,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 24,
+      "watts": 246,
+      "intensity": 0.81939655172413794,
+      "amplitude": 1.0383275862068966,
+      "fatigue": 0.59893329250009142,
+      "real": true
+     }
+    },
+    {
+     "t": 13.750000000000000,
+     "pose": {
+      "index": 6,
+      "phase": 40.840704496667314,
+      "warpedPhase": 41.800635585264196,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 24,
+      "watts": 246,
+      "intensity": 0.81939655172413794,
+      "amplitude": 1.0383275862068966,
+      "fatigue": 0.59893329250009142,
+      "real": true
+     }
+    },
+    {
+     "t": 15,
+     "pose": {
+      "index": 7,
+      "phase": 43.982297150257104,
+      "warpedPhase": 43.982297150257104,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.6666666666666679,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 36,
+      "watts": 264,
+      "intensity": 0.90689655172413797,
+      "amplitude": 1.0488275862068965,
+      "fatigue": 0.72454437415438633,
+      "real": true
+     }
+    },
+    {
+     "t": 15.833333333333334,
+     "pose": {
+      "index": 7,
+      "phase": 47.123889803846893,
+      "warpedPhase": 47.356600370779468,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.6666666666666679,
+      "strokeMeters": 8.3999999999999986,
+      "rate": 36,
+      "watts": 264,
+      "intensity": 0.90689655172413797,
+      "amplitude": 1.0488275862068965,
+      "fatigue": 0.72454437415438633,
+      "real": true
+     }
+    },
+    {
+     "t": 16.666666666666668,
+     "pose": {
+      "index": 8,
+      "phase": 50.265482457436690,
+      "warpedPhase": 50.265482457436690,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 17.916666666666668,
+     "pose": {
+      "index": 8,
+      "phase": 53.407075111026487,
+      "warpedPhase": 54.367006199623368,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 19.166666666666668,
+     "pose": {
+      "index": 8,
+      "phase": 56.548661481430976,
+      "warpedPhase": 56.548663401293155,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999861111111110,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 24.166666666666668,
+     "pose": {
+      "index": 8,
+      "phase": 56.548661481430976,
+      "warpedPhase": 56.548663401293155,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999861111111110,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 24,
+      "watts": 0,
+      "intensity": 0.099999999999999992,
+      "amplitude": 0.95199999999999996,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "bike-rate-ladder",
+   "sport": "bike",
+   "real": true,
+   "strokes": [
+    {
+     "t": 0.85714285714285710,
+     "d": 5.2000000000000002,
+     "pace": 98,
+     "spm": 70,
+     "watts": 240,
+     "hr": 130
+    },
+    {
+     "t": 1.6466165413533833,
+     "d": 11.100000000000001,
+     "pace": 101,
+     "spm": 76,
+     "watts": 266,
+     "hr": 135
+    },
+    {
+     "t": 2.3783238584265538,
+     "d": 17.700000000000003,
+     "pace": 104,
+     "spm": 82,
+     "watts": 292,
+     "hr": 140
+    },
+    {
+     "t": 3.0601420402447355,
+     "d": 22.900000000000002,
+     "pace": 107,
+     "spm": 88,
+     "watts": 318,
+     "hr": 145
+    },
+    {
+     "t": 3.6984399125851608,
+     "d": 28.800000000000004,
+     "pace": 98,
+     "spm": 94,
+     "watts": 344,
+     "hr": 150
+    },
+    {
+     "t": 4.2984399125851604,
+     "d": 35.400000000000006,
+     "pace": 101,
+     "spm": 100,
+     "watts": 370,
+     "hr": 155
+    },
+    {
+     "t": 4.8644776484342174,
+     "d": 40.600000000000009,
+     "pace": 104,
+     "spm": 106,
+     "watts": 396,
+     "hr": 160
+    },
+    {
+     "t": 5.4001919341485030,
+     "d": 46.500000000000007,
+     "pace": 107,
+     "spm": 112,
+     "watts": 422,
+     "hr": 165
+    }
+   ],
+   "timeline": {
+    "sport": "bike",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 0.85714285714285710,
+      "startD": 0,
+      "endD": 5.2000000000000002,
+      "pace": 98,
+      "spm": 70,
+      "hr": 130,
+      "watts": 240,
+      "startCycle": 0,
+      "endCycle": 1
+     },
+     {
+      "index": 1,
+      "startT": 0.85714285714285710,
+      "endT": 1.6466165413533833,
+      "startD": 5.2000000000000002,
+      "endD": 11.100000000000001,
+      "pace": 101,
+      "spm": 76,
+      "hr": 135,
+      "watts": 266,
+      "startCycle": 1,
+      "endCycle": 2
+     },
+     {
+      "index": 2,
+      "startT": 1.6466165413533833,
+      "endT": 2.3783238584265538,
+      "startD": 11.100000000000001,
+      "endD": 17.700000000000003,
+      "pace": 104,
+      "spm": 82,
+      "hr": 140,
+      "watts": 292,
+      "startCycle": 2,
+      "endCycle": 3
+     },
+     {
+      "index": 3,
+      "startT": 2.3783238584265538,
+      "endT": 3.0601420402447355,
+      "startD": 17.700000000000003,
+      "endD": 22.900000000000002,
+      "pace": 107,
+      "spm": 88,
+      "hr": 145,
+      "watts": 318,
+      "startCycle": 3,
+      "endCycle": 4
+     },
+     {
+      "index": 4,
+      "startT": 3.0601420402447355,
+      "endT": 3.6984399125851608,
+      "startD": 22.900000000000002,
+      "endD": 28.800000000000004,
+      "pace": 98,
+      "spm": 94,
+      "hr": 150,
+      "watts": 344,
+      "startCycle": 4,
+      "endCycle": 5
+     },
+     {
+      "index": 5,
+      "startT": 3.6984399125851608,
+      "endT": 4.2984399125851604,
+      "startD": 28.800000000000004,
+      "endD": 35.400000000000006,
+      "pace": 101,
+      "spm": 100,
+      "hr": 155,
+      "watts": 370,
+      "startCycle": 5,
+      "endCycle": 6
+     },
+     {
+      "index": 6,
+      "startT": 4.2984399125851604,
+      "endT": 4.8644776484342174,
+      "startD": 35.400000000000006,
+      "endD": 40.600000000000009,
+      "pace": 104,
+      "spm": 106,
+      "hr": 160,
+      "watts": 396,
+      "startCycle": 6,
+      "endCycle": 7
+     },
+     {
+      "index": 7,
+      "startT": 4.8644776484342174,
+      "endT": 5.4001919341485030,
+      "startD": 40.600000000000009,
+      "endD": 46.500000000000007,
+      "pace": 107,
+      "spm": 112,
+      "hr": 165,
+      "watts": 422,
+      "startCycle": 7,
+      "endCycle": 8
+     }
+    ],
+    "duration": 5.4001919341485030,
+    "distance": 46.500000000000007,
+    "medianWatts": 331,
+    "peakWatts": 422,
+    "medianDps": 5.9000000000000004,
+    "medianHr": 147.50000000000000,
+    "maxHr": 165
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.85714285714285710,
+      "strokeMeters": 5.2000000000000002,
+      "rate": 70,
+      "watts": 240,
+      "intensity": 0.58264571174530011,
+      "amplitude": 1.0099174854094359,
+      "fatigue": 0.039681129281843322,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.85714285714285710,
+      "strokeMeters": 5.2000000000000002,
+      "rate": 70,
+      "watts": 240,
+      "intensity": 0.58264571174530011,
+      "amplitude": 1.0099174854094359,
+      "fatigue": 0.039681129281843322,
+      "real": true
+     }
+    },
+    {
+     "t": 0.42857142857142855,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 3.1415926535897931,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.85714285714285710,
+      "strokeMeters": 5.2000000000000002,
+      "rate": 70,
+      "watts": 240,
+      "intensity": 0.58264571174530011,
+      "amplitude": 1.0099174854094359,
+      "fatigue": 0.039681129281843322,
+      "real": true
+     }
+    },
+    {
+     "t": 0.85714285714285710,
+     "pose": {
+      "index": 1,
+      "phase": 6.2831853071795862,
+      "warpedPhase": 6.2831853071795862,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.78947368421052622,
+      "strokeMeters": 5.9000000000000012,
+      "rate": 76,
+      "watts": 266,
+      "intensity": 0.64857901617911429,
+      "amplitude": 1.0178294819414937,
+      "fatigue": 0.076229537830909536,
+      "real": true
+     }
+    },
+    {
+     "t": 1.2518796992481203,
+     "pose": {
+      "index": 1,
+      "phase": 9.4247779607693793,
+      "warpedPhase": 9.4247779607693793,
+      "cycleFrac": 0.50000000000000011,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 2.2204460492503131e-16,
+      "strokeSeconds": 0.78947368421052622,
+      "strokeMeters": 5.9000000000000012,
+      "rate": 76,
+      "watts": 266,
+      "intensity": 0.64857901617911429,
+      "amplitude": 1.0178294819414937,
+      "fatigue": 0.076229537830909536,
+      "real": true
+     }
+    },
+    {
+     "t": 1.6466165413533833,
+     "pose": {
+      "index": 2,
+      "phase": 12.566370614359172,
+      "warpedPhase": 12.566370614359172,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.73170731707317049,
+      "strokeMeters": 6.6000000000000014,
+      "rate": 82,
+      "watts": 292,
+      "intensity": 0.71451232061292846,
+      "amplitude": 1.0257414784735515,
+      "fatigue": 0.11010367258370260,
+      "real": true
+     }
+    },
+    {
+     "t": 2.0124701998899686,
+     "pose": {
+      "index": 2,
+      "phase": 15.707963267948966,
+      "warpedPhase": 15.707963267948966,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.73170731707317049,
+      "strokeMeters": 6.6000000000000014,
+      "rate": 82,
+      "watts": 292,
+      "intensity": 0.71451232061292846,
+      "amplitude": 1.0257414784735515,
+      "fatigue": 0.11010367258370260,
+      "real": true
+     }
+    },
+    {
+     "t": 2.3783238584265538,
+     "pose": {
+      "index": 3,
+      "phase": 18.849555921538759,
+      "warpedPhase": 18.849555921538759,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.68181818181818166,
+      "strokeMeters": 5.1999999999999993,
+      "rate": 88,
+      "watts": 318,
+      "intensity": 0.70680447951781200,
+      "amplitude": 1.0248165375421374,
+      "fatigue": 0.20075911633062343,
+      "real": true
+     }
+    },
+    {
+     "t": 2.7192329493356446,
+     "pose": {
+      "index": 3,
+      "phase": 21.991148575128552,
+      "warpedPhase": 21.991148575128552,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.68181818181818166,
+      "strokeMeters": 5.1999999999999993,
+      "rate": 88,
+      "watts": 318,
+      "intensity": 0.70680447951781200,
+      "amplitude": 1.0248165375421374,
+      "fatigue": 0.20075911633062343,
+      "real": true
+     }
+    },
+    {
+     "t": 3.0601420402447355,
+     "pose": {
+      "index": 4,
+      "phase": 25.132741228718345,
+      "warpedPhase": 25.132741228718345,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.63829787234042534,
+      "strokeMeters": 5.9000000000000021,
+      "rate": 94,
+      "watts": 344,
+      "intensity": 0.77273778395162607,
+      "amplitude": 1.0327285340741952,
+      "fatigue": 0.35076449003238119,
+      "real": true
+     }
+    },
+    {
+     "t": 3.3792909764149481,
+     "pose": {
+      "index": 4,
+      "phase": 28.274333882308138,
+      "warpedPhase": 28.274333882308138,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.63829787234042534,
+      "strokeMeters": 5.9000000000000021,
+      "rate": 94,
+      "watts": 344,
+      "intensity": 0.77273778395162607,
+      "amplitude": 1.0327285340741952,
+      "fatigue": 0.35076449003238119,
+      "real": true
+     }
+    },
+    {
+     "t": 3.6984399125851608,
+     "pose": {
+      "index": 5,
+      "phase": 31.415926535897931,
+      "warpedPhase": 31.415926535897931,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.59999999999999964,
+      "strokeMeters": 6.6000000000000014,
+      "rate": 100,
+      "watts": 370,
+      "intensity": 0.83867108838544024,
+      "amplitude": 1.0406405306062527,
+      "fatigue": 0.50331642915487107,
+      "real": true
+     }
+    },
+    {
+     "t": 3.9984399125851606,
+     "pose": {
+      "index": 5,
+      "phase": 34.557519189487721,
+      "warpedPhase": 34.557519189487721,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.59999999999999964,
+      "strokeMeters": 6.6000000000000014,
+      "rate": 100,
+      "watts": 370,
+      "intensity": 0.83867108838544024,
+      "amplitude": 1.0406405306062527,
+      "fatigue": 0.50331642915487107,
+      "real": true
+     }
+    },
+    {
+     "t": 4.2984399125851604,
+     "pose": {
+      "index": 6,
+      "phase": 37.699111843077517,
+      "warpedPhase": 37.699111843077517,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.56603773584905692,
+      "strokeMeters": 5.2000000000000028,
+      "rate": 106,
+      "watts": 396,
+      "intensity": 0.83096324729032389,
+      "amplitude": 1.0397155896748389,
+      "fatigue": 0.64693198256424400,
+      "real": true
+     }
+    },
+    {
+     "t": 4.5814587805096885,
+     "pose": {
+      "index": 6,
+      "phase": 40.840704496667307,
+      "warpedPhase": 40.840704496667307,
+      "cycleFrac": 0.49999999999999922,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.99999999999999845,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.56603773584905692,
+      "strokeMeters": 5.2000000000000028,
+      "rate": 106,
+      "watts": 396,
+      "intensity": 0.83096324729032389,
+      "amplitude": 1.0397155896748389,
+      "fatigue": 0.64693198256424400,
+      "real": true
+     }
+    },
+    {
+     "t": 4.8644776484342174,
+     "pose": {
+      "index": 7,
+      "phase": 43.982297150257104,
+      "warpedPhase": 43.982297150257104,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.53571428571428559,
+      "strokeMeters": 5.8999999999999986,
+      "rate": 112,
+      "watts": 422,
+      "intensity": 0.89689655172413796,
+      "amplitude": 1.0476275862068964,
+      "fatigue": 0.79650783699059569,
+      "real": true
+     }
+    },
+    {
+     "t": 5.1323347912913597,
+     "pose": {
+      "index": 7,
+      "phase": 47.123889803846893,
+      "warpedPhase": 47.123889803846893,
+      "cycleFrac": 0.49999999999999917,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.99999999999999833,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.53571428571428559,
+      "strokeMeters": 5.8999999999999986,
+      "rate": 112,
+      "watts": 422,
+      "intensity": 0.89689655172413796,
+      "amplitude": 1.0476275862068964,
+      "fatigue": 0.79650783699059569,
+      "real": true
+     }
+    },
+    {
+     "t": 5.4001919341485030,
+     "pose": {
+      "index": 7,
+      "phase": 50.265476174251383,
+      "warpedPhase": 50.265476174251383,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999799999999994,
+      "strokeSeconds": 0.53571428571428559,
+      "strokeMeters": 5.8999999999999986,
+      "rate": 112,
+      "watts": 422,
+      "intensity": 0.89689655172413796,
+      "amplitude": 1.0476275862068964,
+      "fatigue": 0.79650783699059569,
+      "real": true
+     }
+    },
+    {
+     "t": 10.400191934148502,
+     "pose": {
+      "index": 7,
+      "phase": 50.265476174251383,
+      "warpedPhase": 50.265476174251383,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999799999999994,
+      "strokeSeconds": 0.53571428571428559,
+      "strokeMeters": 5.8999999999999986,
+      "rate": 112,
+      "watts": 422,
+      "intensity": 0.89689655172413796,
+      "amplitude": 1.0476275862068964,
+      "fatigue": 0.79650783699059569,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "rower-degenerate-rows",
+   "sport": "rower",
+   "real": true,
+   "strokes": [
+    {
+     "t": 2.1428571428571428,
+     "d": 0,
+     "pace": 0,
+     "spm": 0,
+     "watts": 0
+    },
+    {
+     "t": 3.6428571428571428,
+     "d": 0,
+     "pace": 0,
+     "spm": 65,
+     "watts": 0
+    },
+    {
+     "t": 3.6428571428571428,
+     "d": 0,
+     "pace": 0,
+     "spm": 24,
+     "watts": 0
+    },
+    {
+     "t": 6.1428571428571423,
+     "d": 0,
+     "pace": 0,
+     "spm": 30,
+     "watts": 0
+    }
+   ],
+   "timeline": {
+    "sport": "rower",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 2.1428571428571428,
+      "startD": 0,
+      "endD": 0,
+      "pace": 0,
+      "spm": 0,
+      "watts": 0,
+      "startCycle": 0,
+      "endCycle": 1
+     },
+     {
+      "index": 1,
+      "startT": 2.1428571428571428,
+      "endT": 3.6428571428571428,
+      "startD": 0,
+      "endD": 0,
+      "pace": 0,
+      "spm": 65,
+      "watts": 0,
+      "startCycle": 1,
+      "endCycle": 2
+     },
+     {
+      "index": 2,
+      "startT": 3.6428571428571428,
+      "endT": 6.1428571428571423,
+      "startD": 0,
+      "endD": 0,
+      "pace": 0,
+      "spm": 30,
+      "watts": 0,
+      "startCycle": 2,
+      "endCycle": 3
+     }
+    ],
+    "duration": 6.1428571428571423,
+    "distance": 0,
+    "medianWatts": 0,
+    "peakWatts": 0,
+    "medianDps": 11,
+    "medianHr": 0,
+    "maxHr": 0
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 0,
+      "rate": 0,
+      "watts": 0,
+      "intensity": 0.19250000000000000,
+      "amplitude": 0.96309999999999996,
+      "fatigue": 0.087209302325581398,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28000000000000003,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 0,
+      "rate": 0,
+      "watts": 0,
+      "intensity": 0.19250000000000000,
+      "amplitude": 0.96309999999999996,
+      "fatigue": 0.087209302325581398,
+      "real": true
+     }
+    },
+    {
+     "t": 1.0714285714285714,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 4.1015237421866741,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28000000000000003,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30555555555555552,
+      "strokeSeconds": 2.1428571428571428,
+      "strokeMeters": 0,
+      "rate": 0,
+      "watts": 0,
+      "intensity": 0.19250000000000000,
+      "amplitude": 0.96309999999999996,
+      "fatigue": 0.087209302325581398,
+      "real": true
+     }
+    },
+    {
+     "t": 2.1428571428571428,
+     "pose": {
+      "index": 1,
+      "phase": 6.2831853071795862,
+      "warpedPhase": 6.2831853071795862,
+      "cycleFrac": 0,
+      "driveFrac": 0.46000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 65,
+      "watts": 0,
+      "intensity": 0.46333333333333332,
+      "amplitude": 0.99559999999999993,
+      "fatigue": 0.14825581395348839,
+      "real": true
+     }
+    },
+    {
+     "t": 2.8928571428571428,
+     "pose": {
+      "index": 1,
+      "phase": 9.4247779607693793,
+      "warpedPhase": 9.6574885277019558,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.46000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.074074074074074028,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 0,
+      "rate": 65,
+      "watts": 0,
+      "intensity": 0.46333333333333332,
+      "amplitude": 0.99559999999999993,
+      "fatigue": 0.14825581395348839,
+      "real": true
+     }
+    },
+    {
+     "t": 3.6428571428571428,
+     "pose": {
+      "index": 2,
+      "phase": 12.566370614359172,
+      "warpedPhase": 12.566370614359172,
+      "cycleFrac": 0,
+      "driveFrac": 0.35539999999999999,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.4999999999999996,
+      "strokeMeters": 0,
+      "rate": 30,
+      "watts": 0,
+      "intensity": 0.31750000000000000,
+      "amplitude": 0.97809999999999997,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 4.8928571428571423,
+     "pose": {
+      "index": 2,
+      "phase": 15.707963267948966,
+      "warpedPhase": 16.412701551704913,
+      "cycleFrac": 0.49999999999999989,
+      "driveFrac": 0.35539999999999999,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.22432516289171561,
+      "strokeSeconds": 2.4999999999999996,
+      "strokeMeters": 0,
+      "rate": 30,
+      "watts": 0,
+      "intensity": 0.31750000000000000,
+      "amplitude": 0.97809999999999997,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 6.1428571428571423,
+     "pose": {
+      "index": 2,
+      "phase": 18.849549638353452,
+      "warpedPhase": 18.849551047830019,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.35539999999999999,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999844865032561,
+      "strokeSeconds": 2.4999999999999996,
+      "strokeMeters": 0,
+      "rate": 30,
+      "watts": 0,
+      "intensity": 0.31750000000000000,
+      "amplitude": 0.97809999999999997,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    },
+    {
+     "t": 11.142857142857142,
+     "pose": {
+      "index": 2,
+      "phase": 18.849549638353452,
+      "warpedPhase": 18.849551047830019,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.35539999999999999,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999844865032561,
+      "strokeSeconds": 2.4999999999999996,
+      "strokeMeters": 0,
+      "rate": 30,
+      "watts": 0,
+      "intensity": 0.31750000000000000,
+      "amplitude": 0.97809999999999997,
+      "fatigue": 0.25000000000000000,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "rower-single-row",
+   "sport": "rower",
+   "real": true,
+   "strokes": [
+    {
+     "t": 2.3999999999999999,
+     "d": 12.100000000000000,
+     "pace": 118,
+     "spm": 25,
+     "watts": 260,
+     "hr": 175
+    }
+   ],
+   "timeline": {
+    "sport": "rower",
+    "real": true,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 2.3999999999999999,
+      "startD": 0,
+      "endD": 12.100000000000000,
+      "pace": 118,
+      "spm": 25,
+      "hr": 175,
+      "watts": 260,
+      "startCycle": 0,
+      "endCycle": 1
+     }
+    ],
+    "duration": 2.3999999999999999,
+    "distance": 12.100000000000000,
+    "medianWatts": 260,
+    "peakWatts": 260,
+    "medianDps": 12.100000000000000,
+    "medianHr": 175,
+    "maxHr": 175
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28388505747126436,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.3999999999999999,
+      "strokeMeters": 12.100000000000000,
+      "rate": 25,
+      "watts": 260,
+      "intensity": 0.86106321839080457,
+      "amplitude": 1.0433275862068965,
+      "fatigue": 0.42360632183908042,
+      "real": true
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.28388505747126436,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.3999999999999999,
+      "strokeMeters": 12.100000000000000,
+      "rate": 25,
+      "watts": 260,
+      "intensity": 0.86106321839080457,
+      "amplitude": 1.0433275862068965,
+      "fatigue": 0.42360632183908042,
+      "real": true
+     }
+    },
+    {
+     "t": 1.2000000000000000,
+     "pose": {
+      "index": 0,
+      "phase": 3.1415926535897931,
+      "warpedPhase": 4.0896878202424736,
+      "cycleFrac": 0.50000000000000000,
+      "driveFrac": 0.28388505747126436,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.30178806458861673,
+      "strokeSeconds": 2.3999999999999999,
+      "strokeMeters": 12.100000000000000,
+      "rate": 25,
+      "watts": 260,
+      "intensity": 0.86106321839080457,
+      "amplitude": 1.0433275862068965,
+      "fatigue": 0.42360632183908042,
+      "real": true
+     }
+    },
+    {
+     "t": 2.3999999999999999,
+     "pose": {
+      "index": 0,
+      "phase": 6.2831790239942791,
+      "warpedPhase": 6.2831809201846127,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.28388505747126436,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999860357612913,
+      "strokeSeconds": 2.3999999999999999,
+      "strokeMeters": 12.100000000000000,
+      "rate": 25,
+      "watts": 260,
+      "intensity": 0.86106321839080457,
+      "amplitude": 1.0433275862068965,
+      "fatigue": 0.42360632183908042,
+      "real": true
+     }
+    },
+    {
+     "t": 7.4000000000000004,
+     "pose": {
+      "index": 0,
+      "phase": 6.2831790239942791,
+      "warpedPhase": 6.2831809201846127,
+      "cycleFrac": 0.99999899999999997,
+      "driveFrac": 0.28388505747126436,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.99999860357612913,
+      "strokeSeconds": 2.3999999999999999,
+      "strokeMeters": 12.100000000000000,
+      "rate": 25,
+      "watts": 260,
+      "intensity": 0.86106321839080457,
+      "amplitude": 1.0433275862068965,
+      "fatigue": 0.42360632183908042,
+      "real": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "rower-synthetic-rate-ladder",
+   "sport": "rower",
+   "real": false,
+   "strokes": [
+    {
+     "t": 2.8999999999999999,
+     "d": 10.500000000000000,
+     "pace": 121,
+     "spm": 24,
+     "watts": 200,
+     "hr": 150
+    },
+    {
+     "t": 5.5058823529411764,
+     "d": 21,
+     "pace": 121,
+     "spm": 27.199999999999999,
+     "watts": 220,
+     "hr": 154
+    },
+    {
+     "t": 7.8795665634674918,
+     "d": 31.500000000000000,
+     "pace": 121,
+     "spm": 30.399999999999999,
+     "watts": 240,
+     "hr": 158
+    },
+    {
+     "t": 10.065280849181777,
+     "d": 42,
+     "pace": 121,
+     "spm": 33.600000000000001,
+     "watts": 260,
+     "hr": 162
+    },
+    {
+     "t": 12.095715631790473,
+     "d": 52.500000000000000,
+     "pace": 121,
+     "spm": 36.799999999999997,
+     "watts": 280,
+     "hr": 166
+    },
+    {
+     "t": 13.995715631790473,
+     "d": 63,
+     "pace": 121,
+     "spm": 40,
+     "watts": 300,
+     "hr": 170
+    }
+   ],
+   "timeline": {
+    "sport": "rower",
+    "real": false,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 2.8999999999999999,
+      "startD": 0,
+      "endD": 10.500000000000000,
+      "pace": 121,
+      "spm": 24,
+      "hr": 150,
+      "watts": 200,
+      "startCycle": 0,
+      "endCycle": 1.1599999999999999
+     },
+     {
+      "index": 1,
+      "startT": 2.8999999999999999,
+      "endT": 5.5058823529411764,
+      "startD": 10.500000000000000,
+      "endD": 21,
+      "pace": 121,
+      "spm": 27.199999999999999,
+      "hr": 154,
+      "watts": 220,
+      "startCycle": 1.1599999999999999,
+      "endCycle": 2.3413333333333330
+     },
+     {
+      "index": 2,
+      "startT": 5.5058823529411764,
+      "endT": 7.8795665634674918,
+      "startD": 21,
+      "endD": 31.500000000000000,
+      "pace": 121,
+      "spm": 30.399999999999999,
+      "hr": 158,
+      "watts": 240,
+      "startCycle": 2.3413333333333330,
+      "endCycle": 3.5439999999999996
+     },
+     {
+      "index": 3,
+      "startT": 7.8795665634674918,
+      "endT": 10.065280849181777,
+      "startD": 31.500000000000000,
+      "endD": 42,
+      "pace": 121,
+      "spm": 33.600000000000001,
+      "hr": 162,
+      "watts": 260,
+      "startCycle": 3.5439999999999996,
+      "endCycle": 4.7679999999999989
+     },
+     {
+      "index": 4,
+      "startT": 10.065280849181777,
+      "endT": 12.095715631790473,
+      "startD": 42,
+      "endD": 52.500000000000000,
+      "pace": 121,
+      "spm": 36.799999999999997,
+      "hr": 166,
+      "watts": 280,
+      "startCycle": 4.7679999999999989,
+      "endCycle": 6.0133333333333319
+     },
+     {
+      "index": 5,
+      "startT": 12.095715631790473,
+      "endT": 13.995715631790473,
+      "startD": 52.500000000000000,
+      "endD": 63,
+      "pace": 121,
+      "spm": 40,
+      "hr": 170,
+      "watts": 300,
+      "startCycle": 6.0133333333333319,
+      "endCycle": 7.2799999999999985
+     }
+    ],
+    "duration": 13.995715631790473,
+    "distance": 63,
+    "medianWatts": 250,
+    "peakWatts": 300,
+    "medianDps": 10.500000000000000,
+    "medianHr": 160,
+    "maxHr": 170
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 24,
+      "watts": 200,
+      "intensity": 0.66666666666666663,
+      "amplitude": 1.0200000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 24,
+      "watts": 200,
+      "intensity": 0.66666666666666663,
+      "amplitude": 1.0200000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 1.4500000000000000,
+     "pose": {
+      "index": 0,
+      "phase": 3.6442474781641603,
+      "warpedPhase": 4.1550096386187594,
+      "cycleFrac": 0.58000000000000007,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.32258064516129042,
+      "strokeSeconds": 2.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 24,
+      "watts": 200,
+      "intensity": 0.66666666666666663,
+      "amplitude": 1.0200000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 2.8999999999999999,
+     "pose": {
+      "index": 1,
+      "phase": 7.2884949563283197,
+      "warpedPhase": 7.6059611613226572,
+      "cycleFrac": 0.15999999999999992,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.42105263157894718,
+      "recoveryProgress": 0,
+      "strokeSeconds": 2.2058823529411766,
+      "strokeMeters": 10.500000000000000,
+      "rate": 27.199999999999999,
+      "watts": 220,
+      "intensity": 0.73333333333333328,
+      "amplitude": 1.0280000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 4.2029411764705884,
+     "pose": {
+      "index": 1,
+      "phase": 10.999763077769062,
+      "warpedPhase": 11.302977439689728,
+      "cycleFrac": 0.75066666666666659,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.59784946236559122,
+      "strokeSeconds": 2.2058823529411766,
+      "strokeMeters": 10.500000000000000,
+      "rate": 27.199999999999999,
+      "watts": 220,
+      "intensity": 0.73333333333333328,
+      "amplitude": 1.0280000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 5.5058823529411764,
+     "pose": {
+      "index": 2,
+      "phase": 14.711031199209803,
+      "warpedPhase": 15.388292436531055,
+      "cycleFrac": 0.34133333333333304,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.89824561403508696,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.9736842105263159,
+      "strokeMeters": 10.500000000000000,
+      "rate": 30.399999999999999,
+      "watts": 240,
+      "intensity": 0.80000000000000004,
+      "amplitude": 1.0360000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 6.6927244582043341,
+     "pose": {
+      "index": 2,
+      "phase": 18.489319963927127,
+      "warpedPhase": 18.559043052497117,
+      "cycleFrac": 0.94266666666666632,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.90752688172042950,
+      "strokeSeconds": 1.9736842105263159,
+      "strokeMeters": 10.500000000000000,
+      "rate": 30.399999999999999,
+      "watts": 240,
+      "intensity": 0.80000000000000004,
+      "amplitude": 1.0360000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 7.8795665634674918,
+     "pose": {
+      "index": 3,
+      "phase": 22.267608728644451,
+      "warpedPhase": 22.822150502852303,
+      "cycleFrac": 0.54399999999999959,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.26451612903225741,
+      "strokeSeconds": 1.7857142857142856,
+      "strokeMeters": 10.500000000000000,
+      "rate": 33.600000000000001,
+      "watts": 260,
+      "intensity": 0.86666666666666670,
+      "amplitude": 1.0440000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 8.9724237063246335,
+     "pose": {
+      "index": 4,
+      "phase": 26.112918136638353,
+      "warpedPhase": 26.422447686507827,
+      "cycleFrac": 0.15599999999999881,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.41052631578947052,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.7857142857142856,
+      "strokeMeters": 10.500000000000000,
+      "rate": 33.600000000000001,
+      "watts": 260,
+      "intensity": 0.86666666666666670,
+      "amplitude": 1.0440000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 10.065280849181777,
+     "pose": {
+      "index": 4,
+      "phase": 29.958227544632262,
+      "warpedPhase": 30.240362833264328,
+      "cycleFrac": 0.76799999999999891,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.62580645161290149,
+      "strokeSeconds": 1.6304347826086958,
+      "strokeMeters": 10.500000000000000,
+      "rate": 36.799999999999997,
+      "watts": 280,
+      "intensity": 0.93333333333333335,
+      "amplitude": 1.0520000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 11.080498240486126,
+     "pose": {
+      "index": 5,
+      "phase": 33.870557595902753,
+      "warpedPhase": 34.611568095355928,
+      "cycleFrac": 0.39066666666666627,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.017204301075268175,
+      "strokeSeconds": 1.6304347826086958,
+      "strokeMeters": 10.500000000000000,
+      "rate": 36.799999999999997,
+      "watts": 280,
+      "intensity": 0.93333333333333335,
+      "amplitude": 1.0520000000000000,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 12.095715631790473,
+     "pose": {
+      "index": 6,
+      "phase": 37.782887647173233,
+      "warpedPhase": 37.809343164256084,
+      "cycleFrac": 0.013333333333330977,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.035087719298239409,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 40,
+      "watts": 300,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 13.045715631790472,
+     "pose": {
+      "index": 6,
+      "phase": 41.762238341720305,
+      "warpedPhase": 42.191927143372588,
+      "cycleFrac": 0.64666666666666472,
+      "driveFrac": 0.38000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.43010752688171727,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 40,
+      "watts": 300,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 13.995715631790473,
+     "pose": {
+      "index": 7,
+      "phase": 45.741589036267378,
+      "warpedPhase": 46.297154895007466,
+      "cycleFrac": 0.27999999999999847,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.73684210526315386,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 40,
+      "watts": 300,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 18.995715631790475,
+     "pose": {
+      "index": 7,
+      "phase": 45.741589036267378,
+      "warpedPhase": 46.297154895007466,
+      "cycleFrac": 0.27999999999999847,
+      "driveFrac": 0.38000000000000000,
+      "drive": true,
+      "driveProgress": 0.73684210526315386,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.5000000000000000,
+      "strokeMeters": 10.500000000000000,
+      "rate": 40,
+      "watts": 300,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "bike-synthetic",
+   "sport": "bike",
+   "real": false,
+   "strokes": [
+    {
+     "t": 1.2000000000000000,
+     "d": 4.7999999999999998,
+     "pace": 105,
+     "spm": 60,
+     "watts": 180,
+     "hr": 120
+    },
+    {
+     "t": 2.2333333333333334,
+     "d": 9.5999999999999996,
+     "pace": 105,
+     "spm": 72,
+     "watts": 220,
+     "hr": 128
+    },
+    {
+     "t": 3.1476190476190480,
+     "d": 14.399999999999999,
+     "pace": 105,
+     "spm": 84,
+     "watts": 260,
+     "hr": 136
+    },
+    {
+     "t": 3.9726190476190482,
+     "d": 19.199999999999999,
+     "pace": 105,
+     "spm": 96,
+     "watts": 300,
+     "hr": 144
+    },
+    {
+     "t": 4.7281746031746037,
+     "d": 24,
+     "pace": 105,
+     "spm": 108,
+     "watts": 340,
+     "hr": 152
+    }
+   ],
+   "timeline": {
+    "sport": "bike",
+    "real": false,
+    "entries": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 1.2000000000000000,
+      "startD": 0,
+      "endD": 4.7999999999999998,
+      "pace": 105,
+      "spm": 60,
+      "hr": 120,
+      "watts": 180,
+      "startCycle": 0,
+      "endCycle": 1.2000000000000000
+     },
+     {
+      "index": 1,
+      "startT": 1.2000000000000000,
+      "endT": 2.2333333333333334,
+      "startD": 4.7999999999999998,
+      "endD": 9.5999999999999996,
+      "pace": 105,
+      "spm": 72,
+      "hr": 128,
+      "watts": 220,
+      "startCycle": 1.2000000000000000,
+      "endCycle": 2.4399999999999999
+     },
+     {
+      "index": 2,
+      "startT": 2.2333333333333334,
+      "endT": 3.1476190476190480,
+      "startD": 9.5999999999999996,
+      "endD": 14.399999999999999,
+      "pace": 105,
+      "spm": 84,
+      "hr": 136,
+      "watts": 260,
+      "startCycle": 2.4399999999999999,
+      "endCycle": 3.7200000000000006
+     },
+     {
+      "index": 3,
+      "startT": 3.1476190476190480,
+      "endT": 3.9726190476190482,
+      "startD": 14.399999999999999,
+      "endD": 19.199999999999999,
+      "pace": 105,
+      "spm": 96,
+      "hr": 144,
+      "watts": 300,
+      "startCycle": 3.7200000000000006,
+      "endCycle": 5.0400000000000009
+     },
+     {
+      "index": 4,
+      "startT": 3.9726190476190482,
+      "endT": 4.7281746031746037,
+      "startD": 19.199999999999999,
+      "endD": 24,
+      "pace": 105,
+      "spm": 108,
+      "hr": 152,
+      "watts": 340,
+      "startCycle": 5.0400000000000009,
+      "endCycle": 6.4000000000000004
+     }
+    ],
+    "duration": 4.7281746031746037,
+    "distance": 24,
+    "medianWatts": 260,
+    "peakWatts": 340,
+    "medianDps": 4.7999999999999998,
+    "medianHr": 136,
+    "maxHr": 152
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1,
+      "strokeMeters": 4.7999999999999998,
+      "rate": 60,
+      "watts": 180,
+      "intensity": 0.52941176470588236,
+      "amplitude": 1.0035294117647058,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1,
+      "strokeMeters": 4.7999999999999998,
+      "rate": 60,
+      "watts": 180,
+      "intensity": 0.52941176470588236,
+      "amplitude": 1.0035294117647058,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 0.59999999999999998,
+     "pose": {
+      "index": 0,
+      "phase": 3.7699111843077522,
+      "warpedPhase": 3.7699111843077522,
+      "cycleFrac": 0.60000000000000009,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.20000000000000018,
+      "strokeSeconds": 1,
+      "strokeMeters": 4.7999999999999998,
+      "rate": 60,
+      "watts": 180,
+      "intensity": 0.52941176470588236,
+      "amplitude": 1.0035294117647058,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 1.2000000000000000,
+     "pose": {
+      "index": 1,
+      "phase": 7.5398223686155035,
+      "warpedPhase": 7.5398223686155035,
+      "cycleFrac": 0.19999999999999996,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.39999999999999991,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.83333333333333337,
+      "strokeMeters": 4.7999999999999998,
+      "rate": 72,
+      "watts": 220,
+      "intensity": 0.64705882352941180,
+      "amplitude": 1.0176470588235293,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 1.7166666666666668,
+     "pose": {
+      "index": 1,
+      "phase": 11.435397259066848,
+      "warpedPhase": 11.435397259066848,
+      "cycleFrac": 0.82000000000000006,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.64000000000000012,
+      "strokeSeconds": 0.83333333333333337,
+      "strokeMeters": 4.7999999999999998,
+      "rate": 72,
+      "watts": 220,
+      "intensity": 0.64705882352941180,
+      "amplitude": 1.0176470588235293,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 2.2333333333333334,
+     "pose": {
+      "index": 2,
+      "phase": 15.330972149518191,
+      "warpedPhase": 15.330972149518191,
+      "cycleFrac": 0.43999999999999995,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.87999999999999989,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.71428571428571430,
+      "strokeMeters": 4.7999999999999989,
+      "rate": 84,
+      "watts": 260,
+      "intensity": 0.76470588235294112,
+      "amplitude": 1.0317647058823529,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 2.6904761904761907,
+     "pose": {
+      "index": 3,
+      "phase": 19.352210746113126,
+      "warpedPhase": 19.352210746113126,
+      "cycleFrac": 0.080000000000000071,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.16000000000000014,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.71428571428571430,
+      "strokeMeters": 4.7999999999999989,
+      "rate": 84,
+      "watts": 260,
+      "intensity": 0.76470588235294112,
+      "amplitude": 1.0317647058823529,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 3.1476190476190480,
+     "pose": {
+      "index": 3,
+      "phase": 23.373449342708064,
+      "warpedPhase": 23.373449342708064,
+      "cycleFrac": 0.72000000000000064,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.44000000000000128,
+      "strokeSeconds": 0.62500000000000000,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 96,
+      "watts": 300,
+      "intensity": 0.88235294117647056,
+      "amplitude": 1.0458823529411765,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 3.5601190476190481,
+     "pose": {
+      "index": 4,
+      "phase": 27.520351645446592,
+      "warpedPhase": 27.520351645446592,
+      "cycleFrac": 0.38000000000000078,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.76000000000000156,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.62500000000000000,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 96,
+      "watts": 300,
+      "intensity": 0.88235294117647056,
+      "amplitude": 1.0458823529411765,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 3.9726190476190482,
+     "pose": {
+      "index": 5,
+      "phase": 31.667253948185120,
+      "warpedPhase": 31.667253948185120,
+      "cycleFrac": 0.040000000000000924,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.080000000000001847,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.55555555555555558,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 108,
+      "watts": 340,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 4.3503968253968264,
+     "pose": {
+      "index": 5,
+      "phase": 35.939819957067243,
+      "warpedPhase": 35.939819957067243,
+      "cycleFrac": 0.72000000000000153,
+      "driveFrac": 0.50000000000000000,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.44000000000000306,
+      "strokeSeconds": 0.55555555555555558,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 108,
+      "watts": 340,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 4.7281746031746037,
+     "pose": {
+      "index": 6,
+      "phase": 40.212385965949352,
+      "warpedPhase": 40.212385965949352,
+      "cycleFrac": 0.40000000000000036,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.80000000000000071,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.55555555555555558,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 108,
+      "watts": 340,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 9.7281746031746046,
+     "pose": {
+      "index": 6,
+      "phase": 40.212385965949352,
+      "warpedPhase": 40.212385965949352,
+      "cycleFrac": 0.40000000000000036,
+      "driveFrac": 0.50000000000000000,
+      "drive": true,
+      "driveProgress": 0.80000000000000071,
+      "recoveryProgress": 0,
+      "strokeSeconds": 0.55555555555555558,
+      "strokeMeters": 4.8000000000000007,
+      "rate": 108,
+      "watts": 340,
+      "intensity": 1,
+      "amplitude": 1.0600000000000001,
+      "fatigue": 0,
+      "real": false
+     }
+    }
+   ]
+  },
+  {
+   "name": "skierg-empty-timeline",
+   "sport": "skierg",
+   "real": true,
+   "strokes": [],
+   "timeline": {
+    "sport": "skierg",
+    "entries": [],
+    "real": true,
+    "duration": 0,
+    "distance": 0,
+    "medianWatts": 0,
+    "peakWatts": 0,
+    "medianDps": 0,
+    "medianHr": 0,
+    "maxHr": 0
+   },
+   "queries": [
+    {
+     "t": -1,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.34000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 8,
+      "rate": 32,
+      "watts": 0,
+      "intensity": 0.71111111111111114,
+      "amplitude": 1.0253333333333332,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 0,
+     "pose": {
+      "index": 0,
+      "phase": 0,
+      "warpedPhase": 0,
+      "cycleFrac": 0,
+      "driveFrac": 0.34000000000000002,
+      "drive": true,
+      "driveProgress": 0,
+      "recoveryProgress": 0,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 8,
+      "rate": 32,
+      "watts": 0,
+      "intensity": 0.71111111111111114,
+      "amplitude": 1.0253333333333332,
+      "fatigue": 0,
+      "real": false
+     }
+    },
+    {
+     "t": 5,
+     "pose": {
+      "index": 2,
+      "phase": 16.755160819145562,
+      "warpedPhase": 17.262892965180278,
+      "cycleFrac": 0.66666666666666652,
+      "driveFrac": 0.34000000000000002,
+      "drive": false,
+      "driveProgress": 1,
+      "recoveryProgress": 0.49494949494949475,
+      "strokeSeconds": 1.8750000000000000,
+      "strokeMeters": 8,
+      "rate": 32,
+      "watts": 0,
+      "intensity": 0.71111111111111114,
+      "amplitude": 1.0253333333333332,
+      "fatigue": 0,
+      "real": false
+     }
+    }
+   ]
+  }
+ ],
+ "fallbackPoses": [
+  {
+   "sport": "rower",
+   "phase": 0,
+   "rate": 0,
+   "pose": {
+    "index": 0,
+    "phase": 0,
+    "warpedPhase": 0,
+    "cycleFrac": 0,
+    "driveFrac": 0.38000000000000000,
+    "drive": true,
+    "driveProgress": 0,
+    "recoveryProgress": 0,
+    "strokeSeconds": 2.1428571428571428,
+    "strokeMeters": 11,
+    "rate": 0,
+    "watts": 0,
+    "intensity": 0,
+    "amplitude": 0.93999999999999995,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "rower",
+   "phase": -3.1415926535897931,
+   "rate": 10,
+   "pose": {
+    "index": 0,
+    "phase": 3.1415926535897931,
+    "warpedPhase": 3.7496428446071728,
+    "cycleFrac": 0.50000000000000000,
+    "driveFrac": 0.38000000000000000,
+    "drive": false,
+    "driveProgress": 1,
+    "recoveryProgress": 0.19354838709677419,
+    "strokeSeconds": 6,
+    "strokeMeters": 11,
+    "rate": 10,
+    "watts": 0,
+    "intensity": 0.25000000000000000,
+    "amplitude": 0.96999999999999997,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "rower",
+   "phase": 15.707963267948966,
+   "rate": -5,
+   "pose": {
+    "index": 2,
+    "phase": 15.707963267948966,
+    "warpedPhase": 16.316013458966346,
+    "cycleFrac": 0.50000000000000000,
+    "driveFrac": 0.38000000000000000,
+    "drive": false,
+    "driveProgress": 1,
+    "recoveryProgress": 0.19354838709677419,
+    "strokeSeconds": 6,
+    "strokeMeters": 11,
+    "rate": -5,
+    "watts": 0,
+    "intensity": 0,
+    "amplitude": 0.93999999999999995,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "rower",
+   "phase": 45.553093477052002,
+   "rate": 28,
+   "pose": {
+    "index": 7,
+    "phase": 45.553093477052002,
+    "warpedPhase": 46.049134422355657,
+    "cycleFrac": 0.25000000000000000,
+    "driveFrac": 0.38000000000000000,
+    "drive": true,
+    "driveProgress": 0.65789473684210531,
+    "recoveryProgress": 0,
+    "strokeSeconds": 2.1428571428571428,
+    "strokeMeters": 11,
+    "rate": 28,
+    "watts": 0,
+    "intensity": 0.69999999999999996,
+    "amplitude": 1.0240000000000000,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "skierg",
+   "phase": 23.247785636564469,
+   "rate": 45,
+   "pose": {
+    "index": 3,
+    "phase": 23.247785636564469,
+    "warpedPhase": 23.704744567995714,
+    "cycleFrac": 0.70000000000000018,
+    "driveFrac": 0.34000000000000002,
+    "drive": false,
+    "driveProgress": 1,
+    "recoveryProgress": 0.54545454545454575,
+    "strokeSeconds": 1.3333333333333333,
+    "strokeMeters": 8,
+    "rate": 45,
+    "watts": 0,
+    "intensity": 1,
+    "amplitude": 1.0600000000000001,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "skierg",
+   "phase": 1.5707963267948966,
+   "rate": 32,
+   "pose": {
+    "index": 0,
+    "phase": 1.5707963267948966,
+    "warpedPhase": 2.3099945982277887,
+    "cycleFrac": 0.25000000000000000,
+    "driveFrac": 0.34000000000000002,
+    "drive": true,
+    "driveProgress": 0.73529411764705876,
+    "recoveryProgress": 0,
+    "strokeSeconds": 1.8750000000000000,
+    "strokeMeters": 8,
+    "rate": 32,
+    "watts": 0,
+    "intensity": 0.80000000000000004,
+    "amplitude": 1.0360000000000000,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "bike",
+   "phase": 2.0943951023931953,
+   "rate": 130,
+   "pose": {
+    "index": 0,
+    "phase": 2.0943951023931948,
+    "warpedPhase": 2.0943951023931948,
+    "cycleFrac": 0.33333333333333326,
+    "driveFrac": 0.50000000000000000,
+    "drive": true,
+    "driveProgress": 0.66666666666666652,
+    "recoveryProgress": 0,
+    "strokeSeconds": 0.46153846153846156,
+    "strokeMeters": 5,
+    "rate": 130,
+    "watts": 0,
+    "intensity": 1,
+    "amplitude": 1.0600000000000001,
+    "fatigue": 0,
+    "real": false
+   }
+  },
+  {
+   "sport": "bike",
+   "phase": 6.5973445725385655,
+   "rate": 0,
+   "pose": {
+    "index": 1,
+    "phase": 6.5973445725385655,
+    "warpedPhase": 6.5973445725385655,
+    "cycleFrac": 0.050000000000000044,
+    "driveFrac": 0.50000000000000000,
+    "drive": true,
+    "driveProgress": 0.10000000000000009,
+    "recoveryProgress": 0,
+    "strokeSeconds": 0.75000000000000000,
+    "strokeMeters": 5,
+    "rate": 0,
+    "watts": 0,
+    "intensity": 0,
+    "amplitude": 0.93999999999999995,
+    "fatigue": 0,
+    "real": false
+   }
+  }
+ ]
+}
