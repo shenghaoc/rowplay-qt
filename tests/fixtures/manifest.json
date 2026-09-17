@@ -134,18 +134,8 @@
     },
     {
       "path": "replay-rig-phase-parity.json",
-<<<<<<< HEAD
-<<<<<<< HEAD
       "bytes": 951697,
       "sha256": "ef0db0f7cd619663a0a77a113be8dcc9a3c7ef196d222c8d37e2e26a0ed8a441",
-=======
-      "bytes": 980726,
-      "sha256": "8828961c87c35b7cecd77bfc65afde4d3a27c0d1282708d3c8c647a1e6cce756",
->>>>>>> 8431d68 (fix: skierg preferred_hand recovery parity + generator reproducibility)
-=======
-      "bytes": 1002844,
-      "sha256": "9b15b12f26e212800cdc8f3f1d9d1dee2c936795f9e2c221981d7d7d7d52be9d",
->>>>>>> f15cb1e (fix: skierg hip counter-tilt + shoulder parity; record plant model divergence)
       "source": {
         "repository": "https://github.com/shenghaoc/rowplay",
         "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
