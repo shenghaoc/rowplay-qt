@@ -506,9 +506,21 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
   invisible to residuals. Fixed with the pin bump in one change; the
   skierg contact/approach windows are measured (0.977 m / 0.033 m) and
   bounded, attributed to the documented `plant_basket_z` divergence's
-  scoped follow-up.
+  scoped follow-up — **promoted ahead of Phase 8** (author decision,
+  Sept 2026): the rewrite is now Phase 7.5 in the queue order, the last
+  known rendered defect in the shipped scene, double-confirmed by the
+  plant position and the exposed hand target.
 
 ### Phase 8 — Live mode
+
+**Ordering note (author-set, Sept 2026): the Phase 7.5 skierg pole-plant
+rewrite lands before this phase.** `plant_basket_z` is the largest known
+rendered defect (two independent observables: the fixture's plant
+position and the `v4HandTargets` contact delta, 0.977 m), it is visible
+on screen in every ski stroke, and its eyes-on verification wants the
+Linux host that the packaging pass will use anyway. Phase 8 is a feature
+nobody is waiting on by comparison; see `docs/parity-coverage.md`'s
+queue-order note.
 
 Live mode is logbook polling, not hardware: rowplay reads the Concept2 Logbook
 after upload and never connects to a PM5 (web README, repeated in its
