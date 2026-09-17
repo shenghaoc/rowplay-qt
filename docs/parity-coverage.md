@@ -96,7 +96,7 @@ All fixtures live in `tests/fixtures/`. Provenance splits in three:
 | 2D kinematics projections | `sport_kinematics::solve_{rower,skier,bike}_kinematics` | `sportKinematics.ts` `solve*` | web | `replay-current-main-2d.json`: 64 phases × 3 sports, all output channels at 1e-10, over the same synthetic pose. |
 | Skier elbow direction | `sport_kinematics::solve_skier_elbow_direction` | `sportKinematics.ts` `solveSkierElbowDirection` | web | 32 web-generated samples inside `replay-current-main-equipment.json`, consumed by `equipment_contact_parity` at 1e-12 since Phase 7 (was `#[ignore]`d at stage-1 time). |
 | Canvas palettes | `theme::{COLORS_*, venues_*}` | `renderer.ts` `COLORS_*`, `VENUES_*` | web | Same fixture's `palettes` block: character-exact strings, all sports, light + dark. |
-| **Sport equipment contracts** | `row_equipment`, `ski_equipment`, `bike_equipment`, `bike_saddle` | `rowRig.ts`, `skiEquipment.ts`, `bikeRig.js`, `bikeSaddle.js` | web | `equipment_contact_parity` over `replay-current-main-equipment.json` (253 web-generated samples at 1e-12): `solveRowerOarYaw`, elbow flexion/reach laws, `bikeKneeFlexion`, `bikeSaddleDropAt`, plus the contact-landmark and grip constants. Enabled in Phase 7. |
+| **Sport equipment contracts** | `row_equipment`, `ski_equipment`, `bike_equipment`, `bike_saddle` | `rowRig.ts`, `skiEquipment.ts`, `bikeRig.js`, `bikeSaddle.js` | web | `equipment_contact_parity` over `replay-current-main-equipment.json` (253 web-generated samples at 1e-12): `solveRowerOarYaw`, elbow flexion/reach laws, `bikeKneeFlexion`, `bikeSaddleDropAt`, plus the contact-landmark and grip constants. Enabled in Phase 7. Read the green for what it is: the `oarYaw` block is a **synthetic domain sweep** of the pure function (its reaches, 0.55–0.95, run past the 0.758 maximum the draw schedule can produce — it predates the record-what-renders rule; the web's own code evaluated standalone, so a legitimate oracle, but a domain sweep, not rendered behaviour — and it leaves [0.256, 0.55), the drawn half of the stroke, untouched here; that half is covered one layer deeper by the rig-phase `oarSolve` recording, see ranking 10). |
 | **Hand-grip closure** | `hand_grip` | `handGrip.ts` `collectHandDigitChains`, `solveHandGripClosure` | web | `grip_closure_parity` over `replay-current-main-grips.json`: 6 closure samples (3 sports × 2 sides) at 1e-12 plus the hand-channel constants, built from the web athlete contract's rest transforms. Phase 7 slice 1. |
 | **Rower rig phase calibration (authored layer)** | `rig_pose::solve_rower` (seat/sweep/dip) | `renderer3dRowAvatar.ts` `animate` constants | web | `replay-row-phase-parity.json` (Phase 7): 33 cycle samples at 1e-10 — seat `0.26 + pelvisTravel·(−0.44)`, sweep `0.68 + handleTravel·(−1.48)`, dip `bladeWater·0.28 + handleTravel·0.04`, with an inversion guard. This is the fix for the inverted Studio port (`cf85cdb`); the audit's own composed-layer fixture independently confirms the seat now matches (see the partial row below for what it still catches). |
 | **Bike rig phase calibration** | `rig_pose::solve_bike` (pedals, wheel roll, crank) | `renderer3dBikeAvatar.ts` `placePedalLegs` (`−(r·cos, r·sin)`), wheel roll (`meters / WHEEL_RADIUS 0.31`) | web | `rig_phase_parity_bike` (enabled, green) over the audit's composed-avatar fixture: crank, wheel and both pedal components at 1e-6 across 128 samples. The fix adopted the web's pedal negation and the 0.31 rim rotation radius (Studio's chain sat π around the crank circle and divided by the 0.335 axle height, under-rotating the wheels ≈7.5% since Phase 5b). |
@@ -223,6 +223,69 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    `warpedPhase ≠ phase` (and varied timing) so the input selection is pinned.
 9. **Course quote-check + `GHOST_LOOP_RADIUS` pin** — values verified correct
    twice; make that permanent in the camera-test pattern.
+10. **Oar-yaw reach-boundary approach — an attainable, ill-conditioned
+    interval the corpus never samples.**
+    **Read before implementing, twice over.** First, this is parity
+    hygiene, not a rendering concern: the worst case below is ~1e-8 rad ≈
+    6×10⁻⁷ degrees — invisible on screen and below anything downstream
+    reacts to — which is why the item sits below 6–9. Second, **tail
+    samples need a conditioning-scaled tolerance**: above argument 0.999
+    the amplification runs from ~20× to ~5×10⁷ at the last double below
+    1, so even with exact parsing the port/web op-order difference
+    (~1 ULP) can legitimately move a tail sample's yaw by up to ~1e-8 rad
+    from benign arithmetic alone — above the 1e-9 and 1e-12 tolerances
+    these families use. A flat tolerance in the tail reports a defect
+    that isn't there; scale it with the derivative
+    (k·ε/√(1−x²), ε the argument's ULP, k a small multiple for op-order
+    slack).
+    `row_equipment::solve_rower_oar_yaw`'s root solve clamps its `acos`
+    argument to ±1; the +1 clamp is the reach boundary — the web's
+    `forceReachBoundary` fallback for a requested reach the inboard circle
+    cannot achieve — and a boundary branch is exactly where two
+    implementations part company. Measured directly (argument probe over
+    the equipment corpus's 20 `oarYaw` samples, one amplitude-degenerate;
+    found while verifying the `float_roundtrip` audit's conditioning claim
+    instead of inferring it from absent deltas): the clamp **is**
+    exercised — one recorded sample sits past +1 at argument 1.024, four
+    past −1 (min −1.607) — but the largest recorded argument in the
+    achievable regime is **0.867** (~30° of root offset), so (0.867, 1.0)
+    is empty in the corpus. That interval is where the solve's conditioning
+    degrades: `|acos′| = 1/√(1−x²)` grows from ~2 at 0.87 through ~70 at
+    0.9999 to ~5×10⁷ at the last double below 1, where a 1 ULP argument
+    shift moves the yaw ~1e-8, four orders above the corpus's 1e-12
+    tolerance — also why the pre-`float_roundtrip` runs never showed
+    amplification, and why the past-boundary sample cannot (the clamped
+    branch collapses the root offset to 0 and is perfectly
+    well-conditioned). **The gap is sample coarseness, not system
+    behaviour**: sweeping `armDraw` finely through the web's own schedule
+    (`requestedRowerWristReach` at the pin — flexion `0.32 +
+    draw·(2.46−0.32)` over the 0.39/0.38 arms, reach 0.758 → 0.256)
+    against each recorded geometry, 9 of the 19 non-degenerate geometries
+    cross the boundary **continuously** — their arguments walk the whole
+    interval and graze ≥ 0.9999 before clamping. (The recorded reaches,
+    0.55–0.95, already exceed the schedule's 0.758 maximum, so the
+    exporter was driving synthetic reaches rather than the schedule.)
+    **The drawn half is not an operational gap**: the composed layer
+    covers it — #27's `oarSolve` recording sweeps real cycle phases
+    (armDraw 0 → 1, 256 solves, reach 0.2555–0.7582) with 36 solves in
+    [0.256, 0.538). The same recording also walks the interval (10
+    solves in (0.867, 1.0), max 0.9946) and crosses the boundary (11 at
+    or above 1, min 1.0098), so the coarse crossing is already pinned
+    there; what no corpus samples is the approach tail above 0.999
+    (0 of 256), where the amplification is largest. Remedy — record the
+    sweep through the schedule, not around it: extend
+    the `oarYaw` corpus (and the rig-phase generator's `oarSolve`
+    recording, PR #27) with a fine `armDraw` grid per geometry,
+    densified around each geometry's crossing rather than uniform, which
+    crosses arguments 0.99 / 0.999 / 0.9999 and the boundary naturally,
+    pinning the approach, the exact-boundary root collapse and the
+    fallback together. Driving `armDraw` also keeps the
+    record-what-renders rule: `requestedReach` is a length in metres, so
+    it cannot be set to the argument targets directly (a literal 0.99
+    reach lands deep in the clamped branch) — the reaches that produce
+    each argument come out of the flexion schedule. Runtime shoulders
+    move with the clip, which only widens the attainable set beyond these
+    recorded geometries.
 
 ## Stage-2 generator contract
 
