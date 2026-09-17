@@ -25,7 +25,7 @@
  * Usage:
  *   node tools/gen-row-phase-parity.mjs \
  *     --rowplay-repo reference/rowplay \
- *     --commit 4d96480e7c6fb382f800555bd3aa463d9fe5b1a6
+ *     --commit 173c6facbcedef419ad39168c5e3e642abb7e57e
  *
  * Writes tests/fixtures/replay-row-phase-parity.json. Requires Node ≥ 23.6
  * (type stripping) and the RowPlay checkout's node_modules (motionGraph.ts
@@ -39,7 +39,7 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const PINNED_COMMIT = "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6";
+const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
 const SAMPLE_COUNT = 33;
 const AVATAR_PATH = "src/lib/replay/renderer3dRowAvatar.ts";
 const MOTION_PATH = "src/lib/replay/motionGraph.ts";

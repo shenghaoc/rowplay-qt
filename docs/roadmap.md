@@ -201,7 +201,7 @@ Status: delivered (this PR).
 - Vendored assets: `assets/replay/` holds the V3 rig pack
   (`rowplay-rigs-v3.glb`), the V4 athlete (`rowplay-athlete-v4.glb` plus its
   contract JSON) and the 13 Poly Haven environment texture families (three
-  maps each) from rowplay commit `011e8303…` — 42 hash-pinned files plus the
+  maps each) from rowplay commit `173c6fa…` — 42 hash-pinned files plus the
   environments `README.md` — with their `ASSET_PROVENANCE.md` rows,
   `tools/vendor-replay-assets.py` (`--emit-rust` regenerates the hash table)
   and `crates/rowplay-app/tests/asset_hashes.rs`, which pins path, byte
@@ -495,6 +495,18 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
 - Remaining: per-stroke verification (T8, including the catch/finish
   visual on all three sports — now against the corrected phase); docs
   (T9).
+- Post-audit upstream bump (reference `011e8303` → `173c6fa`, rowplay
+  PRs #199/#200/#202): regenerated all three web-generated fixtures and
+  adopted the two web fixes with recorded divergences (fr `emptyTrend`
+  `{n}` placeholder, `distance_band` lowest-band nominal). PR #199's
+  `v4HandTargets` surface closed the skierg contact-window coverage gap
+  the audit had scoped — and its first consumption found the **seventh
+  fixture-found defect**: the oar composition order (`qz ⊗ qy` vs the
+  web's Euler-XYZ `qy ⊗ qz`), 0.181 m of grip error at the catch,
+  invisible to residuals. Fixed with the pin bump in one change; the
+  skierg contact/approach windows are measured (0.977 m / 0.033 m) and
+  bounded, attributed to the documented `plant_basket_z` divergence's
+  scoped follow-up.
 
 ### Phase 8 — Live mode
 

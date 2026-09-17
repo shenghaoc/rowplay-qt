@@ -1,6 +1,6 @@
 {
  "schema": "rowplay.replay.stroke-model-parity.v1",
- "sourceCommit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+ "sourceCommit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
  "generatorVersion": "gen-stroke-model-parity/1.0.0",
  "sourceFileSha256s": {
   "src/lib/replay/strokeModel.ts": "b9d6d7a1e93b2f2b19bb67966e00efbe997d7c1333a79e64feef137557807569",
