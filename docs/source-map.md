@@ -10,7 +10,7 @@ Rust port chose and why.
 
 | Repository | Branch | Commit | Local checkout (git-ignored) |
 | --- | --- | --- | --- |
-| `https://github.com/shenghaoc/rowplay` | `main` | `011e8303b66b4d2265a6f1ec8b3ed9d8ed497086` | `reference/rowplay` |
+| `https://github.com/shenghaoc/rowplay` | `main` | `173c6facbcedef419ad39168c5e3e642abb7e57e` | `reference/rowplay` |
 | `https://github.com/shenghaoc/rowplay-studio` | `main` | `3d406a5b7677372de35fb0817c7133a2589c6564` | `reference/rowplay-studio` |
 | `https://github.com/qt/qtbridge-rust-examples` | default | `763bbfbd400791ac09da9d8ba3903310c4313fe2` | `reference/qtbridge-rust-examples` |
 
@@ -205,6 +205,7 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Non-finite formatting | prints `NaN m` / `NaN:NaN` | placeholders `--` / `--:--` | placeholders (Studio) | The web output is an unhandled case, not a feature; Studio's stress spec documents the placeholders. |
 | `fmt_time` with huge hours | prints exponent notation | `--:--` | `--:--` beyond 1e15 hours | Same reasoning. |
 | `distance_band` labels | en dash (`3k–7k`) | hyphen (`3k-7k`) | web | Character-for-character parity; the fixture policy requires en dashes. |
+| Rower oar rotation composition | `oar.group.rotation = Euler(0, yaw, roll)` in three.js's default XYZ order — group quaternion `qy(yaw) ⊗ qz(roll)`, the roll's vertical lift (`inboard · sin(roll)`) is yaw-independent; the left oar mirrors only the visual child | Studio `ReplayRowerRig.applyPose` composed `qz(roll) ⊗ (qy(yaw) ⊗ mirror)` (doc said "roll after yaw") | web (fixed) | The Studio order scales the roll's handle lift by `cos(yaw)` — up to 6× short at the finish (`cos(1.4) ≈ 0.17`) — and was measured **0.181 m off the web's rendered grip at the catch** (`replay-rig-phase-parity.json` `handTargets`, rowplay#199: the pre-IK `v4HandTargets` surface). Fixed in `equipment::oar_rotations{,_from_yaws}` and both `pose.rs` grip-rebuild sites to `quat_mul(quat_mul(yaw, roll), mirror)`; the same family as the `armDraw` channel bug — invisible to contact residuals (the IK just reaches differently). Seventh defect found by fixtures. |
 | `distance_band` lowest band nominal | `(0 + min(750, 0)) / 2 = 0` | 375 | 375 | The web fixed its own quirk upstream (rowplay#202, adopted here with the reference bump to `173c6fa`); the port previously kept the web's 0 and had flagged it as a candidate upstream fix. The duration band had already been fixed the same way in the web, and the port matched then. |
 | `summarise_by_sport.best_pace` with no positive pace | `Infinity` sentinel | `0` | `None` | Representation only; `Option` is the idiomatic sentinel. Ties in the distance sort keep first-seen order (web, stable sort) rather than sorting by sport name (Studio). |
 | Personal bests | per sport, seven distances (`analytics.ts`); list variant across sports unless filtered (`workoutQuery.ts`) | one merged function with a sport filter, fastest across sports when unfiltered, plus 42 195 m | both web variants, seven distances | Studio's marathon distance and cross-sport merge are undocumented deviations. |

@@ -1,9 +1,9 @@
 {
   "schema": "rowplay.replay.row-phase-parity.v1",
-  "sourceCommit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
+  "sourceCommit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
   "generatorVersion": "gen-row-phase-parity/1.0.0",
   "sourceFileSha256s": {
-    "src/lib/replay/renderer3dRowAvatar.ts": "47b6d2abc0f98191dc73278f8946551243ef7c828bbc216851ca1f978ab08835",
+    "src/lib/replay/renderer3dRowAvatar.ts": "1df94f887cc6440305c7ebd338a6b56391a0892625079c36f05c3ce165019782",
     "src/lib/replay/motionGraph.ts": "612e024e048a66514c3190104e39f5656f849f38aaccc56fef926aa1e2ff94b8",
     "src/lib/replay/rowRig.ts": "bde8a76aac46dd71dc068b60287bc0ee891c94c12cac13a170ad734e5b9d25a5"
   },

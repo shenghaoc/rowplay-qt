@@ -49,8 +49,8 @@ FILES = [
 # rewritten, so a recorded pin survives re-vendoring.
 GENERATED_FIXTURES = {
     "replay-row-phase-parity.json": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
-    "replay-rig-phase-parity.json": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
-    "replay-stroke-model-parity.json": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "replay-rig-phase-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+    "replay-stroke-model-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
 }
 
 

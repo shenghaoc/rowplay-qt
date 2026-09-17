@@ -32,7 +32,7 @@
  * Usage:
  *   node tools/gen-stroke-model-parity.mjs \
  *     --rowplay-repo reference/rowplay \
- *     --commit 011e8303b66b4d2265a6f1ec8b3ed9d8ed497086
+ *     --commit 173c6facbcedef419ad39168c5e3e642abb7e57e
  *
  * Writes tests/fixtures/replay-stroke-model-parity.json. Requires Node ≥ 23.6
  * (type stripping); no node_modules needed (motion.ts is dependency-free).
@@ -46,7 +46,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const PINNED_COMMIT = "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086";
+const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
 const STROKE_MODEL_PATH = "src/lib/replay/strokeModel.ts";
 const MOTION_PATH = "src/lib/replay/motion.ts";
 

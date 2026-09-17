@@ -43,8 +43,8 @@ const REPLAY = join(REFERENCE, "src", "lib", "replay");
 const OUT_DEFAULT = join(REPO, "tests", "fixtures", "replay-rig-phase-parity.json");
 
 /** The reference commit this generator is pinned to (docs/source-map.md). */
-const PINNED_COMMIT = "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086";
-const GENERATOR_VERSION = "gen-rig-phase-parity/1.0.0";
+const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
+const GENERATOR_VERSION = "gen-rig-phase-parity/1.1.0";
 
 /** The web sources whose evaluation this fixture captures. */
 const SOURCE_FILES = [
@@ -174,6 +174,70 @@ function worldPosition(object, scratch) {
   return [v.x, v.y, v.z];
 }
 
+/**
+ * The exposed pre-IK hand/grip target (web `avatar.v4HandTargets`,
+ * renderer3dAvatarKit.ts `AvatarV4HandTargets`), recorded in the same
+ * parent-local frame as the matching `v4Targets.leftHand` / `.rightHand`
+ * node and converted to world by that node's parent — the upstream doc's
+ * prescribed conversion. `handTarget` is a raw `THREE.Vector3`, not a scene
+ * node, so it has no `getWorldPosition`; its frame is the hand node's
+ * parent-local space.
+ *
+ * Per-sport precision (from the web sources, not assumed):
+ *
+ * - RowErg: `arm.hand.position` is set to `handTarget` exactly
+ *   (`placeArms`, renderer3dRowAvatar.ts:801) — the exposed value IS the
+ *   recorded `targets.leftHand`. The recorder asserts that identity per
+ *   sample so a frame mistake cannot be written silently.
+ * - BikeErg: the static handlebar contact anchor in rider-local.
+ * - SkiErg: `placePoleArms` OVERWRITES `handTarget` with the pole-solved
+ *   hand inside its contact pass (renderer3dSkiAvatar.ts:1079) — the
+ *   exposed value is post-pole-solve, pre-arm-IK, NOT the authored
+ *   `skiPreferredHand` arc. The comparable port quantity is the solved
+ *   pole-contact target, not core's `preferred_hand_*`.
+ */
+function handTargets(avatar, sport, scratch) {
+  const targets = avatar.v4HandTargets;
+  if (!targets) throw new Error(`${sport}: avatar does not expose v4HandTargets`);
+  const out = {};
+  for (const side of ["left", "right"]) {
+    const target = targets[side];
+    if (!target) throw new Error(`${sport}: v4HandTargets.${side} missing`);
+    if (target.lengthSq() === 0) {
+      throw new Error(
+        `${sport}: v4HandTargets.${side} is the zero vector — read it after animate()` +
+          (sport === "skierg"
+            ? " and resolveWorldContacts() (SkiErg populates it only there, and only once the rig has a course parent)"
+            : ""),
+      );
+    }
+    const handNode = side === "left" ? avatar.v4Targets.leftHand : avatar.v4Targets.rightHand;
+    const parent = handNode.parent;
+    if (!parent) throw new Error(`${sport}: hand node has no parent`);
+    const v = scratch.copy(target);
+    parent.localToWorld(v);
+    out[side] = [v.x, v.y, v.z];
+  }
+  // RowErg self-check: the web sets the visible hand marker exactly on the
+  // grip channel, so the recorded target must equal the recorded hand node
+  // world position. A mismatch means the frame conversion is wrong and the
+  // fixture must not be written (AGENTS.md: the harness is a suspect equal
+  // to the port).
+  if (sport === "rower") {
+    for (const side of ["left", "right"]) {
+      const handNode = side === "left" ? avatar.v4Targets.leftHand : avatar.v4Targets.rightHand;
+      const hand = worldPosition(handNode, scratch);
+      const d = Math.hypot(out[side][0] - hand[0], out[side][1] - hand[1], out[side][2] - hand[2]);
+      if (!(d < 1e-12)) {
+        throw new Error(
+          `RowErg hand-target self-check failed (${side}): target ${out[side]} vs hand node ${hand} (delta ${d})`,
+        );
+      }
+    }
+  }
+  return out;
+}
+
 function euler(object) {
   return [object.rotation.x, object.rotation.y, object.rotation.z];
 }
@@ -206,6 +270,7 @@ function sample(avatar, sport, pose, meters, scratch) {
   const out = {
     meters,
     cues: avatar.lastCues,
+    handTargets: handTargets(avatar, sport, scratch),
     targets: {
       pelvis: worldPosition(v4.pelvis, scratch),
       leftHand: worldPosition(v4.leftHand, scratch),
@@ -492,7 +557,7 @@ async function main() {
   const fixture = {
     schema: "rowplay.replay.rig-phase-parity.v1",
     description:
-      "Web avatar rig calibration over the full stroke cycle: seat/oars/torso (rower), pole/torso/hand landmarks (skierg), crank/wheel/pedals (bike), plus the V4 contact target rig, sampled rig-local from renderer3d{Row,Ski,Bike}Avatar at the pinned rowplay commit.",
+      "Web avatar rig calibration over the full stroke cycle: seat/oars/torso (rower), pole/torso/hand landmarks (skierg), crank/wheel/pedals (bike), plus the V4 contact target rig and the pre-IK hand targets (v4HandTargets; post-pole-solve for skierg), sampled rig-local from renderer3d{Row,Ski,Bike}Avatar at the pinned rowplay commit.",
     sourceCommit: head,
     generatorVersion: GENERATOR_VERSION,
     sourceFileSha256s,

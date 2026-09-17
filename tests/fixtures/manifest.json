@@ -134,8 +134,8 @@
     },
     {
       "path": "replay-rig-phase-parity.json",
-      "bytes": 1103654,
-      "sha256": "9468031a3edc08ebe8dd3282a769f0dd0139f1da048ab7f7fd3e23aee1a94bbf",
+      "bytes": 1193940,
+      "sha256": "fee48d0907a538db4b20c3d9bf57ee7ec766bf9796e6bc74b7c6b7cf2cef0394",
       "source": {
         "repository": "https://github.com/shenghaoc/rowplay",
         "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
@@ -155,7 +155,7 @@
     {
       "path": "replay-row-phase-parity.json",
       "bytes": 29459,
-      "sha256": "2cad1d4eb53d7f0a68e1715d4d2881b3d0c294930b00d4a90de8e7338de59598",
+      "sha256": "f64dc7dd7b822b519b9b888e442a093d751ee6bb2d4e07d3b2799d8d70e73ef4",
       "source": {
         "repository": "https://github.com/shenghaoc/rowplay",
         "commit": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
@@ -165,7 +165,7 @@
     {
       "path": "replay-stroke-model-parity.json",
       "bytes": 96504,
-      "sha256": "11e3072f42921050af59d33a1e07d3c2475dd94078e2a3daca5a28499c3673a1",
+      "sha256": "fe3b3da8b874544a0a4d4be979fd08e803b1234b485f0c8af41aa15c7e03bebd",
       "source": {
         "repository": "https://github.com/shenghaoc/rowplay",
         "commit": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",

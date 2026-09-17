@@ -20,7 +20,7 @@ Three fixtures are generated locally rather than vendored:
 
 - `replay-row-phase-parity.json` pins the web avatar's rower stroke-phase
   calibration (seat slide, oar sweep yaw, oar dip roll per cycle) directly
-  from the **rowplay web repo** at commit `4d96480e7c6fb382f800555bd3aa463d9fe5b1a6`,
+  from the **rowplay web repo** at commit `173c6facbcedef419ad39168c5e3e642abb7e57e`,
   because the Studio-derived corpus has no phase coverage — the hole that let
   Studio's inverted rower phase port cleanly (the seat driven farthest from the
   feet at the catch). Regenerate with
@@ -30,12 +30,12 @@ Three fixtures are generated locally rather than vendored:
   `docs/parity-coverage.md`) sweeps the **composed** web avatar calibration for
   all three sports over the full cycle — rig-local transforms and the V4
   contact landmarks from `renderer3d{Row,Ski,Bike}Avatar.ts` at the pinned
-  rowplay commit `011e8303` (384 samples × 2 timing sweeps). Regenerate with
+  rowplay commit `173c6fa` (384 samples × 2 timing sweeps). Regenerate with
   `node --experimental-transform-types tools/gen-rig-phase-parity.mjs`.
 - `replay-stroke-model-parity.json` (parity coverage audit ranking 5,
   `docs/parity-coverage.md`) pins the **production stroke-pose pipeline**:
   `buildStrokeTimeline`, `strokePoseAt` and `fallbackStrokePose` imported from
-  `src/lib/replay/strokeModel.ts` at the pinned rowplay commit `011e8303` and
+  `src/lib/replay/strokeModel.ts` at the pinned rowplay commit `173c6fa` and
   fed nine varied timelines (real and synthetic, interval rests, a
   non-advancing anchor, degenerate rows, an empty timeline) plus a
   boundary-inclusive query-time sweep — 129 pose samples. The sibling
@@ -69,7 +69,7 @@ its nearest double.
 | `duration-band-parity.json` | 6120 | `b25819daecb6458eb1a32d226965aeeb66335d2166028dfdbfaca8cb4d918ee4` |
 | `performance-predictor-parity.json` | 1304 | `46cdec99696325feacdd1bd1df89409fdc5704b2fefc2bf34f995ecc2343712d` |
 | `replay-current-main-2d.json` | 112327 | `407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693` |
-| `replay-rig-phase-parity.json` | 1103654 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` (avatar parented to a throwaway `THREE.Scene` so `placePoleArms` runs; numbers serialised through `toPrecision(17)` for byte-identity across Node versions; skierg samples record `hipsRotation` and left `shoulderLeft` position) |
+| `replay-rig-phase-parity.json` | 1193940 | see `manifest.json` — generated locally by `tools/gen-rig-phase-parity.mjs` (avatar parented to a throwaway `THREE.Scene` so `placePoleArms` runs; numbers serialised through `toPrecision(17)` for byte-identity across Node versions; skierg samples record `hipsRotation` and left `shoulderLeft` position; since the 173c6fa pin every sample also records the pre-IK `handTargets` from `avatar.v4HandTargets` — post-pole-solve for skierg, the oar-solved grip for rower, the static bar anchor for bike, with a rower identity self-check against the hand node) |
 | `replay-current-main-equipment.json` | 61418 | `d403eb47c835dc2c8766ac13f235c7a6313962f2157bf5854e37932921f9d865` |
 | `replay-current-main-grips.json` | 55216 | `50940759fe637d35267a3b20eb60f92fb8bc5debff6ce7f43c087b39563b962b` |
 | `replay-current-main-motion.json` | 482320 | `e47ffdf5e2332ce86911bda2b8b963f5b3ec559f252feee8aa8aaf9bbfdee230` |
