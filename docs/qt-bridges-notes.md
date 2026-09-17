@@ -255,37 +255,59 @@ Suggestion: make `load_qml_from_file` return a `Result` (Qt has
 `QQmlApplicationEngine::objectCreationFailed` and `rootObjects()` to build it
 from), or have `run()` return non-zero when no root object was created.
 
-## 17. `grabToImage` returns a black Quick 3D viewport on macOS/Metal
+## 17. `grabToImage` returns a black Quick 3D viewport on **one** macOS/Metal host
 
 Not qtbridge, but it silently corrupted a QA baseline, so it belongs here.
-`QQuickItem::grabToImage` — the gate walk's capture path (`Main.qml`
-`grabScreen`/`grabSettledScene`) — composites the 2D scene graph correctly but
-the `View3D` region comes back **solid black** on this macOS/Metal host
-(Qt 6.11.2, Apple M5), while the live window renders the replay scene
-correctly. Phase 0's sphere-and-cube smoke capture *does* render, so it is not
-"grab is broken for Quick 3D" in general; the cause is not yet identified
-(candidates: the replay scene's `ExtendedSceneEnvironment`/procedural sky
-probe, its post-processing pass, or the platform's Quick 3D texture path).
+Scope of the bug (**narrow, not "capture is broken"**):
 
-The failure is silent because `assert_rendered` samples the **whole window**:
-the sidebar and chrome supply well over 64 distinct colours and keep the top
-colour under 90 %, so an all-black viewport passes. The bug is **specific to
-this host**: Phase 7's T8 baseline was captured on the RHEL machine (Wayland,
-Intel UHD 630) and its twelve captures are valid — do not re-shoot that
-baseline on account of this note. On an affected host `ROWPLAY_PHASE_SHOTS=1`
-produces a black baseline while CI (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`)
-produces a real one.
+- **Affected**: one previous session's host, Apple M5, macOS + Metal,
+  Qt 6.11.2. On that host `QQuickItem::grabToImage` composites the 2D
+  scene graph correctly but the `View3D` region comes back **solid
+  black** on the replay route, while the live window renders it. Phase
+  0's sphere-and-cube smoke capture *does* render, so it is not "grab
+  is broken for Quick 3D" — the cause is not yet identified
+  (candidates: the replay scene's `ExtendedSceneEnvironment` /
+  procedural sky probe, its post-processing pass, or the platform's
+  Quick 3D texture path).
+- **Unaffected**: Linux + Xvfb + Mesa (`QT_QPA_PLATFORM=xcb`,
+  `QSG_RHI_BACKEND=opengl`, `LIBGL_ALWAYS_SOFTWARE=1`) — both the
+  Linux CI legs and any local Linux session with those env vars.
+  Verified 2026-09 in this session by running the gate walk locally
+  (`xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate`);
+  the resulting `replay-{row,ski,bike}.ppm` render the venue palettes
+  (row teal water, ski near-white snow, bike cream terrace) with zero
+  black samples across a 96-point grid over the `View3D` region.
+- **Also unaffected**: the author's RHEL box (Wayland, Intel UHD 630),
+  used for the Phase 7 T8 baseline.
 
-Repro: `ROWPLAY_SMOKE_GATE=1 ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts cargo test -p rowplay-app --test qml_runtime_gate`
-on macOS; `artifacts/phase-*-*.ppm` are black in the viewport region while the
-app's own window shows the scene.
+**Do not read this note as "local visual verification is only
+possible on the RHEL box"** — the earlier paragraph in
+`docs/parity-coverage.md`'s Capture caveat section (and the
+handover) both imply that. A Linux session with Xvfb + Mesa (this
+one, and the Linux CI legs) does render the 3D captures. When you
+need to look at ski / rower / bike phase output, running the gate walk
+locally on Linux is a valid path.
 
-Mitigations in place: `ROWPLAY_PHASE_SHOTS=1` runs in the Linux CI gate (which
-does capture the scene) and uploads `artifacts/phase-*.png`, and
-`common::assert_viewport_rendered` now samples the viewport region under a real
-GL backend so a blank 3D area fails instead of riding on the sidebar's colours.
-Any future capture work on macOS should treat a black viewport as this bug, not
-as a scene regression, and verify against the live window.
+The failure is silent on the affected host because the older
+`assert_rendered` samples the **whole window**: the sidebar and chrome
+supply well over 64 distinct colours and keep the top colour under
+90 %, so an all-black viewport passed. That has been superseded:
+`common::assert_viewport_rendered` samples the viewport region under
+a real GL backend so a blank 3D area fails instead of riding on the
+sidebar's colours.
+
+Repro (macOS/Metal only): `ROWPLAY_SMOKE_GATE=1 ROWPLAY_PHASE_SHOTS=1
+ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts cargo test -p rowplay-app
+--test qml_runtime_gate` on the affected macOS host produces
+`artifacts/phase-*-*.ppm` with a black viewport region while the app's
+own window shows the scene. If someone hits this on a different macOS
+host, log a comment here — the "one macOS/Metal host" scope stands
+until a second host reproduces.
+
+Phase 7's T8 baseline was captured on the RHEL machine and its twelve
+captures are valid — do not re-shoot it on account of this note. New
+visual work can be done on the Linux CI leg, on the RHEL box, or on
+any Linux session with the Xvfb + Mesa env vars above.
 
 A related capture-path defect, found while checking the phase twins and fixed
 in `bf8d77f`: the QA close-up camera (`closeup_camera_view`, only under
