@@ -50,6 +50,7 @@ FILES = [
 GENERATED_FIXTURES = {
     "replay-row-phase-parity.json": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
     "replay-rig-phase-parity.json": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+    "replay-stroke-model-parity.json": "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
 }
 
 
