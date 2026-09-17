@@ -104,10 +104,24 @@ pub fn pole_leaf_position(
     add(pole_pos, rotate_vec(pole_rot, leaf_fit_pos))
 }
 
-/// The oar-rig instance rotations `[left, right]` for a sweep and feather
-/// (Studio `ReplayRowerRig.applyPose`: yaw about Y by `sweep · side`, roll
-/// about Z by `−feather · side`, roll after yaw). The authored template is
-/// the right oar; the left instance carries the README's π mirror first.
+/// The oar-rig instance rotations `[left, right]` for a sweep and feather.
+///
+/// The web drives `oar.group.rotation` as three.js Euler(0, yaw, roll) in
+/// the default XYZ order (renderer3dRowAvatar `placeOars`), i.e. the group
+/// quaternion is `qy(yaw) ⊗ qz(roll)` — the roll is applied **first**, in
+/// the oar's local frame, so its vertical lift (`inboard · sin(roll)`) is
+/// yaw-independent. `ROWER_OARLOCK`'s comment names the coupling this buys:
+/// "the drive-side roll that buries the spoon just below the water then
+/// puts the handles at the drive height". Composing `qz ⊗ qy` instead
+/// scales the lift by `cos(yaw)` — up to 6× short at the finish — and was
+/// measured 0.18 m off the web's rendered grip at the catch
+/// (`replay-rig-phase-parity.json` `handTargets`, rowplay#199).
+///
+/// The authored template is the right oar; the left instance carries the
+/// README's π mirror first (the web mirrors only the visual child
+/// `oarVisual`, leaving the group quaternion pure — folding the mirror
+/// into the instance after the yaw·roll pair is the same transform for
+/// the port's single-template composition).
 #[must_use]
 pub fn oar_rotations(sweep: f64, feather: f64) -> [[f64; 4]; 2] {
     let side = |sign: f64| -> [f64; 4] {
@@ -118,7 +132,7 @@ pub fn oar_rotations(sweep: f64, feather: f64) -> [[f64; 4]; 2] {
         } else {
             [0.0, 0.0, 0.0, 1.0]
         };
-        quat_mul(roll, quat_mul(yaw, mirror))
+        quat_mul(quat_mul(yaw, roll), mirror)
     };
     [side(-1.0), side(1.0)]
 }
@@ -139,7 +153,7 @@ pub fn oar_rotations_from_yaws(yaws: [f64; 2], feather: f64) -> [[f64; 4]; 2] {
         } else {
             [0.0, 0.0, 0.0, 1.0]
         };
-        quat_mul(roll, quat_mul(yaw, mirror))
+        quat_mul(quat_mul(yaw, roll), mirror)
     };
     [side(-1.0, yaws[0]), side(1.0, yaws[1])]
 }
@@ -374,6 +388,48 @@ mod tests {
         assert!(
             grip[1] > 0.0,
             "a positive feather lifts the inboard grip: {grip:?}"
+        );
+    }
+
+    /// The yaw and roll composed **together** follow the web's three.js
+    /// Euler-XYZ law: an oar-local X vector lands at
+    /// `(cos(roll)·cos(yaw), sin(roll), −cos(roll)·sin(yaw))` — the roll's
+    /// vertical lift is yaw-independent. The tests above pin yaw and roll
+    /// in isolation (which is how the wrong order survived); this one pins
+    /// their product, the case the rig-phase `handTargets` fixture found
+    /// 0.181 m of error in (rowplay#199).
+    #[test]
+    fn a_swept_and_feathered_oar_follows_the_web_euler_xyz_composition() {
+        // Catch: mid-stroke yaw and drive-side roll together.
+        let [_, right] = oar_rotations(1.2, 0.28);
+        let tip = rotate(right, [1.0, 0.0, 0.0]);
+        let (yaw, roll) = (1.2f64, -0.28f64);
+        assert!(
+            (tip[0] - roll.cos() * yaw.cos()).abs() < 1e-12
+                && (tip[1] - roll.sin()).abs() < 1e-12
+                && (tip[2] + roll.cos() * yaw.sin()).abs() < 1e-12,
+            "right oar local +X must land at (cos·cos, sin, −cos·sin): {tip:?}"
+        );
+        // Under the old order (`qz ⊗ qy`) the lift is `cos(yaw)·sin(roll)`
+        // — 0.24 m short at this yaw; the identity above distinguishes
+        // the orders whenever both angles are non-zero.
+        let wrong_lift = yaw.cos() * roll.sin();
+        assert!(
+            (tip[1] - wrong_lift).abs() > 1e-3,
+            "the assertion must distinguish the composition orders"
+        );
+        // The left instance mirrors: template +X (outboard for the right
+        // oar) carries the π mirror, so the rotated template +X equals the
+        // web law evaluated on the left's side-authored local −X — every
+        // component picks up the mirror's −1.
+        let [left, _] = oar_rotations(1.2, 0.28);
+        let left_tip = rotate(left, [1.0, 0.0, 0.0]);
+        let (yaw, roll) = (-1.2f64, 0.28f64);
+        assert!(
+            (left_tip[0] + roll.cos() * yaw.cos()).abs() < 1e-12
+                && (left_tip[1] + roll.sin()).abs() < 1e-12
+                && (left_tip[2] - roll.cos() * yaw.sin()).abs() < 1e-12,
+            "left oar template +X must follow the mirrored law: {left_tip:?}"
         );
     }
 

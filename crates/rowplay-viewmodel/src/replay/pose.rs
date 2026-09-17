@@ -244,11 +244,12 @@ pub fn rig_targets(pose: &SportRigPose) -> RigTargets {
 fn rower_targets(rig: &RowerRigPose) -> RigTargets {
     use geometry::{ROW_FOOT, ROW_GRIP_DROP, ROW_INBOARD_CONTACT, ROW_OARLOCK, ROW_PELVIS};
     let hand = |side: f64| -> [f64; 3] {
-        // Each inboard grip rides its own rigid circle: yaw about Y by the
-        // sweep, roll about Z by the feather, both mirrored per side.
+        // Each inboard grip rides its own rigid circle, in the web's
+        // composition order (three.js Euler-XYZ: `qy(yaw) ⊗ qz(roll)`, the
+        // roll's yaw-independent vertical lift — see `oar_rotations`).
         let yaw = axis_angle([0.0, 1.0, 0.0], rig.oar_sweep * side);
         let roll = axis_angle([0.0, 0.0, 1.0], -rig.oar_feather * side);
-        let orientation = quat_mul(roll, yaw);
+        let orientation = quat_mul(yaw, roll);
         let local = [-side * ROW_INBOARD_CONTACT, ROW_GRIP_DROP, 0.0];
         let pivot = [side * ROW_OARLOCK[0], ROW_OARLOCK[1], ROW_OARLOCK[2]];
         add(pivot, rotate(orientation, local))
@@ -626,10 +627,12 @@ impl PoseSolver {
                     solved[index] = yaw;
                     // Rebuild this side's grip target from the solved yaw
                     // (same rigid circle `rower_targets` uses, but with the
-                    // solved sweep instead of the authored one).
+                    // solved sweep instead of the authored one) — the web's
+                    // Euler-XYZ order (yaw ⊗ roll), whose yaw-independent
+                    // roll lift `solve_rower_oar_yaw` assumes.
                     let yaw_q = axis_angle([0.0, 1.0, 0.0], yaw);
                     let roll_q = axis_angle([0.0, 0.0, 1.0], -side * oar.roll);
-                    let orientation = quat_mul(roll_q, yaw_q);
+                    let orientation = quat_mul(yaw_q, roll_q);
                     let local = [
                         -side * geometry::ROW_INBOARD_CONTACT,
                         geometry::ROW_GRIP_DROP,
@@ -1173,6 +1176,7 @@ fn normalised_or(v: [f64; 3], fallback: [f64; 3]) -> [f64; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rowplay_core::replay::motion_graph;
     use rowplay_core::replay::rig_pose::solve_rig_pose;
     use rowplay_core::replay::stroke_model::fallback_stroke_pose;
 
@@ -1193,6 +1197,36 @@ mod tests {
             Sport::Rower => "rower",
             Sport::Skierg => "skierg",
             Sport::Bike => "bike",
+        }
+    }
+
+    /// Rebuild a [`StrokePose`] from the fixture's pose echo (the same
+    /// field-for-field reconstruction core's parity harness uses).
+    fn stroke_pose_from_echo(
+        echo: &serde_json::Value,
+    ) -> rowplay_core::replay::stroke_model::StrokePose {
+        let f = |key: &str| {
+            echo[key]
+                .as_f64()
+                .unwrap_or_else(|| panic!("pose.{key} missing"))
+        };
+        rowplay_core::replay::stroke_model::StrokePose {
+            index: echo["index"].as_u64().expect("pose.index") as usize,
+            phase: f("phase"),
+            warped_phase: f("warpedPhase"),
+            cycle_frac: f("cycleFrac"),
+            drive_frac: f("driveFrac"),
+            drive: echo["drive"].as_bool().expect("pose.drive"),
+            drive_progress: f("driveProgress"),
+            recovery_progress: f("recoveryProgress"),
+            stroke_seconds: f("strokeSeconds"),
+            stroke_meters: f("strokeMeters"),
+            rate: f("rate"),
+            watts: f("watts"),
+            intensity: f("intensity"),
+            amplitude: f("amplitude"),
+            fatigue: f("fatigue"),
+            real: echo["real"].as_bool().expect("pose.real"),
         }
     }
 
@@ -1328,6 +1362,238 @@ mod tests {
         assert_eq!(
             checked, 256,
             "the rower fixture carries 128 samples × 2 sides"
+        );
+    }
+
+    /// The web's composed oar quaternion law, against the rendered hand
+    /// targets the new `handTargets` field records (rowplay#199):
+    /// `oar.group.quaternion` is three.js Euler(0, yaw, roll) in the
+    /// default XYZ order — `qy(yaw) ⊗ qz(roll)` — acting on the
+    /// side-signed `handleAnchor.position` (`-side · 0.78, -0.04, 0`),
+    /// pivoted at `side · ROWER_OARLOCK`. The port's
+    /// `oar_rotations_from_yaws` must reproduce the same grip point from
+    /// the recorded solved yaw and feather, through its own template
+    /// mirror composition, in rig space.
+    ///
+    /// Measured before any port change (the fixed order's first run): the
+    /// current `qz(roll) ⊗ (qy(yaw) ⊗ mirror)` composition is off by up
+    /// to 0.181 m at the catch — the web's `ROWER_OARLOCK` comment names
+    /// the coupling it breaks ("the drive-side roll … puts the handles at
+    /// the drive height"): under XYZ the roll's vertical lift
+    /// (`0.78 · sin(roll)`) is yaw-independent, while the port's order
+    /// scales it by `cos(yaw)`, collapsing the grip up to 6× at the
+    /// finish where cos(1.4) ≈ 0.17.
+    #[test]
+    fn the_composed_oar_grip_target_matches_the_web_hand_target() {
+        let fixture: serde_json::Value =
+            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+        let samples = fixture["samples"].as_array().expect("samples");
+        let mut worst = 0.0f64;
+        let mut worst_at = String::new();
+        let mut checked = 0;
+        for sample in samples {
+            if sample["sport"].as_str() != Some("rower") {
+                continue;
+            }
+            let yaws = [
+                sample["rig"]["oarSolve"]["sides"][0]["renderedYaw"]
+                    .as_f64()
+                    .expect("left renderedYaw"),
+                sample["rig"]["oarSolve"]["sides"][1]["renderedYaw"]
+                    .as_f64()
+                    .expect("right renderedYaw"),
+            ];
+            let feather = sample["rig"]["oarSolve"]["sides"][0]["roll"]
+                .as_f64()
+                .expect("roll");
+            // The recorded roll is the per-side `oar.rotation.z` already
+            // signed (`-side · dip`); `oar_rotations_from_yaws` takes the
+            // unsigned feather, so take the magnitude (the fixture records
+            // exact per-side mirrors).
+            let feather = feather.abs();
+            let rotations = crate::replay::equipment::oar_rotations_from_yaws(yaws, feather);
+            for (index, side) in [(0usize, -1.0f64), (1usize, 1.0f64)] {
+                let orientation = rotations[index];
+                // The template anchor is right-authored and un-signed; the
+                // left instance's π mirror flips it (signing here as well
+                // would double-apply — the trap `grip.rs` documents).
+                let local = [-geometry::ROW_INBOARD_CONTACT, geometry::ROW_GRIP_DROP, 0.0];
+                let pivot = [
+                    side * geometry::ROW_OARLOCK[0],
+                    geometry::ROW_OARLOCK[1],
+                    geometry::ROW_OARLOCK[2],
+                ];
+                let grip = add(
+                    pivot,
+                    crate::replay::equipment::rotate_vec(orientation, local),
+                );
+                let key = if side < 0.0 { "left" } else { "right" };
+                let recorded = sample["rig"]["handTargets"][key]
+                    .as_array()
+                    .unwrap_or_else(|| panic!("handTargets.{key} missing"));
+                let value = |i: usize| recorded[i].as_f64().expect("handTargets component");
+                let delta = length(sub(grip, [value(0), value(1), value(2)]));
+                if delta > worst {
+                    worst = delta;
+                    worst_at = format!(
+                        "{} phase {} {}",
+                        sample["sweep"].as_str().unwrap_or("?"),
+                        sample["phaseIndex"],
+                        key
+                    );
+                }
+                checked += 1;
+            }
+        }
+        assert_eq!(
+            checked, 256,
+            "the rower fixture carries 128 samples × 2 sides"
+        );
+        assert!(
+            worst <= 1e-9,
+            "composed grip target diverges from the web hand target: worst {worst} at {worst_at}"
+        );
+    }
+
+    /// The skierg pole-contact solve against the web's post-solve hand
+    /// targets (`v4HandTargets` exposes `arm.handTarget` after
+    /// `placePoleArms`'s contact pass overwrites it with the solved hand —
+    /// renderer3dSkiAvatar.ts:1079). The comparable port quantity is
+    /// `rig_targets().contacts.left_hand` (the port's own
+    /// `solve_rigid_contact3d` output, asserted equal to `left.root` in
+    /// `ski_poles_keep_their_length_and_the_hand_stays_in_reach`), not
+    /// core's authored `preferred_hand_*` arc.
+    ///
+    /// This is the comparison the coverage map's None table said needed
+    /// "either a generator that also records `arm.handTarget`" — rowplay#199
+    /// shipped exactly that surface.
+    ///
+    /// Windows (first-run measurements, before any port change):
+    ///
+    /// - **Recovery** (`SKI_POLE_OFF_CYCLE < cyc < APPROACH_START`):
+    ///   machine epsilon (6.6e-16) — the shared Bezier law.
+    /// - **Contact** (`cyc ≤ 0.29`): worst **0.977 m** — the documented
+    ///   `plant_basket_z` model divergence (docs/source-map.md, the
+    ///   "basket drifts ~2 m rearward" defect): the web pins the tip at
+    ///   rig-local (−0.46, 0.081, 0.24) through the whole contact while
+    ///   the port's plant retreats with travel, dragging its solved hand
+    ///   aft. Tracked as the source-map's scoped follow-up (per-frame IK
+    ///   + blend rewrite + visual verification); pinned here once fixed.
+    /// - **Approach** (`cyc ≥ 0.88`): worst **0.033 m** — the web's
+    ///   release-fade + attitude-blended carry ramp toward the next
+    ///   plant, which the port's simplified carry direction does not
+    ///   model. Same follow-up.
+    ///
+    /// The contact/approach deltas are measured and asserted against
+    /// documented expectations (not retired): the assertion fails loudly
+    /// if the divergence *grows* or the recovery law regresses.
+    #[test]
+    fn the_skierg_solved_hand_matches_the_web_post_pole_solve_hand_target() {
+        let fixture: serde_json::Value =
+            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+        let samples = fixture["samples"].as_array().expect("samples");
+        // Windowed worst-case, matching the windows the web's own
+        // `placePoleArms` pipeline moves through (contact ≤ 0.29, recovery,
+        // approach ≥ 0.88) — the failure modes differ per window.
+        // Windowed worst-case, matching the windows the web's own
+        // `placePoleArms` pipeline moves through — the failure modes
+        // differ per window.
+        let mut worst = [0.0f64; 3];
+        let mut checked = 0usize;
+        let mut window_counts = [0usize; 3];
+        for sample in samples {
+            if sample["sport"].as_str() != Some("skierg") {
+                continue;
+            }
+            let pose = stroke_pose_from_echo(&sample["pose"]);
+            let meters = sample["rig"]["meters"].as_f64().expect("meters");
+            let rig = solve_rig_pose(Sport::Skierg, &pose, meters, false);
+            let targets = rig_targets(&rig);
+            for (key, solved) in [
+                ("left", targets.contacts.left_hand),
+                ("right", targets.contacts.right_hand),
+            ] {
+                let recorded = sample["rig"]["handTargets"][key]
+                    .as_array()
+                    .unwrap_or_else(|| panic!("handTargets.{key} missing"));
+                let value = |i: usize| recorded[i].as_f64().expect("handTargets component");
+                let delta = length(sub(solved, [value(0), value(1), value(2)]));
+                let cycle = pose.cycle_frac;
+                let window = if cycle <= motion_graph::SKI_POLE_OFF_CYCLE {
+                    0
+                } else if cycle >= motion_graph::SKI_POLE_APPROACH_START_CYCLE {
+                    2
+                } else {
+                    1
+                };
+                worst[window] = worst[window].max(delta);
+                window_counts[window] += 1;
+                checked += 1;
+            }
+        }
+        assert_eq!(
+            checked, 256,
+            "the skierg fixture carries 128 samples × 2 sides"
+        );
+        assert!(window_counts.iter().all(|c| *c > 0));
+        assert!(
+            worst[1] <= 1e-6,
+            "skierg recovery Bezier diverges from the web: worst {}",
+            worst[1]
+        );
+        // Documented divergences, pinned as upper bounds so a regression
+        // (either window getting worse) fails this test while the
+        // source-map's follow-up lands.
+        assert!(
+            worst[0] <= 0.98,
+            "skierg contact divergence grew beyond the documented 0.977 m: {}",
+            worst[0]
+        );
+        assert!(
+            worst[2] <= 0.04,
+            "skierg approach divergence grew beyond the documented 0.033 m: {}",
+            worst[2]
+        );
+    }
+
+    /// The bike bar contact against the web's static handlebar anchor
+    /// (`v4HandTargets` for bike is the brake-hood contact anchor in
+    /// rider-local, constant across the cycle).
+    #[test]
+    fn the_bike_bar_contact_matches_the_web_handlebar_anchor() {
+        let fixture: serde_json::Value =
+            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+        let samples = fixture["samples"].as_array().expect("samples");
+        let mut worst = 0.0f64;
+        let mut checked = 0;
+        for sample in samples {
+            if sample["sport"].as_str() != Some("bike") {
+                continue;
+            }
+            let pose = stroke_pose_from_echo(&sample["pose"]);
+            let meters = sample["rig"]["meters"].as_f64().expect("meters");
+            let rig = solve_rig_pose(Sport::Bike, &pose, meters, false);
+            let targets = rig_targets(&rig);
+            for (key, solved) in [
+                ("left", targets.contacts.left_hand),
+                ("right", targets.contacts.right_hand),
+            ] {
+                let recorded = sample["rig"]["handTargets"][key]
+                    .as_array()
+                    .unwrap_or_else(|| panic!("handTargets.{key} missing"));
+                let value = |i: usize| recorded[i].as_f64().expect("handTargets component");
+                let delta = length(sub(solved, [value(0), value(1), value(2)]));
+                worst = worst.max(delta);
+                checked += 1;
+            }
+        }
+        assert_eq!(
+            256, checked,
+            "the bike fixture carries 128 samples × 2 sides"
+        );
+        assert!(
+            worst <= 1e-6,
+            "bike bar contact diverges from the web handlebar anchor: worst {worst}"
         );
     }
 
