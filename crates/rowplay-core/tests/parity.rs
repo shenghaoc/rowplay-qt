@@ -769,7 +769,7 @@ fn stroke_model_web_pipeline_parity() {
     let fixture: Fixture = load_json("replay-stroke-model-parity.json").expect("fixture");
     assert_eq!(fixture.schema, "rowplay.replay.stroke-model-parity.v1");
     assert_eq!(
-        fixture.source_commit, "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086",
+        fixture.source_commit, "173c6facbcedef419ad39168c5e3e642abb7e57e",
         "fixture pin drifted from docs/source-map.md"
     );
     assert_eq!(fixture.case_count, fixture.cases.len());
