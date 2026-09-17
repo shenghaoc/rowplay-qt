@@ -287,8 +287,65 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
    recorded timeline field, aggregate and pose field agreed at 1e-10 with no
    port change — the production intensity/fatigue/drive-fraction composition
    is confirmed against the web pipeline, not just its own unit pins.
-6. **Wrist budget sweep** — covered only through the equipment corpus and
-   web-test re-expression.
+6. **Wrist composition order + budgets against a rendered-orientation
+   oracle.** Reframed (was "wrist budget sweep") after the oar
+   composition-order defect: `qz(roll) ⊗ qy(yaw)` vs the web's Euler-XYZ
+   `qy(yaw) ⊗ qz(roll)` placed the rower grip 0.181 m off the rendered
+   target at the catch (ranking 1's sibling finding at `173c6fa`), and it
+   survived four fixtures and every unit test because each pinned the
+   *components* (yaw alone, roll alone) and never the composed result —
+   re-expressed tests inherit whatever composition order the port made,
+   so a swapped order passes silently. That is a **defect class, not a
+   one-off**: any site stacking two or more rotations whose tests pin the
+   parts rather than the product is exposed to it. The mechanism is
+   derivable, not fixture-attested: three.js Euler `XYZ` builds
+   `qx ⊗ qy ⊗ qz`, so the roll tilts the shaft out of plane first and the
+   yaw about world-Y preserves the vertical lift (`L·sin(roll)` at any
+   yaw); composing in the other order makes the roll act on an
+   already-yawed shaft and the lift becomes `L·sin(roll)·cos(yaw)` — the
+   measured ~6× shortfall at the finish's solved yaws.
+   **The wrist layer is the most quaternion-dense surface in the port**
+   (channel alignment, swing–twist decomposition, budget clamping, the
+   forearm/shoulder share, the rower flat-wrist roll, the ski seam
+   split) and it came down the same Studio path with the same
+   verification mode: re-expressed web orientation unit tests. A
+   composition-order inspection pass (this audit, post-find) re-derived
+   every site op-for-op against the web (`constrain_wrist_frame`,
+   `orient_hand_to_grip_channel`, `refine_grip_spin_for_wrist`,
+   `refine_grip_tilt_for_wrist`, `flat_wrist_roll`, `split_seam_excess`,
+   the wrist-rest build) and found **no order disagreement** — but that
+   is inspection, i.e. re-expression, exactly the mode rule 3 distrusts;
+   it triages, it does not close. What closes is an oracle for the
+   *rendered orientation*: no fixture in the corpus records a hand/world
+   quaternion today (`replay-current-main-grips.json` pins scalar stage
+   angles + contact/tip positions — positions survive an order swap that
+   keeps tips on the surface; the rig-phase fixture records positions
+   and node Euler rotations of rig groups, not the solved hand frame).
+   **Plan**: extend `gen-rig-phase-parity.mjs` (or a sibling generator)
+   to record the avatars' rendered hand world quaternions — the
+   procedural avatars expose `v4Targets.leftHand` whose `quaternion`
+   after `animate()`+`resolveWorldContacts()` is the composed frame; for
+   the V4 path the comparable is the hand bone's world quaternion — then
+   drive `PoseSolver::pose` per sample and compare the port's solved
+   hand local rotation at a stated tolerance (the skinning pipeline is
+   f32 at the frame pack, so ~1e-6 rad is the right bar, not 1e-9).
+   Self-check the generator as with `handTargets` (RowErg's visible hand
+   sits exactly on the grip channel; assert the recorded quaternion maps
+   the hand-local long axis onto the recorded shaft direction). Then,
+   with the composed frame pinned, run the budget sweep the old title
+   asked for (twist/flexion/deviation against the web's budget
+   constants across all phases — the metrics are exposed in
+   `WristMetrics`).
+   **The multi-axis sweep across the port** (same audit pass): safe by
+   construction — single-axis (wheel, crank, pole-shaft `pole_rotation`,
+   `blade.rotation.x`); forced-FK accumulation with no order choice
+   (`grip.rs` rest-chain walk, `hand_grip` digit FK, `Workspace`
+   skeleton FK); or already pinned by composed-result fixtures
+   (`equipment::oar_rotations{,_from_yaws}` — the new combined-order
+   unit test plus `handTargets` parity). One residual worth naming:
+   `frame::pack` writes rotations as f32; a composition error below
+   ~1e-7 rad is unobservable on screen by construction, which is a
+   property of the pipeline, not coverage.
 7. **Quality budgets** — per-field numeric disagreement with the web `QUALITY`
    table needs a decision (adopt or record), not a fixture per se.
 8. **Motion-graph phase-source gap** — extend a generator to sweep
@@ -538,6 +595,16 @@ match the port.
   reach-solve composition (PR #27; the composed yaw is pinned by the
   rig-phase fixture's `oarSolve` recording and the viewmodel pose test).
   Remaining: the stage-2 follow-ups and rankings 6–10.
+- **Queue order (author-set, Sept 2026): the skierg per-frame IK rewrite
+  now precedes Phase 8.** `plant_basket_z` is the largest known rendered
+  defect, confirmed by two independent observables — the fixture's plant
+  position (web ~0.24 pinned through contact vs port retreating to
+  −1.76 m) and the exposed hand target (0.977 m at contact, first
+  consumption of `v4HandTargets`). A pole basket sliding ~1 m through
+  every pull is visible in the app; it is the last known wrongness in
+  the shipped scene, and its closing pass wants the Linux host anyway
+  for the eyes-on verification. Rankings 6–10 follow as fill-in around
+  Phase 8 (live mode) and Phase 9 (packaging).
   (ranking 1), the rower composed layer (ranking 3 — the reach solve is dead
   at runtime, confirmed by trace), and the remaining stage-2 groups.
 - Ranking 5 (stroke-model web pipeline): closed against `bf8d77f`. The
