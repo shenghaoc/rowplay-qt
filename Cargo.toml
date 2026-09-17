@@ -32,7 +32,25 @@ rowplay-platform = { path = "crates/rowplay-platform", version = "0.1.0" }
 rowplay-viewmodel = { path = "crates/rowplay-viewmodel", version = "0.1.0" }
 rowplay-fixtures = { path = "crates/rowplay-fixtures", version = "0.1.0" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# `float_roundtrip`: serde_json's default fast float parser returns the
+# neighbouring double for a fraction of long literals — measured across the
+# committed fixtures: 1709/19007 rig-phase, 1954/19485 motion, 232/1469
+# stroke-model, 180/2353 2d, 91/790 grips, 89/1063 equipment, 28/387
+# row-phase (4283 total, ~8-12% per corpus). Every float-bearing corpus —
+# generated here or exported by Studio — records web-computed doubles at
+# full round-trip precision, so the parity tests must parse them exactly.
+# This is also a production parsing change: the Concept2 mapper parses API
+# responses with this parser. Realistic payloads are unaffected (0 of the 19
+# float literals in the Concept2 fixtures are mis-rounded — the error class
+# needs ~16+ significant digits), so no shipped value measurably changes;
+# what changes is that exactness stops depending on payload shape. The
+# sqlite stroke cache is the one store it does change: its computed watts
+# and accumulated t/d serialise (ryu) to >=16-digit literals, 68/1147 of
+# which mis-round on a cache-shaped set — cache write->read was not
+# bit-exact before either, though a 1 ULP drift on cached training values
+# is invisible to every consumer (tolerance-based comparisons and display
+# formatting). Preferences carries no float fields.
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
 thiserror = "2.0"
 regex = "1.11"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }

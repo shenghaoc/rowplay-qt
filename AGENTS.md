@@ -173,6 +173,20 @@ port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
   7 slice 3: the left scull shaft pointed outboard with green residuals).
   Orientation claims need anatomy assertions — shaft directions, twist
   budgets, envelope checks — not just closed contacts.
+- The harness is a suspect equal to the port. Four parity failures turned
+  out to be instrument faults, each presenting as an apparent port defect: a
+  corpus that re-derived the web's formula (agreeing with the port by
+  construction), a recorder animating the avatar detached from a scene graph
+  (an early return collapsed its targets to the pelvis), a recorder that
+  mirrored one side's inputs into the other, and — on the Rust side of the
+  harness — serde_json's default float parser landing 1 ULP off the
+  fixtures' long literals, silently perturbing every float-bearing corpus's
+  parsed inputs. The round-trip through the file is part of the instrument:
+  every float literal in every fixture must read back bit-identical to its
+  nearest double through the parser the tests use
+  (`crates/rowplay-fixtures/tests/float_roundtrip.rs` asserts it over the
+  whole fixtures directory). When a parity comparison fails, verify the
+  recorder and the round-trip before changing port code.
 
 ## Privacy and security invariants (from rowplay-studio)
 
