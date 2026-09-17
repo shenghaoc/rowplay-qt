@@ -1574,7 +1574,7 @@ Toujours bloqué ? La [FAQ](/docs/faq) couvre d'autres cas, et chaque page de ce
     <message id="dashboard.emptyTrend">
         <source></source>
         <oldsource>Only {n} session in this band — log another {band} to see a trend.</oldsource>
-        <translation>Une seule séance dans cette tranche — enregistrez un autre {band} pour voir une tendance.</translation>
+        <translation>Seulement {n} séance dans cette tranche — enregistrez un autre {band} pour voir une tendance.</translation>
     </message>
     <message id="dashboard.dpsTrend.title">
         <source></source>
