@@ -99,8 +99,10 @@ pub struct DistanceBand {
 /// Bucket a workout distance so 2k compares with 2k rather than with a 5k.
 ///
 /// Standard erg distances get a tight ±6% window; anything else falls into a
-/// coarse range band. Mirrors the web app exactly, including the `<750m`
-/// band's nominal of 0 (the web computes `(0 + min(750, 0)) / 2`).
+/// coarse range band. Mirrors the web app, including the lowest range band's
+/// nominal of 375 (the web fixed `(0 + min(750, 0)) / 2 = 0` upstream in
+/// rowplay#202 — the port adopted the fix when the reference pin moved past
+/// it; `docs/source-map.md` records the history).
 #[must_use]
 pub fn distance_band(metres: f64) -> DistanceBand {
     const STANDARDS: [(f64, &str); 9] = [
@@ -133,10 +135,14 @@ pub fn distance_band(metres: f64) -> DistanceBand {
     ];
     for (lo, hi, label) in RANGES {
         if metres >= lo && metres < hi {
+            // Web (rowplay#202): for the lowest band `lo == 0` so
+            // `min(hi, lo * 2)` would collapse the nominal to 0 — use `hi`
+            // as the upper bound in that case (nominal 375 for `<750m`).
+            let upper = if lo == 0.0 { hi } else { hi.min(lo * 2.0) };
             return DistanceBand {
                 key: format!("r{}", lo as i64),
                 label: label.to_owned(),
-                nominal: (lo + hi.min(lo * 2.0)) / 2.0,
+                nominal: (lo + upper) / 2.0,
             };
         }
     }
@@ -499,8 +505,8 @@ mod tests {
         assert_eq!(distance_band(300.0).key, "r0");
         assert_eq!(
             distance_band(300.0).nominal,
-            0.0,
-            "web quirk: lowest band nominal is 0"
+            375.0,
+            "web rowplay#202: lowest band nominal is hi/2, not 0"
         );
         assert_eq!(distance_band(20000.0).label, "Half", "within 6% of 21097");
         assert_eq!(distance_band(17000.0).label, "15k+");
