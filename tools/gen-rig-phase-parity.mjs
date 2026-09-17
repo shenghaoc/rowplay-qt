@@ -107,8 +107,11 @@ function sha256(bytes) {
  * differing by ULPs of text without differing in the double. Every parity
  * test tolerates >= 1e-6 so the drift is functionally invisible, but a CI
  * regeneration check compares the bytes and would fail. Fixed-precision
- * output makes the fixture byte-stable across Node/V8 versions (and stays
- * exactly round-trippable through the parsers on both sides).
+ * output makes the fixture byte-stable across Node/V8 versions. Round-trip
+ * on the Rust side is exact only because the workspace enables serde_json's
+ * `float_roundtrip` feature (the default fast parser lands 1 ULP off a
+ * fraction of 17-digit literals; `float_roundtrip.rs` pins it) — not as an
+ * unconditional property of 17-digit decimal.
  *
  * NaN and Infinity aren't valid JSON so they still throw (caller should
  * scrub or record them as strings before serialising if that ever comes
