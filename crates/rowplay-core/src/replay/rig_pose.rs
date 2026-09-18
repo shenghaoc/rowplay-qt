@@ -120,18 +120,44 @@ pub struct SkiErgRigPose {
     pub hip_counter_tilt: f64,
     /// Pole rotation angle.
     pub pole_rotation: f64,
+    /// The carried pole's free-flight attitude, radians from horizontal
+    /// (web `poleAngle = degToRad(80 − poleSweep·57)`): steep ~80° at the
+    /// plant, ~23° at pole-off. Drives the free-tip vertical/horizontal
+    /// split in `pose::skierg_targets`, replacing the Studio
+    /// `pole_rotation` approximation now that the fixture pins real pole
+    /// tips.
+    pub pole_attitude: f64,
     /// 0..1 closure of the basket-to-course contact channel.
     pub pole_contact: f64,
-    /// Forward coordinate of the port's deterministic course-anchored
-    /// plant: the current / next catch's ground point minus the travel
-    /// since it, so a planted basket does not slide with the athlete
-    /// under seeks. **Port model divergence from the web** (see
-    /// docs/source-map.md, docs/parity-coverage.md): the web treats the
-    /// SkiErg athlete as physically stationary and keeps `poleTipLeft.z`
-    /// at ~0.24 through the whole contact, while this formula retreats
-    /// to ~-1.76 m at cyc=0.25 mid-drive. Reconciling requires rewriting
-    /// the `pose::skierg_targets` mix-blend into a per-frame IK — bigger
-    /// than a rig_pose change.
+    /// The pole's free-flight attitude term (web `poleLift`): snow
+    /// clearance above the plant height, fading in after pole-off.
+    pub pole_lift: f64,
+    /// 0..1 release: 1 while the pole is in free flight outside the early
+    /// release fade (web `poleFlight`).
+    pub pole_flight: f64,
+    /// Raw `poleSweep` motion channel (0..1), for the per-phase arm-bend
+    /// hint (web `solveSkierElbowDirection`).
+    pub pole_sweep: f64,
+    /// Raw `elbowLoad` motion channel (0..1), for the hint's lateral floor.
+    pub elbow_load: f64,
+    /// Cycle fraction within the current stroke, for the hint's press /
+    /// recovery branch (web `solveSkierElbowDirection` keys on `cycle`).
+    pub cycle_frac: f64,
+    /// 1 inside the early-release window after pole-off (cyc in
+    /// `[SKI_POLE_OFF_CYCLE, SKI_POLE_OFF_CYCLE + 0.05)`) where the dead
+    /// plant's attitude influence fades out; 1 elsewhere. Multiplies the
+    /// direction blend so the carried shaft releases from the retired
+    /// plant smoothly (web `releaseFade`).
+    pub release_fade: f64,
+    /// Yaw of the plant anchor since the catch, radians (web
+    /// `setPlantTipWorld`'s `courseTurn`): the plant is fixed in course
+    /// space at the catch, so in rig-local its lateral/forward offset
+    /// rotates by this about the rig origin. ~0.013 rad per cycle at 8 m
+    /// strokes on the 1 km loop (the fixture's 0.240 → 0.235 `z` drift).
+    pub plant_course_turn: f64,
+    /// Forward coordinate of the retired course-anchored plant model
+    /// (pre-Phase-7.5). Superseded by [`Self::plant_course_turn`] for the
+    /// rendered plant; kept only because the Studio contract tests read it.
     pub plant_basket_z: f64,
     /// Preferred hand height: the web's shoulder-arc hand path evaluated in
     /// the hinging torso frame (the V4 clip's hand keys follow it).
@@ -142,6 +168,26 @@ pub struct SkiErgRigPose {
     pub shoulder_y: f64,
     /// Shoulder forward offset.
     pub shoulder_z: f64,
+}
+
+impl SkiErgRigPose {
+    /// The plant anchor's forward coordinate in rig-local, accounting for
+    /// the course-turn rotation since plant (web `setPlantTipWorld`:
+    /// `z = localX·sin(−courseTurn) + localZ·cos(−courseTurn)` with
+    /// `localX = side·polePlantLateral`, `localZ = polePlantForwardOffset`).
+    #[must_use]
+    pub fn plant_course_turn_z(&self, side: f64) -> f64 {
+        side * ski_proportions::SKI_PLANT_LATERAL * self.plant_course_turn.sin()
+            + ski_proportions::POLE_PLANT_FORWARD_OFFSET * self.plant_course_turn.cos()
+    }
+
+    /// The plant anchor's lateral coordinate under the same rotation
+    /// (`x = localX·cos(−courseTurn) − localZ·sin(−courseTurn)`).
+    #[must_use]
+    pub fn plant_course_turn_x(&self, side: f64) -> f64 {
+        side * ski_proportions::SKI_PLANT_LATERAL * self.plant_course_turn.cos()
+            - ski_proportions::POLE_PLANT_FORWARD_OFFSET * self.plant_course_turn.sin()
+    }
 }
 
 /// A pedal position relative to the bottom bracket (Studio
@@ -191,6 +237,10 @@ pub mod ski_proportions {
     pub const FOREARM_LENGTH: f64 = 0.47;
     /// Forward offset of the planted basket from the rig root, metres.
     pub const POLE_PLANT_FORWARD_OFFSET: f64 = 0.24;
+    /// Lateral offset of the planted basket, just outside the ski (web
+    /// `SKI_ATHLETE_PROPORTIONS.polePlantLateralOffset`, the fixture's
+    /// `poleTipLeft.x ≈ −0.46`).
+    pub const SKI_PLANT_LATERAL: f64 = 0.46;
 }
 
 /// Studio `ReplayBikeGripContract` frame geometry (real road geometry).
@@ -355,22 +405,33 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
     // `placePoleArms` early-returns on `!group.parent` and the generator
     // constructs the avatar detached (docs/parity-coverage.md).
     let pole_rotation = -0.20 - pole_sweep * 0.92;
-    // Reconstruct the current / next catch's ground point from pose state
-    // rather than the previously rendered frame: on a locally straight
-    // course, subtracting the travel since that catch keeps the basket
-    // stationary in course space and deterministic under shuffled seeks.
-    // Note: the rig-phase fixture records `poleTipLeft.z ≈ 0.24` in
-    // rig-local through the whole contact (the web keeps the plant
-    // stationary in rig-local, treating the SkiErg athlete as physically
-    // stationary), while this port formula drives `plant_basket_z` to
-    // ≈−1.76 m at cyc=0.25. The two models diverge and the port's
-    // `pose::skierg_targets` blend into `free_basket` via `pole_contact`
-    // depends on `plant_basket` tracking `free_basket` to keep the
-    // requested wrist twist continuous — collapsing `plant_basket_z` to
-    // a constant broke the viewmodel's `requested_twist_stays_continuous`
-    // guard by ~106° at step 8. Documented as a port model divergence
-    // (docs/source-map.md, docs/parity-coverage.md); reconciling it
-    // needs the pose solver's blend rewritten too, out of scope here.
+    // Web `renderer3dSkiAvatar.placePoleArms` authors the carried pole's
+    // attitude directly from the technique phase (its line ~971):
+    // `poleAngle = degToRad(80 - poleSweep · 57)` measured from
+    // horizontal — steep ~80° at the plant, shallowest ~23° at pole-off,
+    // both on-snow measured. Supersedes the Studio approximation kept
+    // "until the fixture ships real oracle values for the pole shafts" —
+    // it now has them (`poleTipLeft/Right` in the rig-phase fixture).
+    let pole_attitude = (80.0 - pole_sweep * 57.0).to_radians();
+    let pole_lift = unit(graph.body.pole_lift.value);
+    let pole_flight = unit(graph.body.pole_flight.value);
+    // Web `releaseFade`: 1 − smoothstep(cyc, off, off+0.05) inside the
+    // early-release window only; 1 elsewhere.
+    let release_fade = if pose.cycle_frac > SKI_POLE_OFF_CYCLE
+        && pose.cycle_frac < SKI_POLE_APPROACH_START_CYCLE
+    {
+        let t = (pose.cycle_frac - SKI_POLE_OFF_CYCLE) / 0.05;
+        1.0 - smoothstep01(t)
+    } else {
+        1.0
+    };
+    // Web `setPlantTipWorld`: the plant is fixed at the catch in course
+    // space; in rig-local it rotates with the course turn since plant —
+    // `(distanceSincePlant / COURSE_LOOP_METERS) · τ`, distance measured
+    // from the plant cycle (current, or next when the approach window
+    // has begun). This replaces the retreating
+    // `POLE_PLANT_FORWARD_OFFSET − distanceSincePlant` model whose basket
+    // slid ~2 m rearward through every pull (the Phase 7.5 defect).
     let index = pose.index as f64;
     let plant_cycle = index
         + if pose.cycle_frac >= SKI_POLE_APPROACH_START_CYCLE {
@@ -380,6 +441,7 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
         };
     let current_cycle = index + pose.cycle_frac;
     let distance_since_plant = (current_cycle - plant_cycle) * pose.stroke_meters.max(0.0);
+    let plant_course_turn = distance_since_plant / 1000.0 * std::f64::consts::TAU;
     let plant_basket_z = ski_proportions::POLE_PLANT_FORWARD_OFFSET - distance_since_plant;
     let shoulder_flex = 0.26 - press * 0.64;
     let elbow_flex = elbow * 0.55 + (1.0 - arm_extension) * 0.16;
@@ -445,7 +507,15 @@ fn solve_skierg(pose: &StrokePose) -> SkiErgRigPose {
         pelvis_z: finite(pelvis_carry_z, 0.0),
         hip_counter_tilt: finite(hip_counter_tilt, 0.0),
         pole_rotation: finite(pole_rotation, -0.1),
+        pole_attitude: finite(pole_attitude, 1.2),
         pole_contact: finite(pole_contact, 0.0),
+        pole_lift: finite(pole_lift, 0.0),
+        pole_flight: finite(pole_flight, 0.0),
+        pole_sweep: finite(pole_sweep, 0.0),
+        elbow_load: finite(elbow, 0.0),
+        cycle_frac: finite(unit(pose.cycle_frac), 0.0),
+        release_fade: finite(release_fade, 1.0),
+        plant_course_turn: finite(plant_course_turn, 0.0),
         plant_basket_z: finite(plant_basket_z, 0.24),
         preferred_hand_y: finite(preferred_hand.0, 0.66),
         preferred_hand_z: finite(preferred_hand.1, 0.09),
@@ -539,7 +609,15 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
             pelvis_z: 0.0,
             hip_counter_tilt: 0.0,
             pole_rotation: -0.2,
+            pole_attitude: (80.0_f64).to_radians(),
             pole_contact: 0.0,
+            pole_lift: 0.0,
+            pole_flight: 0.0,
+            pole_sweep: 0.0,
+            elbow_load: 0.0,
+            cycle_frac: 0.0,
+            release_fade: 1.0,
+            plant_course_turn: 0.0,
             plant_basket_z: ski_proportions::POLE_PLANT_FORWARD_OFFSET,
             preferred_hand_y: 0.663,
             preferred_hand_z: 0.094,
@@ -582,6 +660,13 @@ fn unit(value: f64) -> f64 {
 /// `v` when finite, otherwise `fallback`.
 fn finite(v: f64, fallback: f64) -> f64 {
     if v.is_finite() { v } else { fallback }
+}
+
+/// Hermite smoothstep on `[0, 1]` (three.js `MathUtils.smoothstep(x, 0, 1)`),
+/// clamped outside.
+fn smoothstep01(x: f64) -> f64 {
+    let t = x.clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
 }
 
 /// Scalar cubic Bezier through `p0` / `p3` with interior controls `p1` /
