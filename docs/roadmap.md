@@ -511,16 +511,31 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
   known rendered defect in the shipped scene, double-confirmed by the
   plant position and the exposed hand target.
 
+**Phase 7.5 — DONE (Sept 2026, PR #31).** The skierg pole-plant rewrite
+landed: contact **0.977 m → 0.02 m** against the fixture's exposed
+`v4HandTargets`, pole-tip oracle exact at the catch, recovery still
+machine epsilon. The plant is fixed at catch in course space; the
+carried tip is authored from the technique-phase attitude and rotated in
+direction space to converge at contact (position and velocity
+continuous at both boundaries). Continuity under the fixed plant needed
+three companion port-side laws (the web's full `setArmBendHint`, measured-
+once segments, the web's 6+4 orient/solve pass structure) — without them
+the two-bone elbow branch flipped and the wrist frame oscillated. Two
+web-inherited ±π atan2 wraps (tilt cyc 0.2635, spin cyc 0.7080) are
+recorded, not fixed: the web snaps too, and the port's V4-style chain
+amplifies the orientation snap into a ~0.11 m position jump
+(`docs/parity-coverage.md` ranking 11 has the mechanism and the failed
+bounded unwrap attempt). The skierg wrist now holds inside its 30° keep
+budget for the whole cycle (max demand 0.5236 rad) — the pre-rewrite
+"clamp engaged" test assertion was measuring the branch-flip defect, not
+coverage, and was converted to pin the held-budget invariant.
+
 ### Phase 8 — Live mode
 
-**Ordering note (author-set, Sept 2026): the Phase 7.5 skierg pole-plant
-rewrite lands before this phase.** `plant_basket_z` is the largest known
-rendered defect (two independent observables: the fixture's plant
-position and the `v4HandTargets` contact delta, 0.977 m), it is visible
-on screen in every ski stroke, and its eyes-on verification wants the
-Linux host that the packaging pass will use anyway. Phase 8 is a feature
-nobody is waiting on by comparison; see `docs/parity-coverage.md`'s
-queue-order note.
+**Ordering note (author-set, Sept 2026): satisfied — Phase 7.5 landed in
+PR #31 before this phase.** The skierg pole-plant rewrite it waited on is
+done (see the Phase 7.5 DONE block above); `plant_basket_z`'s retreat
+model is gone and the ski baselines were re-shot from the Linux CI leg.
 
 Live mode is logbook polling, not hardware: rowplay reads the Concept2 Logbook
 after upload and never connects to a PM5 (web README, repeated in its

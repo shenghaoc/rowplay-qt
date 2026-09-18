@@ -444,6 +444,37 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     move with the clip, which only widens the attainable set beyond these
     recorded geometries.
 
+11. **Skierg wrist-refinement ±π wraps — inherited web behaviour the port
+    amplifies into position.**
+    Both `refineGripTiltForWrist` and `refineGripSpinForWrist` derive their
+    correction angle from a bare `atan2`, so when the measured geometry
+    walks past ±π the angle — and with it the sign of the applied
+    correction — snaps between frames. This is **web behaviour, not a port
+    defect**: the pinned web avatar snaps too (tilt at cyc 0.2635, qjump
+    1.299 rad; spin at cyc 0.7080, qjump 1.096 rad; `tools/web-tilt-probe.mjs`
+    is the oracle). The architectural difference is that the web's
+    procedural path sets `arm.hand.position` directly, so its snap is
+    orientation-only (hand stays within 0.011 m), while the port's
+    V4-style chain solves the wrist as `target − R_hand·offset`, coupling
+    the oriented offset into position — the same snap moves the rendered
+    hand **~0.11 m** (2·|offset⊥|·sin(Δθ/2) with Δθ ≈ 1.68 rad).
+    **One bounded unwrap attempt was made and reverted** (Phase 7.5):
+    unwrapping the angle to the nearest equivalent of the previous value
+    before the budget clamp fails because the refinement is called
+    several times per frame (4 alternating passes × 2 hands), so a
+    scalar "previous" is not the previous *frame* — it re-binds to
+    whichever call preceded it (often the other hand's mid-pass value)
+    and introduces a *new* discontinuity at step 443 (0.040 m) while
+    treating the original. Correcting the state keying would be a second
+    attempt, out of scope by the one-attempt rule. Any future fix must
+    (a) key the unwrap state per (hand, pass, call-site) or carry it in
+    the solve state instead of a thread-local, and (b) accept that
+    unwrapping diverges from the web's rendered orientation at the wrap
+    — it makes the port smoother than its oracle, a deliberate deviation
+    to record in `docs/source-map.md`, not silent parity. Until then the
+    wraps are carved out of the dense continuity guard with this note
+    (`requested_twist_stays_continuous_and_engages_the_budgets`).
+
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
 `renderer3dSkiAvatar.animate` constants (`SKI_NEUTRAL_TORSO_PITCH 0.055 +
@@ -634,14 +665,15 @@ match the port.
   rig-phase fixture's `oarSolve` recording and the viewmodel pose test).
   Remaining: the stage-2 follow-ups and rankings 6–10.
 - **Queue order (author-set, Sept 2026): the skierg per-frame IK rewrite
-  now precedes Phase 8.** `plant_basket_z` is the largest known rendered
+  preceded Phase 8 — DONE.** `plant_basket_z` was the largest known rendered
   defect, confirmed by two independent observables — the fixture's plant
   position (web ~0.24 pinned through contact vs port retreating to
   −1.76 m) and the exposed hand target (0.977 m at contact, first
-  consumption of `v4HandTargets`). A pole basket sliding ~1 m through
-  every pull is visible in the app; it is the last known wrongness in
-  the shipped scene, and its closing pass wants the Linux host anyway
-  for the eyes-on verification. Rankings 6–10 follow as fill-in around
+  consumption of `v4HandTargets`). It landed as Phase 7.5 (PR #31):
+  the plant is fixed at catch in course space, the carried tip blends
+  in direction space, contact is 0.02 m, and the two web-inherited
+  wrist-refinement wraps are recorded as ranking 11 below. Rankings
+  6–10 follow as fill-in around
   Phase 8 (live mode) and Phase 9 (packaging).
   (ranking 1), the rower composed layer (ranking 3 — the reach solve is dead
   at runtime, confirmed by trace), and the remaining stage-2 groups.
