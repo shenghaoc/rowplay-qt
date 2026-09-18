@@ -15,6 +15,7 @@ use rowplay_core::replay::bike_equipment as bike;
 use rowplay_core::replay::hand_grip::{
     ClosureOptions, DigitJoint, GripClosure, GripSurface, HandDigitChain, solve_hand_grip_closure,
 };
+use rowplay_core::replay::motion_graph::SKI_POLE_OFF_CYCLE;
 use rowplay_core::replay::rig_pose::SportRigPose;
 use rowplay_core::replay::row_equipment as row;
 use rowplay_core::replay::ski_equipment as ski;
@@ -51,6 +52,11 @@ pub struct GripFrame {
     /// Rower flat-wrist window weight (1 for the other sports; the forearm
     /// projection weight is applied by the solver).
     pub flat_window: f64,
+    /// SkiErg per-phase arm-bend hint (web `setArmBendHint` output):
+    /// `(side·lateral, up, aft)` from the technique-phase elbow arc,
+    /// projected perpendicular to the shoulder→hand chord. `[0; 3]` for
+    /// the other sports (their solvers keep the static binding hint).
+    pub ski_bend_hint: [f64; 3],
 }
 
 /// THREE `MathUtils.smoothstep(x, min, max)`: 0 at or below `min`, 1 at or
@@ -122,11 +128,82 @@ pub fn grip_frames(
                     palm_roll: false,
                     radius: row::SCULL_GRIP_RADIUS,
                     flat_window: window,
+                    ski_bend_hint: [0.0; 3],
                 }
             })
         }
         Sport::Skierg => {
             let directions = poles.map(|pair| [pair[0].direction, pair[1].direction]);
+            // Web `solveSkierElbowDirection` + `setArmBendHint` (with the
+            // raised lateral floor): the bend plane follows the technique
+            // phase — down-forward at the plant, swinging aft through the
+            // press, retracing the arc on recovery — projected perpendicular
+            // to the shoulder→hand chord, with a lateral floor high enough
+            // (0.2 + load/flight/collapse terms, the web's raised 0.24-class
+            // floor) to keep the two-bone plane conditioned in every phase.
+            // A static hint runs near the chord through parts of the cycle
+            // and flips the elbow branch (the web's measured 0.19 m jumps;
+            // this port measured a 1.74 rad wrist-demand snap at cyc 0.2745
+            // under the Phase 7.5 fixed plant before this ported law).
+            let (elbow_hint, lateral_floor, torso_pitch, pole_flight, pole_sweep) = match rig {
+                SportRigPose::SkiErg(ski) => {
+                    let sweep = ski.pole_sweep;
+                    let cycle = ski.cycle_frac;
+                    // Elbow arc: PLANT_ANGLE 2.9 → POLE_OFF_ANGLE π+1.1,
+                    // press eased over the first 45% of sweep, recovery
+                    // retracing the same arc.
+                    let plant_angle = 2.9;
+                    let pole_off_angle = std::f64::consts::PI + 1.1;
+                    let press = (sweep / 0.45).clamp(0.0, 1.0);
+                    let press_ease = press * press * (3.0 - 2.0 * press);
+                    let angle = if cycle <= SKI_POLE_OFF_CYCLE {
+                        plant_angle + press_ease * (pole_off_angle - plant_angle)
+                    } else {
+                        pole_off_angle + (1.0 - sweep) * (plant_angle - pole_off_angle)
+                    };
+                    let vertical = angle.cos();
+                    let fore_aft = angle.sin();
+                    // Web lateral floor: 0.2 + elbowLoad·0.04 +
+                    // poleFlight·0.015 + collapse·poleContact·0.1.
+                    let collapse =
+                        smoothstep(sweep, 0.45, 0.85) * (1.0 - smoothstep(sweep, 0.9, 1.0));
+                    let lateral = 0.2
+                        + ski.elbow_load * 0.04
+                        + ski.pole_flight * 0.015
+                        + collapse * ski.pole_contact * 0.1;
+                    (
+                        [0.0, vertical, fore_aft],
+                        lateral,
+                        ski.joints.torso_lean,
+                        ski.pole_flight,
+                        ski.pole_sweep,
+                    )
+                }
+                _ => ([0.0, -1.0, 0.0], 0.24, 0.0, 0.0, 0.0),
+            };
+            // Web `setArmBendHint` composition (renderer3dSkiAvatar.ts:868):
+            // the up/aft components ride the elbow arc scaled by 0.78, with
+            // a flight aft-bias term; the lateral is the phase floor. The
+            // hint is authored in the avatar's `upper` (torso-pitched) frame
+            // — the same frame the shoulder and hand targets live in — so
+            // it must be rotated into the root frame by the torso pitch
+            // before the solver projects it against the root-frame chord.
+            // Projecting the unrotated hint (the pre-fix port) left the
+            // down-back sagittal hint near-parallel to the down-back
+            // shoulder→hand chord through the loaded press; its projection
+            // collapsed (measured 0.138 with wild swings frame-to-frame)
+            // and the two-bone elbow flipped branches (0.064 m elbow jump
+            // at cyc 0.2770; the web holds ≤0.0005 m through the same
+            // window — its torso pitch de-parallels hint and chord).
+            let bend_up = elbow_hint[1] * 0.78;
+            let bend_aft = elbow_hint[2] * 0.78 - pole_flight * pole_sweep * 0.4;
+            let upper_local_hint = [0.0, bend_up, bend_aft];
+            let pitch = torso_pitch;
+            let root_hint = [
+                upper_local_hint[0],
+                upper_local_hint[1] * pitch.cos() - upper_local_hint[2] * pitch.sin(),
+                upper_local_hint[1] * pitch.sin() + upper_local_hint[2] * pitch.cos(),
+            ];
             [(-1.0, 0), (1.0, 1)].map(|(side, index)| {
                 let direction = directions.map_or([0.0, -1.0, 0.0], |pair| pair[index]);
                 GripFrame {
@@ -140,6 +217,16 @@ pub fn grip_frames(
                     palm_roll: true,
                     radius: ski::POLE_GRIP_RADIUS,
                     flat_window: 1.0,
+                    // The hint's up/aft ride the elbow arc (in the torso
+                    // frame, rotated to root); the lateral is the phase
+                    // floor. The chord projection happens in the solver,
+                    // against the solved target (web recomputes it after
+                    // the contact solve).
+                    ski_bend_hint: [
+                        side * lateral_floor + root_hint[0],
+                        root_hint[1],
+                        root_hint[2],
+                    ],
                 }
             })
         }
@@ -153,6 +240,7 @@ pub fn grip_frames(
                 palm_roll: false,
                 radius: bike::HOOD_RADIUS,
                 flat_window: 1.0,
+                ski_bend_hint: [0.0; 3],
             })
         }
     }
@@ -454,9 +542,9 @@ mod tests {
                         let poles = targets.poles.expect("poles");
                         let pole = if side < 0.0 { poles[0] } else { poles[1] };
                         let back = [
-                            pole.root[0] - pole.basket[0],
-                            pole.root[1] - pole.basket[1],
-                            pole.root[2] - pole.basket[2],
+                            pole.root[0] - pole.tip[0],
+                            pole.root[1] - pole.tip[1],
+                            pole.root[2] - pole.tip[2],
                         ];
                         let len =
                             (back[0] * back[0] + back[1] * back[1] + back[2] * back[2]).sqrt();
