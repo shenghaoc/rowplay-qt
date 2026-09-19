@@ -111,7 +111,11 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Draft the release with every artifact and a combined checksum file
+      # Linux AppImage is the distributed artifact. The macOS and Windows
+      # packages are built and launch-checked by the matrix above to keep
+      # the port cross-platform, but they are not attached to releases and
+      # are not release-verified.
+      - name: Draft the release with the Linux AppImage and a combined checksum file
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -119,4 +123,4 @@ jobs:
           cat dist/*.sha256 > dist/SHA256SUMS
           gh release create "$GITHUB_REF_NAME" --draft --generate-notes \
             --title "rowplay-qt ${GITHUB_REF_NAME#v}" \
-            dist/*.dmg dist/*.AppImage dist/*-setup.exe dist/*.zip dist/SHA256SUMS
+            dist/*.AppImage dist/SHA256SUMS
