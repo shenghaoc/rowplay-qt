@@ -26,8 +26,27 @@
   plugins, Xvfb launch check (R1.3, R2.3). First CI attempt failed before
   linuxdeploy ran: the script exported a bare `QMAKE=qmake`, which
   qtbridge's build script treats as a file path ("could not detect Qt");
-  fixed by resolving it with `command -v` first. Ticks when the Linux leg
-  of `release.yml` is green (this Mac cannot run it).
+  fixed by resolving it with `command -v` first. Second attempt reached
+  linuxdeploy (release build 1m 47s, core deployment fine) and died in the
+  Qt plugin's platform deployer: `EXTRA_QT_PLUGINS` is a deprecated alias
+  of `EXTRA_QT_MODULES` (module names), and the deployer then died on
+  `libqwayland-egl.so`, which Qt 6.11 no longer has — it ships one
+  `libqwayland.so` (the runner's platform inventory, printed by the script
+  from then on: eglfs, linuxfb, minimal, minimalegl, offscreen,
+  vkkhrdisplay, vnc, wayland, xcb). Third attempt (run 35450474901) green
+  as xcb-only while the detection still looked for the old pair: 61 MB
+  AppImage, launch check ok in 2.3 s under xcb on Xvfb; the Qt plugin's
+  "Missing qml module: RowPlay…" lines are the compiled-in modules and are
+  not fatal. Fourth attempt (run 35450835570), with the detection
+  accepting `libqwayland.so`: green — `libqwayland.so` deployed alongside
+  xcb, the hand-staged graphics-integration directory's dependencies
+  pulled in (`libQt6WaylandClient`, `libwayland-cursor`, `libwayland-egl`),
+  62 MB AppImage, launch check ok in 3.8 s under xcb — but the AppDir
+  listing showed no `wayland-shell-integration` or
+  `wayland-decoration-client`: the pinned deployer does not copy them, and
+  without shell integration the Wayland platform plugin cannot open a
+  window. All three directories are now staged by the script (R6.6). Ticks
+  when the Linux leg is green with all three present.
 - [x] T6 Windows pipeline: `packaging/windows/rowplay-qt.iss`,
   `tools/package/windows.ps1` (windeployqt → launch check → ISCC + zip)
   (R1.2). Measured on the Windows leg of `release.yml` (run 35449652423,
