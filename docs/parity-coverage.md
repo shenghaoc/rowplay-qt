@@ -486,16 +486,17 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     `tools/gen-ski-arm-hand-window.mjs` at pinned `173c6fa`, 101 samples
     over cyc [0.24, 0.29]. Web per-step `‖Δhand‖` never reaches 0.02
     (max 0.01260 at step 523); at the port's break the web moves
-    0.01145 m. **STOP: do not fix in the diagnosis PRs.** The web's
+    0.01145 m. **STOP: do not implement the IK fix in this PR.** The web's
     two-bone solve is closed-form and does not seed from the previous
     frame (`figurePose.ts` `solveTwoBone3D`; `placePoleArms` writes
     `arm.hand.position.copy(arm.handPoint)` from that solve). It
     disambiguates the elbow by re-applying `setArmBendHint` on every
     contact pass (Node: one pass, `hasSampledV4Shoulders` is reset
-    false each `animate`). A temporal seed of the previous solution
-    would hide the symptom and make the port order-dependent; any fix
-    is a branch disambiguator enforced through the iterations, which
-    is a design decision for the author. Samples (world, left hand):
+    false each `animate`) **and** by clamping the target 2 mm short of
+    full extension so that hint still has a circle. A temporal seed of
+    the previous solution would hide the symptom and make the port
+    order-dependent. See the fix proposal below. Samples (world, left
+    hand):
 
     | step | cyc    | web `dHand` | port `dHand` | web `arm.hand` | port `hand_w` |
     | --- | --- | --- | --- | --- | --- |
@@ -503,6 +504,70 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     | 528 | 0.2640 | 0.011360 | 0.009351 | −0.212741, 0.896228, −0.506565 | −0.319414, 0.894707, −0.447616 |
     | 529 | 0.2645 | 0.011449 | **0.096140** | −0.216110, 0.887752, −0.499645 | −0.289467, 0.981664, −0.475627 |
     | 530 | 0.2650 | 0.011518 | 0.008770 | −0.219445, 0.879233, −0.492646 | −0.291596, 0.974374, −0.471241 |
+
+    **Frame-index discrepancy (measured).** The 21-frame strip's pixel jump
+    was between files `step521`/`step522`, seven labels before the guard's
+    step 529. Both paths share `cycle_frac = step/2000` (clip_time table
+    below). They do **not** share `clip_time`: the guard uses
+    `fallback_stroke_pose(..., 30 spm)` (`drive_frac = 0.34`, so
+    `clip_fraction` is the identity on this window); the first strip used
+    live workout 1003 (`spm = 41`, `drive_frac = 0.46`), so
+    `clip_fraction` maps 0.2645 → 0.1955. Warp runs on both paths
+    (`make_pose` always sets `warped_phase = warp_stroke_phase(phase,
+    drive_frac)`); at cyc 0.2645 that is +280 steps of warp at 0.34 and
+    +49 steps at 0.46. Re-posing the capture on the live timeline jumps
+    at step 522 (`dh = 0.0944`); the guard pose jumps at 529
+    (`dh = 0.0961`). The 524/525 velocity dip is on unwarped cycle_frac
+    and sits at 525 on **both** paths, so a uniform relabel of the files
+    would have been wrong. The capture harness was the wrong path: it
+    now poses through `Replay.setGuardCycleStep(N)` (`fallback` 30 spm,
+    `metres = N·3`) so `stepN.png` is guard step N. Solver unchanged.
+
+    | step | guard `cycle_frac` | guard `clip_time` | capture `cycle_frac` | live-1003 `clip_time` (before the harness fix) |
+    | --- | --- | --- | --- | --- |
+    | 520 | 0.2600 | 0.2600 | 0.2600 | 0.1922 |
+    | 521 | 0.2605 | 0.2605 | 0.2605 | 0.1925 |
+    | 522 | 0.2610 | 0.2610 | 0.2610 | 0.1929 |
+    | 523 | 0.2615 | 0.2615 | 0.2615 | 0.1933 |
+    | 524 | 0.2620 | 0.2620 | 0.2620 | 0.1937 |
+    | 525 | 0.2625 | 0.2625 | 0.2625 | 0.1940 |
+    | 526 | 0.2630 | 0.2630 | 0.2630 | 0.1944 |
+    | 527 | 0.2635 | 0.2635 | 0.2635 | 0.1948 |
+    | 528 | 0.2640 | 0.2640 | 0.2640 | 0.1951 |
+    | 529 | 0.2645 | 0.2645 | 0.2645 | 0.1955 |
+    | 530 | 0.2650 | 0.2650 | 0.2650 | 0.1959 |
+
+    **Fix proposal (not implemented).** Reach ratio at this window sits
+    AT THE BOUNDARY (bind = posed = 0.765081 m; 527: 0.999, 528: 0.992,
+    529: 0.985). As the shoulder→hand chord approaches `upper + lower`,
+    the elbow's swivel circle — the ring of positions consistent with
+    those two lengths — shrinks toward a point, so an ENFORCED bend hint
+    has nothing left to constrain and a 0.096 m branch flip is free.
+    The web stays smooth by clamping the V4 contact target 2 mm short of
+    full extension before `solveTwoBone3D`
+    (`renderer3dV4Motion.ts`: `maxReach = proximalLength + distalLength
+    - 0.002`; SkiErg also `contactArmReach - 0.002` /
+    `MAX_ARM_REACH = UPPER + FOREARM - 0.02` in
+    `renderer3dSkiAvatar.ts`). Matching that means the port's
+    `clamp_hand_target` / two-bone chord should use the same **absolute
+    2 mm** margin on the measured segments (today it scales reach by
+    0.998, ~1.5 mm on these bones, and the dense-guard chord still
+    reaches the singularity). An alternative is a minimum elbow-circle
+    radius (reject a chord that would make the height < ~2 cm) — same
+    geometry, a different knob, easier to miss the web's 2 mm constant.
+    Seeding the solver from the previous frame is ruled out: every frame
+    would depend on its predecessor, which breaks independent evaluation,
+    replay scrubbing, and the cold-evaluation test that already cleared
+    the harness. After a correct clamp the press-ramp still peaks at
+    0.0101 m/step and the web window at 0.01260; **keep `POSITION_TOL =
+    0.02`** — twice that legitimate peak, not a number chosen to hide
+    0.096. Verify on guard step 529 and strip frames `step528.png` /
+    `step529.png` (now the same index): `dh` should sit with its
+    neighbours (~0.009). The loop's next known event is the ranking-11
+    spin-wrap window near step 1377; that is the inherited atan2 wrap,
+    not this flip. Shenghao: clamp the V4/SkiErg hand target 2 mm short
+    of `proximal + distal` before the two-bone solve, matching the web,
+    and do not seed from the previous frame.
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 

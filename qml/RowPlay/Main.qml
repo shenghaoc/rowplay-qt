@@ -673,9 +673,10 @@ ApplicationWindow {
             // that leaves the 3D replay for the detail-chart screen.
             // Dismiss the rower ghost from case 72. Close-up camera
             // (SkiErg: surged chest, stand-off from the aim, CLOSEUP_DISTANCE
-            // 2.4 m — the tightest framing the app has). Seeks map
-            // stroke cyc = step/2000 onto entry 81 of 1003
-            // (start_t=115.7, end_t=117.2, duration=234.1).
+            // 2.4 m — the tightest framing the app has). Pose via
+            // Replay.setGuardCycleStep so frame `stepN` is guard step N
+            // (fallback 30 spm, metres = N·3) — live 1003's 41 spm /
+            // drive_frac 0.46 put the same cycle_frac's IK flip at 522.
             case 77:
                 Replay.loadGhost(-1)
                 Replay.loadWorkout(1003)
@@ -684,10 +685,11 @@ ApplicationWindow {
                 break
             case 78:
                 if (root.step529Cursor > 540) {
+                    Replay.setGuardCycleStep(-1)
                     Replay.setCloseupCamera(false)
                     break
                 }
-                Replay.seek((115.7 + (root.step529Cursor / 2000.0) * 1.5) / 234.1)
+                Replay.setGuardCycleStep(root.step529Cursor)
                 root.grabSettledScene("step" + root.step529Cursor)
                 root.step529Cursor += 1
                 root.gateStep = 77
