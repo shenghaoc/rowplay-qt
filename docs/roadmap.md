@@ -565,4 +565,30 @@ path already does the work.
 
 ### Phase 9 — Packaging
 
-- macOS `.app`, Windows installer, Linux AppImage or Flatpak.
+Status: delivered in the Phase 9 PR (ADR 0012, spec
+`.kiro/specs/phase-09-packaging/`), ahead of the remaining parity-audit
+rankings by the handover's priority call: a public port with a rigorous
+audit and no installer ships nothing.
+
+- One script per platform under `tools/package/` — `macos.sh`
+  (`rowplay-qt.app` + `.dmg` via `macdeployqt`), `windows.ps1` (Inno Setup
+  installer + portable zip via `windeployqt`), `linux.sh` (AppImage via
+  pinned, SHA-256-verified `linuxdeploy` + Qt plugin, X11 and Wayland) —
+  and one workflow, `release.yml`, that runs all three on pull requests
+  touching a packaging input, on dispatch, and on `v*` tags, where it drafts
+  a GitHub release with every artifact and `SHA256SUMS`.
+- Every package is launch-checked on its own runner: the deployed binary
+  starts from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`,
+  `QT_*`), renders 30 frames under the new release-safe
+  `ROWPLAY_EXIT_AFTER_FRAMES` probe and exits 0, or the build fails
+  (`tools/package/launch-check.py`; proven to bite on two broken bundles).
+- macOS binaries now carry their own `LC_RPATH`s from `build.rs`
+  (qt-bridges-notes #10 resolved on our side); the `DYLD_FALLBACK_FRAMEWORK_PATH`
+  workaround is gone from CI and the README.
+- The icon is the web app's own, vendored with provenance and pinned;
+  `.icns` / `.ico` are generated and pinned too.
+- Recorded gaps (spec R6): macOS and Windows rendering is verified by launch
+  only (the gate's pixel assertions run on the Linux leg, note #17); ad-hoc
+  signing until the author has a Developer ID; macOS x86_64 and Linux
+  aarch64 unpackaged; the 215 MB macOS bundle carries the whole `QtQuick`
+  QML tree (pruning is a follow-up); Flatpak deferred.
