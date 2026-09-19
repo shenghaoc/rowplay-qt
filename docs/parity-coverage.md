@@ -474,6 +474,35 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     to record in `docs/source-map.md`, not silent parity. Until then the
     wraps are carved out of the dense continuity guard with this note
     (`requested_twist_stays_continuous_and_engages_the_budgets`).
+    The 0.096 m `hand_w` jump at step 529 is **not** this wrap: ranking 12
+    samples the web's `arm.hand` through the same window and it stays
+    within 0.0126 m/step while the port flips an IK branch.
+
+12. **SkiErg step-529 hand jump — port defect (IK branch flip the web
+    does not perform).**
+    At cyc 0.2645 (step 529 / 2000) the port's `hand_w` jumps 0.09614 m
+    while the web's post-IK `arm.hand` (`v4Targets.leftHand` after
+    `animate` + `resolveWorldContacts`) stays smooth. Oracle:
+    `tools/gen-ski-arm-hand-window.mjs` at pinned `173c6fa`, 101 samples
+    over cyc [0.24, 0.29]. Web per-step `‖Δhand‖` never reaches 0.02
+    (max 0.01260 at step 523); at the port's break the web moves
+    0.01145 m. **STOP: do not fix in the diagnosis PRs.** The web's
+    two-bone solve is closed-form and does not seed from the previous
+    frame (`figurePose.ts` `solveTwoBone3D`; `placePoleArms` writes
+    `arm.hand.position.copy(arm.handPoint)` from that solve). It
+    disambiguates the elbow by re-applying `setArmBendHint` on every
+    contact pass (Node: one pass, `hasSampledV4Shoulders` is reset
+    false each `animate`). A temporal seed of the previous solution
+    would hide the symptom and make the port order-dependent; any fix
+    is a branch disambiguator enforced through the iterations, which
+    is a design decision for the author. Samples (world, left hand):
+
+    | step | cyc    | web `dHand` | port `dHand` | web `arm.hand` | port `hand_w` |
+    | --- | --- | --- | --- | --- | --- |
+    | 527 | 0.2635 | 0.011250 | 0.009309 | −0.209343, 0.904648, −0.513391 | −0.315765, 0.900305, −0.454157 |
+    | 528 | 0.2640 | 0.011360 | 0.009351 | −0.212741, 0.896228, −0.506565 | −0.319414, 0.894707, −0.447616 |
+    | 529 | 0.2645 | 0.011449 | **0.096140** | −0.216110, 0.887752, −0.499645 | −0.289467, 0.981664, −0.475627 |
+    | 530 | 0.2650 | 0.011518 | 0.008770 | −0.219445, 0.879233, −0.492646 | −0.291596, 0.974374, −0.471241 |
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 
@@ -498,6 +527,119 @@ saturation / engagement asserts now run. Rig-pose mid-loop asserts
 after `else { panic!("sport mismatch") }` are structurally reached
 whenever the let-else does not fire (confirmed by the three green
 401-step sweeps; not double-counted in N).
+
+### Skierg twist demand reaches the keep budget independently
+
+`requested_twist` is the pre-clamp `twist_angle`. Between the `let mut`
+declaration (`wrist.rs:266`) and the read (`wrist.rs:349`) the only writes
+are the ±2π short-representation wrap (`wrist.rs:267–271`).
+`SKI_WRIST_TWIST_KEEP` is assigned to `twist_budget` (`wrist.rs:276`) and
+used only as `let kept_twist = twist_angle.clamp(-twist_budget, twist_budget)`
+(`wrist.rs:279`) — that does not write `twist_angle`. Full span as evidence:
+
+```
+    let delta = quat_mul(effector, quat_inverse(rest.hand_rest));
+    let dot_twist = delta[0] * rest.bone_axis_local[0]
+        + delta[1] * rest.bone_axis_local[1]
+        + delta[2] * rest.bone_axis_local[2];
+    // Signed twist about the bone axis; 2·atan2(dot, w) is exact for the
+    // normalised (dot·â, w) projection. Wrap to the short representation.
+    let mut twist_angle = 2.0 * dot_twist.atan2(delta[3]);
+    if twist_angle > std::f64::consts::PI {
+        twist_angle -= 2.0 * std::f64::consts::PI;
+    } else if twist_angle < -std::f64::consts::PI {
+        twist_angle += 2.0 * std::f64::consts::PI;
+    }
+    let twist = axis_angle(rest.bone_axis_local, twist_angle);
+    let swing = quat_mul(delta, quat_inverse(twist));
+
+    let twist_budget = match sport {
+        Sport::Skierg => SKI_WRIST_TWIST_KEEP,
+        Sport::Rower | Sport::Bike => WRIST_TWIST_BUDGET,
+    };
+    let kept_twist = twist_angle.clamp(-twist_budget, twist_budget);
+    let excess = twist_angle - kept_twist;
+    let redistributed = excess.abs() > 1e-5;
+    let forearm_twist = axis_angle(rest.forearm_axis_local, excess);
+    // The forearm's long axis passes through both the elbow and the wrist,
+    // so rotating the forearm about it and counter-rotating the hand keeps
+    // the world grip frame bit-exact.
+    let mut constrained = effector;
+    if redistributed {
+        constrained = quat_mul(quat_inverse(forearm_twist), effector);
+    }
+
+    // Split the swing into flexion about the curl axis and deviation about
+    // the remaining axis; each clamps on its own budget.
+    let swing_half = swing[3].abs().clamp(0.0, 1.0).acos();
+    let swing_full = 2.0 * swing_half;
+    let swing_sin = (1.0 - swing[3] * swing[3]).max(0.0).sqrt();
+    let (mut flexion, mut deviation) = (0.0, f64::NAN);
+    if swing_sin > 1e-7 {
+        let flip = if swing[3] >= 0.0 { 1.0 } else { -1.0 };
+        let scale_factor = swing_full / swing_sin * flip;
+        let v = [
+            swing[0] * scale_factor,
+            swing[1] * scale_factor,
+            swing[2] * scale_factor,
+        ];
+        flexion = v[0] * rest.flex_axis_local[0]
+            + v[1] * rest.flex_axis_local[1]
+            + v[2] * rest.flex_axis_local[2];
+        deviation = v[0] * rest.deviation_axis_local[0]
+            + v[1] * rest.deviation_axis_local[1]
+            + v[2] * rest.deviation_axis_local[2];
+    }
+    let kept_flexion = flexion.clamp(-WRIST_FLEXION_BUDGET, WRIST_FLEXION_BUDGET);
+    let kept_deviation = deviation.clamp(-WRIST_DEVIATION_BUDGET, WRIST_DEVIATION_BUDGET);
+    let clamped_swing = (flexion - kept_flexion).hypot(deviation - kept_deviation);
+    if clamped_swing > 1e-5 {
+        // Rebuild the in-budget swing and recompose the hand; the recompose
+        // replaces the counter-rotation above, so restore the forearm share.
+        let axis = add_scaled(
+            scale(rest.flex_axis_local, kept_flexion),
+            rest.deviation_axis_local,
+            kept_deviation,
+        );
+        let kept_angle = length(axis);
+        let kept_swing = if kept_angle > 1e-7 {
+            axis_angle(scale(axis, 1.0 / kept_angle), kept_angle)
+        } else {
+            [0.0, 0.0, 0.0, 1.0]
+        };
+        let kept_twist_quat = axis_angle(rest.bone_axis_local, kept_twist);
+        constrained = quat_mul(quat_mul(kept_swing, kept_twist_quat), rest.hand_rest);
+        if redistributed {
+            constrained = quat_mul(quat_inverse(forearm_twist), constrained);
+        }
+    }
+
+    if !constrained.iter().all(|c| c.is_finite()) || !forearm_twist.iter().all(|c| c.is_finite()) {
+        return None;
+    }
+    Some(WristSolve {
+        effector: constrained,
+        forearm_twist,
+        redistributed,
+        metrics: WristMetrics {
+            twist: kept_twist,
+            flexion: kept_flexion,
+            deviation: kept_deviation,
+            forearm_twist: excess,
+            clamped_swing,
+            requested_twist: twist_angle,
+            humerus_roll: 0.0,
+        },
+    })
+```
+
+(`wrist.rs:260–353`; line 360 is the `ski_humerus_roll` doc comment.)
+
+Feedback path for `requested_twist` was checked and ruled out: `effector`
+is `local = normalise(quat_mul(conjugate(parent_world), desired))` with
+`parent_world = work.world_rot[binding.lower]` and `desired` from
+`orient_hand_to_grip_channel` + per-frame `stable_forearm`; it is not
+read from a previous step's `kept_twist`.
 
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
