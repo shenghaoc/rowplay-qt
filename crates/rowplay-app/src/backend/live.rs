@@ -10,19 +10,19 @@
 //! result **id** absent from the known set — never a count or position.
 
 use std::collections::BTreeSet;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::Arc;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 use qtbridge::qobject;
 use qtbridge::qtbridge_runtime::{QObjectHolder, QmlMethodInvoker, QmlRegister};
 use rowplay_platform::concept2::http::Concept2HttpClient;
-use rowplay_platform::live::{poll_recent, LivePollError, LivePollResult};
+use rowplay_platform::live::{LivePollError, LivePollResult, poll_recent};
 use rowplay_platform::token_store::SecretToken;
 use rowplay_platform::workout_cache::WorkoutCache;
 use rowplay_viewmodel::dates::fmt_time_from_epoch_millis;
 use rowplay_viewmodel::live::{
-    parse_interval, InstantSource, LiveAction, LiveFailureKind, LiveSession, SystemClock,
-    DEFAULT_LIVE_INTERVAL_SEC,
+    DEFAULT_LIVE_INTERVAL_SEC, InstantSource, LiveAction, LiveFailureKind, LiveSession,
+    SystemClock, parse_interval,
 };
 
 use crate::backend::AppState;
@@ -303,8 +303,8 @@ impl LiveBackend {
 
     fn sync_from_session(&mut self) {
         self.enabled = self.session.state.enabled;
-        self.polling = self.session.state.status
-            == rowplay_viewmodel::live::LiveModeStatus::Polling;
+        self.polling =
+            self.session.state.status == rowplay_viewmodel::live::LiveModeStatus::Polling;
         self.has_warning = self.session.state.has_warning();
         self.failure_count = i64::from(self.session.state.consecutive_failures);
         self.interval_sec = i32::try_from(self.session.state.interval_sec)
@@ -318,11 +318,8 @@ impl LiveBackend {
         let state = AppState::get();
         let prefs = state.prefs();
         let language = state.language();
-        self.last_poll_text = fmt_time_from_epoch_millis(
-            epoch_ms as f64,
-            language,
-            prefs.home_timezone.as_deref(),
-        );
+        self.last_poll_text =
+            fmt_time_from_epoch_millis(epoch_ms as f64, language, prefs.home_timezone.as_deref());
     }
 
     /// Spawn the worker. `reschedule` is what `on_poll_ok` will receive.
@@ -353,12 +350,7 @@ impl LiveBackend {
                 .name("rowplay-live".to_owned())
                 .spawn(move || {
                     let _ = known_ids; // demo does not consult ids yet
-                    finish(
-                        &sender,
-                        &invoker,
-                        Ok(LivePollResult::default()),
-                        reschedule,
-                    );
+                    finish(&sender, &invoker, Ok(LivePollResult::default()), reschedule);
                 })
                 .expect("spawn the live worker");
             return;
@@ -422,17 +414,14 @@ fn run_live_poll(
     sender: &Sender<LiveEvent>,
     invoker: &QmlMethodInvoker,
 ) {
-    let client = match Concept2HttpClient::new(token) {
-        Ok(client) => client,
-        Err(_) => {
-            finish(
-                sender,
-                invoker,
-                Err(LivePollError::Client("client init failed".into())),
-                reschedule,
-            );
-            return;
-        }
+    let Ok(client) = Concept2HttpClient::new(token) else {
+        finish(
+            sender,
+            invoker,
+            Err(LivePollError::Client("client init failed".into())),
+            reschedule,
+        );
+        return;
     };
     let outcome = poll_recent(&client, cache.as_ref(), known_ids);
     finish(sender, invoker, outcome, reschedule);

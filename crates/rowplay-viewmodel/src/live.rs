@@ -92,12 +92,7 @@ impl LiveModeState {
 
     /// Begin a poll. Valid from idle or error (retry).
     pub fn poll_started(&mut self) {
-        if self.enabled
-            && matches!(
-                self.status,
-                LiveModeStatus::Idle | LiveModeStatus::Error
-            )
-        {
+        if self.enabled && matches!(self.status, LiveModeStatus::Idle | LiveModeStatus::Error) {
             self.status = LiveModeStatus::Polling;
         }
     }
@@ -156,8 +151,7 @@ impl InstantSource for SystemClock {
         use std::time::{SystemTime, UNIX_EPOCH};
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as i64)
-            .unwrap_or(0)
+            .map_or(0, |d| d.as_millis() as i64)
     }
 }
 
@@ -237,11 +231,7 @@ pub fn success_delay_ms(interval_sec: u32, tab_visible: bool) -> i64 {
 
 /// Schedule delay after a failed poll (interval + backoff).
 #[must_use]
-pub fn failure_delay_ms(
-    interval_sec: u32,
-    tab_visible: bool,
-    consecutive_failures: u32,
-) -> i64 {
+pub fn failure_delay_ms(interval_sec: u32, tab_visible: bool, consecutive_failures: u32) -> i64 {
     success_delay_ms(interval_sec, tab_visible) + next_backoff_ms(consecutive_failures)
 }
 
@@ -249,13 +239,8 @@ pub fn failure_delay_ms(
 #[must_use]
 pub fn poll_is_due(state: &LiveModeState, now_ms: i64) -> bool {
     state.enabled
-        && matches!(
-            state.status,
-            LiveModeStatus::Idle | LiveModeStatus::Error
-        )
-        && state
-            .next_poll_at_ms
-            .is_some_and(|at| now_ms >= at)
+        && matches!(state.status, LiveModeStatus::Idle | LiveModeStatus::Error)
+        && state.next_poll_at_ms.is_some_and(|at| now_ms >= at)
 }
 
 /// What the Qt/timer layer should do after a session transition.

@@ -198,10 +198,7 @@ mod tests {
     }
 
     impl ScriptedClient {
-        fn new(
-            list: Vec<Result<ResultsPage, Concept2Error>>,
-            details: Vec<WorkoutDetail>,
-        ) -> Self {
+        fn new(list: Vec<Result<ResultsPage, Concept2Error>>, details: Vec<WorkoutDetail>) -> Self {
             ScriptedClient {
                 list: Mutex::new(list),
                 details: details.into_iter().map(|d| (d.id(), d)).collect(),
@@ -228,7 +225,10 @@ mod tests {
         }
 
         fn result_detail(&self, id: i64) -> Result<WorkoutDetail, Concept2Error> {
-            self.calls.lock().expect("calls").push(format!("detail:{id}"));
+            self.calls
+                .lock()
+                .expect("calls")
+                .push(format!("detail:{id}"));
             self.details
                 .get(&id)
                 .cloned()
@@ -240,7 +240,10 @@ mod tests {
             id: i64,
             _sport: Sport,
         ) -> Result<Vec<rowplay_core::models::Stroke>, Concept2Error> {
-            self.calls.lock().expect("calls").push(format!("strokes:{id}"));
+            self.calls
+                .lock()
+                .expect("calls")
+                .push(format!("strokes:{id}"));
             Ok(Vec::new())
         }
     }
@@ -258,7 +261,7 @@ mod tests {
         let cache = InMemoryWorkoutCache::default();
         cache.set_fully_synced(true).unwrap();
         let existing = detail(1, "2026-01-01 12:00:00");
-        cache.save_details(&[existing.clone()]).unwrap();
+        cache.save_details(std::slice::from_ref(&existing)).unwrap();
 
         let client = ScriptedClient::new(
             vec![Ok(page(vec![existing.workout.clone()]))],
@@ -281,10 +284,7 @@ mod tests {
         assert!(!cache.is_fully_synced().unwrap());
 
         let fresh = detail(42, "2026-09-01 08:00:00");
-        let client = ScriptedClient::new(
-            vec![Ok(page(vec![fresh.workout.clone()]))],
-            vec![fresh],
-        );
+        let client = ScriptedClient::new(vec![Ok(page(vec![fresh.workout.clone()]))], vec![fresh]);
         let before = cache.is_fully_synced().unwrap();
         let result = poll_recent(&client, &cache, &BTreeSet::new()).unwrap();
         let after = cache.is_fully_synced().unwrap();
@@ -333,7 +333,7 @@ mod tests {
     fn one_new_result_is_imported_by_id() {
         let cache = InMemoryWorkoutCache::default();
         let old = detail(1, "2026-01-01 10:00:00");
-        cache.save_details(&[old.clone()]).unwrap();
+        cache.save_details(std::slice::from_ref(&old)).unwrap();
 
         let fresh = detail(99, "2026-09-18 18:00:00");
         let client = ScriptedClient::new(
