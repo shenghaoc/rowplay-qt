@@ -11,6 +11,7 @@
         <file>RowPlay/Main.qml</file>
         <file>RowPlay/SmokeMain.qml</file>
         <file>RowPlay/SettingsScreen.qml</file>
+        <file>RowPlay/LiveModePanel.qml</file>
         <file>RowPlay/SidebarPanel.qml</file>
         <file>RowPlay/DashboardScreen.qml</file>
         <file>RowPlay/MetricTile.qml</file>
