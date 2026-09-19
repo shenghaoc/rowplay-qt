@@ -18,14 +18,21 @@
   `tools/package/macos.sh` (skeleton → macdeployqt → sqldrivers prune →
   otool scan → launch check → dmg) (R1.1). Measured on this Mac (arm64, Qt
   6.11.2): 215 MB bundle, 92 MB dmg, launch check ok in 2.4 s under cocoa,
-  otool scan clean.
+  otool scan clean. Measured again on the `macos-26` leg of `release.yml`
+  (run 35449652423, first attempt): 219 MB bundle, 97 MB dmg, launch check
+  ok in 3.1 s, otool scan clean.
 - [ ] T5 Linux pipeline: desktop entry, AppStream metainfo,
   `tools/package/linux.sh` with pinned + hashed linuxdeploy tools, Wayland
-  plugins, Xvfb launch check (R1.3, R2.3). Written; ticks when the Linux
-  leg of `release.yml` is green on the Phase 9 PR (this Mac cannot run it).
-- [ ] T6 Windows pipeline: `packaging/windows/rowplay-qt.iss`,
+  plugins, Xvfb launch check (R1.3, R2.3). First CI attempt failed before
+  linuxdeploy ran: the script exported a bare `QMAKE=qmake`, which
+  qtbridge's build script treats as a file path ("could not detect Qt");
+  fixed by resolving it with `command -v` first. Ticks when the Linux leg
+  of `release.yml` is green (this Mac cannot run it).
+- [x] T6 Windows pipeline: `packaging/windows/rowplay-qt.iss`,
   `tools/package/windows.ps1` (windeployqt → launch check → ISCC + zip)
-  (R1.2). Written; ticks when the Windows leg of `release.yml` is green.
+  (R1.2). Measured on the Windows leg of `release.yml` (run 35449652423,
+  first attempt): launch check ok in 2.8 s under the native platform,
+  `…-setup.exe` 35 MB, `.zip` 54 MB, both with `.sha256`.
 - [x] T7 `.github/workflows/release.yml`: package matrix on PR / dispatch /
   tag, draft release with `SHA256SUMS` on tags (R4.1–R4.3).
 - [x] T8 Documentation: ADR 0012 + completed ADR index, README (install,
