@@ -35,6 +35,16 @@ Pane {
                 Accessible.name: text
             }
 
+            // In-app version (Phase 9, R6.5): the one user-visible string
+            // that identifies the running release in a bug report. Under the
+            // title so it is visible without scrolling.
+            Label {
+                text: Tr.t("settings.appVersion", { version: Settings.appVersion })
+                font: Theme.metricLabel
+                color: Theme.textTertiary
+                Accessible.name: text
+            }
+
             // Library / demo mode -------------------------------------------
             ColumnLayout {
                 Layout.fillWidth: true

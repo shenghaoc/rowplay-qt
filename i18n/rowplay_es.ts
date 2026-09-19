@@ -5036,6 +5036,11 @@ Confirma primero que el entrenamiento llegó a tu cuaderno de Concept2 (debe sub
         <oldsource>Reduce motion</oldsource>
         <translation>Reduce motion</translation>
     </message>
+    <message id="settings.appVersion">
+        <source></source>
+        <oldsource>Version {version}</oldsource>
+        <translation>Version {version}</translation>
+    </message>
     <message id="liveMode.refresh">
         <source></source>
         <oldsource>Check now</oldsource>

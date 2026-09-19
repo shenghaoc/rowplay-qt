@@ -5036,6 +5036,11 @@ Toujours bloqué ? La [FAQ](/docs/faq) couvre d'autres cas, et chaque page de ce
         <oldsource>Reduce motion</oldsource>
         <translation>Reduce motion</translation>
     </message>
+    <message id="settings.appVersion">
+        <source></source>
+        <oldsource>Version {version}</oldsource>
+        <translation>Version {version}</translation>
+    </message>
     <message id="liveMode.refresh">
         <source></source>
         <oldsource>Check now</oldsource>
