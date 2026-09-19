@@ -13,6 +13,7 @@
 
 pub mod detail;
 pub mod library;
+pub mod live;
 pub mod replay;
 pub mod settings;
 pub mod sync;

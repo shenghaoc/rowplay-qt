@@ -12,6 +12,7 @@
 //! | Concept2 API | [`concept2::Concept2Client`] | [`concept2::Concept2HttpClient`] (`ureq` + rustls) | [`concept2::MockConcept2Client`] |
 //! | Preferences | [`preferences::PreferencesStore`] | [`preferences::FilePreferencesStore`] (JSON) | [`preferences::InMemoryPreferencesStore`] |
 //! | Sync | [`sync::WorkoutSyncCoordinator`] | synchronous, cancellable | [`concept2::MockConcept2Client`] + in-memory cache |
+//! | Live poll | [`live::poll_recent`] | page-1 only, never touches `fully_synced` | scripted client + in-memory cache |
 //! | Paths | — | [`paths`] (`directories`) | — |
 //!
 //! Privacy invariants carried over from rowplay-studio:
@@ -26,6 +27,7 @@
 
 pub mod concept2;
 pub mod library;
+pub mod live;
 pub mod logging;
 pub mod paths;
 pub mod preferences;

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! rowplay-qt desktop application entry point.
 //!
-//! Phase 4: registers the `RowPlay` QML singletons (Library, Detail, Settings,
-//! Sync — thin adapters over `rowplay-viewmodel` and `rowplay-platform`),
-//! mounts the QML module and the compiled translations, and shows the app
-//! shell. The Phase 0 smoke window stays available for the stack screenshot
-//! test (`ROWPLAY_SMOKE_SCREENSHOT` / `ROWPLAY_SMOKE_EXIT_AFTER_FRAMES`).
+//! Registers the `RowPlay` QML singletons (Library, Detail, Settings, Sync,
+//! Live, Replay — thin adapters over `rowplay-viewmodel` and
+//! `rowplay-platform`), mounts the QML module and the compiled translations,
+//! and shows the app shell. The Phase 0 smoke window stays available for the
+//! stack screenshot test (`ROWPLAY_SMOKE_SCREENSHOT` /
+//! `ROWPLAY_SMOKE_EXIT_AFTER_FRAMES`).
 
 #![forbid(unsafe_code)]
 
@@ -71,6 +72,7 @@ fn main() -> ExitCode {
         .register::<backend::detail::DetailBackend>()
         .register::<backend::settings::SettingsBackend>()
         .register::<backend::sync::SyncBackend>()
+        .register::<backend::live::LiveBackend>()
         .register::<backend::replay::ReplayBackend>()
         .add_import_path("qrc:/qt/qml")
         .load_qml_from_file(root)

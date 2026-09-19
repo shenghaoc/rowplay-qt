@@ -18,6 +18,7 @@ pub mod dashboard;
 pub mod dates;
 pub mod detail;
 pub mod library;
+pub mod live;
 pub mod nav;
 pub mod replay;
 pub mod role;
