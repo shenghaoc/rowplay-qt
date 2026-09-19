@@ -4,6 +4,12 @@ Cross-platform (Linux, macOS, Windows) desktop port of
 [rowplay](https://github.com/shenghaoc/rowplay), a Concept2 logbook analytics
 and real-time workout replay app for RowErg, SkiErg and BikeErg athletes.
 
+**Distribution: Linux AppImage only.** The code stays honestly
+cross-platform — macOS and Windows build and test in CI on every relevant
+push — but the only distributed artifact is the Linux AppImage (see
+[Packaged builds](#packaged-builds)). macOS and Windows packages are not
+distributed and are not release-verified.
+
 - **Rust** implements all application logic (`crates/rowplay-core`,
   `crates/rowplay-platform`).
 - **Qt Bridges for Rust** (`qtbridge`, public beta) exposes Rust objects to
@@ -189,11 +195,21 @@ artifacts, from every pull request that touches a packaging input. Each
 package is started on its own runner from a clean environment and must
 render 30 frames and exit cleanly before it is kept (ADR 0012).
 
+Only the Linux AppImage is distributed: a draft release attaches the
+AppImage plus `SHA256SUMS` and nothing else. The macOS `.dmg` and the
+Windows installer / portable `.zip` are built and launch-checked in CI to
+keep the port cross-platform, but they are not attached to releases, not
+verified beyond launch, and not supported: macOS/Windows rendering
+verification, code signing, notarisation and the macOS `grabToImage` black
+viewport (bridge note #17) are closed as **won't-do** — the author ships on
+Linux. macOS x86_64 and Linux aarch64 are likewise unpackaged (qtbridge's
+support statement, note #8); Flatpak stays deferred (ADR 0012).
+
 | Platform | Artifact | Install |
 | --- | --- | --- |
-| macOS 13+ (Apple silicon) | `rowplay-qt-<version>-macos-arm64.dmg` | Open the image, drag **rowplay** to Applications. The bundle is ad-hoc signed, not notarised: on first launch macOS refuses it; right-click the app → **Open** → **Open**, or `xattr -d com.apple.quarantine /Applications/rowplay-qt.app`. |
-| Windows 10/11 (x64) | `rowplay-qt-<version>-windows-x86_64-setup.exe` (or the portable `.zip`) | Run the installer (per-user by default; it installs the Microsoft VC++ runtime if needed). It is unsigned: SmartScreen shows "Windows protected your PC" → **More info** → **Run anyway**. |
-| Linux (x86_64, X11 or Wayland) | `rowplay-qt-<version>-linux-x86_64.AppImage` | `chmod +x` and run. Without FUSE 2: `APPIMAGE_EXTRACT_AND_RUN=1 ./rowplay-qt-….AppImage`. |
+| Linux (x86_64, X11 or Wayland) | `rowplay-qt-<version>-linux-x86_64.AppImage` — **the distributed artifact** | First time: `chmod +x rowplay-qt-….AppImage`, then run it (`./rowplay-qt-….AppImage`). Without FUSE 2: `APPIMAGE_EXTRACT_AND_RUN=1 ./rowplay-qt-….AppImage`. It bundles its own Qt 6.11 (6.11.2 in the 0.1.0 artifact), so no Qt install is needed. |
+| macOS 13+ (Apple silicon) | `rowplay-qt-<version>-macos-arm64.dmg` (CI-built, not distributed) | Open the image, drag **rowplay** to Applications. The bundle is ad-hoc signed, not notarised: on first launch macOS refuses it; right-click the app → **Open** → **Open**, or `xattr -d com.apple.quarantine /Applications/rowplay-qt.app`. |
+| Windows 10/11 (x64) | `rowplay-qt-<version>-windows-x86_64-setup.exe` (or the portable `.zip`) (CI-built, not distributed) | Run the installer (per-user by default; it installs the Microsoft VC++ runtime if needed). It is unsigned: SmartScreen shows "Windows protected your PC" → **More info** → **Run anyway**. |
 
 Every artifact has a `.sha256` sidecar and each release a `SHA256SUMS`.
 

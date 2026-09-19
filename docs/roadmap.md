@@ -570,13 +570,18 @@ Status: delivered in the Phase 9 PR (ADR 0012, spec
 rankings by the handover's priority call: a public port with a rigorous
 audit and no installer ships nothing.
 
+**Distribution policy: Linux AppImage is the distributed artifact.** macOS
+and Windows are built and launch-checked in CI on every relevant push to
+keep the port honestly cross-platform, but they are not distributed, not
+rendering-verified and not signed/notarised.
+
 - One script per platform under `tools/package/` — `macos.sh`
   (`rowplay-qt.app` + `.dmg` via `macdeployqt`), `windows.ps1` (Inno Setup
   installer + portable zip via `windeployqt`), `linux.sh` (AppImage via
   pinned, SHA-256-verified `linuxdeploy` + Qt plugin, X11 and Wayland) —
   and one workflow, `release.yml`, that runs all three on pull requests
   touching a packaging input, on dispatch, and on `v*` tags, where it drafts
-  a GitHub release with every artifact and `SHA256SUMS`.
+  a GitHub release with the Linux AppImage and `SHA256SUMS` only.
 - Every package is launch-checked on its own runner: the deployed binary
   starts from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`,
   `QT_*`), renders 30 frames under the new release-safe
@@ -587,8 +592,11 @@ audit and no installer ships nothing.
   workaround is gone from CI and the README.
 - The icon is the web app's own, vendored with provenance and pinned;
   `.icns` / `.ico` are generated and pinned too.
-- Recorded gaps (spec R6): macOS and Windows rendering is verified by launch
-  only (the gate's pixel assertions run on the Linux leg, note #17); ad-hoc
-  signing until the author has a Developer ID; macOS x86_64 and Linux
-  aarch64 unpackaged; the 215 MB macOS bundle carries the whole `QtQuick`
-  QML tree (pruning is a follow-up); Flatpak deferred.
+- Recorded gaps (spec R6): the gate's pixel assertions run on the Linux leg
+  only. The gaps that follow from the Linux-only distribution policy are
+  closed as **won't-do** (the author ships on Linux; macOS and Windows exist
+  to keep the port cross-platform): macOS/Windows rendering verification,
+  code signing, notarisation and the macOS `grabToImage` black viewport
+  (bridge note #17). Still open: Flatpak (deferred, ADR 0012), pruning the
+  215 MB macOS bundle's `QtQuick` QML tree, and macOS x86_64 / Linux aarch64
+  (qtbridge's support statement, note #8).
