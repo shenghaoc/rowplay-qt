@@ -130,6 +130,15 @@ Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
 on Apple targets, as it effectively does on Linux.
 
+Same defect, second direction: `DYLD_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
+also launches the binary. Qt Creator / aqt-style env scripts often export
+that variable (not the FALLBACK form), so a machine that "just works" after
+sourcing a Qt env can look like the link is correct when it is still
+missing every `LC_RPATH`. Both variables only mask the absent rpath; neither
+is a substitute for emitting `-Wl,-rpath,…` on Apple targets. Prefer the
+FALLBACK form in scripts (narrower override, matches CI) and treat a working
+`DYLD_FRAMEWORK_PATH` as the same note-10 symptom, not a different fix.
+
 ## 15. A missing `qproperty!` registration reads as `undefined` with no QML error
 
 The most dangerous failure mode found so far. A property that QML reads but

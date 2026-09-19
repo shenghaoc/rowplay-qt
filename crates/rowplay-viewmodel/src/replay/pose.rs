@@ -1704,125 +1704,6 @@ mod tests {
         );
     }
 
-    /// Temporary Phase 7.5 debug (delete before commit): dense sampling of
-    /// the skierg twist demand around the step-8 window.
-    #[test]
-    fn debug_dense_twist_demand() {
-        use crate::replay::grip::{grip_frames, warped_cycle};
-        let athlete = vendored();
-        let solver = PoseSolver::new(&athlete).expect("plan");
-        let clip = athlete.clip_for("skierg").expect("clip");
-        let mut previous: Option<f64> = None;
-        for step in 0..2000 {
-            let phase = f64::from(step) / 2000.0 * std::f64::consts::TAU;
-            let stroke = fallback_stroke_pose(Sport::Skierg, phase, 30.0);
-            if !(0.16..0.26).contains(&stroke.cycle_frac) {
-                continue;
-            }
-            let rig = solve_rig_pose(Sport::Skierg, &stroke, 0.0, false);
-            let targets = rig_targets(&rig);
-            let frames = grip_frames(
-                Sport::Skierg,
-                &rig,
-                targets.poles,
-                warped_cycle(stroke.warped_phase),
-            );
-            let clip_time = clip_fraction(
-                stroke.cycle_frac,
-                stroke.phase,
-                stroke.drive_frac,
-                clip.drive_end,
-            ) * f64::from(clip.duration);
-            let posed = solver.pose(
-                &athlete,
-                Sport::Skierg,
-                clip,
-                clip_time,
-                &targets.contacts,
-                &frames,
-                None,
-            );
-            let requested = posed.wrist[0].requested_twist;
-            if let Some(last) = previous {
-                println!(
-                    "cyc={} requested={} d={}",
-                    stroke.cycle_frac,
-                    requested,
-                    (requested - last).abs()
-                );
-            }
-            previous = Some(requested);
-        }
-    }
-
-    /// Temporary Phase 7.5 debug (delete before commit): per-sample tip and
-    /// hand deltas against the fixture through the contact window.
-    #[test]
-    fn debug_ski_tip_vs_fixture() {
-        let fixture: serde_json::Value =
-            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
-        let samples = fixture["samples"].as_array().expect("samples");
-        for sample in samples {
-            if sample["sport"].as_str() != Some("skierg") {
-                continue;
-            }
-            let cf = sample["pose"]["cycleFrac"].as_f64().expect("cf");
-            if cf > 0.90 || cf < 0.02 || (0.24..0.31).contains(&cf) {
-                continue;
-            }
-            let pose = stroke_pose_from_echo(&sample["pose"]);
-            let meters = sample["rig"]["meters"].as_f64().expect("meters");
-            let posed = solve_rig_pose(Sport::Skierg, &pose, meters, false);
-            let rowplay_core::replay::rig_pose::SportRigPose::SkiErg(rig) = posed else {
-                panic!("sport mismatch")
-            };
-            let poles = rig_targets(&rowplay_core::replay::rig_pose::SportRigPose::SkiErg(rig))
-                .poles
-                .expect("poles");
-            let rec = |key: &str| -> [f64; 3] {
-                let a = sample["rig"][key].as_array().expect(key);
-                [
-                    a[0].as_f64().unwrap(),
-                    a[1].as_f64().unwrap(),
-                    a[2].as_f64().unwrap(),
-                ]
-            };
-            let tip = poles[0].basket;
-            let rec_tip = rec("poleTipLeft");
-            let hand = poles[0].root;
-            let rec_hand_l = sample["rig"]["handTargets"]["left"]
-                .as_array()
-                .expect("hand");
-            let rec_hand = [
-                rec_hand_l[0].as_f64().unwrap(),
-                rec_hand_l[1].as_f64().unwrap(),
-                rec_hand_l[2].as_f64().unwrap(),
-            ];
-            let tip_d = length(sub(tip, rec_tip));
-            let hand_d = length(sub(hand, rec_hand));
-            if hand_d > 0.005 {
-                println!(
-                    "WORST cand cyc={cf:.3} tip=({:.3},{:.3},{:.3}) rec=({:.3},{:.3},{:.3}) tipΔ={tip_d:.3} hand=({:.3},{:.3},{:.3}) rec_hand=({:.3},{:.3},{:.3}) handΔ={hand_d:.4} flight={} fade={} contact={:.3}",
-                    tip[0],
-                    tip[1],
-                    tip[2],
-                    rec_tip[0],
-                    rec_tip[1],
-                    rec_tip[2],
-                    hand[0],
-                    hand[1],
-                    hand[2],
-                    rec_hand[0],
-                    rec_hand[1],
-                    rec_hand[2],
-                    rig.pole_flight,
-                    rig.release_fade,
-                    rig.pole_contact
-                );
-            }
-        }
-    }
-
     /// The web's composed oar quaternion law, against the rendered hand
     /// targets the new `handTargets` field records (rowplay#199):
     /// `oar.group.quaternion` is three.js Euler(0, yaw, roll) in the
@@ -2366,6 +2247,65 @@ mod tests {
         solver.parent_of(joint)
     }
 
+    /// Smallest signed angular difference, wrapped to (-PI, PI].
+    fn wrap_signed(delta: f64) -> f64 {
+        use std::f64::consts::{PI, TAU};
+        let w = (delta + PI).rem_euclid(TAU) - PI;
+        if w == -PI { PI } else { w }
+    }
+
+    #[test]
+    fn wrap_signed_covers_the_near_and_far_sides_of_the_circle() {
+        use std::f64::consts::{PI, TAU};
+        assert!((wrap_signed(0.1) - 0.1).abs() < 1e-12);
+        assert!((wrap_signed(TAU - 0.1) - (-0.1)).abs() < 1e-12);
+        assert!((wrap_signed(-TAU + 0.1) - 0.1).abs() < 1e-12);
+        assert_eq!(wrap_signed(PI), PI);
+    }
+
+    /// SkiErg pre-clamp twist demand saturates at the 30° keep budget.
+    ///
+    /// Measured (2000 samples/cycle): max `|requested_twist|` =
+    /// `SKI_WRIST_TWIST_KEEP + ~1.4e-15` at step 222 — not "inside with
+    /// headroom", and not a vacuous post-clamp check (`requested_twist` is
+    /// the pre-clamp `twist_angle`). The flat-wrist law drives the wrist
+    /// *to* the keep cap; the sub-ULP excess is below the redistribution
+    /// threshold, so the forearm share stays dust and `engaged` is false.
+    fn assert_skierg_twist_saturates_at_keep(max_abs_requested: f64, engaged: bool) {
+        use rowplay_core::replay::wrist::SKI_WRIST_TWIST_KEEP;
+        assert!(
+            (max_abs_requested - SKI_WRIST_TWIST_KEEP).abs() < 1e-12,
+            "skierg pre-clamp demand must saturate at the keep budget \
+             (got {max_abs_requested}, keep {SKI_WRIST_TWIST_KEEP})"
+        );
+        assert!(
+            !engaged,
+            "skierg: saturating at the keep budget must not redistribute \
+             into the forearm"
+        );
+    }
+
+    #[test]
+    fn skierg_saturation_assert_bites_on_over_budget_demand() {
+        use rowplay_core::replay::wrist::SKI_WRIST_TWIST_KEEP;
+        let over = std::panic::catch_unwind(|| {
+            assert_skierg_twist_saturates_at_keep(SKI_WRIST_TWIST_KEEP + 0.01, false);
+        });
+        assert!(
+            over.is_err(),
+            "demand past the keep budget must fail the saturation assert"
+        );
+        let redistributed = std::panic::catch_unwind(|| {
+            assert_skierg_twist_saturates_at_keep(SKI_WRIST_TWIST_KEEP, true);
+        });
+        assert!(
+            redistributed.is_err(),
+            "forearm redistribution must fail the no-engage half of the claim"
+        );
+        // The healthy saturation case still passes.
+        assert_skierg_twist_saturates_at_keep(SKI_WRIST_TWIST_KEEP, false);
+    }
+
     #[test]
     fn requested_twist_stays_continuous_and_engages_the_budgets() {
         // The unclamped demand distinguishes a saturating budget from an
@@ -2390,6 +2330,7 @@ mod tests {
             let mut previous: Option<f64> = None;
             let mut prev_elbow: Option<([f64; 3], [f64; 3], [f64; 4])> = None;
             let mut engaged = false;
+            let mut max_abs_requested = 0.0f64;
             for step in 0..STEPS {
                 let step_f = step as f64;
                 let phase = step_f / STEPS as f64 * std::f64::consts::TAU;
@@ -2434,6 +2375,8 @@ mod tests {
                     }
                 }
                 let requested = posed.wrist[0].requested_twist;
+                max_abs_requested = max_abs_requested.max(requested.abs());
+                max_abs_requested = max_abs_requested.max(posed.wrist[1].requested_twist.abs());
                 // rendered hand + elbow world continuity, recomputed from the
                 // returned locals through the same FK the Workspace runs:
                 // root-local translation is world, every child adds its local
@@ -2520,21 +2463,21 @@ mod tests {
                     // (measured 0.110 m ≈ 2·|offset⊥|·sin(max_spin), the
                     // oriented offset swinging with the frame). Each wrap
                     // is one isolated step inside its window, never two.
-                    let tilt_wrap =
-                        sport == Sport::Skierg && (0.255..0.275).contains(&stroke.cycle_frac);
-                    let spin_wrap =
-                        sport == Sport::Skierg && (0.678..0.698).contains(&stroke.cycle_frac);
-                    let (position_budget, orientation_budget) = if tilt_wrap || spin_wrap {
-                        (0.15, 1.45)
-                    } else {
-                        (0.02, 0.35)
-                    };
+                    // Continuity uses the same tight TOL everywhere; angular
+                    // comparison is wrap-aware so a ±π singularity is not
+                    // mistaken for a step skip.
+                    const POSITION_TOL: f64 = 0.02;
+                    const ORIENTATION_TOL: f64 = 0.35;
                     assert!(
-                        dh < position_budget,
-                        "{sport:?} step {step}: hand jumps {dh:.4}"
+                        dh < POSITION_TOL,
+                        "{sport:?} step {step}: hand jumps {dh:.4} \
+                         cyc={} prev={last_h:?} curr={hand_w:?} \
+                         wrap_signed(dh)={} TOL={POSITION_TOL}",
+                        stroke.cycle_frac,
+                        wrap_signed(dh)
                     );
                     assert!(
-                        dq < orientation_budget,
+                        wrap_signed(dq).abs() < ORIENTATION_TOL,
                         "{sport:?} step {step}: hand orientation jumps {dq:.4}"
                     );
                 }
@@ -2555,28 +2498,30 @@ mod tests {
             // - The rower's sweep/feather grip still drives wrist demands far
             //   beyond the 75° budget, so its clamp path must engage.
             // - The skierg's rewritten pass structure (fixed plant + measured
-            //   segments + the web's per-phase bend hint) holds the wrist
-            //   inside its 30° keep budget for the WHOLE cycle — max demand
-            //   0.5236 rad. Before the rewrite, branch-flip defects inflated
-            //   the demand past the budget (a recorded 1.74 rad snap); the
-            //   clamp engaging there was measuring the defect, not coverage.
-            //   The flat-wrist law that keeps the demand low
+            //   segments + the web's per-phase bend hint) drives the
+            //   pre-clamp demand to *saturate* at the 30° keep budget
+            //   (measured max |requested_twist| = π/6 + ~1.4e-15 at step
+            //   222) — not "inside with headroom". Before the rewrite,
+            //   branch-flip defects inflated the demand past the budget (a
+            //   recorded 1.74 rad snap); the clamp engaging there was
+            //   measuring the defect, not coverage. The flat-wrist law
             //   (`refine_grip_spin_for_wrist` + budgets) is separately
             //   pinned by core's unit tests, so the clamp path stays tested.
-            // - The bike's static hood frame never does — its wrist is
+            // - The bike's static hood frame never engages — its wrist is
             //   frozen by design.
-            if sport == Sport::Rower {
-                assert!(engaged, "{sport:?}: the budget clamp never engaged");
-            } else {
-                assert!(
-                    !engaged,
-                    "{sport:?}: the {} grip must stay inside its keep budget",
-                    if sport == Sport::Bike {
-                        "static"
-                    } else {
-                        "held"
-                    }
-                );
+            match sport {
+                Sport::Rower => {
+                    assert!(engaged, "{sport:?}: the budget clamp never engaged");
+                }
+                Sport::Skierg => {
+                    assert_skierg_twist_saturates_at_keep(max_abs_requested, engaged);
+                }
+                Sport::Bike => {
+                    assert!(
+                        !engaged,
+                        "{sport:?}: the static grip must stay inside its keep budget"
+                    );
+                }
             }
         }
     }
