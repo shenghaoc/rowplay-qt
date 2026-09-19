@@ -22,7 +22,7 @@ use rowplay_core::replay::motion_graph::{ReplayMotionGraph, sample_motion_graph}
 use rowplay_core::replay::quality::RenderQuality;
 use rowplay_core::replay::rig_pose::{SportRigPose, solve_rig_pose};
 use rowplay_core::replay::stroke_model::{
-    StrokeTimeline, build_stroke_timeline, reduced_motion, stroke_pose_at,
+    StrokeTimeline, build_stroke_timeline, fallback_stroke_pose, reduced_motion, stroke_pose_at,
 };
 use rowplay_viewmodel::replay::athlete::V4Athlete;
 use rowplay_viewmodel::replay::camera::{CameraInput, CameraState, chase};
@@ -113,6 +113,11 @@ pub struct ReplayBackend {
     // hands instead of the chase view while the phase-shot walk takes a
     // "-closeup" twin. Chase state is untouched so it flips back cleanly.
     closeup_camera: bool,
+    /// Capture-strip override: when ≥ 0, `advance` poses with the guard's
+    /// `fallback_stroke_pose(sport, step/2000·τ, 30)` and `metres = step·3`
+    /// so a frame named `stepN.png` is the same sample as guard step N.
+    /// −1 (default) uses the loaded workout's timeline.
+    guard_cycle_step: i64,
     pole_fits: [Option<PoleLeafFit>; 3],
     playback: Option<Playback>,
     camera: CameraState,
@@ -280,6 +285,7 @@ impl Default for ReplayBackend {
             playback: None,
             camera: CameraState::new(Sport::Rower),
             closeup_camera: false,
+            guard_cycle_step: -1,
             anim_phase: 0.0,
             last_distance: 0.0,
             dirty: false,
@@ -826,6 +832,21 @@ impl ReplayBackend {
         self.notify_playback();
     }
 
+    /// Capture-walk hook: pose as the dense continuity guard does at `step`
+    /// (`fallback_stroke_pose` at 30 spm, metres = step·3). Pass −1 to return
+    /// to the loaded workout. A paused replay emits no frames, so the flip
+    /// must push one the way a seek does.
+    #[qslot]
+    fn set_guard_cycle_step(&mut self, step: i64) {
+        if self.guard_cycle_step == step {
+            return;
+        }
+        self.guard_cycle_step = step;
+        self.dirty = true;
+        self.advance(0.0);
+        self.notify_frame();
+    }
+
     /// Capture-walk hook: frame the athlete's torso and hands instead of the
     /// chase view (the phase-shot close-up twins judge wrist and posture).
     /// A paused replay emits no frames, so the flip must push one the way a
@@ -1054,11 +1075,21 @@ impl ReplayBackend {
         let time = playback.state.time();
         let duration = playback.state.duration();
         let playing = playback.state.playing();
-        let mut stroke = stroke_pose_at(&playback.timeline, time);
+        // The dense guard samples `fallback_stroke_pose(..., 30 spm)` and
+        // `metres = step·3`, not the loaded workout. A capture named
+        // `stepN.png` must use that same sample or the rendered jump and
+        // the guard's failing step disagree (live 1003: drive_frac 0.46
+        // vs 0.34, jump at 522 vs 529).
+        let (mut stroke, distance) = if self.guard_cycle_step >= 0 {
+            let step_f = self.guard_cycle_step as f64;
+            let phase = step_f / 2000.0 * std::f64::consts::TAU;
+            (fallback_stroke_pose(sport, phase, 30.0), step_f * 3.0)
+        } else {
+            (stroke_pose_at(&playback.timeline, time), sampled.d)
+        };
         if self.reduce_motion {
             stroke = reduced_motion(&stroke);
         }
-        let distance = sampled.d;
 
         // Rig pose → contact targets → the posed athlete. The posed result is
         // kept for the equipment pack below: the RowErg oar rotations are the
