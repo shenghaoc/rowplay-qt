@@ -23,6 +23,14 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEST = REPO / "tests" / "fixtures"
+
+# The golden fixtures are only reproducible from the rowplay-studio commit
+# pinned in docs/source-map.md; the default reference checkout must be at it
+# before vendoring (same guard idiom as tools/convert-locales.mjs — a stale
+# checkout silently re-vendors reverted fixtures, and only the manifest's
+# recorded commit would show it).
+PINNED_STUDIO_COMMIT = "3d406a5b7677372de35fb0817c7133a2589c6564"
+DEFAULT_STUDIO = REPO / "reference" / "rowplay-studio"
 FILES = [
     "duration-band-parity.json",
     "performance-predictor-parity.json",
@@ -59,6 +67,24 @@ def main() -> int:
         print(__doc__, file=sys.stderr)
         return 2
     studio = pathlib.Path(sys.argv[1]).resolve()
+    if studio == DEFAULT_STUDIO:
+        head = subprocess.check_output(
+            ["git", "-C", str(studio), "rev-parse", "HEAD"], text=True
+        ).strip()
+        if head != PINNED_STUDIO_COMMIT:
+            print(
+                f"reference/rowplay-studio is at {head}, expected the pinned "
+                f"{PINNED_STUDIO_COMMIT}.\nCheck out the pinned commit "
+                "(docs/source-map.md) or update the pin in this script.",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        print(
+            f"note: vendoring from {studio}; skipping the pinned-studio guard "
+            f"(expected {DEFAULT_STUDIO} at {PINNED_STUDIO_COMMIT} per docs/source-map.md).",
+            file=sys.stderr,
+        )
     src = studio / "Tests" / "RowPlayCoreTests" / "Fixtures"
     commit = subprocess.check_output(["git", "-C", str(studio), "rev-parse", "HEAD"], text=True).strip()
     entries = []

@@ -26,8 +26,11 @@ import shutil
 import sys
 from pathlib import Path
 
-# The rowplay code commit the baker reads; must match bake.mjs's pin and the
-# pinned reference in docs/source-map.md.
+# The commit the venue/assets sources were last changed at and are vendored
+# from — deliberately OLDER than the session pin in docs/source-map.md (which
+# tracks the locales/fixtures surface at 173c6fac); do not "fix" the split.
+# The three venue pins must move together: this constant, bake.mjs's
+# AUTHORED_AGAINST and ROWPLAY_REF_COMMIT in venue-bake-check.yml.
 UPSTREAM_COMMIT = "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086"
 
 MANIFEST_NAME = "MANIFEST.json"

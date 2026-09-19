@@ -183,6 +183,29 @@ def main() -> None:
     print("vendoring environment texture sets:")
     env_readme = source / "environments" / "README.md"
     hashes = environment_hashes(env_readme)
+    # Staleness guard (same class as convert-locales.mjs's pinned-commit
+    # check): the texture hash table is parsed from the checkout's own
+    # README, so a checkout carrying different pins would verify itself.
+    # The default reference checkout must still pin exactly the bytes the
+    # committed vendored README pins; an explicit --reference is the
+    # deliberate update path and skips this loudly.
+    vendored_readme = repo_root / "assets" / "replay" / "environments" / "README.md"
+    if args.reference is not None:
+        print(
+            f"note: --reference {reference} given; skipping the texture-pin "
+            "guard against the committed assets/replay/environments/README.md.",
+            file=sys.stderr,
+        )
+    elif vendored_readme.is_file():
+        vendored_hashes = environment_hashes(vendored_readme)
+        if vendored_hashes != hashes:
+            changed = sorted(set(vendored_hashes) ^ set(hashes)) or "hash values"
+            sys.exit(
+                f"{env_readme}: texture pin table differs from the committed "
+                f"assets/replay/environments/README.md ({changed}); check out "
+                "the pinned commit (docs/source-map.md) or re-review and "
+                "update the vendored pins deliberately"
+            )
     (target / "environments").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(env_readme, target / "environments" / "README.md")
     for family in sorted(CREATORS):

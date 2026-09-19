@@ -12,3 +12,29 @@ Pipeline scripts. Nothing here is linked into the app.
 
 Later phases add asset vendoring and `balsam` pre-processing (Phase 5), and
 the Node venue exporter plus Blender clean-up scripts (Phase 6).
+
+## Pinned-reference guard
+
+Every script that reads the working tree of `reference/` refuses to run
+unless the checkout is at the commit pinned in `docs/source-map.md`:
+`convert-locales.mjs`, `gen-ski-arm-hand-window.mjs`,
+`gen-rig-phase-parity.mjs` and `web-tilt-probe.mjs` against
+`reference/rowplay`, `vendor-fixtures.py` against `reference/rowplay-studio`;
+`vendor-replay-assets.py` compares the checkout's texture-pin table against
+the committed vendored one (its assets predate the current session pin).
+`gen-row-phase-parity.mjs` and `gen-stroke-model-parity.mjs` need no guard:
+they read blobs via `git show <pinned-commit>:<path>`, and the venue baker's
+output is byte-pinned by the venues manifest (verified by `vendor-venues.py`
+and the nightly `venue-bake-check.yml`, which clones the pinned commit
+itself). An explicit different source (`--locales`, `--reference`, a
+non-default checkout path) is a deliberate override that skips the guard and
+prints a note.
+
+There are deliberately **two** rowplay pins, not one: the *session* pin in
+`docs/source-map.md` (`173c6fac`) covers the locales/fixtures surface every
+regeneration reads, while the *venues/assets* pin (`011e830`, the commit
+those sources last changed at) is carried identically by
+`vendor-venues.py`'s `UPSTREAM_COMMIT`, `bake.mjs`'s `AUTHORED_AGAINST` and
+`venue-bake-check.yml`'s `ROWPLAY_REF_COMMIT`, which must move together.
+A comment claiming any of these must equal the session pin is wrong — the
+split is what keeps vendored bytes stable while the session pin advances.

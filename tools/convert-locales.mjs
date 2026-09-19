@@ -22,12 +22,20 @@
 // --check only runs where the web repo is present (the parity test in
 // crates/rowplay-viewmodel skips regeneration the same way).
 
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
+
+// The catalogues must be reproducible from the web commit pinned in
+// docs/source-map.md. Same guard as tools/gen-ski-arm-hand-window.mjs:
+// a stale reference/rowplay checkout silently regenerates reverted
+// strings (observed: the web's restored fr dashboard.emptyTrend
+// placeholder came back dropped).
+const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
 
 const LANGUAGES = ["en", "zh", "de", "es", "fr", "ja"];
 
@@ -110,6 +118,35 @@ async function main() {
         "check out the rowplay web app into reference/ (see AGENTS.md) or pass --locales",
     );
     process.exit(2);
+  }
+
+  // Refuse to read the default reference checkout at any commit but the
+  // pin; an explicit --locales is a deliberate override that skips the
+  // guard — loudly, so an override in a script or alias cannot pass
+  // silently for a stale checkout.
+  const reference = join(REPO, "reference", "rowplay");
+  const defaultLocales = join(reference, "src", "lib", "locales");
+  if (args.locales === defaultLocales) {
+    let head;
+    try {
+      head = execFileSync("git", ["-C", reference, "rev-parse", "HEAD"], {
+        encoding: "utf8",
+      }).trim();
+    } catch {
+      head = "(not a git checkout)";
+    }
+    if (head !== PINNED_COMMIT) {
+      console.error(
+        `reference/rowplay is at ${head}, expected the pinned ${PINNED_COMMIT}.\n` +
+          `Check out the pinned commit (docs/source-map.md) or update the pin in this script.`,
+      );
+      process.exit(1);
+    }
+  } else {
+    console.error(
+      `note: --locales ${args.locales} given; skipping the pinned-reference guard` +
+        ` (expected ${defaultLocales} at ${PINNED_COMMIT} per docs/source-map.md).`,
+    );
   }
 
   const dictionaries = new Map();

@@ -31,7 +31,9 @@ on:
       - "assets/replay/venues/**"
 
 env:
-  # Pinned in docs/source-map.md; must match tools/vendor-venues.py and
+  # The venue/assets pin — deliberately older than the session pin in
+  # docs/source-map.md (those sources last changed at this commit); must
+  # move together with tools/vendor-venues.py's UPSTREAM_COMMIT and
   # tools/bake-venues/bake.mjs (AUTHORED_AGAINST).
   ROWPLAY_REF_COMMIT: "011e8303b66b4d2265a6f1ec8b3ed9d8ed497086"
   # The Blender version the vendored artifacts were cleaned with. The
