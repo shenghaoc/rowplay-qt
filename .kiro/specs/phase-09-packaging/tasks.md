@@ -21,7 +21,7 @@
   otool scan clean. Measured again on the `macos-26` leg of `release.yml`
   (run 35449652423, first attempt): 219 MB bundle, 97 MB dmg, launch check
   ok in 3.1 s, otool scan clean.
-- [ ] T5 Linux pipeline: desktop entry, AppStream metainfo,
+- [x] T5 Linux pipeline: desktop entry, AppStream metainfo,
   `tools/package/linux.sh` with pinned + hashed linuxdeploy tools, Wayland
   plugins, Xvfb launch check (R1.3, R2.3). First CI attempt failed before
   linuxdeploy ran: the script exported a bare `QMAKE=qmake`, which
@@ -45,8 +45,25 @@
   listing showed no `wayland-shell-integration` or
   `wayland-decoration-client`: the pinned deployer does not copy them, and
   without shell integration the Wayland platform plugin cannot open a
-  window. All three directories are now staged by the script (R6.6). Ticks
-  when the Linux leg is green with all three present.
+  window. All three directories are now staged by the script (R6.6).
+  Fifth attempt (run 35451035388): green with all three present in the
+  AppDir alongside `libqwayland.so`, 62 MB AppImage, launch check ok in
+  3.7 s under xcb on Xvfb. Native-Wayland launch remains a human check
+  (T9).
+  Local-build findings on the author's RHEL 10.2 machine (measured
+  2026-09-20, review of this PR): with the documented `.envrc`
+  environment and `NO_STRIP=1`, `linux.sh` builds a 64 MB AppImage that
+  passes the launch check in 3.0 s under xcb on the native session, and
+  the CI-built AppImage (run 35457858565, sha256 verified against its
+  sidecar) also passes it on that machine — the bundle is portable to
+  EL10. Two local-only findings, both loud: (a) the strip bundled in the
+  pinned linuxdeploy cannot parse the `.relr.dyn` sections of EL10-era
+  system libraries it deploys (libssl, libsystemd, …), aborting the run —
+  `NO_STRIP=1` is the local workaround, recorded in the script; ubuntu
+  24.04 (the release runner) is unaffected; (b) appimagetool resolved the
+  bare relative `OUTPUT` name against its own process cwd (the AppImage
+  runtime did not preserve the caller's), landing the AppImage in `$HOME`
+  — `OUTPUT`/`LDAI_OUTPUT` are now absolute paths in the script.
 - [x] T6 Windows pipeline: `packaging/windows/rowplay-qt.iss`,
   `tools/package/windows.ps1` (windeployqt → launch check → ISCC + zip)
   (R1.2). Measured on the Windows leg of `release.yml` (run 35449652423,
