@@ -416,6 +416,21 @@ Wayland (`cargo run -p rowplay-app`).
   Ultra bench — verified by the absence of venue reloads (an effective-tier
   change would re-walk and re-log the venue); the governor's threshold unit
   tests are unchanged and green.
+- **Re-measured post-Phase 7.5** (2026-09-20, this machine: Intel UHD 630,
+  Mesa 25.2.7, native Wayland / GNOME 49.4, 144 Hz, `QSG_NO_VSYNC=1`, ghost
+  present, debug binary at `origin/main` `05d6629`; two isolated 600-frame
+  runs, medians in ms): Low/Medium still match the 6b table (9.7–12.2).
+  **High/Ultra medians now run ~3–5 ms above the table**: row-high
+  14.7/16.5, row-ultra 15.1/18.7, ski-high 15.2/16.4, ski-ultra 14.4/16.3,
+  bike-high 14.9/16.6, bike-ultra 15.3/16.8 (table: 11.4–12.2). Both runs
+  agree in direction and the between-run spread (~2–4 ms) is smaller than
+  the gap; cause not diagnosed — the plausible candidate is the Phase 7/7.5
+  rig work (dual rigs, hand layer, ski plant anchor), which landed without
+  a re-bench (inferred). p95 stays unresolvable at 600 frames (row-ultra
+  24.9/40.1 across the two runs); wall stalls 48–55 per 720, unchanged
+  band. The 6b table above stands as the historical record for its build;
+  current-main High/Ultra medians are ~15–17 ms, still under the 22 ms
+  budget on medians, with p95 straddling it as recorded.
 
 ### Phase 7 — Motion
 
@@ -565,4 +580,38 @@ path already does the work.
 
 ### Phase 9 — Packaging
 
-- macOS `.app`, Windows installer, Linux AppImage or Flatpak.
+Status: delivered in the Phase 9 PR (ADR 0012, spec
+`.kiro/specs/phase-09-packaging/`), ahead of the remaining parity-audit
+rankings by the handover's priority call: a public port with a rigorous
+audit and no installer ships nothing.
+
+**Distribution policy: Linux AppImage is the distributed artifact.** macOS
+and Windows are built and launch-checked in CI on every relevant push to
+keep the port honestly cross-platform, but they are not distributed, not
+rendering-verified and not signed/notarised.
+
+- One script per platform under `tools/package/` — `macos.sh`
+  (`rowplay-qt.app` + `.dmg` via `macdeployqt`), `windows.ps1` (Inno Setup
+  installer + portable zip via `windeployqt`), `linux.sh` (AppImage via
+  pinned, SHA-256-verified `linuxdeploy` + Qt plugin, X11 and Wayland) —
+  and one workflow, `release.yml`, that runs all three on pull requests
+  touching a packaging input, on dispatch, and on `v*` tags, where it drafts
+  a GitHub release with the Linux AppImage and `SHA256SUMS` only.
+- Every package is launch-checked on its own runner: the deployed binary
+  starts from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`,
+  `QT_*`), renders 30 frames under the new release-safe
+  `ROWPLAY_EXIT_AFTER_FRAMES` probe and exits 0, or the build fails
+  (`tools/package/launch-check.py`; proven to bite on two broken bundles).
+- macOS binaries now carry their own `LC_RPATH`s from `build.rs`
+  (qt-bridges-notes #10 resolved on our side); the `DYLD_FALLBACK_FRAMEWORK_PATH`
+  workaround is gone from CI and the README.
+- The icon is the web app's own, vendored with provenance and pinned;
+  `.icns` / `.ico` are generated and pinned too.
+- Recorded gaps (spec R6): the gate's pixel assertions run on the Linux leg
+  only. The gaps that follow from the Linux-only distribution policy are
+  closed as **won't-do** (the author ships on Linux; macOS and Windows exist
+  to keep the port cross-platform): macOS/Windows rendering verification,
+  code signing, notarisation and the macOS `grabToImage` black viewport
+  (bridge note #17). Still open: Flatpak (deferred, ADR 0012), pruning the
+  215 MB macOS bundle's `QtQuick` QML tree, and macOS x86_64 / Linux aarch64
+  (qtbridge's support statement, note #8).

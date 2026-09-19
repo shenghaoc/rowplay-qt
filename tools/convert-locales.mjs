@@ -130,6 +130,7 @@ async function main() {
   // equivalent that appear in committed QML.
   const DESKTOP_SUPPLEMENT = new Map([
     ["settings.reduceMotion", "Reduce motion"],
+    ["settings.appVersion", "Version {version}"],
   ]);
   for (const [id, value] of DESKTOP_SUPPLEMENT) {
     for (const [, dict] of dictionaries) {

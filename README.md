@@ -4,6 +4,12 @@ Cross-platform (Linux, macOS, Windows) desktop port of
 [rowplay](https://github.com/shenghaoc/rowplay), a Concept2 logbook analytics
 and real-time workout replay app for RowErg, SkiErg and BikeErg athletes.
 
+**Distribution: Linux AppImage only.** The code stays honestly
+cross-platform — macOS and Windows build and test in CI on every relevant
+push — but the only distributed artifact is the Linux AppImage (see
+[Packaged builds](#packaged-builds)). macOS and Windows packages are not
+distributed and are not release-verified.
+
 - **Rust** implements all application logic (`crates/rowplay-core`,
   `crates/rowplay-platform`).
 - **Qt Bridges for Rust** (`qtbridge`, public beta) exposes Rust objects to
@@ -25,7 +31,9 @@ recorded as ADRs in [`docs/decisions/`](docs/decisions/README.md).
 
 ## Status
 
-Phases 0–4 are done; Phase 5a is delivered in this PR.
+Phases 0–8 are done (Phase 8, live mode, is in review); Phase 9 adds the
+packaged builds — see [Packaged builds](#packaged-builds). The bullets below
+are the phase summaries as each landed.
 
 - **Phase 5a — replay assets and scene:** the rowplay V3 rig pack, V4 athlete
   and Poly Haven environment textures vendored with provenance and a SHA-256
@@ -161,13 +169,13 @@ export QMAKE="$HOME/Qt/6.11.2/macos/bin/qmake"
 cargo build -p rowplay-app
 ```
 
-macOS binaries reference Qt through `@rpath` with no `LC_RPATH` emitted, so
-running or testing the app also needs the frameworks on the fallback path
-(see note 10 in [`docs/qt-bridges-notes.md`](docs/qt-bridges-notes.md)):
-
-```bash
-export DYLD_FALLBACK_FRAMEWORK_PATH="$HOME/Qt/6.11.2/macos/lib"
-```
+On macOS nothing else is needed: `build.rs` links the binary with an
+`LC_RPATH` for the Qt install (and one for `@executable_path/../Frameworks`,
+which the `.app` bundle uses), so `cargo run` and `cargo test` find the
+frameworks without any `DYLD_*` variable (note 10 in
+[`docs/qt-bridges-notes.md`](docs/qt-bridges-notes.md) has the history). The
+committed `.envrc` exports the paths above for both the Linux and the macOS
+install locations.
 
 On a Wayland desktop the app runs natively (`QT_QPA_PLATFORM` unset — Qt picks
 `libqwayland`) and the headless tests need no Xvfb:
@@ -177,6 +185,47 @@ ROWPLAY_QT_SMOKE=1 cargo test -p rowplay-app` passes on RHEL 10.2 with Qt
 
 Demo mode is first-class: everything is explorable with deterministic seeded
 data and no Concept2 token.
+
+## Packaged builds
+
+Phase 9 ships installers built by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) from a `v*`
+tag (as a draft release the author publishes) and, as plain workflow
+artifacts, from every pull request that touches a packaging input. Each
+package is started on its own runner from a clean environment and must
+render 30 frames and exit cleanly before it is kept (ADR 0012).
+
+Only the Linux AppImage is distributed: a draft release attaches the
+AppImage plus `SHA256SUMS` and nothing else. The macOS `.dmg` and the
+Windows installer / portable `.zip` are built and launch-checked in CI to
+keep the port cross-platform, but they are not attached to releases, not
+verified beyond launch, and not supported: macOS/Windows rendering
+verification, code signing, notarisation and the macOS `grabToImage` black
+viewport (bridge note #17) are closed as **won't-do** — the author ships on
+Linux. macOS x86_64 and Linux aarch64 are likewise unpackaged (qtbridge's
+support statement, note #8); Flatpak stays deferred (ADR 0012).
+
+| Platform | Artifact | Install |
+| --- | --- | --- |
+| Linux (x86_64, X11 or Wayland) | `rowplay-qt-<version>-linux-x86_64.AppImage` — **the distributed artifact** | First time: `chmod +x rowplay-qt-….AppImage`, then run it (`./rowplay-qt-….AppImage`). Without FUSE 2: `APPIMAGE_EXTRACT_AND_RUN=1 ./rowplay-qt-….AppImage`. It bundles its own Qt 6.11 (6.11.2 in the 0.1.0 artifact), so no Qt install is needed. |
+| macOS 13+ (Apple silicon) | `rowplay-qt-<version>-macos-arm64.dmg` (CI-built, not distributed) | Open the image, drag **rowplay** to Applications. The bundle is ad-hoc signed, not notarised: on first launch macOS refuses it; right-click the app → **Open** → **Open**, or `xattr -d com.apple.quarantine /Applications/rowplay-qt.app`. |
+| Windows 10/11 (x64) | `rowplay-qt-<version>-windows-x86_64-setup.exe` (or the portable `.zip`) (CI-built, not distributed) | Run the installer (per-user by default; it installs the Microsoft VC++ runtime if needed). It is unsigned: SmartScreen shows "Windows protected your PC" → **More info** → **Run anyway**. |
+
+Every artifact has a `.sha256` sidecar and each release a `SHA256SUMS`.
+
+To build a package locally (same prerequisites as the app build, plus
+Inno Setup 6 on Windows; the Linux script fetches pinned, SHA-256-verified
+`linuxdeploy` tools into `tools/package/.cache/`):
+
+```bash
+tools/package/macos.sh      # dist/rowplay-qt.app + .dmg
+tools/package/linux.sh      # dist/*.AppImage (needs xvfb-run when headless)
+pwsh tools/package/windows.ps1   # dist/*-setup.exe + .zip
+```
+
+`ROWPLAY_EXIT_AFTER_FRAMES=N` makes any build of the app quit after N
+rendered frames; it is what the launch check uses and is safe to leave set
+nowhere else.
 
 ## Layout
 

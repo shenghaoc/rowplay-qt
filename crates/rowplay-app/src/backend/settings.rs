@@ -51,6 +51,15 @@ pub struct SettingsBackend {
     /// Close-up twins for the phase shots: a second, torso-and-hands
     /// framing per capture (the wrist/posture judgement shots, T8).
     phase_closeups: bool,
+    /// Quit after this many rendered frames of the shell (`0` = never).
+    /// Read in every build, unlike the gate hooks: a packaged binary has
+    /// no other way to prove it starts, and an early quit is the one
+    /// override that cannot alter or expose data.
+    exit_after_frames: i32,
+    /// Application version for the Settings screen (`CARGO_PKG_VERSION`).
+    /// A release you cannot identify from inside the app makes every
+    /// future bug report worse (Phase 9, R6.5).
+    app_version: String,
 }
 
 impl Default for SettingsBackend {
@@ -128,6 +137,16 @@ impl Default for SettingsBackend {
             bench_mode: crate::backend::test_env("ROWPLAY_REPLAY_BENCH").is_some(),
             phase_shots: crate::backend::test_env("ROWPLAY_PHASE_SHOTS").is_some(),
             phase_closeups: crate::backend::test_env("ROWPLAY_PHASE_CLOSEUPS").is_some(),
+            // Deliberately plain `env::var`, not `test_env`: the packaged
+            // launch check (tools/package/*) runs the *release* bundle and
+            // needs it to exit on its own. Documented in AGENTS.md next to
+            // ROWPLAY_DATA_DIR and ROWPLAY_FORCE_COLOR_SCHEME.
+            exit_after_frames: std::env::var("ROWPLAY_EXIT_AFTER_FRAMES")
+                .ok()
+                .and_then(|value| value.parse::<i32>().ok())
+                .filter(|frames| *frames > 0)
+                .unwrap_or(0),
+            app_version: env!("CARGO_PKG_VERSION").to_owned(),
         }
     }
 }
@@ -222,6 +241,11 @@ impl SettingsBackend {
     // phase grab also saves a torso-and-hands framing (the wrist/posture
     // judgement captures; T8).
     qproperty!("phaseCloseups", Member = phase_closeups, Constant);
+    // Packaged-launch probe (ROWPLAY_EXIT_AFTER_FRAMES): Main.qml drives
+    // this many frames, then quits with status 0. Release-safe by design;
+    // see the field comment.
+    qproperty!("exitAfterFrames", Member = exit_after_frames, Constant);
+    qproperty!("appVersion", Member = app_version, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]

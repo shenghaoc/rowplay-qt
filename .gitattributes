@@ -8,3 +8,9 @@
 *.jpg binary
 *.png binary
 *.json text eol=lf
+# Phase 9: the icon set under assets/icon is pinned the same way (ICON_EXPECTED
+# in asset_hashes.rs). The SVG is a one-line text file that gained a CR on the
+# Windows CI leg's first run (236 vs 235 bytes); the .icns/.ico are binaries.
+*.svg text eol=lf
+*.icns binary
+*.ico binary

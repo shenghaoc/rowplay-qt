@@ -1010,6 +1010,20 @@ requirement.** On the affected macOS host, yes — verify against the
 live window, not a local capture. Everywhere else (any Linux session
 with Xvfb + Mesa), local visual verification is a valid path.
 
+**Run capture and bench walks in isolation on the native-Wayland box**
+(measured 2026-09-20, RHEL 10.2 / GNOME 49.4 / UHD 630): a gate walk
+(`QSG_NO_VSYNC=1`, `ROWPLAY_PHASE_SHOTS=1`) froze mid-strip while a
+second Qt app rendered on the same Wayland session — the
+`gateRenderedFrames` counter stopped advancing (stuck at 242), every
+`grabToImage` callback timed out through its 12 s bailout, while the
+process stayed CPU-busy and kept re-logging scene rules. Isolated runs
+before and after showed no freeze; the contaminated run's captures were
+discarded and re-run. Cause inferred (contended compositor frame
+scheduling or GL driver contention), not diagnosed; the operating rule
+stands regardless — no concurrent rendering apps during bench or
+capture walks, and treat any walk whose frame counter stalls as
+contaminated, not as a scene defect.
+
 Unlisted: a RowErg replay capture rendered a snow venue (white cone, dark
 ridge); if RowErg is supposed to show water, that is a separate defect.
 

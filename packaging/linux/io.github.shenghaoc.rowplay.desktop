@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+[Desktop Entry]
+Type=Application
+Name=rowplay
+Comment=Concept2 logbook analytics and workout replay (not affiliated with Concept2)
+Exec=rowplay-qt
+Icon=io.github.shenghaoc.rowplay
+Terminal=false
+Categories=Utility;Sports;
+Keywords=rowing;RowErg;SkiErg;BikeErg;Concept2;logbook;
+StartupWMClass=rowplay-qt

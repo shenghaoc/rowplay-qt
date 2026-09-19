@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<!-- AppStream metadata for the Linux packages. This one file is CC0-1.0, not
+     GPL-3.0-or-later: the AppStream specification only admits permissive
+     licences for metadata (metadata_license below), so that catalogues and
+     app stores can redistribute it freely. The application itself stays
+     GPL-3.0-or-later (project_license). tools/package/linux.sh substitutes
+     @VERSION@ and @DATE@. -->
+<component type="desktop-application">
+  <id>io.github.shenghaoc.rowplay</id>
+  <name>rowplay</name>
+  <summary>Concept2 logbook analytics and workout replay</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.shenghaoc">
+    <name>shenghaoc</name>
+  </developer>
+  <description>
+    <p>
+      rowplay reads a Concept2 Logbook and turns it into dashboards, personal
+      bests, stroke analysis and a real-time 3D replay of each workout on a
+      RowErg, SkiErg or BikeErg. It never connects to a PM5; it polls the
+      logbook after upload. A deterministic demo library makes every screen
+      explorable without an account.
+    </p>
+    <p>
+      Not affiliated with Concept2. Concept2, RowErg, SkiErg and BikeErg are
+      trademarks of Concept2.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.shenghaoc.rowplay.desktop</launchable>
+  <url type="homepage">https://github.com/shenghaoc/rowplay-qt</url>
+  <url type="bugtracker">https://github.com/shenghaoc/rowplay-qt/issues</url>
+  <url type="vcs-browser">https://github.com/shenghaoc/rowplay-qt</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="@VERSION@" date="@DATE@" />
+  </releases>
+</component>

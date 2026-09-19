@@ -77,6 +77,11 @@ forwarded: `QGuiApplication::new()` builds `argc`/`argv` from `std::env::args_os
 Suggestion: `organization_name`, `organization_domain`, `application_version`
 builder methods on `QApp`.
 
+Packaging consequence (Phase 9): the version reaches Info.plist, the Inno
+Setup script and the AppStream metadata from `cargo metadata`, but nothing
+inside the running app can read it (no About dialog until this lands or
+the version is threaded through a backend property).
+
 ## 6. Signal handler names default to `onFoo_bar`
 
 A `#[qsignal] fn frame_changed(&mut self)` is `onFrame_changed` in QML unless
@@ -129,6 +134,17 @@ Workaround used: run with `DYLD_FALLBACK_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 (CI sets it for the macOS test step). Suggestion: have the runtime build
 script emit `-Wl,-rpath,<qt_lib_dir>` (or `@loader_path`-relative rpaths)
 on Apple targets, as it effectively does on Linux.
+
+**Resolved on our side (Phase 9, 2026-09-19):** `crates/rowplay-app/build.rs`
+now emits `cargo::rustc-link-arg-bins` / `-tests` of
+`-Wl,-rpath,<QT_INSTALL_LIBS>` and `-Wl,-rpath,@executable_path/../Frameworks`
+on Apple targets (`emit_apple_rpaths`). Measured: `otool -l` shows both
+`LC_RPATH` entries, `cargo run` / `cargo test -p rowplay-app` work with no
+`DYLD_*` variable set, and `macdeployqt` drops the absolute entry from the
+bundled binary (only `@executable_path/../Frameworks` remains). The upstream
+suggestion stands: the runtime crate should emit this itself, since every
+qtbridge binary on macOS needs it. ci.yml's macOS test step runs without the
+fallback variable so the fix stays exercised.
 
 Same defect, second direction: `DYLD_FRAMEWORK_PATH=$QT_ROOT_DIR/lib`
 also launches the binary. Qt Creator / aqt-style env scripts often export
@@ -312,6 +328,13 @@ ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts cargo test -p rowplay-app
 own window shows the scene. If someone hits this on a different macOS
 host, log a comment here — the "one macOS/Metal host" scope stands
 until a second host reproduces.
+
+**Release impact: none (won't-do, Phase 9 distribution policy).** Linux
+AppImage is the only distributed artifact; macOS is built and
+launch-checked in CI to keep the port cross-platform but is not
+distributed, so this capture defect is no longer a release blocker and
+will not be chased. It stays recorded because it silently corrupted a QA
+baseline once and the failure mode is worth knowing on any macOS host.
 
 Phase 7's T8 baseline was captured on the RHEL machine and its twelve
 captures are valid — do not re-shoot it on account of this note. New
