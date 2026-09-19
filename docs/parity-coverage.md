@@ -638,7 +638,16 @@ running the guard at the normal `POSITION_TOL = 0.02` through the
 real second position discontinuity of the same wrap class. The reach
 ratio at 1377 is **0.264** (dist 0.2205 vs reach 0.8310 — the arm is
 deeply folded, nowhere near any reach boundary), which rules out any
-reach-clamp mechanism there too. Rig-pose mid-loop asserts
+reach-clamp mechanism there too. Note the budget-fitting signature,
+measured at both windows: each widened budget was sized to just clear
+the jump it concealed — position `0.15` vs measured `dh = 0.0961`
+(1.56×) at 529, orientation `1.45` vs measured `dq = 1.4482` (1.0012×)
+at 1377, and `0.15` vs `0.1102` (1.36×) for 1377's position budget. A
+carve-out whose clearance sits within a few percent of the exact jump
+it covers is a red flag to audit first wherever it appears; a budget
+chosen for a real reason quotes its legitimate peak with room (here
+`POSITION_TOL = 0.02` = 1.6× the press-ramp's 0.0126 m/step). Rig-pose
+mid-loop asserts
 after `else { panic!("sport mismatch") }` are structurally reached
 whenever the let-else does not fire (confirmed by the three green
 401-step sweeps; not double-counted in N).
