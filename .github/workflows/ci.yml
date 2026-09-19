@@ -164,8 +164,46 @@ jobs:
             artifacts/replay-bike.png
             artifacts/phase-*.png
           if-no-files-found: error
+
+  # Temporary: the viewmodel guard is expected red, so `app` (needs: core)
+  # never reaches the Xvfb smoke. This job does not wait on core.
+  step529-straddle:
+    name: Step-529 straddle captures
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Qt 6.11
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.*'
+          aqtversion: '==3.3.*'
+          modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
+          cache: true
+      - name: Linux GL and X11 runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
+            libdbus-1-dev pkg-config
+      - name: Build app
+        run: cargo build -p rowplay-app
+      - name: Headless smoke screenshot and runtime-error gate (Xvfb + Mesa)
+        env:
+          ROWPLAY_QT_SMOKE: '1'
+          ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts
+          ROWPLAY_SMOKE_SCREENSHOT_DIR: ${{ github.workspace }}/artifacts
+          ROWPLAY_PHASE_SHOTS: '1'
+          ROWPLAY_PHASE_CLOSEUPS: '1'
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          LANG: C.UTF-8
+        run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
       - name: Upload step-529 straddle captures
-        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: step529-straddle
