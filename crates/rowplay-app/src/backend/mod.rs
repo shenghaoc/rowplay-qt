@@ -37,8 +37,11 @@ static APP_STATE: OnceLock<AppState> = OnceLock::new();
 /// `ROWPLAY_SYNC_MOCK` and `ROWPLAY_GATE_MEMBER_CHECK` exist for automated
 /// runs; compiled out of release builds so a stray variable in a user's
 /// environment cannot make a shipped binary serve demo data while looking
-/// like a real sync. (`ROWPLAY_DATA_DIR` and `ROWPLAY_FORCE_COLOR_SCHEME`
-/// are deliberately *not* here: those are documented user-facing overrides.)
+/// like a real sync. (`ROWPLAY_DATA_DIR`, `ROWPLAY_FORCE_COLOR_SCHEME` and
+/// `ROWPLAY_EXIT_AFTER_FRAMES` are deliberately *not* here: those are
+/// documented user-facing overrides, and the last one is what the packaged
+/// release bundles are launched with to prove they start — see
+/// `tools/package/`.)
 #[cfg(debug_assertions)]
 pub fn test_env(name: &str) -> Option<String> {
     std::env::var(name).ok()

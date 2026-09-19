@@ -51,6 +51,11 @@ pub struct SettingsBackend {
     /// Close-up twins for the phase shots: a second, torso-and-hands
     /// framing per capture (the wrist/posture judgement shots, T8).
     phase_closeups: bool,
+    /// Quit after this many rendered frames of the shell (`0` = never).
+    /// Read in every build, unlike the gate hooks: a packaged binary has
+    /// no other way to prove it starts, and an early quit is the one
+    /// override that cannot alter or expose data.
+    exit_after_frames: i32,
 }
 
 impl Default for SettingsBackend {
@@ -91,6 +96,25 @@ impl Default for SettingsBackend {
             .and_then(|stored| timezone_values.iter().position(|zone| zone == stored))
             .map_or(0, |index| index as i32 + 1);
 
+        // Deliberately plain `env::var`, not `test_env`: the packaged
+        // launch check (tools/package/*) runs the *release* bundle and
+        // needs it to exit on its own. Documented in AGENTS.md next to
+        // ROWPLAY_DATA_DIR and ROWPLAY_FORCE_COLOR_SCHEME. Loud on
+        // purpose: the probe also engages in any *user* environment where
+        // the variable happens to be set (a leftover from packaging
+        // work), and a mysterious quit must explain itself on stderr.
+        let exit_after_frames = std::env::var("ROWPLAY_EXIT_AFTER_FRAMES")
+            .ok()
+            .and_then(|value| value.parse::<i32>().ok())
+            .filter(|frames| *frames > 0)
+            .unwrap_or(0);
+        if exit_after_frames > 0 {
+            eprintln!(
+                "rowplay-qt: ROWPLAY_EXIT_AFTER_FRAMES={exit_after_frames} is set; \
+                 the shell will quit after {exit_after_frames} rendered frames."
+            );
+        }
+
         SettingsBackend {
             has_token: state.has_token(),
             demo_mode_enabled: prefs.demo_mode_enabled,
@@ -128,6 +152,7 @@ impl Default for SettingsBackend {
             bench_mode: crate::backend::test_env("ROWPLAY_REPLAY_BENCH").is_some(),
             phase_shots: crate::backend::test_env("ROWPLAY_PHASE_SHOTS").is_some(),
             phase_closeups: crate::backend::test_env("ROWPLAY_PHASE_CLOSEUPS").is_some(),
+            exit_after_frames,
         }
     }
 }
@@ -222,6 +247,10 @@ impl SettingsBackend {
     // phase grab also saves a torso-and-hands framing (the wrist/posture
     // judgement captures; T8).
     qproperty!("phaseCloseups", Member = phase_closeups, Constant);
+    // Packaged-launch probe (ROWPLAY_EXIT_AFTER_FRAMES): Main.qml drives
+    // this many frames, then quits with status 0. Release-safe by design;
+    // see the field comment.
+    qproperty!("exitAfterFrames", Member = exit_after_frames, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
