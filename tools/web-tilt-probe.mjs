@@ -45,10 +45,20 @@ const REPLAY = join(REFERENCE, "src", "lib", "replay");
 
 const url = (name) => pathToFileURL(join(REPLAY, name)).href;
 
+// The probe characterises the pinned web; its numbers are recorded in the
+// wrap-window docs, so refuse to run against any other checkout (same guard
+// idiom as tools/gen-rig-phase-parity.mjs).
+const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
 const head = execFileSync("git", ["-C", REFERENCE, "rev-parse", "HEAD"], {
   encoding: "utf8",
 }).trim();
-console.error(`reference HEAD: ${head}`);
+if (head !== PINNED_COMMIT) {
+  console.error(
+    `reference/rowplay is at ${head}, expected the pinned ${PINNED_COMMIT}.\n` +
+      `Check out the pinned commit (docs/source-map.md) or update the pin in this script.`,
+  );
+  process.exit(1);
+}
 
 const { makeSkierAvatar } = await import(url("renderer3dSkiAvatar.ts"));
 const { handLongAxis, handPalmNormalOut } = await import(url("handGrip.ts"));
