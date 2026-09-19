@@ -416,6 +416,21 @@ Wayland (`cargo run -p rowplay-app`).
   Ultra bench — verified by the absence of venue reloads (an effective-tier
   change would re-walk and re-log the venue); the governor's threshold unit
   tests are unchanged and green.
+- **Re-measured post-Phase 7.5** (2026-09-20, this machine: Intel UHD 630,
+  Mesa 25.2.7, native Wayland / GNOME 49.4, 144 Hz, `QSG_NO_VSYNC=1`, ghost
+  present, debug binary at `origin/main` `05d6629`; two isolated 600-frame
+  runs, medians in ms): Low/Medium still match the 6b table (9.7–12.2).
+  **High/Ultra medians now run ~3–5 ms above the table**: row-high
+  14.7/16.5, row-ultra 15.1/18.7, ski-high 15.2/16.4, ski-ultra 14.4/16.3,
+  bike-high 14.9/16.6, bike-ultra 15.3/16.8 (table: 11.4–12.2). Both runs
+  agree in direction and the between-run spread (~2–4 ms) is smaller than
+  the gap; cause not diagnosed — the plausible candidate is the Phase 7/7.5
+  rig work (dual rigs, hand layer, ski plant anchor), which landed without
+  a re-bench (inferred). p95 stays unresolvable at 600 frames (row-ultra
+  24.9/40.1 across the two runs); wall stalls 48–55 per 720, unchanged
+  band. The 6b table above stands as the historical record for its build;
+  current-main High/Ultra medians are ~15–17 ms, still under the 22 ms
+  budget on medians, with p95 straddling it as recorded.
 
 ### Phase 7 — Motion
 
@@ -664,3 +679,57 @@ rendering-verified and not signed/notarised.
   (bridge note #17). Still open: Flatpak (deferred, ADR 0012), pruning the
   215 MB macOS bundle's `QtQuick` QML tree, and macOS x86_64 / Linux aarch64
   (qtbridge's support statement, note #8).
+
+## UI follow-ups
+
+Recorded 2026-09-20 from the author's first packaged-artifact inspection and
+the review's keyboard walk; the author has said the UI work comes later. **No
+code changes here — these are banked so they are not rediscovered.**
+
+1. A workout with no per-stroke data loses its entire detail pane — no title,
+   no date, no summary tiles, no charts — even though total time, distance and
+   pace are workout-level facts that do not depend on strokes. The empty state
+   should replace only the stroke-dependent charts.
+2. The empty state's subtext, "No per-stroke sample at this time", suggests
+   the condition is a current *time index* rather than the workout lacking
+   data. Checked in source (ten-minute check): the state is gated on
+   `!Detail.hasStrokes` (`qml/RowPlay/StrokeAnalysisPanel.qml`), a
+   workout-level fact — the "at this time" wording is the web locale string's
+   phrasing (`inspector.noStrokeData`), not a time-index mechanism. It is
+   nonetheless the first thing seen on first launch, because nothing is
+   selected yet and an empty `Detail` has no strokes.
+3. Replay disables itself silently when a workout has no stroke data
+   (`enabled: Detail.hasStrokeData && !Sync.isRunning`,
+   `qml/RowPlay/DetailScreen.qml`): it greys out, drops out of tab order, and
+   explains nothing. Same fact from the keyboard-walk side: no reachable
+   Replay, no reason given.
+
+Recorded same day from the author's inspection of the packaged AppImage
+(all three sports' replays opened, his report): not everything is ported
+(he did not note what was missing at the time); loading feels slow; the
+animation feels jerky at times. The jerkiness is not filed as polish —
+two candidate causes, separated by a render-cadence measurement
+(60 fps, 41 spm, rendered hand position, all three sports, 2026-09-20):
+
+- **The #34 wrap discontinuities are user-visible on SkiErg.** Isolated
+  frame-to-frame hand snaps of 0.19 m (cyc ≈ 0.26, the tilt wrap) and
+  0.13 m (cyc ≈ 0.70, the spin wrap), bracketed by 0.03–0.05 m/frame
+  neighbours — exactly the windows #34 carves out. The rower and bike
+  show nothing there (0.033/0.020 and 0.0001 m/frame). #34 carries the
+  user-visible severity note.
+- **Large per-frame motion also exists legitimately**, and is bigger
+  than the snaps: the SkiErg press ramp peaks at 0.23 m/frame at 60 fps
+  (sustained over ~8 frames — fast, not snapped), and the rower drive
+  reaches 0.11 m/frame. Bike hands are static (0.0001 m/frame), so any
+  bike jerkiness can only be frame pacing or camera.
+- **Frame pacing remains a co-cause for every sport**: the re-measured
+  High/Ultra medians (15.1/18.7 ms) sit below 60 Hz, so frames drop and
+  double the apparent per-frame motion. The measurement cannot attribute
+  the author's perception between the snaps (SkiErg-only) and pacing
+  (all sports); both are real.
+
+Open question, connection not chased: the review's AT-SPI drive saw the
+app **re-create its X window** on the Replay press and paint only after
+a long delay, and the author reports slow loading — possibly one
+phenomenon (the 3D scene rebuilt from scratch on entry). Worth one
+look when the UI work starts.
