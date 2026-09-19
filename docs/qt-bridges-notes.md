@@ -329,6 +329,13 @@ own window shows the scene. If someone hits this on a different macOS
 host, log a comment here — the "one macOS/Metal host" scope stands
 until a second host reproduces.
 
+**Release impact: none (won't-do, Phase 9 distribution policy).** Linux
+AppImage is the only distributed artifact; macOS is built and
+launch-checked in CI to keep the port cross-platform but is not
+distributed, so this capture defect is no longer a release blocker and
+will not be chased. It stays recorded because it silently corrupted a QA
+baseline once and the failure mode is worth knowing on any macOS host.
+
 Phase 7's T8 baseline was captured on the RHEL machine and its twelve
 captures are valid — do not re-shoot it on account of this note. New
 visual work can be done on the Linux CI leg, on the RHEL box, or on
