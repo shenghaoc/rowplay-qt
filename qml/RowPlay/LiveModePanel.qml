@@ -42,12 +42,10 @@ ColumnLayout {
         visible: Live.enabled
 
         Button {
-            // No dedicated refresh key in the web catalogue; `liveMode.view`
-            // is the nearest existing liveMode.* id for a manual action.
-            text: Tr.t("liveMode.view")
+            text: Tr.t("liveMode.refresh")
             enabled: Live.enabled && !Live.polling
             onClicked: Live.refresh()
-            Accessible.name: Tr.t("liveMode.view")
+            Accessible.name: Tr.t("liveMode.refresh")
         }
 
         BusyIndicator {
@@ -70,7 +68,10 @@ ColumnLayout {
     Label {
         Layout.fillWidth: true
         visible: Live.enabled && !Live.polling
-        text: Tr.t("liveMode.lastPollLabel") + " " + Live.lastPollText
+        text: Tr.t("liveMode.lastPollLabel") + " "
+              + (Live.lastPollText.length > 0
+                 ? Live.lastPollText
+                 : Tr.t("liveMode.neverUpdated"))
         font: Theme.metricLabel
         color: Theme.textSecondary
         Accessible.name: text
@@ -78,8 +79,14 @@ ColumnLayout {
 
     Label {
         Layout.fillWidth: true
-        visible: Live.enabled && Live.statusId.length > 0 && !Live.polling
-        text: Live.statusId.length > 0 ? Tr.t(Live.statusId) : ""
+        // Keep visible after 401/403 signed-out (enabled becomes false).
+        visible: Live.statusId.length > 0 && !Live.polling
+        text: {
+            if (Live.statusId === "liveMode.rateLimitRetry")
+                return Tr.t("liveMode.rateLimitRetry",
+                            { seconds: Live.statusRetrySecs })
+            return Live.statusId.length > 0 ? Tr.t(Live.statusId) : ""
+        }
         font: Theme.metricLabel
         color: Theme.alertRed
         wrapMode: Text.WordWrap

@@ -34,7 +34,7 @@ pub struct LivePollResult {
 /// Typed live-poll failures the UI can branch on (auth, rate limit, other).
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum LivePollError {
-    /// Token rejected (401) — live mode must stop and surface signed-out.
+    /// Token rejected (401/403) — live mode must stop and surface signed-out.
     #[error("Concept2 rejected the token")]
     Unauthorized,
     /// Rate limited (429).
@@ -43,6 +43,9 @@ pub enum LivePollError {
         /// Seconds from `Retry-After`, when present.
         retry_after_secs: Option<u64>,
     },
+    /// Demo / stub path has no mock workout generator yet.
+    #[error("live poll not implemented")]
+    NotImplemented,
     /// Cache I/O failure.
     #[error("live poll cache failed: {0}")]
     Cache(String),
@@ -156,7 +159,7 @@ fn map_client_error(
     let message = redact(&error.to_string());
     log.warn("live poll client error", &[&message]);
     match error {
-        Concept2Error::Unauthorized => LivePollError::Unauthorized,
+        Concept2Error::Unauthorized | Concept2Error::Forbidden => LivePollError::Unauthorized,
         Concept2Error::RateLimited { retry_after_secs } => {
             LivePollError::RateLimited { retry_after_secs }
         }
@@ -320,11 +323,28 @@ mod tests {
             vec![Ok(page(vec![a.workout.clone(), b.workout.clone()]))],
             vec![a, b],
         );
+        let before = cache.is_fully_synced().unwrap();
+        let before_ids: BTreeSet<i64> = cache
+            .list_workouts()
+            .unwrap()
+            .into_iter()
+            .map(|w| w.id)
+            .collect();
         let result = poll_recent(&client, &cache, &BTreeSet::new()).unwrap();
         assert_eq!(result.saved_count, 0);
         assert_eq!(result.skipped_count, 2);
         assert!(result.new_ids.is_empty());
-        assert!(cache.is_fully_synced().unwrap());
+        assert_eq!(cache.is_fully_synced().unwrap(), before);
+        let after_ids: BTreeSet<i64> = cache
+            .list_workouts()
+            .unwrap()
+            .into_iter()
+            .map(|w| w.id)
+            .collect();
+        assert_eq!(
+            after_ids, before_ids,
+            "200 with no new ids must add nothing"
+        );
         // No detail fetches when everything is known.
         assert_eq!(client.calls(), vec!["list:1:25"]);
     }
@@ -337,8 +357,11 @@ mod tests {
 
         let fresh = detail(99, "2026-09-18 18:00:00");
         let client = ScriptedClient::new(
-            vec![Ok(page(vec![fresh.workout.clone(), old.workout.clone()]))],
-            vec![fresh, old],
+            vec![
+                Ok(page(vec![fresh.workout.clone(), old.workout.clone()])),
+                Ok(page(vec![fresh.workout.clone(), old.workout.clone()])),
+            ],
+            vec![fresh.clone(), old.clone()],
         );
         let result = poll_recent(&client, &cache, &BTreeSet::new()).unwrap();
         assert_eq!(result.new_ids, vec![99]);
@@ -352,6 +375,14 @@ mod tests {
             .collect();
         assert!(ids.contains(&99));
         assert!(ids.contains(&1));
+
+        // Second identical poll adds nothing.
+        let known = BTreeSet::from([99, 1]);
+        let again = poll_recent(&client, &cache, &known).unwrap();
+        assert!(again.new_ids.is_empty());
+        assert_eq!(again.saved_count, 0);
+        assert_eq!(again.skipped_count, 2);
+        assert_eq!(cache.list_workouts().unwrap().len(), 2);
     }
 
     #[test]
@@ -373,7 +404,9 @@ mod tests {
         let result = poll_recent(&client, &cache, &known).unwrap();
         assert!(result.new_ids.is_empty());
         assert_eq!(result.skipped_count, 1);
+        assert_eq!(result.saved_count, 0);
         assert_eq!(client.calls(), vec!["list:1:25"]);
+        assert_eq!(cache.list_workouts().unwrap().len(), 1);
     }
 
     #[test]
@@ -385,6 +418,14 @@ mod tests {
         let err = poll_recent(&client, &cache, &BTreeSet::new()).unwrap_err();
         assert_eq!(err, LivePollError::Unauthorized);
         assert_eq!(cache.is_fully_synced().unwrap(), before);
+    }
+
+    #[test]
+    fn forbidden_maps_to_unauthorized() {
+        let cache = InMemoryWorkoutCache::default();
+        let client = ScriptedClient::new(vec![Err(Concept2Error::Forbidden)], vec![]);
+        let err = poll_recent(&client, &cache, &BTreeSet::new()).unwrap_err();
+        assert_eq!(err, LivePollError::Unauthorized);
     }
 
     #[test]
@@ -426,5 +467,97 @@ mod tests {
         let client = ScriptedClient::new(vec![Ok(page(vec![]))], vec![]);
         poll_recent(&client, &cache, &BTreeSet::new()).unwrap();
         assert_eq!(client.calls(), vec!["list:1:25"]);
+    }
+
+    /// Prove each Task-4 poll assertion bites when the covered behaviour is broken.
+    #[test]
+    fn task4_poll_assertions_bite_when_broken() {
+        // 200 no-new: fully_synced must stay put.
+        let caught = std::panic::catch_unwind(|| {
+            assert!(
+                checkpoint_untouched(true, false),
+                "checkpoint must not flip"
+            );
+        });
+        assert!(caught.is_err(), "flipped fully_synced must fail");
+
+        // 200 one-new: second poll must not re-import.
+        let cache = InMemoryWorkoutCache::default();
+        let old = detail(1, "2026-01-01 10:00:00");
+        cache.save_details(std::slice::from_ref(&old)).unwrap();
+        let fresh = detail(99, "2026-09-18 18:00:00");
+        let client = ScriptedClient::new(
+            vec![
+                Ok(page(vec![fresh.workout.clone(), old.workout.clone()])),
+                Ok(page(vec![fresh.workout.clone(), old.workout.clone()])),
+            ],
+            vec![fresh, old],
+        );
+        let _ = poll_recent(&client, &cache, &BTreeSet::new()).unwrap();
+        let known = BTreeSet::from([99, 1]);
+        let again = poll_recent(&client, &cache, &known).unwrap();
+        let caught = std::panic::catch_unwind(|| {
+            assert!(!again.new_ids.is_empty()); // deliberately wrong
+        });
+        assert!(caught.is_err(), "second identical poll must add nothing");
+
+        // Corrected older id must not double-import.
+        let caught = std::panic::catch_unwind(|| {
+            let cache = InMemoryWorkoutCache::default();
+            cache
+                .save_details(&[detail(7, "2026-01-01 10:00:00")])
+                .unwrap();
+            let mut corrected = detail(7, "2026-01-01 10:00:00");
+            corrected.workout.distance = 2500.0;
+            let client = ScriptedClient::new(
+                vec![Ok(page(vec![corrected.workout.clone()]))],
+                vec![corrected],
+            );
+            let result = poll_recent(&client, &cache, &BTreeSet::from([7])).unwrap();
+            assert_eq!(result.saved_count, 1); // deliberately wrong
+        });
+        assert!(caught.is_err(), "corrected same id must not re-import");
+
+        // 401 maps to Unauthorized.
+        let caught = std::panic::catch_unwind(|| {
+            let cache = InMemoryWorkoutCache::default();
+            let client = ScriptedClient::new(vec![Err(Concept2Error::Unauthorized)], vec![]);
+            let err = poll_recent(&client, &cache, &BTreeSet::new()).unwrap_err();
+            assert_eq!(
+                err,
+                LivePollError::RateLimited {
+                    retry_after_secs: None
+                }
+            );
+        });
+        assert!(caught.is_err(), "401 must be Unauthorized not RateLimited");
+
+        // 403 maps to Unauthorized.
+        let caught = std::panic::catch_unwind(|| {
+            let cache = InMemoryWorkoutCache::default();
+            let client = ScriptedClient::new(vec![Err(Concept2Error::Forbidden)], vec![]);
+            let err = poll_recent(&client, &cache, &BTreeSet::new()).unwrap_err();
+            assert_eq!(err, LivePollError::Client("x".into()));
+        });
+        assert!(caught.is_err(), "403 must map to Unauthorized");
+
+        // 429 Retry-After value.
+        let caught = std::panic::catch_unwind(|| {
+            let cache = InMemoryWorkoutCache::default();
+            let client = ScriptedClient::new(
+                vec![Err(Concept2Error::RateLimited {
+                    retry_after_secs: Some(42),
+                })],
+                vec![],
+            );
+            let err = poll_recent(&client, &cache, &BTreeSet::new()).unwrap_err();
+            assert_eq!(
+                err,
+                LivePollError::RateLimited {
+                    retry_after_secs: Some(1)
+                }
+            );
+        });
+        assert!(caught.is_err(), "wrong Retry-After must fail");
     }
 }

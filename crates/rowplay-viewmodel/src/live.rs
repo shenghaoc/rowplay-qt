@@ -33,6 +33,8 @@ pub enum LiveModeStatus {
     Polling,
     /// The last poll failed; backoff is active.
     Error,
+    /// Token rejected (401/403): timer stopped, no backoff.
+    SignedOut,
     /// Disabled.
     #[default]
     Stopped,
@@ -129,9 +131,11 @@ impl LiveModeState {
         }
     }
 
-    /// Auth expiry (401): disable live mode and surface a signed-out state.
+    /// Auth expiry (401/403): disable live mode, stop the timer, no backoff.
     pub fn signed_out(&mut self) {
-        self.stop();
+        self.enabled = false;
+        self.status = LiveModeStatus::SignedOut;
+        self.next_poll_at_ms = None;
     }
 }
 
@@ -257,7 +261,7 @@ pub enum LiveAction {
 /// Failure class the session understands (maps from platform `LivePollError`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LiveFailureKind {
-    /// 401 — stop and surface signed-out.
+    /// 401 / 403 — stop and surface signed-out (no backoff, no refresh).
     Unauthorized,
     /// 429 — backoff, optionally honouring `Retry-After`.
     RateLimited {
@@ -436,7 +440,7 @@ mod tests {
         state.tick_scheduled(5_000);
         state.signed_out();
         assert!(!state.enabled);
-        assert_eq!(state.status, LiveModeStatus::Stopped);
+        assert_eq!(state.status, LiveModeStatus::SignedOut);
         assert!(state.next_poll_at_ms.is_none());
     }
 
@@ -518,6 +522,12 @@ mod tests {
         let action = session.on_poll_err(0, LiveFailureKind::Unauthorized);
         assert_eq!(action, LiveAction::SignedOut);
         assert!(!session.state.enabled);
+        assert_eq!(session.state.status, LiveModeStatus::SignedOut);
+        assert!(
+            session.state.next_poll_at_ms.is_none(),
+            "401 must stop the timer, not schedule backoff"
+        );
+        assert_eq!(session.state.consecutive_failures, 0);
     }
 
     #[test]
@@ -533,5 +543,90 @@ mod tests {
         );
         // interval 60s + max(90s Retry-After, 30s backoff) = 150s
         assert_eq!(session.state.next_poll_at_ms, Some(150_000));
+    }
+
+    #[test]
+    fn connection_error_backoff_ladder_caps_at_300s() {
+        let clock = FakeClock::new(0);
+        let mut session = LiveSession::default();
+        session.enable(clock.now_ms());
+        // Consume enable poll, then fail four times.
+        assert_eq!(session.on_tick(clock.now_ms()), LiveAction::StartPoll);
+        session.on_poll_err(clock.now_ms(), LiveFailureKind::Transient);
+        // interval 60s + 30s backoff
+        assert_eq!(session.state.next_poll_at_ms, Some(90_000));
+        assert_eq!(session.state.consecutive_failures, 1);
+
+        clock.set(90_000);
+        assert_eq!(session.on_tick(clock.now_ms()), LiveAction::StartPoll);
+        session.on_poll_err(clock.now_ms(), LiveFailureKind::Transient);
+        // interval 60s + 60s backoff
+        assert_eq!(session.state.next_poll_at_ms, Some(90_000 + 120_000));
+        assert_eq!(session.state.consecutive_failures, 2);
+
+        clock.set(210_000);
+        assert_eq!(session.on_tick(clock.now_ms()), LiveAction::StartPoll);
+        session.on_poll_err(clock.now_ms(), LiveFailureKind::Transient);
+        // interval 60s + 120s backoff
+        assert_eq!(session.state.next_poll_at_ms, Some(210_000 + 180_000));
+        assert_eq!(session.state.consecutive_failures, 3);
+
+        clock.set(390_000);
+        assert_eq!(session.on_tick(clock.now_ms()), LiveAction::StartPoll);
+        session.on_poll_err(clock.now_ms(), LiveFailureKind::Transient);
+        // interval 60s + 300s cap
+        assert_eq!(session.state.next_poll_at_ms, Some(390_000 + 360_000));
+        assert_eq!(session.state.consecutive_failures, 4);
+
+        clock.set(750_000);
+        assert_eq!(session.on_tick(clock.now_ms()), LiveAction::StartPoll);
+        session.on_poll_err(clock.now_ms(), LiveFailureKind::Transient);
+        // still capped at 300s backoff
+        assert_eq!(session.state.next_poll_at_ms, Some(750_000 + 360_000));
+        assert_eq!(next_backoff_ms(5), 300_000);
+    }
+
+    /// Prove each Task-4 assertion bites when the covered behaviour is broken.
+    #[test]
+    fn task4_assertions_bite_when_broken() {
+        // 401: SignedOut + no backoff schedule.
+        let caught = std::panic::catch_unwind(|| {
+            let mut session = LiveSession::default();
+            session.enable(0);
+            session.on_tick(0);
+            let _ = session.on_poll_err(0, LiveFailureKind::Unauthorized);
+            assert_eq!(session.state.status, LiveModeStatus::Idle); // deliberately wrong
+        });
+        assert!(caught.is_err(), "wrong 401 status must fail");
+
+        let caught = std::panic::catch_unwind(|| {
+            let mut session = LiveSession::default();
+            session.enable(0);
+            session.on_tick(0);
+            let _ = session.on_poll_err(0, LiveFailureKind::Unauthorized);
+            assert!(session.state.next_poll_at_ms.is_some()); // deliberately wrong
+        });
+        assert!(caught.is_err(), "401 must not schedule backoff");
+
+        // 429 Retry-After.
+        let caught = std::panic::catch_unwind(|| {
+            let mut session = LiveSession::default();
+            session.enable(0);
+            session.on_tick(0);
+            session.on_poll_err(
+                0,
+                LiveFailureKind::RateLimited {
+                    retry_after_secs: Some(90),
+                },
+            );
+            assert_eq!(session.state.next_poll_at_ms, Some(1)); // deliberately wrong
+        });
+        assert!(caught.is_err(), "wrong Retry-After schedule must fail");
+
+        // Connection backoff first step.
+        let caught = std::panic::catch_unwind(|| {
+            assert_eq!(next_backoff_ms(1), 1); // deliberately wrong
+        });
+        assert!(caught.is_err(), "wrong first backoff step must fail");
     }
 }
