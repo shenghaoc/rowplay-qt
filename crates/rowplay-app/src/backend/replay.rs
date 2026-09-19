@@ -367,31 +367,64 @@ fn sport_name(sport: Sport) -> &'static str {
 /// layback stay inside the frustum at both stroke extremes, close enough to
 /// read the wrist and the draw onset.
 const CLOSEUP_DISTANCE: f64 = 2.4;
+/// Chest lift above the SkiErg pelvis so the close-up frames torso and arms
+/// rather than the hips.
+const SKI_CLOSEUP_CHEST: f64 = 0.45;
+
+fn yaw_to_world(yaw: f64, x: f64, y: f64, z: f64) -> [f64; 3] {
+    let (sin, cos) = yaw.sin_cos();
+    [x * cos + z * sin, y, -x * sin + z * cos]
+}
+
+fn closeup_offset(placement: &Placement, distance: f64) -> [f64; 3] {
+    // Front three-quarter: inboard of the athlete and above, ahead of the aim
+    // along rig +z (the direction the athlete faces).
+    yaw_to_world(
+        placement.yaw,
+        0.62 * distance,
+        0.20 * distance,
+        0.55 * distance,
+    )
+}
+
+fn closeup_aim_world(placement: &Placement, aim_local: [f64; 3]) -> [f64; 3] {
+    let aim = yaw_to_world(placement.yaw, aim_local[0], aim_local[1], aim_local[2]);
+    [placement.x + aim[0], aim_local[1], placement.z + aim[2]]
+}
 
 fn closeup_camera_view(
     placement: &Placement,
     aim_local: [f64; 3],
     distance: f64,
 ) -> ([f64; 3], [f64; 3], f64) {
-    let (sin, cos) = placement.yaw.sin_cos();
-    let to_world = |x: f64, y: f64, z: f64| [x * cos + z * sin, y, -x * sin + z * cos];
-    // Front three-quarter: inboard of the athlete and above, ahead of the aim
-    // along rig +z (the direction the athlete faces).
-    let back = 0.55 * distance;
-    let lateral = 0.62 * distance;
-    let height = 0.20 * distance;
-    let offset = to_world(lateral, height, back);
-    let aim = to_world(aim_local[0], aim_local[1], aim_local[2]);
+    let offset = closeup_offset(placement, distance);
+    let aim_world = closeup_aim_world(placement, aim_local);
+    // Placement-relative stand-off: the whole RowErg draw path stays in the
+    // frustum at the catch and the finish.
     let position = [
         placement.x + offset[0],
         aim_local[1] + offset[1],
         placement.z + offset[2],
     ];
-    (
-        position,
-        [placement.x + aim[0], aim_local[1], placement.z + aim[2]],
-        45.0,
-    )
+    (position, aim_world, 45.0)
+}
+
+/// SkiErg close-up: stand off the surged torso. The 1.45 m surge lives on
+/// the rig group, not in the contact targets, and a placement-relative lens
+/// of 1.32 m sits *inside* the figure.
+fn closeup_camera_view_from_aim(
+    placement: &Placement,
+    aim_local: [f64; 3],
+    distance: f64,
+) -> ([f64; 3], [f64; 3], f64) {
+    let offset = closeup_offset(placement, distance);
+    let aim_world = closeup_aim_world(placement, aim_local);
+    let position = [
+        aim_world[0] + offset[0],
+        aim_world[1] + offset[1],
+        aim_world[2] + offset[2],
+    ];
+    (position, aim_world, 45.0)
 }
 
 #[qobject(NoQmlElement, ConvertToCamelCase)]
@@ -1146,14 +1179,30 @@ impl ReplayBackend {
         // follow the seat slide and the torso layback, so the athlete stays in
         // frame at the catch and the finish where a fixed rig offset cropped
         // the near body. Rig-local, matching `contacts`.
+        // SkiErg: the 1.45 m surge lives on the rig group, not in the contact
+        // targets. Aim at the surged chest and stand off from that point or
+        // the figure sits inside the lens (a flesh sliver on the viewport
+        // edge — the 2026-09 step-529 recapture).
         let contacts = targets.contacts;
-        let closeup_aim = [
-            (contacts.pelvis[0] + contacts.left_hand[0] + contacts.right_hand[0]) / 3.0,
-            (contacts.pelvis[1] + contacts.left_hand[1] + contacts.right_hand[1]) / 3.0,
-            (contacts.pelvis[2] + contacts.left_hand[2] + contacts.right_hand[2]) / 3.0,
-        ];
+        let closeup_aim = if sport == Sport::Skierg {
+            [
+                contacts.pelvis[0],
+                contacts.pelvis[1] + accent.bob + SKI_CLOSEUP_CHEST,
+                contacts.pelvis[2] + accent.surge,
+            ]
+        } else {
+            [
+                (contacts.pelvis[0] + contacts.left_hand[0] + contacts.right_hand[0]) / 3.0,
+                (contacts.pelvis[1] + contacts.left_hand[1] + contacts.right_hand[1]) / 3.0,
+                (contacts.pelvis[2] + contacts.left_hand[2] + contacts.right_hand[2]) / 3.0,
+            ]
+        };
         let (camera_position, camera_aim, camera_fov) = if self.closeup_camera {
-            closeup_camera_view(&placement, closeup_aim, CLOSEUP_DISTANCE)
+            if sport == Sport::Skierg {
+                closeup_camera_view_from_aim(&placement, closeup_aim, CLOSEUP_DISTANCE)
+            } else {
+                closeup_camera_view(&placement, closeup_aim, CLOSEUP_DISTANCE)
+            }
         } else {
             (self.camera.position, self.camera.aim, self.camera.fov)
         };
@@ -1621,9 +1670,21 @@ mod tests {
             );
             let aim_distance =
                 ((aim[0] - athlete[0]).powi(2) + (aim[2] - athlete[2]).powi(2)).sqrt();
+            // SkiErg aim includes the 1.45 m surge, so it sits farther from
+            // the unsurged course root than the row/bike midpoint.
+            let aim_budget = if id == 1003 { 2.5 } else { 1.2 };
             assert!(
-                aim_distance < 1.2,
+                aim_distance < aim_budget,
                 "workout {id}: close-up aim is {aim_distance:.2} m off the athlete"
+            );
+            let cam_to_aim = ((camera[0] - aim[0]).powi(2)
+                + (camera[1] - aim[1]).powi(2)
+                + (camera[2] - aim[2]).powi(2))
+            .sqrt();
+            assert!(
+                cam_to_aim > 1.5,
+                "workout {id}: close-up stand-off is {cam_to_aim:.2} m — the lens is \
+                 inside the figure"
             );
             replay.set_closeup_camera(false);
         }
