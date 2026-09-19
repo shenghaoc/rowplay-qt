@@ -272,6 +272,12 @@ ApplicationWindow {
             Library.reload()
         }
     }
+    Connections {
+        target: Live
+        function onLibraryRefreshRequested() {
+            Library.reload()
+        }
+    }
 
     // Safety-net poll for the worker thread's cross-thread pokes: while a
     // sync runs, drain the event pump from a timer too (qt-bridges-notes).
@@ -280,6 +286,22 @@ ApplicationWindow {
         repeat: true
         running: Sync.isRunning
         onTriggered: Sync.pumpEvents()
+    }
+    // Same pattern for live-mode polls.
+    Timer {
+        interval: 50
+        repeat: true
+        running: Live.polling
+        onTriggered: Live.pumpEvents()
+    }
+    // Live cadence: the view-model decides when a poll is due; this timer
+    // only asks. Runs while enabled so polls continue with Settings closed.
+    Timer {
+        interval: 1000
+        repeat: true
+        running: Live.enabled
+        triggeredOnStart: true
+        onTriggered: Live.tick()
     }
 
     // Keyboard navigation (Studio: Cmd+1 dashboard, Escape clears selection).
@@ -310,7 +332,8 @@ ApplicationWindow {
         }
         var objects = {
             "Library": Library, "Detail": Detail,
-            "Settings": Settings, "Sync": Sync, "Replay": Replay
+            "Settings": Settings, "Sync": Sync, "Live": Live,
+            "Replay": Replay
         }
         var pairs = Settings.gateMemberCheck.split(",")
         var missing = []
