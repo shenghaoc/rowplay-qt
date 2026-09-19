@@ -416,6 +416,21 @@ Wayland (`cargo run -p rowplay-app`).
   Ultra bench — verified by the absence of venue reloads (an effective-tier
   change would re-walk and re-log the venue); the governor's threshold unit
   tests are unchanged and green.
+- **Re-measured post-Phase 7.5** (2026-09-20, this machine: Intel UHD 630,
+  Mesa 25.2.7, native Wayland / GNOME 49.4, 144 Hz, `QSG_NO_VSYNC=1`, ghost
+  present, debug binary at `origin/main` `05d6629`; two isolated 600-frame
+  runs, medians in ms): Low/Medium still match the 6b table (9.7–12.2).
+  **High/Ultra medians now run ~3–5 ms above the table**: row-high
+  14.7/16.5, row-ultra 15.1/18.7, ski-high 15.2/16.4, ski-ultra 14.4/16.3,
+  bike-high 14.9/16.6, bike-ultra 15.3/16.8 (table: 11.4–12.2). Both runs
+  agree in direction and the between-run spread (~2–4 ms) is smaller than
+  the gap; cause not diagnosed — the plausible candidate is the Phase 7/7.5
+  rig work (dual rigs, hand layer, ski plant anchor), which landed without
+  a re-bench (inferred). p95 stays unresolvable at 600 frames (row-ultra
+  24.9/40.1 across the two runs); wall stalls 48–55 per 720, unchanged
+  band. The 6b table above stands as the historical record for its build;
+  current-main High/Ultra medians are ~15–17 ms, still under the 22 ms
+  budget on medians, with p95 straddling it as recorded.
 
 ### Phase 7 — Motion
 
