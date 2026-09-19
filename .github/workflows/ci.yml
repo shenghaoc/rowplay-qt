@@ -203,11 +203,14 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
           LANG: C.UTF-8
         run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
+      - name: Expect 21 step-529 frames
+        run: test "$(ls -1 artifacts/step5{20..40}.png | wc -l)" -eq 21
       - name: Upload step-529 straddle captures
         uses: actions/upload-artifact@v7
         with:
           name: step529-straddle
           path: |
-            artifacts/step529-cyc-0262.png
-            artifacts/step529-cyc-0266.png
+            artifacts/step52*.png
+            artifacts/step53*.png
+            artifacts/step540.png
           if-no-files-found: error

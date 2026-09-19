@@ -27,6 +27,8 @@ ApplicationWindow {
     // switch (driven from Rust by ROWPLAY_SMOKE_GATE=1).
     readonly property bool gateMode: Settings.gateMode
     property int gateStep: 0
+    // Temporary step-529 strip (demo 1003, close-up camera, steps 520–540).
+    property int step529Cursor: 520
 
     // Live retranslation: QQmlApplicationEngine reloads
     // :/qt/qml/RowPlay/i18n/qml_<lang>.qm whenever Qt.uiLanguage changes.
@@ -666,13 +668,28 @@ ApplicationWindow {
             case 74: Replay.seek(0.50201); root.grabSettledScene("phase-ski-middrive"); break
             case 75: Replay.seek(0.49710); root.grabSettledScene("phase-ski-finish"); break
             case 76: Replay.seek(0.50500); root.grabSettledScene("phase-ski-midrecovery"); break
-            // Temporary step-529 straddle (same Medium quality + chase camera
-            // as the ski phase shots, still on demo 1003). Seeks are
-            // workout-duration fractions that land stroke cyc 0.262 / 0.266
-            // on the mid-workout SkiErg stroke (entry 81 of demo 1003:
-            // start_t=115.7, end_t=117.2, duration=234.1).
-            case 77: Replay.seek(0.495912); root.grabSettledScene("step529-cyc-0262"); break
-            case 78: Replay.seek(0.495938); root.grabSettledScene("step529-cyc-0266"); break
+            // Temporary step-529 strip: demo 1003 "1000m SkiErg"
+            // 2026-05-21 (not the rower ghost 1005). Close-up camera
+            // (torso and hands; CLOSEUP_DISTANCE 2.4 m). Seeks map
+            // stroke cyc = step/2000 onto entry 81 of 1003
+            // (start_t=115.7, end_t=117.2, duration=234.1).
+            case 77:
+                Library.selectWorkout(1003)
+                Replay.loadGhost(-1)
+                Replay.loadWorkout(1003)
+                Replay.setCloseupCamera(true)
+                root.step529Cursor = 520
+                break
+            case 78:
+                if (root.step529Cursor > 540) {
+                    Replay.setCloseupCamera(false)
+                    break
+                }
+                Replay.seek((115.7 + (root.step529Cursor / 2000.0) * 1.5) / 234.1)
+                root.grabSettledScene("step" + root.step529Cursor)
+                root.step529Cursor += 1
+                root.gateStep = 77
+                break
             case 79: Replay.loadWorkout(1004); Replay.loadGhost(1006); break
             case 80: Replay.seek(0.49937); root.grabSettledScene("phase-bike-catch"); break
             case 81: Replay.seek(0.50001); root.grabSettledScene("phase-bike-middrive"); break
