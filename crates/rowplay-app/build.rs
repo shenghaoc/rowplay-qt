@@ -480,6 +480,7 @@ fn main() {
     }
 
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
+    emit_apple_rpaths();
     rcc_binary(&rcc, &qrc, &out_dir.join("rowplay.rcc"));
     build_i18n_resources(&rcc, &out_dir);
     build_replay_balsam(&manifest_dir, &out_dir, &rcc);
@@ -552,4 +553,31 @@ fn build_environments_resource(manifest_dir: &Path, rcc: &Path, out_dir: &Path) 
     )
     .expect("write rowplay_environments.qrc");
     rcc_binary(rcc, &qrc, &out_dir.join("rowplay_environments.rcc"));
+}
+
+/// Apple targets: link the Qt frameworks with run-path search entries.
+///
+/// `qtbridge-runtime` links the frameworks by `@rpath` but emits no
+/// `LC_RPATH` (docs/qt-bridges-notes.md #10), so every binary aborted before
+/// `main` unless `DYLD_FALLBACK_FRAMEWORK_PATH` pointed at the Qt install.
+/// Two entries cover both lives of the binary: the Qt install's `lib/` for
+/// `cargo run` / `cargo test` from the tree, and `@executable_path/../
+/// Frameworks` for the `.app` bundle, where `macdeployqt` copies the
+/// frameworks (Phase 9, `tools/package/macos.sh`). Bins and the crate's own
+/// test harness get them; the integration tests link no Qt.
+fn emit_apple_rpaths() {
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    if target_os != "macos" {
+        return;
+    }
+    let Some(qt_libs) = qmake_query("QT_INSTALL_LIBS") else {
+        panic!("rowplay-app: qmake -query QT_INSTALL_LIBS returned nothing on macOS");
+    };
+    for rpath in [
+        qt_libs.display().to_string(),
+        "@executable_path/../Frameworks".to_owned(),
+    ] {
+        println!("cargo::rustc-link-arg-bins=-Wl,-rpath,{rpath}");
+        println!("cargo::rustc-link-arg-tests=-Wl,-rpath,{rpath}");
+    }
 }

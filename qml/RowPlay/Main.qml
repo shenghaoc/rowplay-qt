@@ -394,6 +394,17 @@ ApplicationWindow {
                  && (root.gateAwaitingReplay || root.gateAwaitingScene)
     }
 
+    // Packaged-launch probe (ROWPLAY_EXIT_AFTER_FRAMES=N, Phase 9): the
+    // release bundle has no gate hooks (they are compiled out), so the
+    // package scripts start the deployed binary, let the shell render N
+    // frames — every Qt framework, QML module and platform plugin the
+    // bundle must carry is loaded by then — and require a clean exit. An
+    // idle shell renders no frames at all, hence the driver.
+    FrameAnimation {
+        running: Settings.exitAfterFrames > 0
+        onTriggered: if (currentFrame >= Settings.exitAfterFrames) Qt.quit()
+    }
+
     // The release needs frames AND a minimum wall time: under llvmpipe the
     // big rig pack's vertex buffers upload over several slow frames, and a
     // grab before they land renders zero-filled geometry as a crumpled ball
