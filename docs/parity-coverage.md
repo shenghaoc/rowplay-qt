@@ -474,29 +474,20 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     to record in `docs/source-map.md`, not silent parity. Until then the
     wraps are carved out of the dense continuity guard with this note
     (`requested_twist_stays_continuous_and_engages_the_budgets`).
-    The 0.096 m `hand_w` jump at step 529 is **not** this wrap: ranking 12
-    samples the web's `arm.hand` through the same window and it stays
-    within 0.0126 m/step while the port flips an IK branch.
+    Step 529 IS this wrap class — see ranking 12, whose re-measurement
+    (clamp-path probe, this PR) retires the earlier "IK branch flip"
+    attribution.
 
-12. **SkiErg step-529 hand jump — port defect (IK branch flip the web
-    does not perform).**
+12. **SkiErg step-529 hand jump — the wrist-refinement ±π wrap, coupled
+    into position by the V4 architecture (web-inherited; CLOSED with the
+    mechanism, the fix deferred to the wrap-aware-guard PR).**
     At cyc 0.2645 (step 529 / 2000) the port's `hand_w` jumps 0.09614 m
     while the web's post-IK `arm.hand` (`v4Targets.leftHand` after
     `animate` + `resolveWorldContacts`) stays smooth. Oracle:
     `tools/gen-ski-arm-hand-window.mjs` at pinned `173c6fa`, 101 samples
     over cyc [0.24, 0.29]. Web per-step `‖Δhand‖` never reaches 0.02
     (max 0.01260 at step 523); at the port's break the web moves
-    0.01145 m. **STOP: do not implement the IK fix in this PR.** The web's
-    two-bone solve is closed-form and does not seed from the previous
-    frame (`figurePose.ts` `solveTwoBone3D`; `placePoleArms` writes
-    `arm.hand.position.copy(arm.handPoint)` from that solve). It
-    disambiguates the elbow by re-applying `setArmBendHint` on every
-    contact pass (Node: one pass, `hasSampledV4Shoulders` is reset
-    false each `animate`) **and** by clamping the target 2 mm short of
-    full extension so that hint still has a circle. A temporal seed of
-    the previous solution would hide the symptom and make the port
-    order-dependent. See the fix proposal below. Samples (world, left
-    hand):
+    0.01145 m. Samples (world, left hand):
 
     | step | cyc    | web `dHand` | port `dHand` | web `arm.hand` | port `hand_w` |
     | --- | --- | --- | --- | --- | --- |
@@ -504,6 +495,69 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     | 528 | 0.2640 | 0.011360 | 0.009351 | −0.212741, 0.896228, −0.506565 | −0.319414, 0.894707, −0.447616 |
     | 529 | 0.2645 | 0.011449 | **0.096140** | −0.216110, 0.887752, −0.499645 | −0.289467, 0.981664, −0.475627 |
     | 530 | 0.2650 | 0.011518 | 0.008770 | −0.219445, 0.879233, −0.492646 | −0.291596, 0.974374, −0.471241 |
+
+    **Mechanism (measured; retires the earlier "IK branch flip"
+    attribution).** The earlier reading rested on a reach-ratio table
+    computed with bind-pose bone lengths (upper 0.390141 + lower
+    0.374940 = 0.765081) against the palm-inclusive hand-target
+    distance — a mixed-chord ratio: numerator from the palm target,
+    denominator from the wrist bones. On the chord the solve actually
+    consumes there is no boundary approach at all. Measured at the
+    `clamp_hand_target` call site (the only port clamp; left hand,
+    `dist` = |target − shoulder|, `reach` = (upper + palm distal)·0.998
+    ≈ 0.838 m):
+
+    | step | dist_before_clamp | reach_max | ratio_after |
+    | --- | --- | --- | --- |
+    | 525 | 0.769768 | 0.837910 | 0.918813 |
+    | 526 | 0.764341 | 0.837824 | 0.912372 |
+    | 527 | 0.758934 | 0.837737 | 0.905984 |
+    | 528 | 0.753564 | 0.837649 | 0.899458 |
+    | 529 | 0.748249 | 0.837562 | 0.893075 |
+    | 530 | 0.743007 | 0.837475 | 0.886887 |
+
+    dist < reach at every step, monotonically descending, ~90 mm of
+    headroom — **CLAMP NOT ON PATH**: `clamp_hand_target` never fires in
+    the window (before = after; `forgiven` is never consulted). The
+    earlier "0.999 at 527" was `0.764341 / 0.765081` — the palm-target
+    distance divided by the wrist-bone sum, two different chords; it was
+    never a ratio the solve consumes. The true wrist chord
+    (`target − R_hand·offset`) does sit past extension (ratio 1.019 at
+    528 → 1.043 at 525), but the web's V4 clamp on that chord is a
+    radius fix and cannot absorb the offset swing: the measured
+    Δ(R·offset) at 529 is nearly perpendicular to the shoulder→target
+    ray (its along-ray component is −0.031 → −0.038 m through the
+    window while the jump is 0.096 m), so no radial clamp can absorb it.
+
+    What actually snaps: at step 529 the hand **orientation** jumps
+    `dq = 1.2992` rad — the tilt-refinement atan2 wrap fingerprint
+    (`refine_grip_tilt_for_wrist`, the same ±π singularity the web's own
+    comment names; `tools/web-tilt-probe.mjs` measured the driven web
+    snapping 1.2991 rad at cyc 0.2635, the port at 0.2645, the ~0.001
+    offset being the small geometry difference between the solvers).
+    The elbow stays smooth (~4.2 mm/step) and the twist demand
+    saturates at the π/6 keep budget the same step. The port's V4-style
+    chain solves the wrist as `target − R_hand·offset`, so the snapped
+    frame swings the oriented contact offset: |Δ(R·offset)| = 0.0961 m,
+    exactly the hand jump — same law, same snap, different architecture,
+    exactly the ranking-11 class.
+
+    **Experiment (this PR).** The web's absolute 2 mm
+    (`proximal + distal − 0.002`, `renderer3dV4Motion.ts:2167`) was
+    applied to the chord `clamp_hand_target` feeds. No change: 529
+    `dh = 0.096140` identical to six decimals, and the guard's next
+    failure is unchanged. A margin alone cannot fix this — the clamp is
+    not on the path and the snap is perpendicular. Reverted; the solver
+    is NOT rewritten here.
+
+    **Fix direction (deferred to the wrap-aware-guard PR).** Any fix
+    must address the refinement's ±π snap itself (unwrap keyed per
+    hand/pass/call-site, or carried in solve state — the Phase 7.5
+    reverted attempt and its constraints are recorded in ranking 11), or
+    accept and document the wrap. Seeding the solver from the previous
+    frame is ruled out: every frame would depend on its predecessor,
+    which breaks independent evaluation, replay scrubbing, and the
+    cold-evaluation test that already cleared the harness.
 
     **Frame-index discrepancy (measured).** The 21-frame strip's pixel jump
     was between files `step521`/`step522`, seven labels before the guard's
@@ -537,37 +591,25 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     | 529 | 0.2645 | 0.2645 | 0.2645 | 0.1955 |
     | 530 | 0.2650 | 0.2650 | 0.2650 | 0.1959 |
 
-    **Fix proposal (not implemented).** Reach ratio at this window sits
-    AT THE BOUNDARY (bind = posed = 0.765081 m; 527: 0.999, 528: 0.992,
-    529: 0.985). As the shoulder→hand chord approaches `upper + lower`,
-    the elbow's swivel circle — the ring of positions consistent with
-    those two lengths — shrinks toward a point, so an ENFORCED bend hint
-    has nothing left to constrain and a 0.096 m branch flip is free.
-    The web stays smooth by clamping the V4 contact target 2 mm short of
-    full extension before `solveTwoBone3D`
-    (`renderer3dV4Motion.ts`: `maxReach = proximalLength + distalLength
-    - 0.002`; SkiErg also `contactArmReach - 0.002` /
-    `MAX_ARM_REACH = UPPER + FOREARM - 0.02` in
-    `renderer3dSkiAvatar.ts`). Matching that means the port's
-    `clamp_hand_target` / two-bone chord should use the same **absolute
-    2 mm** margin on the measured segments (today it scales reach by
-    0.998, ~1.5 mm on these bones, and the dense-guard chord still
-    reaches the singularity). An alternative is a minimum elbow-circle
-    radius (reject a chord that would make the height < ~2 cm) — same
-    geometry, a different knob, easier to miss the web's 2 mm constant.
-    Seeding the solver from the previous frame is ruled out: every frame
-    would depend on its predecessor, which breaks independent evaluation,
-    replay scrubbing, and the cold-evaluation test that already cleared
-    the harness. After a correct clamp the press-ramp still peaks at
-    0.0101 m/step and the web window at 0.01260; **keep `POSITION_TOL =
-    0.02`** — twice that legitimate peak, not a number chosen to hide
-    0.096. Verify on guard step 529 and strip frames `step528.png` /
-    `step529.png` (now the same index): `dh` should sit with its
-    neighbours (~0.009). The loop's next known event is the ranking-11
-    spin-wrap window near step 1377; that is the inherited atan2 wrap,
-    not this flip. Shenghao: clamp the V4/SkiErg hand target 2 mm short
-    of `proximal + distal` before the two-bone solve, matching the web,
-    and do not seed from the previous frame.
+    **Fix proposal (closed by measurement).** The earlier proposal —
+    clamp the target 2 mm short of full extension, matching the web —
+    rested on the mixed-chord ratio table above and is **retired**: the
+    measured clamp-path table shows the clamp never fires in this
+    window, and the experiment (absolute 2 mm applied) changed nothing
+    (529 `dh = 0.096140` identical to six decimals). The 0.999/0.992/
+    0.985 ratios were palm-target distance ÷ wrist-bone sum, two
+    different chords; the solve's own chord has ~90 mm of headroom.
+    Seeding the solver from the previous frame stays ruled out: every
+    frame would depend on its predecessor, which breaks independent
+    evaluation, replay scrubbing, and the cold-evaluation test that
+    already cleared the harness. The press-ramp still peaks at 0.0101
+    m/step and the web window at 0.01260; **keep `POSITION_TOL = 0.02`**
+    — twice that legitimate peak, not a number chosen to hide 0.096.
+    The loop's next event is the ranking-11 spin-wrap window at step
+    1377 — measured below, a second position discontinuity of the same
+    class, NOT inherited orientation-only. The step-529 discontinuity
+    itself, and the wrap-aware guard conversion that exposes both, live
+    in the wrap-aware-guard PR; this PR keeps the carve-out windows.
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 
@@ -588,7 +630,15 @@ continuity, governor-after-break, warp 20k, three 401-step rig sweeps):
 The historical "step-1377" abort is the skierg spin-wrap window
 (cyc ≈ 0.6885 = 1377/2000); with the ranking-11 carve-out the
 orientation assert no longer kills the loop, so the post-loop
-saturation / engagement asserts now run. Rig-pose mid-loop asserts
+saturation / engagement asserts now run. **Measured (Task-4 probe)**:
+running the guard at the normal `POSITION_TOL = 0.02` through the
+0.678–0.698 window, the largest `dh` is **0.1102 m at step 1377**
+(neighbours ~0.0018–0.0023 m; `dq = 1.4482` at the same step). The
+0.15 position budget was NOT copied without cause — it was covering a
+real second position discontinuity of the same wrap class. The reach
+ratio at 1377 is **0.264** (dist 0.2205 vs reach 0.8310 — the arm is
+deeply folded, nowhere near any reach boundary), which rules out any
+reach-clamp mechanism there too. Rig-pose mid-loop asserts
 after `else { panic!("sport mismatch") }` are structurally reached
 whenever the let-else does not fire (confirmed by the three green
 401-step sweeps; not double-counted in N).
