@@ -376,6 +376,34 @@ const UNPINNED_DOCS: &[&str] = &[
     "venues/README.md",
 ];
 
+/// The application icon set under `assets/icon/` (Phase 9): the web app's
+/// icon vendored from rowplay `static/` (MIT) and the two platform icon files
+/// `tools/package/gen-icons.py` derives from it. Same rule as the replay
+/// assets: every byte pinned, nothing unlisted.
+#[allow(clippy::unreadable_literal)]
+const ICON_EXPECTED: &[(&str, u64, &str)] = &[
+    (
+        "rowplay-icon-512.png",
+        11671,
+        "d1f7f39db9793d207f776523a3b070179f23c281d17bba8e437be4f7ba9c2f85",
+    ),
+    (
+        "rowplay-icon.svg",
+        235,
+        "e311af0126c298efe7a58a0baab82275fd5a18b36400163ef4b7ab240bd5e1e1",
+    ),
+    (
+        "rowplay-qt.icns",
+        68370,
+        "b9af4984f0cc1405a65c7b003af6de28e13dc5b9b40477225eb7323692258742",
+    ),
+    (
+        "rowplay-qt.ico",
+        14465,
+        "4ede6df19fb4b3ef0b9630755717ead3e16965e7c6b92042ba5a91cb6996349e",
+    ),
+];
+
 fn assets_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("..")
@@ -465,4 +493,35 @@ fn no_unpinned_file_under_assets_replay() {
          tripwire ({LFS_TRIPWIRE_BYTES} B); write a follow-up ADR (Git LFS \
          or split packs) before vendoring more"
     );
+}
+
+/// The icon set is pinned like the replay assets and, like them, admits no
+/// unlisted file: a stray export in `assets/icon/` would otherwise ship in
+/// nobody's package and drift from ASSET_PROVENANCE.md unnoticed.
+#[test]
+fn icon_assets_match_their_pins_and_nothing_else_is_present() {
+    let dir = assets_dir().parent().expect("assets/").join("icon");
+    for (rel, size, sha) in ICON_EXPECTED {
+        let path = dir.join(rel);
+        let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        assert_eq!(bytes.len() as u64, *size, "{rel}: size");
+        assert_eq!(sha256_hex(&bytes), *sha, "{rel}: SHA-256");
+    }
+    let mut present = Vec::new();
+    walk(&dir, "", &mut present);
+    present.sort();
+    let unknown: Vec<&String> = present
+        .iter()
+        .filter(|rel| {
+            !ICON_EXPECTED
+                .iter()
+                .any(|&(known, _, _)| known == rel.as_str())
+        })
+        .collect();
+    assert!(
+        unknown.is_empty(),
+        "unpinned files under assets/icon: {unknown:?}; add them to ICON_EXPECTED and \
+         ASSET_PROVENANCE.md, or delete them"
+    );
+    assert_eq!(present.len(), ICON_EXPECTED.len(), "icon inventory drift");
 }
