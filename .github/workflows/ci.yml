@@ -144,11 +144,10 @@ jobs:
         run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
       - name: Smoke test binary starts (no display)
         if: runner.os != 'Linux'
-        env:
-          # The linked binary references Qt as @rpath/QtCore.framework/… but no
-          # LC_RPATH is emitted (docs/qt-bridges-notes.md note 10); let dyld
-          # fall back to the installed frameworks.
-          DYLD_FALLBACK_FRAMEWORK_PATH: ${{ env.QT_ROOT_DIR }}/lib
+        # No DYLD_FALLBACK_FRAMEWORK_PATH any more: build.rs emits the Qt
+        # lib dir as an LC_RPATH on macOS (docs/qt-bridges-notes.md note 10,
+        # Phase 9). Running the tests without the variable is what keeps
+        # that fix honest.
         run: cargo test -p rowplay-app
       - name: Upload smoke and shell screenshots
         if: runner.os == 'Linux'
