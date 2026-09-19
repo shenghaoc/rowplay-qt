@@ -27,8 +27,11 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
 
+# Minimal by default; only the tag-gated release job below elevates to
+# contents: write — the package jobs that run on pull requests never see a
+# write token.
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -105,18 +108,28 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: package
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
-      - name: Draft the release with every artifact and a combined checksum file
+      # Linux AppImage is the distributed artifact. The macOS and Windows
+      # packages are built and launch-checked by the matrix above to keep
+      # the port cross-platform, but they are not attached to releases and
+      # are not release-verified.
+      - name: Draft the release with the Linux AppImage and a combined checksum file
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la dist
-          cat dist/*.sha256 > dist/SHA256SUMS
+          # SHA256SUMS covers exactly the files attached below: the Linux
+          # AppImage. The macOS/Windows sidecars describe artifacts this
+          # release deliberately does not attach (distribution policy,
+          # ADR 0012), so they are not concatenated into it.
+          cat dist/*.AppImage.sha256 > dist/SHA256SUMS
           gh release create "$GITHUB_REF_NAME" --draft --generate-notes \
             --title "rowplay-qt ${GITHUB_REF_NAME#v}" \
-            dist/*.dmg dist/*.AppImage dist/*-setup.exe dist/*.zip dist/SHA256SUMS
+            dist/*.AppImage dist/SHA256SUMS
