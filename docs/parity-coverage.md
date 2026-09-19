@@ -886,7 +886,10 @@ requirement.** On the affected macOS host, yes — verify against the
 live window, not a local capture. Everywhere else (any Linux session
 with Xvfb + Mesa), local visual verification is a valid path.
 
-A second capture gap: the QA close-up camera (`closeup_camera_view`, used only
+Unlisted: a RowErg replay capture rendered a snow venue (white cone, dark
+ridge); if RowErg is supposed to show water, that is a separate defect.
+
+A second capture gap: the QA close-up camera (`closeup_camera_view`, used only)
 under `ROWPLAY_PHASE_CLOSEUPS`) measured ~29–31 m from the athlete on `bf8d77f`
 (one loop radius) — the offset was rotated into the rig frame but never
 translated to the athlete, so the twins framed venue geometry (row: a flat
