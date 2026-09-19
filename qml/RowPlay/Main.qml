@@ -675,8 +675,9 @@ ApplicationWindow {
             // (SkiErg: surged chest, stand-off from the aim, CLOSEUP_DISTANCE
             // 2.4 m — the tightest framing the app has). Pose via
             // Replay.setGuardCycleStep so frame `stepN` is guard step N
-            // (fallback 30 spm, metres = N·3) — live 1003's 41 spm /
-            // drive_frac 0.46 put the same cycle_frac's IK flip at 522.
+            // (fallback 30 spm, metres = N·3) — the strip must show the
+            // guard's own sample, and live 1003 (41 spm / drive_frac 0.46)
+            // puts the same cycle_frac's discontinuity at step 522.
             case 77:
                 Replay.loadGhost(-1)
                 Replay.loadWorkout(1003)
