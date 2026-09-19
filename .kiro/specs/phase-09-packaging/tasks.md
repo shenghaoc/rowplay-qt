@@ -21,7 +21,7 @@
   otool scan clean. Measured again on the `macos-26` leg of `release.yml`
   (run 35449652423, first attempt): 219 MB bundle, 97 MB dmg, launch check
   ok in 3.1 s, otool scan clean.
-- [ ] T5 Linux pipeline: desktop entry, AppStream metainfo,
+- [x] T5 Linux pipeline: desktop entry, AppStream metainfo,
   `tools/package/linux.sh` with pinned + hashed linuxdeploy tools, Wayland
   plugins, Xvfb launch check (R1.3, R2.3). First CI attempt failed before
   linuxdeploy ran: the script exported a bare `QMAKE=qmake`, which
@@ -45,8 +45,11 @@
   listing showed no `wayland-shell-integration` or
   `wayland-decoration-client`: the pinned deployer does not copy them, and
   without shell integration the Wayland platform plugin cannot open a
-  window. All three directories are now staged by the script (R6.6). Ticks
-  when the Linux leg is green with all three present.
+  window. All three directories are now staged by the script (R6.6).
+  Fifth attempt (run 35451035388): green with all three present in the
+  AppDir alongside `libqwayland.so`, 62 MB AppImage, launch check ok in
+  3.7 s under xcb on Xvfb. Native-Wayland launch remains a human check
+  (T9).
 - [x] T6 Windows pipeline: `packaging/windows/rowplay-qt.iss`,
   `tools/package/windows.ps1` (windeployqt → launch check → ISCC + zip)
   (R1.2). Measured on the Windows leg of `release.yml` (run 35449652423,
