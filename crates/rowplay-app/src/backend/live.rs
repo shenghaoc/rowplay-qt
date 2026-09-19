@@ -42,6 +42,8 @@ pub struct LiveBackend {
     polling: bool,
     /// Locale message id of the status line ("" = clear / idle).
     status_id: String,
+    /// Placeholder seconds for `liveMode.rateLimitRetry` (0 when unused).
+    status_retry_secs: i64,
     /// Wall-clock of the last completed poll, formatted in Rust.
     last_poll_text: String,
     has_warning: bool,
@@ -73,6 +75,7 @@ impl Default for LiveBackend {
             enabled: false,
             polling: false,
             status_id: String::new(),
+            status_retry_secs: 0,
             last_poll_text: String::new(),
             has_warning: false,
             failure_count: 0,
@@ -99,6 +102,11 @@ impl LiveBackend {
     qproperty!("enabled", Member = enabled, Notify = live_changed);
     qproperty!("polling", Member = polling, Notify = live_changed);
     qproperty!("statusId", Member = status_id, Notify = live_changed);
+    qproperty!(
+        "statusRetrySecs",
+        Member = status_retry_secs,
+        Notify = live_changed
+    );
     qproperty!(
         "lastPollText",
         Member = last_poll_text,
@@ -136,11 +144,13 @@ impl LiveBackend {
             self.session.enable(now);
             self.enabled = true;
             self.status_id.clear();
+            self.status_retry_secs = 0;
         } else {
             self.session.disable();
             self.enabled = false;
             self.polling = false;
             self.status_id.clear();
+            self.status_retry_secs = 0;
         }
         let _ = AppState::get().update_prefs(|prefs| {
             prefs.live_mode_enabled = on && self.can_enable;
@@ -188,6 +198,7 @@ impl LiveBackend {
             LiveAction::StartPoll => self.start_poll_worker(true),
             LiveAction::SignedOut => {
                 "liveMode.reauth".clone_into(&mut self.status_id);
+                self.status_retry_secs = 0;
                 let _ = AppState::get().update_prefs(|prefs| {
                     prefs.live_mode_enabled = false;
                 });
@@ -234,6 +245,7 @@ impl LiveBackend {
                         Ok(result) => {
                             self.session.on_poll_ok(now, &result.new_ids, reschedule);
                             self.status_id.clear();
+                            self.status_retry_secs = 0;
                             self.update_last_poll_text(now);
                             if !result.new_ids.is_empty() {
                                 self.library_refresh_requested();
@@ -242,6 +254,7 @@ impl LiveBackend {
                         Err(LivePollError::Unauthorized) => {
                             let _ = self.session.on_poll_err(now, LiveFailureKind::Unauthorized);
                             "liveMode.reauth".clone_into(&mut self.status_id);
+                            self.status_retry_secs = 0;
                             self.update_last_poll_text(now);
                             let _ = AppState::get().update_prefs(|prefs| {
                                 prefs.live_mode_enabled = false;
@@ -252,7 +265,21 @@ impl LiveBackend {
                                 now,
                                 LiveFailureKind::RateLimited { retry_after_secs },
                             );
-                            "liveMode.rateLimit".clone_into(&mut self.status_id);
+                            if let Some(secs) = retry_after_secs {
+                                "liveMode.rateLimitRetry".clone_into(&mut self.status_id);
+                                self.status_retry_secs = secs as i64;
+                            } else {
+                                "liveMode.rateLimit".clone_into(&mut self.status_id);
+                                self.status_retry_secs = 0;
+                            }
+                            self.update_last_poll_text(now);
+                        }
+                        Err(LivePollError::NotImplemented) => {
+                            // Demo stub: surface the localised string; do not
+                            // pretend the poll succeeded.
+                            let _ = self.session.on_poll_err(now, LiveFailureKind::Transient);
+                            "liveMode.notImplemented".clone_into(&mut self.status_id);
+                            self.status_retry_secs = 0;
                             self.update_last_poll_text(now);
                         }
                         Err(_) => {
@@ -264,6 +291,7 @@ impl LiveBackend {
                             } else {
                                 "liveMode.errorRetry".clone_into(&mut self.status_id);
                             }
+                            self.status_retry_secs = 0;
                             self.update_last_poll_text(now);
                         }
                     }
@@ -342,15 +370,19 @@ impl LiveBackend {
         let cache = Arc::clone(&state.cache);
 
         if demo {
-            // Demo mode: skip HTTP. The web's `generateMockWorkout` port is a
-            // follow-up (needs an injected RNG + random 30 s–3 min delay);
-            // for now treat the poll as an empty success so the cadence and
-            // UI path stay exercisable without inventing a network client.
+            // Demo mode: skip HTTP. The web's `generateMockWorkout` is not
+            // ported yet — surface an explicit not-implemented error rather
+            // than an empty success that looks like a healthy poll.
             std::thread::Builder::new()
                 .name("rowplay-live".to_owned())
                 .spawn(move || {
-                    let _ = known_ids; // demo does not consult ids yet
-                    finish(&sender, &invoker, Ok(LivePollResult::default()), reschedule);
+                    let _ = known_ids;
+                    finish(
+                        &sender,
+                        &invoker,
+                        Err(LivePollError::NotImplemented),
+                        reschedule,
+                    );
                 })
                 .expect("spawn the live worker");
             return;

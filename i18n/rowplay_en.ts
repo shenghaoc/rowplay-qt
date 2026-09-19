@@ -5036,5 +5036,25 @@ Still stuck? The [FAQ](/docs/faq) covers more, and every page of this guide is r
         <oldsource>Reduce motion</oldsource>
         <translation>Reduce motion</translation>
     </message>
+    <message id="liveMode.refresh">
+        <source></source>
+        <oldsource>Check now</oldsource>
+        <translation>Check now</translation>
+    </message>
+    <message id="liveMode.neverUpdated">
+        <source></source>
+        <oldsource>—</oldsource>
+        <translation>—</translation>
+    </message>
+    <message id="liveMode.notImplemented">
+        <source></source>
+        <oldsource>Demo live poll is not implemented yet</oldsource>
+        <translation>Demo live poll is not implemented yet</translation>
+    </message>
+    <message id="liveMode.rateLimitRetry">
+        <source></source>
+        <oldsource>Rate limit reached — retrying in {seconds}s</oldsource>
+        <translation>Rate limit reached — retrying in {seconds}s</translation>
+    </message>
 </context>
 </TS>
