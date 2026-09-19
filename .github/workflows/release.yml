@@ -1,0 +1,122 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Packaged builds (Phase 9, ADR 0012): the macOS .app + .dmg, the Windows
+# installer + portable zip and the Linux AppImage, each produced by its
+# script under tools/package/ and each launch-checked on the runner that
+# built it (the deployed binary starts from a clean environment, renders 30
+# frames and exits 0 — see tools/package/launch-check.py).
+#
+# Runs on every pull request that touches a packaging input, so the scripts
+# cannot rot unexercised (the venue-bake workflow learned that the hard
+# way); on manual dispatch; and on a `v*` tag, where the artifacts are also
+# attached to a *draft* GitHub release for the author to publish — the only
+# route by which a release artifact is ever published (AGENTS.md).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'tools/package/**'
+      - 'packaging/**'
+      - 'assets/icon/**'
+      - 'crates/rowplay-app/build.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  package:
+    name: Package (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            script: tools/package/linux.sh
+            artifact: linux-x86_64
+          - os: macos-26
+            script: tools/package/macos.sh
+            artifact: macos-arm64
+          - os: windows-2025
+            script: tools/package/windows.ps1
+            artifact: windows-x86_64
+            # Same aqt pin as ci.yml (miurahr/aqtinstall#1007).
+            aqt-source: git+https://github.com/miurahr/aqtinstall@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Qt 6.11
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.11.*'
+          aqtversion: '==3.3.*'
+          aqtsource: ${{ matrix.aqt-source }}
+          modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
+          cache: true
+      - name: Linux build and launch-check runtime (Xvfb + Mesa, keyring's libdbus)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
+            libdbus-1-dev pkg-config file
+      - name: Toolchain report
+        shell: bash
+        run: |
+          rustc --version
+          cargo --version
+          qmake -query QT_VERSION
+      - name: Package
+        if: runner.os != 'Windows'
+        env:
+          LANG: C.UTF-8
+        run: ${{ matrix.script }}
+      - name: Package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ${{ matrix.script }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rowplay-qt-${{ matrix.artifact }}
+          path: |
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*-setup.exe
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+  release:
+    name: Draft GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Draft the release with every artifact and a combined checksum file
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          cat dist/*.sha256 > dist/SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" --draft --generate-notes \
+            --title "rowplay-qt ${GITHUB_REF_NAME#v}" \
+            dist/*.dmg dist/*.AppImage dist/*-setup.exe dist/*.zip dist/SHA256SUMS
