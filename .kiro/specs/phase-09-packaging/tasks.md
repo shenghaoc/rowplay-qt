@@ -35,6 +35,12 @@
   open the dmg / installer / AppImage on a real machine per OS, look at the
   dashboard, detail and all three replay scenes (R6.1). The launch check
   cannot see pixels, and the gate's visual assertions run on Linux only.
+  Partial, macOS (2026-09-19, measured): the deployed bundle's live window
+  was screenshotted on the build Mac — dark scheme, day-sectioned sidebar
+  with the demo library, detail chrome and the Replay control all drawn.
+  The 3D viewport was **not** exercised (the screenshot tooling could not
+  drive the Qt Quick controls in the background); the replay scenes on
+  macOS and everything on Windows / Linux remain for a human.
 - [ ] T10 Follow-ups, each its own PR: Developer ID signing + notarytool
   submission once an identity exists (R4.3); prune the macdeployqt QML tree
   with a launch check per removed module (R6.3); Flatpak from the same
