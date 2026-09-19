@@ -49,6 +49,19 @@ pub struct Preferences {
     /// and serde's `default` fills `None`.
     #[serde(default)]
     pub replay_quality: Option<u8>,
+    /// Live-mode enabled (web `liveModePrefs.enabled`). Absent key → false.
+    #[serde(default)]
+    pub live_mode_enabled: bool,
+    /// Live-mode interval seconds (one of 30/60/120/300). Absent → 60.
+    #[serde(default = "default_live_interval_sec")]
+    pub live_interval_sec: u32,
+    /// Live-mode chime on new workout. Absent → false.
+    #[serde(default)]
+    pub live_sound_enabled: bool,
+}
+
+fn default_live_interval_sec() -> u32 {
+    60
 }
 
 impl Default for Preferences {
@@ -60,6 +73,9 @@ impl Default for Preferences {
             home_timezone: None,
             language: None,
             replay_quality: None,
+            live_mode_enabled: false,
+            live_interval_sec: default_live_interval_sec(),
+            live_sound_enabled: false,
         }
     }
 }
@@ -288,6 +304,9 @@ mod tests {
             home_timezone: Some("Asia/Singapore".into()),
             language: Some("ja".into()),
             replay_quality: Some(2),
+            live_mode_enabled: true,
+            live_interval_sec: 120,
+            live_sound_enabled: true,
         };
         store.save(&prefs).unwrap();
         assert_eq!(store.load().unwrap(), prefs);

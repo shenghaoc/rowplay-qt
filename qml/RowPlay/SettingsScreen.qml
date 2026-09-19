@@ -321,6 +321,11 @@ Pane {
                 }
             }
 
+            // Live mode (logbook page-1 polling — not PM5 / Bluetooth) ---------
+            LiveModePanel {
+                Layout.fillWidth: true
+            }
+
             // Units, timezone, language -----------------------------------------
             ColumnLayout {
                 Layout.fillWidth: true

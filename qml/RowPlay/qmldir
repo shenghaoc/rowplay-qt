@@ -6,6 +6,7 @@ singleton ChartUtils 1.0 ChartUtils.qml
 Main 1.0 Main.qml
 SmokeMain 1.0 SmokeMain.qml
 SettingsScreen 1.0 SettingsScreen.qml
+LiveModePanel 1.0 LiveModePanel.qml
 SidebarPanel 1.0 SidebarPanel.qml
 DashboardScreen 1.0 DashboardScreen.qml
 MetricTile 1.0 MetricTile.qml
