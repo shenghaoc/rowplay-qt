@@ -473,7 +473,10 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     — it makes the port smoother than its oracle, a deliberate deviation
     to record in `docs/source-map.md`, not silent parity. Until then the
     wraps are carved out of the dense continuity guard with this note
-    (`requested_twist_stays_continuous_and_engages_the_budgets`).
+    (`requested_twist_stays_continuous_and_engages_the_budgets`) — **on
+    this branch that carve-out is replaced by the wrap-aware tight-TOL
+    comparison, which is red at steps 529 and 1377 by design; see the
+    dedicated entry below**.
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 
@@ -509,13 +512,41 @@ L3 `dot_twist = delta · bone_axis_local` and
 (`wrist.rs:260–263`). None of those levels contain `SKI_WRIST_TWIST_KEEP`
 / π/6; the budget only clamps `kept_twist` after the demand is recorded.
 
-### Spin-wrap carve-out converted to wrap-aware — guard fails
+### Spin-wrap carve-out converted to wrap-aware — guard fails (RED, tracking the known defect)
 
 The cyc-window budget widen (0.678–0.698 / 0.255–0.275) was a SKIP of the
 tight TOL. Replaced with `wrap_signed` + TOL 0.02/0.35 everywhere. Guard
 fails at Skierg step 529 (cyc=0.2645, tilt-wrap window): dh=0.0961 >
 POSITION_TOL=0.02; prev=[-0.3194, 0.8947, -0.4476] curr=[-0.2895, 0.9817,
--0.4756]. Not widened; skip not restored.
+-0.4756]. Not widened; skip not restored. **This PR stays open and red
+until the two discontinuities below are fixed honestly** — the guard is
+the record of the defect, not something to route around.
+
+**Both windows measured (clamp-path + cycle probes).** The whole-cycle
+probe (guard pipeline, 2000 steps) finds exactly two discontinuities;
+every other step is ≤ 0.0108 m:
+
+| step | cyc    | dh       | dq       | reach ratio (dist/reach) |
+| --- | --- | --- | --- | --- |
+| 529  | 0.2645 | 0.096140 | 1.299200 | 0.893 (clamp not on path) |
+| 1377 | 0.6885 | 0.110235 | 1.448213 | 0.264 (arm deeply folded)  |
+
+Step 529 is the tilt refinement's ±π snap (`refine_grip_tilt_for_wrist`):
+the web driven identically snaps 1.2991 rad at cyc 0.2635
+(`tools/web-tilt-probe.mjs`); the port's V4-style chain couples the
+snapped frame into position through the oriented contact offset —
+|Δ(R·offset)| = 0.0961 m, nearly perpendicular to the shoulder→target
+ray, which is why the reach clamp cannot absorb it (measured: the chord
+the solve consumes has ~90 mm of headroom through the window, and
+applying the web's absolute 2 mm changes dh not at all). Step 1377 is
+the spin refinement's ±π snap (`refine_grip_spin_for_wrist`) with the
+same coupling — a second **position** discontinuity the old 0.15 window
+budget was covering, not an orientation-only inherited wrap. The
+earlier "IK branch flip" reading of 529 rested on a mixed-chord ratio
+(palm-target distance ÷ wrist-bone sum = 0.999) that no solve consumes;
+retired by the clamp-path probe. The mechanism and the constraints on
+any fix (unwrap keyed per hand/pass/call-site; the reverted Phase 7.5
+attempt) are recorded in ranking 11.
 
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
