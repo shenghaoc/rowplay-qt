@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -162,4 +163,13 @@ jobs:
             artifacts/replay-ski.png
             artifacts/replay-bike.png
             artifacts/phase-*.png
+          if-no-files-found: error
+      - name: Upload step-529 straddle captures
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: step529-straddle
+          path: |
+            artifacts/step529-cyc-0262.png
+            artifacts/step529-cyc-0266.png
           if-no-files-found: error
