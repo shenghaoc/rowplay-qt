@@ -172,6 +172,18 @@ quality tier.
 | `src/lib/replay/renderer3dV4Motion.ts`, `rigV4.ts`, `handGrip.ts` | `ReplayAthleteContactSolver.swift`, `ReplayHandClosure.swift` | `rowplay-core::replay::motion_graph` driving the V4 athlete; `replay::{hand_grip, wrist}` (geometry-closure grip + channel orientation and wrist budgets, slices 1–2); `replay::{row_equipment, ski_equipment, bike_equipment, bike_saddle}` (equipment contracts, slice 2); slice 3 wires the runtime — `rowplay_viewmodel::replay::grip` (per-sport frames mirroring `renderer3d{Row,Ski,Bike}Avatar.ts` + `gripContractFor`, digit-chain collector, pose table), `PoseSolver` per-frame hand orientation with budgets (ghost included), `Replay.gripPoses`/`gripContacts` applied by the scene walk with the gate asserting 10/10 contacts | 7 |
 | `src/lib/liveMode.ts`, `liveMode.svelte.ts`, `src/routes/api/live/*` | `Live/*.swift` (`LiveModeState`, `LivePollingCadence`, `LiveSource`), `Views/LiveModePanelView.swift` | `rowplay_viewmodel::live` (cadence / `LiveSession`), `rowplay_platform::live::poll_recent` (page 1×25, id dedupe, never touches `fully_synced`), prefs `live_*`, `rowplay-app` `Live` singleton + `qml/RowPlay/LiveModePanel.qml` | 8 (in progress: backend + panel landed; Qt smoke + `generateMockWorkout` deferred) |
 
+Live-mode divergences against the pinned web (`173c6fa`, checked 2026-09, no
+behaviour change yet): the web is **visibility-aware** — hidden-tab floor
+`HIDDEN_MIN_INTERVAL_SEC = 300` (`effectiveIntervalSec`), immediate poll on
+becoming visible (`scheduleNext(0)`), abort of the in-flight request on
+hide — while the port's `LiveSession::tab_visible` is never driven from the
+window, so polls run at the configured interval unattended. The web's poll
+is unconditional page 1 × 25 (`pollRecentWorkouts` → `listWorkoutsPage(1,
+25)`); its *spec* (`live-near-live-mode/requirements.md` R-D1) names
+incremental sync with a `from` parameter, but the code never passes one.
+Decision memo: `docs/roadmap.md` Phase 8; parity row:
+`docs/parity-coverage.md`.
+
 Desktop-only liveMode keys (not yet on web; added so the Qt panel can localise a manual refresh / empty last-check / demo stub / Retry-After countdown): `liveMode.refresh`, `liveMode.neverUpdated`, `liveMode.notImplemented`, `liveMode.rateLimitRetry`. Injected by `tools/convert-locales.mjs` `DESKTOP_SUPPLEMENT` (English fallback in all six locales, the web's fallback rule, like `settings.reduceMotion`); the upstream web pin does not carry them yet — when the web grows the keys, regeneration picks up its translations and the supplement entries come out.
 
 Correction (2026-09): the original porting brief specified Phase 8 as PM5 over

@@ -564,6 +564,69 @@ GET surface, so polls are unconditional.
   path stays exercisable; the web's `generateMockWorkout` (random 30 s–3 min
   delay + injected RNG) is deferred.
 
+**Decision memo — visibility-aware polling (post-landing parity check).**
+The web's live mode at the pinned commit (`173c6fa`) keys its cadence on tab
+visibility: `effectiveIntervalSec` floors at 5 minutes while hidden, the
+poller re-polls immediately (`scheduleNext(0)`) when the tab becomes
+visible, and aborts the in-flight request when it hides. The port has
+`effective_interval_sec` and a `tab_visible` field, but nothing ever sets
+them from the window — polls run at the configured interval whether the
+window is focused, visible or minimised, which is more aggressive than the
+web whenever nobody is looking. Three options:
+
+1. **Match the web.** Drive `tab_visible` from the window state and add
+   focus/visibility reactions. The plumbing exists on the QML side
+   (`ApplicationWindow` already exposes `active` and `visibility`; a
+   `#[qslot]` like the existing `Live.tick()` would carry the change into
+   the session — one new slot, no new bridge) and the view-model already
+   applies the hidden floor and reschedules from it. Work: a window-state
+   watcher in `Main.qml`, one slot on the `Live` backend, and a
+   "reschedule now on becoming visible" path; plus tests that drive both
+   transitions through `LiveSession`. Cost is small and contained to
+   `rowplay-app` + `rowplay-viewmodel`.
+2. **Reduce to refresh-on-focus.** Drop the interval timer entirely and
+   poll once when the window gains focus. This deletes the 1-second
+   cadence `Timer` in `Main.qml`, `LiveSession::on_tick`'s due-poll
+   scheduling, `success_delay_ms`/`failure_delay_ms`'s interval math and
+   the interval preference surface from PR #33 — the panel keeps only the
+   enable toggle and a manual refresh. Cost: the backoff ladder and
+   `Retry-After` handling lose their automatic retry (nothing retries
+   while unfocused), and the interval UI the PR just built is deleted.
+3. **Close PR #33** and record the divergence in `docs/source-map.md`.
+   Cost: live mode does not exist on desktop; the parity gap moves from
+   "diverges unattended" to "absent", which is an honest place to stand
+   but removes the polling groundwork (page-1 poll, id dedupe, the
+   `fully_synced` guard) that any future option 1 or 2 would rebuild.
+
+Options 1 and 2 **largely converge**: the web's design is already mostly
+focus-driven — an immediate poll when you look at it, and a 5-minute floor
+when you don't — so matching canonical (option 1) already delivers most of
+what dropping the timer (option 2) would deliver. Also note plainly: the
+web ships live mode **off by default**, so no fixture covers it, no replay
+maths depends on it, and it is the weakest kind of parity obligation.
+Shenghao decides.
+
+Related dead surface (recorded so green tests are not misread as shipped
+behaviour): `effective_interval_sec` is only ever reached with
+`tab_visible` pinned `true` (above); `failure_delay_ms` has no production
+caller — `LiveSession::on_poll_err` inlines the same
+`success_delay_ms + backoff` math, so the *behaviour* ships but the
+wrapper does not; and `staleness_threshold_ms` has no production caller at
+all — the app ships no staleness indicator. All three carry unit tests
+pinning behaviour the app does not yet exercise; wiring or removing them
+belongs to whichever option above is chosen.
+
+What that dead surface means for the decision (post-review, 2026-09-20):
+as shipped, this PR delivers a fixed-interval poller with an enable
+toggle and a manual refresh — of the web feature's parts, visibility
+awareness, the staleness indicator and (as a named function) the failure
+delay are already absent. That strengthens option 2 rather than weakening
+it: reducing to refresh-on-focus would delete a timer whose
+interval-aware companions are partly dead already, so the trade is
+smaller than the original memo implied. It is not a recommendation —
+option 1's plumbing still exists and is still small — just the fact that
+the "deletes working behaviour" cost of option 2 is overstated above.
+
 ### Phase 9 — Packaging
 
 - macOS `.app`, Windows installer, Linux AppImage or Flatpak.
