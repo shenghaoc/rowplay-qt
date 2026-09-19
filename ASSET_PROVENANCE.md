@@ -10,6 +10,24 @@ Runtime 3D assets are glTF 2.0 `.glb` only (ADR 0003). Image-based lighting is
 procedural (ADR 0004): no HDRI file, downloaded, imported or scanned, ever
 enters this repository.
 
+## Application icon (Phase 9)
+
+The desktop icon is the web app's own: `static/icon-512.png` and
+`static/favicon.svg` from rowplay at the pinned commit
+`173c6facbcedef419ad39168c5e3e642abb7e57e` (MIT; the icon files last changed
+in `53421b575c41a56331192ebfb4485a71baeba494`). The `.icns` and `.ico` are
+derived from the 512 px PNG by `tools/package/gen-icons.py` (Pillow 11.3.0;
+byte-deterministic per Pillow version, `--check` verifies). All four are
+pinned by `crates/rowplay-app/tests/asset_hashes.rs` (`ICON_EXPECTED`),
+which also fails on any unlisted file under `assets/icon/`.
+
+| Asset | Source | SHA-256 | Licence |
+| --- | --- | --- | --- |
+| `assets/icon/rowplay-icon-512.png` | rowplay `static/icon-512.png` @ `173c6fa` | `d1f7f39db9793d207f776523a3b070179f23c281d17bba8e437be4f7ba9c2f85` | MIT (rowplay) (11671 B) |
+| `assets/icon/rowplay-icon.svg` | rowplay `static/favicon.svg` @ `173c6fa` | `e311af0126c298efe7a58a0baab82275fd5a18b36400163ef4b7ab240bd5e1e1` | MIT (rowplay) (235 B) |
+| `assets/icon/rowplay-qt.icns` | derived from the PNG above by `gen-icons.py` | `b9af4984f0cc1405a65c7b003af6de28e13dc5b9b40477225eb7323692258742` | MIT (rowplay) (68370 B) |
+| `assets/icon/rowplay-qt.ico` | derived from the PNG above by `gen-icons.py` | `4ede6df19fb4b3ef0b9630755717ead3e16965e7c6b92042ba5a91cb6996349e` | MIT (rowplay) (14465 B) |
+
 ## Vendored assets
 
 Every file below is a byte-for-byte copy verified by `tools/vendor-replay-assets.py` (sizes and SHA-256 of the committed bytes; the same table is asserted by `crates/rowplay-app/tests/asset_hashes.rs`). The V3 rig pack and the V4 athlete are MIT from rowplay; the V4 anatomy derives from Dan Ulrich / Blender Studio Human Base Meshes v1.4.1 (CC0-1.0) with MIT modifications. The environment maps are resized 512 px derivatives of Poly Haven 1K JPEGs, CC0-1.0, creators named per family.
