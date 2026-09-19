@@ -668,13 +668,14 @@ ApplicationWindow {
             case 74: Replay.seek(0.50201); root.grabSettledScene("phase-ski-middrive"); break
             case 75: Replay.seek(0.49710); root.grabSettledScene("phase-ski-finish"); break
             case 76: Replay.seek(0.50500); root.grabSettledScene("phase-ski-midrecovery"); break
-            // Temporary step-529 strip: demo 1003 "1000m SkiErg"
-            // 2026-05-21 (not the rower ghost 1005). Close-up camera
+            // Temporary step-529 strip: Replay.loadWorkout(1003)
+            // "1000m SkiErg" 2026-05-21. Do not Library.selectWorkout —
+            // that leaves the 3D replay for the detail-chart screen.
+            // Dismiss the rower ghost from case 72. Close-up camera
             // (torso and hands; CLOSEUP_DISTANCE 2.4 m). Seeks map
             // stroke cyc = step/2000 onto entry 81 of 1003
             // (start_t=115.7, end_t=117.2, duration=234.1).
             case 77:
-                Library.selectWorkout(1003)
                 Replay.loadGhost(-1)
                 Replay.loadWorkout(1003)
                 Replay.setCloseupCamera(true)
