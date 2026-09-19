@@ -65,6 +65,8 @@ jobs:
   app:
     name: App (${{ matrix.os }})
     needs: core
+    # The step-529 straddle captures have their own core-independent job
+    # below; this one stays gated on a green core like any normal PR.
     strategy:
       fail-fast: false
       matrix:
@@ -165,8 +167,9 @@ jobs:
             artifacts/phase-*.png
           if-no-files-found: error
 
-  # Temporary: the viewmodel guard is expected red, so `app` (needs: core)
-  # never reaches the Xvfb smoke. This job does not wait on core.
+  # The wrap-aware guard conversion and the two wrap windows it exposes
+  # (steps 529 / 1377) live in their own PR (the viewmodel guard is red
+  # there by design). This job does not wait on core.
   step529-straddle:
     name: Step-529 straddle captures
     runs-on: ubuntu-24.04
