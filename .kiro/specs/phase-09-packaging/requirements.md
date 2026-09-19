@@ -109,3 +109,12 @@ the earlier phases established. Decision record: ADR 0012.
 - R6.4 Flatpak is deferred (ADR 0012); the AppDir already has the Flathub
   shape.
 - R6.5 No in-app version display (note #5).
+- R6.6 Wayland support in the AppImage is deployed, not exercised: the
+  launch check runs under Xvfb (xcb). Qt 6.11's single `libqwayland.so` is
+  deployed when the build host's Qt has it — the CI runner's does
+  (measured) — and the three `wayland-*` plugin directories it dlopens
+  (shell-integration, decoration-client, graphics-integration-client) are
+  staged by `linux.sh` itself, because the pinned `linuxdeploy-plugin-qt`
+  copied none of them (measured on the fourth CI run). An install without
+  the platform plugin yields an xcb-only AppImage. A native-Wayland launch
+  is a human check (T9).
