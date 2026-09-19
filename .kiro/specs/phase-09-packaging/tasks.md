@@ -74,18 +74,37 @@
 - [x] T8 Documentation: ADR 0012 + completed ADR index, README (install,
   build, corrected Status), AGENTS.md (commands, hook, release rule),
   qt-bridges-notes #10 / #5, tools/README, roadmap (R5).
-- [ ] T9 Human eyes on each packaged app before the first public release:
-  open the dmg / installer / AppImage on a real machine per OS, look at the
-  dashboard, detail and all three replay scenes (R6.1). The launch check
-  cannot see pixels, and the gate's visual assertions run on Linux only.
+- [ ] T9 Human eyes on the distributed artifact before the first public
+  release: open the AppImage on a real Linux machine (X11 and Wayland),
+  look at the dashboard, detail and all three replay scenes (R6.1). The
+  launch check cannot see pixels. macOS and Windows are not distributed, so
+  their human checks are closed as **won't-do** with the distribution
+  policy as the reason — the macOS partial look below stays on record but
+  blocks nothing.
+  Done, Linux (2026-09-19, measured on RHEL 10.2, GNOME 49.4 Wayland,
+  Intel UHD 630 / Mesa 25.2.7, 1920x1080@144): the PR AppImage
+  (`rowplay-qt-0.1.0-linux-x86_64.AppImage`, sha256 verified, no
+  `QT_QPA_PLATFORM` forcing in `AppRun`) renders 300 frames and exits 0
+  under native Wayland with `libqwayland.so` plus all three `wayland-*`
+  plugin directories loaded from the bundle; the xdg_toplevel maps at
+  1202x840 and presents frames with compositor frame callbacks delivered.
+  Under X11 (`QT_QPA_PLATFORM=xcb`) it renders 60 frames and exits 0, and
+  the window is a normal managed window on the current desktop. The debug
+  build's gate walk under the same native Wayland session captures all
+  screens with zero QML errors, and the row/ski/bike replay viewports show
+  complete scenes (athlete, equipment, venue, shadows) — no black
+  viewports. Native-Wayland frame medians are re-measured in the same
+  session (see the Task 2 report).
   Partial, macOS (2026-09-19, measured): the deployed bundle's live window
   was screenshotted on the build Mac — dark scheme, day-sectioned sidebar
   with the demo library, detail chrome and the Replay control all drawn.
   The 3D viewport was **not** exercised (the screenshot tooling could not
-  drive the Qt Quick controls in the background); the replay scenes on
-  macOS and everything on Windows / Linux remain for a human.
-- [ ] T10 Follow-ups, each its own PR: Developer ID signing + notarytool
-  submission once an identity exists (R4.3); prune the macdeployqt QML tree
+  drive the Qt Quick controls in the background); superseded by the
+  won't-do above.
+- [ ] T10 Follow-ups, each its own PR: prune the macdeployqt QML tree
   with a launch check per removed module (R6.3); Flatpak from the same
-  AppDir (R6.4); macOS x86_64 / Linux aarch64 (R6.2); in-app version
-  (R6.5, blocked on note #5 or a backend property).
+  AppDir (R6.4); macOS x86_64 / Linux aarch64 (R6.2). Developer ID signing +
+  notarytool submission (R4.3) is closed as **won't-do** with the rest of
+  the macOS distribution scope. In-app version (R6.5) is done in this PR:
+  `Settings.appVersion` on the Settings screen through the
+  `settings.appVersion` supplement key.
