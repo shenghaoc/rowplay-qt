@@ -499,6 +499,24 @@ after `else { panic!("sport mismatch") }` are structurally reached
 whenever the let-else does not fire (confirmed by the three green
 401-step sweeps; not double-counted in N).
 
+### Skierg twist demand reaches the keep budget independently
+
+Three-level trace of `requested_twist` (the quantity the saturation assert
+measures): L1 `requested_twist: twist_angle` (`wrist.rs:349`); L2
+`let mut twist_angle = 2.0 * dot_twist.atan2(delta[3])` (`wrist.rs:266`);
+L3 `dot_twist = delta · bone_axis_local` and
+`delta = quat_mul(effector, quat_inverse(rest.hand_rest))`
+(`wrist.rs:260–263`). None of those levels contain `SKI_WRIST_TWIST_KEEP`
+/ π/6; the budget only clamps `kept_twist` after the demand is recorded.
+
+### Spin-wrap carve-out converted to wrap-aware — guard fails
+
+The cyc-window budget widen (0.678–0.698 / 0.255–0.275) was a SKIP of the
+tight TOL. Replaced with `wrap_signed` + TOL 0.02/0.35 everywhere. Guard
+fails at Skierg step 529 (cyc=0.2645, tilt-wrap window): dh=0.0961 >
+POSITION_TOL=0.02; prev=[-0.3194, 0.8947, -0.4476] curr=[-0.2895, 0.9817,
+-0.4756]. Not widened; skip not restored.
+
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
 `renderer3dSkiAvatar.animate` constants (`SKI_NEUTRAL_TORSO_PITCH 0.055 +

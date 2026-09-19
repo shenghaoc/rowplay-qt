@@ -2247,6 +2247,22 @@ mod tests {
         solver.parent_of(joint)
     }
 
+    /// Smallest signed angular difference, wrapped to (-PI, PI].
+    fn wrap_signed(delta: f64) -> f64 {
+        use std::f64::consts::{PI, TAU};
+        let w = (delta + PI).rem_euclid(TAU) - PI;
+        if w == -PI { PI } else { w }
+    }
+
+    #[test]
+    fn wrap_signed_covers_the_near_and_far_sides_of_the_circle() {
+        use std::f64::consts::{PI, TAU};
+        assert!((wrap_signed(0.1) - 0.1).abs() < 1e-12);
+        assert!((wrap_signed(TAU - 0.1) - (-0.1)).abs() < 1e-12);
+        assert!((wrap_signed(-TAU + 0.1) - 0.1).abs() < 1e-12);
+        assert_eq!(wrap_signed(PI), PI);
+    }
+
     /// SkiErg pre-clamp twist demand saturates at the 30° keep budget.
     ///
     /// Measured (2000 samples/cycle): max `|requested_twist|` =
@@ -2447,21 +2463,21 @@ mod tests {
                     // (measured 0.110 m ≈ 2·|offset⊥|·sin(max_spin), the
                     // oriented offset swinging with the frame). Each wrap
                     // is one isolated step inside its window, never two.
-                    let tilt_wrap =
-                        sport == Sport::Skierg && (0.255..0.275).contains(&stroke.cycle_frac);
-                    let spin_wrap =
-                        sport == Sport::Skierg && (0.678..0.698).contains(&stroke.cycle_frac);
-                    let (position_budget, orientation_budget) = if tilt_wrap || spin_wrap {
-                        (0.15, 1.45)
-                    } else {
-                        (0.02, 0.35)
-                    };
+                    // Continuity uses the same tight TOL everywhere; angular
+                    // comparison is wrap-aware so a ±π singularity is not
+                    // mistaken for a step skip.
+                    const POSITION_TOL: f64 = 0.02;
+                    const ORIENTATION_TOL: f64 = 0.35;
                     assert!(
-                        dh < position_budget,
-                        "{sport:?} step {step}: hand jumps {dh:.4}"
+                        dh < POSITION_TOL,
+                        "{sport:?} step {step}: hand jumps {dh:.4} \
+                         cyc={} prev={last_h:?} curr={hand_w:?} \
+                         wrap_signed(dh)={} TOL={POSITION_TOL}",
+                        stroke.cycle_frac,
+                        wrap_signed(dh)
                     );
                     assert!(
-                        dq < orientation_budget,
+                        wrap_signed(dq).abs() < ORIENTATION_TOL,
                         "{sport:?} step {step}: hand orientation jumps {dq:.4}"
                     );
                 }
