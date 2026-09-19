@@ -672,7 +672,8 @@ ApplicationWindow {
             // "1000m SkiErg" 2026-05-21. Do not Library.selectWorkout —
             // that leaves the 3D replay for the detail-chart screen.
             // Dismiss the rower ghost from case 72. Close-up camera
-            // (torso and hands; CLOSEUP_DISTANCE 2.4 m). Seeks map
+            // (SkiErg: surged chest, stand-off from the aim, CLOSEUP_DISTANCE
+            // 2.4 m — the tightest framing the app has). Seeks map
             // stroke cyc = step/2000 onto entry 81 of 1003
             // (start_t=115.7, end_t=117.2, duration=234.1).
             case 77:
