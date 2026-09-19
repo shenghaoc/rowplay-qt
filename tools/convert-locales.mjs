@@ -167,6 +167,7 @@ async function main() {
   // equivalent that appear in committed QML.
   const DESKTOP_SUPPLEMENT = new Map([
     ["settings.reduceMotion", "Reduce motion"],
+    ["settings.appVersion", "Version {version}"],
     // Phase 8 live-mode panel: no web keys yet. English fallback in all six
     // locales (recorded in docs/source-map.md); when the web grows them,
     // regeneration picks the web translations up and these entries come out.

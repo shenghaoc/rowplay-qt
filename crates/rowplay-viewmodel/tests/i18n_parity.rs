@@ -2,7 +2,7 @@
 //! Qt-free i18n parity checks (Phase 4, spec R7.5), run in CI:
 //!
 //! 1. all six committed `i18n/rowplay_*.ts` catalogues have exactly the web
-//!    `en` key set (908 web + 5 desktop supplements = 913 ids) and identical
+//!    `en` key set (908 web + 6 desktop supplements = 914 ids) and identical
 //!    `<source>` texts and `{name}`
 //!    placeholder sets per id;
 //! 2. every translation id used by a literal `Tr.t("…")` call in `qml/`
@@ -114,15 +114,15 @@ fn every_catalogue_has_exactly_the_english_key_set() {
         .into_iter()
         .map(|(id, source, _)| (id, source))
         .collect();
-    // 908 web keys + 5 desktop supplements (tools/convert-locales.mjs
-    // DESKTOP_SUPPLEMENT: settings.reduceMotion, which the web has no
-    // control for, and the four Phase 8 liveMode panel keys the web has
-    // not grown yet — refresh, neverUpdated, notImplemented,
-    // rateLimitRetry; see docs/source-map.md).
+    // 908 web keys + 6 desktop supplements (tools/convert-locales.mjs
+    // DESKTOP_SUPPLEMENT: settings.reduceMotion and settings.appVersion,
+    // which the web has no equivalents for, and the four Phase 8 liveMode
+    // panel keys the web has not grown yet — refresh, neverUpdated,
+    // notImplemented, rateLimitRetry; see docs/source-map.md).
     assert_eq!(
         english.len(),
-        913,
-        "expected 908 web keys + 5 desktop supplements = 913"
+        914,
+        "expected 908 web keys + 6 desktop supplements = 914"
     );
 
     for language in LANGUAGES {

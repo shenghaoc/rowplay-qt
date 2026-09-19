@@ -56,6 +56,10 @@ pub struct SettingsBackend {
     /// no other way to prove it starts, and an early quit is the one
     /// override that cannot alter or expose data.
     exit_after_frames: i32,
+    /// Application version for the Settings screen (`CARGO_PKG_VERSION`).
+    /// A release you cannot identify from inside the app makes every
+    /// future bug report worse (Phase 9, R6.5).
+    app_version: String,
 }
 
 impl Default for SettingsBackend {
@@ -153,6 +157,7 @@ impl Default for SettingsBackend {
             phase_shots: crate::backend::test_env("ROWPLAY_PHASE_SHOTS").is_some(),
             phase_closeups: crate::backend::test_env("ROWPLAY_PHASE_CLOSEUPS").is_some(),
             exit_after_frames,
+            app_version: env!("CARGO_PKG_VERSION").to_owned(),
         }
     }
 }
@@ -251,6 +256,7 @@ impl SettingsBackend {
     // this many frames, then quits with status 0. Release-safe by design;
     // see the field comment.
     qproperty!("exitAfterFrames", Member = exit_after_frames, Constant);
+    qproperty!("appVersion", Member = app_version, Constant);
 
     /// Emitted after any preference or token flag changed.
     #[qsignal]
