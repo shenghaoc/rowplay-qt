@@ -23,9 +23,10 @@ crates/rowplay-viewmodel/  # Qt-free UI logic: navigation state, locale date dis
 crates/rowplay-app/        # the binary: qtbridge backend objects, QML shell, Qt Quick 3D (build.rs runs rcc + lrelease)
 crates/rowplay-fixtures/   # dev-only loader for tests/fixtures
 qml/                       # QML modules (RowPlay/qmldir, Main.qml, Theme/Tr singletons, screens) + rowplay.qrc + qtquickcontrols2.conf
-assets/                    # vendored .glb / textures with provenance (ASSET_PROVENANCE.md)
+assets/                    # vendored .glb / textures / icon with provenance (ASSET_PROVENANCE.md)
+packaging/                 # Phase 9 manifests: macOS Info.plist, Linux .desktop + AppStream, Windows Inno Setup script
 i18n/                      # generated ID-based Qt .ts catalogues (never hand-edited; see "Internationalisation")
-tools/                     # asset / locale / fixture pipeline scripts (Python, Node, Blender)
+tools/                     # asset / locale / fixture pipeline scripts (Python, Node, Blender); tools/package/ builds the installers
 tests/fixtures/            # golden parity JSON from rowplay-studio + manifest.json + PROVENANCE.md
 docs/                      # roadmap.md, source-map.md, qt-bridges-notes.md, decisions/ (ADRs)
 .kiro/specs/               # per-phase requirements / design / tasks
@@ -65,14 +66,19 @@ QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
 QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
   ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts cargo test -p rowplay-app
 git diff --check
+tools/package/macos.sh                        # Phase 9: dist/rowplay-qt.app + .dmg (macOS)
+tools/package/linux.sh                        # Phase 9: dist/*.AppImage (Linux x86_64; xvfb-run when headless)
+pwsh tools/package/windows.ps1                # Phase 9: dist/*-setup.exe + .zip (Windows; Inno Setup 6)
 ```
 
 Set `LANG=C.UTF-8` when Qt warns about the C locale. `ROWPLAY_RCC` /
 `ROWPLAY_LRELEASE` override the `rcc` / `lrelease` executables found through
 `qmake`. The repo root has a committed `.envrc` exporting the local Qt 6.11.2
-paths (`~/Qt/6.11.2/gcc_64`, per the README install recipe); source it (or
-`direnv allow`) before any `rowplay-app` command when qmake is not already on
-`PATH`.
+paths (`~/Qt/6.11.2/gcc_64` on Linux, `~/Qt/6.11.2/macos` on macOS, per the
+README install recipe); source it (or `direnv allow`) before any
+`rowplay-app` command when qmake is not already on `PATH`. macOS needs no
+`DYLD_*` variable: `build.rs` emits the Qt lib dir as an `LC_RPATH`
+(qt-bridges-notes #10).
 
 Phase 5 onward requires a local Qt: the replay scene, materials and athlete
 must be run and looked at by hand on this machine (`cargo run -p rowplay-app`
@@ -84,6 +90,33 @@ Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
 and exits, `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic mock
 client (no token), `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the palette,
 `ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk.
+All of those are compiled out of release builds (`backend::test_env`).
+`ROWPLAY_EXIT_AFTER_FRAMES=N` is the one hook read in every build: the shell
+quits with status 0 after N rendered frames, which is how the packaged
+release bundles are proven to start (`tools/package/launch-check.py`); it can
+only shorten a run.
+
+## Packaging and releases (Phase 9, ADR 0012)
+
+`tools/package/{macos.sh,linux.sh,windows.ps1}` build the `.app`/`.dmg`,
+the AppImage and the Inno Setup installer + zip from a release build with
+Qt's own deployment tools (`macdeployqt`, `windeployqt`) and pinned,
+SHA-256-verified `linuxdeploy` tools; each script launch-checks its output
+from a clean environment before it keeps it. `.github/workflows/release.yml`
+runs all three on pull requests touching `packaging/**`, `tools/package/**`,
+`assets/icon/**`, the app `build.rs` or the Cargo manifests, on dispatch,
+and on `v*` tags, where it drafts a GitHub release. Rules:
+
+- Release artifacts come only from that workflow. Never upload a hand-built
+  package to a release.
+- A Qt bump or a qtbridge bump must be re-packaged and launch-checked on
+  all three OSes in the same PR.
+- The launch check proves start / load / render / exit, not pixels. macOS
+  and Windows rendering is verified by a human looking at the packaged
+  app (the gate's visual assertions run on the Linux leg only, note #17);
+  say so in any release PR.
+- Icons live under `assets/icon/`, pinned like the replay assets; regenerate
+  the `.icns`/`.ico` with `tools/package/gen-icons.py` and re-pin.
 
 ## Architecture boundaries
 
@@ -293,3 +326,19 @@ P1 (must fix before merge):
 
 One PR per phase; commits scoped per logical step with subjects in the
 rowplay-studio style, e.g. `feat: Phase 1 - Core parity foundation`.
+
+## Operational lessons
+
+Each rule exists because the failure happened.
+
+- After any conflict resolution, grep the whole tree for conflict markers
+  (`rg -n '^(<{7}|={7}|>{7})'`) before continuing the rebase.
+- Inside a fold rebase (`git rebase --onto` + `amend`), stage **explicit
+  paths** — never `git add -A` or `git add .`. A fold runs while the working
+  tree still carries untracked build output, and `-A` has committed 30 MB of
+  linuxdeploy caches and 2,276 `dist/` files including a 64 MB AppImage into
+  otherwise-clean histories (2026-09-20, #35 review; the second sweep was
+  caught by GitHub's large-file warning at push time, not by any check of
+  ours). Run `git status --porcelain` before every commit inside a rebase,
+  and confirm `git branch --show-current` (or the intended detached commit)
+  before every commit, amend or push.

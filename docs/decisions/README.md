@@ -14,3 +14,6 @@ links back. Format: context, decision, consequences.
 | [0007](0007-platform-libraries.md) | Platform libraries: `ureq` (rustls, blocking), `keyring` 3 with explicit native backends, `rusqlite` (bundled), `directories`; no `url`, no tokio |
 | [0008](0008-balsam-components-not-runtimeloader.md) | Replay packs converted by `balsam` into QML components in every build; `RuntimeLoader` is not used (supersedes the development-time loader consequence of 0003) |
 | [0009](0009-vendored-assets-stay-in-plain-git.md) | Vendored assets stay as plain Git blobs; a 50 MB tripwire under `assets/replay/` forces a deliberate revisit before Phase 6 venues |
+| [0010](0010-venue-baking-route.md) | Venue baking runs the web builder headless in Node; instances live in a contract, not the GLB |
+| [0011](0011-venue-assets-stay-in-plain-git.md) | Venues stay in plain Git; the ADR 0009 ceiling is raised to 100 MB on measured sizes |
+| [0012](0012-packaging-route.md) | Packaging: `macdeployqt` bundle + DMG, `windeployqt` + Inno Setup, `linuxdeploy` AppImage; launch-checked release bundles; ad-hoc signing by default; draft releases on `v*` tags; Flatpak deferred |
