@@ -475,6 +475,30 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     wraps are carved out of the dense continuity guard with this note
     (`requested_twist_stays_continuous_and_engages_the_budgets`).
 
+### Guard reachability sweep (post–Phase 7.5 cleanup)
+
+Class, not incident: assertions after a mid-loop panic / early skip have
+never necessarily executed. Sweep of the long-running guards (dense
+continuity, governor-after-break, warp 20k, three 401-step rig sweeps):
+
+- **N = 12** post-hazard assertion sites inspected (7 in
+  `requested_twist_stays_continuous…` after the first-step `Option` gate
+  or post-loop; 4 post-loop after `break` in the governor degrade tests;
+  1 post-loop on the warp dense sweep).
+- **M = 12** confirmed reached on a passing run (dense sites by
+  counters: elbow/hand_pos/hand_ori/twist_cont = 1999, post = 1 per
+  sport; governor/warp by green completion — `break` cannot skip
+  post-loop asserts).
+- **K = 0** never reached; nothing to fix.
+
+The historical "step-1377" abort is the skierg spin-wrap window
+(cyc ≈ 0.6885 = 1377/2000); with the ranking-11 carve-out the
+orientation assert no longer kills the loop, so the post-loop
+saturation / engagement asserts now run. Rig-pose mid-loop asserts
+after `else { panic!("sport mismatch") }` are structurally reached
+whenever the let-else does not fire (confirmed by the three green
+401-step sweeps; not double-counted in N).
+
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
 `renderer3dSkiAvatar.animate` constants (`SKI_NEUTRAL_TORSO_PITCH 0.055 +

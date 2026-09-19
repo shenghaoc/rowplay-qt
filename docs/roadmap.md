@@ -525,10 +525,12 @@ web-inherited ±π atan2 wraps (tilt cyc 0.2635, spin cyc 0.7080) are
 recorded, not fixed: the web snaps too, and the port's V4-style chain
 amplifies the orientation snap into a ~0.11 m position jump
 (`docs/parity-coverage.md` ranking 11 has the mechanism and the failed
-bounded unwrap attempt). The skierg wrist now holds inside its 30° keep
-budget for the whole cycle (max demand 0.5236 rad) — the pre-rewrite
-"clamp engaged" test assertion was measuring the branch-flip defect, not
-coverage, and was converted to pin the held-budget invariant.
+bounded unwrap attempt). The skierg wrist's pre-clamp twist demand now
+*saturates* at the 30° keep budget for the whole cycle (measured max
+`|requested_twist|` = π/6 + ~1.4e-15 at step 222 — at the cap, not
+inside with headroom) — the pre-rewrite "clamp engaged" assertion was
+measuring the branch-flip defect, not coverage, and was converted to pin
+the saturation invariant.
 
 ### Phase 8 — Live mode
 
@@ -553,8 +555,8 @@ path already does the work.
   polls back off 30 s → 60 s → 120 s → 300 s cap and retry automatically;
   three consecutive failures raise a warning.
 - The panel mirrors `LiveModePanelView.swift`: an enable toggle, the interval
-  picker, "Polling for telemetry…" while a poll is in flight, last-poll time
-  and a next-poll countdown.
+  picker, "Checking for new workouts…" while a poll is in flight, last-poll
+  time and a next-poll countdown.
 - When a fresh result lands, it is deduped by id against the known workouts,
   appended to the library and derived data refreshed; the web debounces bursts
   into one 1 s batch and can play a chime.
