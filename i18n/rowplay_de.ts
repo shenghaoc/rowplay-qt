@@ -5042,5 +5042,10 @@ Hängst du noch fest? Die [FAQ](/docs/faq) deckt mehr ab, und jede Seite dieses 
         <oldsource>Reduce motion</oldsource>
         <translation>Reduce motion</translation>
     </message>
+    <message id="settings.appVersion">
+        <source></source>
+        <oldsource>Version {version}</oldsource>
+        <translation>Version {version}</translation>
+    </message>
 </context>
 </TS>

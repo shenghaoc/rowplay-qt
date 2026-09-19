@@ -5036,5 +5036,10 @@ Still stuck? The [FAQ](/docs/faq) covers more, and every page of this guide is r
         <oldsource>Reduce motion</oldsource>
         <translation>Reduce motion</translation>
     </message>
+    <message id="settings.appVersion">
+        <source></source>
+        <oldsource>Version {version}</oldsource>
+        <translation>Version {version}</translation>
+    </message>
 </context>
 </TS>
