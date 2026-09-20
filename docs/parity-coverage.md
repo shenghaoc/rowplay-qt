@@ -612,6 +612,9 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     class, NOT inherited orientation-only. The step-529 discontinuity
     itself, and the wrap-aware guard conversion that exposes both, live
     in the wrap-aware-guard PR; this PR keeps the carve-out windows.
+    **On the wrap-aware-guard branch that carve-out is replaced by
+    the wrap-aware tight-TOL comparison, which is red at steps 529
+    and 1377 by design; see the dedicated entry below.**
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 
@@ -766,6 +769,273 @@ is `local = normalise(quat_mul(conjugate(parent_world), desired))` with
 `parent_world = work.world_rot[binding.lower]` and `desired` from
 `orient_hand_to_grip_channel` + per-frame `stable_forearm`; it is not
 read from a previous step's `kept_twist`.
+
+### Spin-wrap carve-out: what converting it to wrap-aware measures
+
+The cyc-window budget widen (0.678–0.698 / 0.255–0.275) is a SKIP of the
+tight TOL, not a tolerance. Converting it — `wrap_signed` + TOL 0.02/0.35
+everywhere, no carve-out — lives in the wrap-aware-guard PR
+(shenghaoc/rowplay-qt#34), which is **red by design** and stays red until
+the two discontinuities below are fixed honestly; that guard is the
+record of the defect, not something to route around. Measured on the
+conversion: the guard fails at Skierg step 529 (cyc=0.2645, tilt-wrap
+window) with dh=0.0961 > POSITION_TOL=0.02;
+prev=[-0.3194, 0.8947, -0.4476] curr=[-0.2895, 0.9817, -0.4756]. Neither
+budget was widened and the skip was not restored. The guard on `main`
+keeps the carve-out windows until that PR lands; everything measured
+below is independent of which guard is compiled.
+
+**Both windows measured (clamp-path + cycle probes).** The whole-cycle
+probe (guard pipeline, 2000 steps) finds exactly two discontinuities;
+every other step is ≤ 0.0108 m:
+
+| step | cyc    | dh       | dq       | reach ratio (dist/reach) |
+| --- | --- | --- | --- | --- |
+| 529  | 0.2645 | 0.096140 | 1.299200 | 0.893 (clamp not on path) |
+| 1377 | 0.6885 | 0.110235 | 1.448213 | 0.264 (arm deeply folded)  |
+
+Step 529 is the tilt refinement's ±π snap (`refine_grip_tilt_for_wrist`):
+the web driven identically snaps 1.2991 rad at cyc 0.2635
+(`tools/web-tilt-probe.mjs`); the port's V4-style chain couples the
+snapped frame into position through the oriented contact offset —
+|Δ(R·offset)| = 0.0961 m, nearly perpendicular to the shoulder→target
+ray, which is why the reach clamp cannot absorb it (measured: the chord
+the solve consumes has ~90 mm of headroom through the window, and
+applying the web's absolute 2 mm changes dh not at all). Step 1377 is
+the spin refinement's ±π snap (`refine_grip_spin_for_wrist`) with the
+same coupling — a second **position** discontinuity the old 0.15 window
+budget was covering, not an orientation-only inherited wrap. The
+earlier "IK branch flip" reading of 529 rested on a mixed-chord ratio
+(palm-target distance ÷ wrist-bone sum = 0.999) that no solve consumes;
+retired by the clamp-path probe. The mechanism and the constraints on
+any fix (unwrap keyed per hand/pass/call-site; the reverted Phase 7.5
+attempt) are recorded in ranking 11.
+
+#### The coupling proven, the signum flips measured, and the fix proposal (2026-09-20 #34 investigation; scratch branch, reverted)
+
+**Pass map of `PoseSolver::pose` — COUPLED.** Upper and lower are written
+by the first contact pass (the roles loop), the six settling passes and
+the position half of the four alternating passes, all through
+`Workspace::solve_limb_measured` (`aim_joint(binding.upper …)`,
+`aim_joint(binding.lower …)`); the terminal is written by
+`orient_hand_with_forearm` (pre-budget `local`, budgeted
+`solved.effector`) and re-set by `set_world_rotation` under
+`preserve_terminal`. The wrist refinements reach the position solve
+through one channel: the palm contact point the position solve chases is
+`point(binding.offset, binding.terminal)` — the rig offset rotated by
+the *just-written refined* hand frame — and each alternating pass ends
+with a position solve, so the finally-written upper/lower consume the
+final orient's refinement output. (`stable_forearm` is captured once per
+frame, after the first contact pass, and held across all passes; the
+twist redistribution and the post-pass `split_seam_excess` write
+lower/upper but rotate about bone long axes — position-exact — so the
+oriented-offset chord is the only position path.)
+
+**Measured refinement internals** (left hand, final pass of each frame —
+the call that produces the rendered orientation; instrumented probe on
+the investigation scratch branch, since deleted). Window 1,
+`refine_grip_tilt_for_wrist`, max_tilt = `SKI_PALM_TILT` 0.65:
+
+| step | angle (raw atan2) | signum | excess | applied |
+| --- | --- | --- | --- | --- |
+| 527 | −3.024973 | −1 | 1.874973 | −0.650000 |
+| 528 | −3.089453 | −1 | 1.939453 | −0.650000 |
+| 529 | +3.126974 | +1 | 1.976974 | +0.650000 |
+| 530 | +3.059050 | +1 | 1.909050 | +0.650000 |
+
+The angle walks monotonically down through −π (529's +3.1270 is the
+wrapped representation of −3.1562); `|angle|` and `excess` stay
+continuous, the signum flips, and the applied correction jumps
+1.30 rad = 2·max_tilt ≈ dq 1.299200. Window 2,
+`refine_grip_spin_for_wrist`, limit = 48°·weight:
+
+| step | angle (raw atan2) | limit | applied |
+| --- | --- | --- | --- |
+| 1375 | −3.129083 | 0.701479 | −0.701479 |
+| 1376 | −3.138398 | 0.716964 | −0.716964 |
+| 1377 | +3.135859 | 0.731519 | +0.731519 |
+| 1378 | +3.127298 | 0.745127 | +0.745127 |
+
+Same straddle across −π: the clamped correction jumps −0.7170 →
++0.7315 = 1.448483 ≈ dq 1.448213. **CONFIRMED per window** — and each
+window is exactly one refinement: the sibling stays smooth and
+saturated (tilt holds −2.06, signum −1, through 1375–1378; spin holds
++2.78 at its +0.837758 saturation limit through 525–531). The
+forearm-engagement gate does not trigger either discontinuity: the
+twist-redistribution state (`engaged`, i.e. |forearm_twist| > 1e-9) is
+false at every step of both windows — at 529–531 the demand saturates
+the π/6 keep with 3.3e-16 of dust, the saturation the post-loop assert
+pins. The *init-pass* demand does jump (−0.1497 → +1.8466 at 529;
+−0.2646 → +1.4875 at 1377), but that demand is measured against the
+already-snapped frame — a downstream echo of the refinement flip, not a
+discrete gate.
+
+**Window 2's web account differs in degree from window 1's** (measured,
+`tools/web-tilt-probe.mjs` at pinned `173c6fa`, full cycle at guard
+density, exit 0): at the port's crossing the web's rendered orientation
+is smooth — per-step qjump 0.01041 at cyc 0.6885, handjump ≤ 0.00184
+through the whole window — while the web's own spin snap lands at cyc
+0.7080 with qjump 1.09614. Window 1 is magnitude-faithful (port 1.2992
+vs web 1.2991, two samples apart); window 2 shares only the class (same
+bare-atan2 wrap) with a different crossing phase (39 steps) and
+rendered magnitude (1.448 vs 1.096). The position discontinuity at
+1377 is port-only either way.
+
+**The decisive experiment (bounded; scratch branch, reverted after
+recording).** Breaking only the feedback — the six settling and four
+alternating position solves chase the palm contact point computed with
+the *pre-orient* terminal rotation (captured after the first contact
+pass) instead of the live refined one; terminal writes and everything
+else untouched — gives:
+
+| quantity | coupled (guard) | decoupled (experiment) |
+| --- | --- | --- |
+| dh @ 529 | 0.096140 | **0.008852** (neighbours 0.0085–0.0090) |
+| dh @ 1377 | 0.110235 | **0.001651** (neighbours ~0.00165) |
+| dq @ 529 | 1.299200 | 1.299200 (bit-identical) |
+| dq @ 1377 | 1.448213 | 1.448213 (bit-identical) |
+| sweep max dh | 0.110235 @ 1377 | **0.010683 @ step 523** — under POSITION_TOL everywhere |
+
+Exactly the predicted signature: position collapses onto the web-class
+profile (the web's own window-1 maximum is 0.01260 at step 523) while
+the orientation snaps are untouched — the snap is independent of the
+hand's position, and the coupling is what moves it. Suite on the
+experiment branch (Qt-free: core, platform, viewmodel, fixtures): 3
+failures, **no parity fixture moved**: the dense guard now fails only on
+the faithful orientation snap ("Skierg step 529: hand orientation jumps
+1.2992" — its position assert passes), and
+`the_contact_pass_lands_the_pelvis_and_closes_the_contacts_for_every_sport`
++ `grip_orientation_replaces_the_clip_wrist_within_budgets` fail at
+Skierg step 0 on the accepted cost — with the refined offset out of the
+chord, the palm no longer closes on the pole (left-hand residual
+0.1026 m > `is_usable`'s 0.09 hand limit). Reverted (`git checkout`;
+tree clean).
+
+**The fix proposal — written, not implemented.**
+
+1. **Mechanism.** The SkiErg wrist refinements derive their correction
+   from a bare `atan2`; when the measured tilt (window 1) or spin
+   (window 2) angle walks past ±π, `|angle|` stays continuous but the
+   applied correction flips sign — 1.30 rad at step 529, 1.4485 at step
+   1377 (tables above). The flipped correction rewrites the terminal
+   (hand) rotation in `orient_hand_with_forearm`. Each orient is
+   followed by a position solve whose chord contains the oriented palm
+   offset `R_hand·offset` (`point(binding.offset, binding.terminal)`,
+   read at the top of `solve_limb_measured` and again for the lower
+   aim), so the snapped frame displaces the palm point and the solve
+   re-aims upper/lower, moving the hand origin one-for-one with
+   |Δ(R·offset)|. The experiment above severs exactly that consumption
+   and collapses dh to web-class while leaving dq bit-identical — the
+   coupling, not the snap, is the position defect.
+2. **The option that matches the web.** Wrist orientation applied at the
+   terminal only: the position solves chase a contact point that does
+   not depend on the refined frame — what the web's procedural SkiErg
+   path does by setting `arm.hand.position` directly from the pole
+   solve and rotating the hand quaternion about that origin. In the
+   port this means solving the arm so the terminal *origin* lands on
+   the rig's hand target (the quantity the web pins as `v4HandTargets`;
+   the rig hand-target tests already pin the port's target against it
+   at machine epsilon in the recovery window) instead of the palm point
+   `origin + R_hand·offset`; the refinements then rotate the hand about
+   an origin that sits on the pole and cannot move it. Call sites:
+   `PoseSolver::pose`'s Skierg branch (the settling loop and the
+   alternating loop's position half) and `Workspace::solve_limb_measured`
+   (what the closed point is); the residual keeps its meaning but
+   measures the origin. What it changes: the arm's reach geometry
+   shortens by the offset component along the chord (distal length
+   wrist-only vs palm-inclusive), so `measured_hands`, the reach clamp
+   and the pinned contact residuals recalibrate together. The raw
+   experiment (freeze the rotation, keep the palm-point chord) is **not**
+   the shippable form — it leaves the palm off the pole by the
+   refinement swing (0.1026 m at step 0).
+3. **Alternatives, with trade-offs.** (a) Keep the coupled architecture
+   and unwrap the refinement angles so the correction never sign-flips.
+   The probe measured the refinement inputs are identical across the
+   four passes of a frame (stable forearm + fixed grip frame), so the
+   Phase 7.5 attempt's failure was state keying (a thread-local
+   "previous" re-binding mid-frame), fixable with per-(hand,
+   refinement) state; but any cross-frame unwrap is previous-frame
+   state, with the scrubbing/independence costs ruled out below, and it
+   diverges from the web's rendered orientation at the wrap — a
+   deliberate source-map divergence, the port smoother than its oracle.
+   (b) Replacing the port's 6×4 iteration with the web's analytic
+   `solveTwoBone3D` plus projected pole vector is a **separate
+   question, not part of the answer**: the experiment kept the
+   iteration untouched and still collapsed dh with dq bit-identical, so
+   the iteration is not what propagates the snap — the chord is.
+   Swapping solvers is a recalibration with its own parity exposure.
+4. **Explicitly ruled out: previous-frame seeding.** Seeding the solver
+   from the previous frame makes every frame depend on its predecessor,
+   breaking independent frame evaluation, replay scrubbing, and the
+   cold-evaluation test that already cleared the harness (the cold
+   value at 529 is bit-identical to the sequential one; the jump stays
+   between 528 and 529 under reverse-order evaluation).
+5. **Budgets after the fix.** The two carve-out windows stay deleted.
+   POSITION_TOL = 0.02 everywhere is earned by the decoupled sweep
+   maximum 0.010683 m (step 523) — ~1.9× headroom, quoted against the
+   legitimate press-ramp peak (0.0101–0.0126 m/step), not against the
+   defect. ORIENTATION_TOL = 0.35 green is reachable **only if the
+   orientation snaps are also smoothed** (alternative (a)): the
+   faithful snaps are 1.2992 / 1.4482 rad, ~4× the budget, and the
+   web's oracle snaps too — "green at 0.35 with no special case" and
+   "reproduce the web's snaps" are in direct conflict, and the position
+   fix alone leaves the guard red on exactly those two orientation
+   asserts (measured on the experiment branch).
+6. **Verification once fixed.** (i) The dense guard end-to-end at the
+   settled budgets. (ii) Rendered frames through
+   `Replay.setGuardCycleStep(N)` at steps 526–532 and 1374–1380: the
+   hand must not jump between consecutive frames on screen. (iii) A
+   render-cadence re-measurement (60 fps, 41 spm, all three sports, the
+   #35 method): the SkiErg isolated spikes (0.174/0.189 m/frame at cyc
+   0.262–0.264, 0.121/0.127 at 0.695–0.697) gone, the press ramp
+   (0.23 m/frame, sustained, smooth) untouched, rower/bike still clean.
+   (iv) No fixture regenerated — every parity fixture test must stay
+   green untouched, as it did under the experiment.
+
+**The decision the author needs to make:** reproduce the web's two
+faithful orientation snaps (position fix only; the guard then pins the
+two measured values by name instead of a window carve-out) or smooth
+them past the oracle (refinement unwrap, a recorded source-map
+divergence) for a guard fully green at 0.02/0.35 — and, under either
+branch of that decision, whether the SkiErg arms move to the web's
+hand-origin target law (recalibrating the contact chord) or keep the
+palm-point chord with the frozen-rotation form.
+
+13. **SkiErg pole-grip shortfall through the contact window — recorded,
+    not chased (numbered past 12, the step-529 entry above).** Through
+    the SkiErg contact
+    window the posed hand misses its authored pole-grip target by
+    9–10 cm persistently — measured on this branch (probe, guard
+    pipeline): left-hand residual 0.0898 at step 518 rising monotonically
+    to **0.1016 at step 528**, dropping to 0.0869 at 529 (the tilt-wrap
+    snap briefly pulls the hand back under the limit) and descending to
+    0.0775 at step 534. `Residuals::is_usable`'s hand limit
+    (`GRIP_CONTACT_BUDGET` 0.01 + `GRIP_REACH_SHORTFALL_TOLERANCE`
+    0.08 = 0.09) is breached for **11 consecutive steps (518–528)**,
+    but the dense guard never asserts `is_usable`, and the one test
+    that does (`the_contact_pass_lands_the_pelvis_and_closes_the_contacts_for_every_sport`)
+    samples every 0.025 of the cycle — cyc 0.25 and 0.275 straddle the
+    0.2645 peak — so the breach is invisible to the suite. Two cheap
+    follow-ups, neither this brief's work: close the sampling gap
+    (assert `is_usable` in the dense guard, or stride the contact test
+    finer around contact); and treat the shortfall itself as a grip
+    calibration question (the hand sits ~9 cm short of where the rig
+    places the pole through contact — worth one source-map comparison
+    against the web's post-pole-solve `arm.hand` before touching
+    constants).
+
+14. **Window 2's spin wrap diverges from the web in phase and
+    magnitude — open, uninvestigated.** The port's spin wrap fires at
+    cyc 0.6885 with `dq` 1.4482; the web's fires at cyc 0.7080 with
+    `qjump` 1.0961 (measured, `tools/web-tilt-probe.mjs` at pinned
+    `173c6fa`, full cycle at guard density). Thirty-nine steps early and
+    32% larger. Window 1 matches the web to 0.0001 rad and two steps;
+    window 2 does not match in either phase or magnitude. Something
+    upstream of the spin wrap puts the port's spin angle on a different
+    trajectory from the web's. This is a **separate defect from the
+    position coupling** above — fixing the coupling moves `dh`, not the
+    phase or magnitude of `dq`, which the decoupling experiment left
+    bit-identical. Not investigated.
 
 The former ranking 2 (`solve_skierg` phase calibration — torso base, head
 counter-tilt) is closed: the fix ports the web
