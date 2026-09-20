@@ -2247,6 +2247,22 @@ mod tests {
         solver.parent_of(joint)
     }
 
+    /// Smallest signed angular difference, wrapped to (-PI, PI].
+    fn wrap_signed(delta: f64) -> f64 {
+        use std::f64::consts::{PI, TAU};
+        let w = (delta + PI).rem_euclid(TAU) - PI;
+        if w == -PI { PI } else { w }
+    }
+
+    #[test]
+    fn wrap_signed_covers_the_near_and_far_sides_of_the_circle() {
+        use std::f64::consts::{PI, TAU};
+        assert!((wrap_signed(0.1) - 0.1).abs() < 1e-12);
+        assert!((wrap_signed(TAU - 0.1) - (-0.1)).abs() < 1e-12);
+        assert!((wrap_signed(-TAU + 0.1) - 0.1).abs() < 1e-12);
+        assert_eq!(wrap_signed(PI), PI);
+    }
+
     /// SkiErg pre-clamp twist demand saturates at the 30° keep budget.
     ///
     /// Measured (2000 samples/cycle): max `|requested_twist|` =
