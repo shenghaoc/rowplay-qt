@@ -2443,12 +2443,16 @@ mod tests {
                     //    driven identically snaps 1.299 rad at cyc 0.2635
                     //    (tools/web-tilt-probe.mjs: qjump 1.2991).
                     // 2. SPIN wrap (refineGripSpinForWrist), mid flight:
-                    //    both sweep the same monotone −π approach through
-                    //    the carried-pole window; the port crosses at cyc
-                    //    0.6885 (1.448 rad), the web at cyc 0.7080
-                    //    (qjump 1.0961) — the ~0.02 cycle offset is the
-                    //    small forearm-vs-shaft geometry difference between
-                    //    the two solvers, not a different phenomenon.
+                    //    both sweep a monotone −π approach through the
+                    //    carried-pole window, but they do not agree: the
+                    //    port crosses at cyc 0.6885 (1.448 rad), the web at
+                    //    cyc 0.7080 (qjump 1.0961) — thirty-nine steps
+                    //    early and 32% larger. The earlier reading (a small
+                    //    forearm-vs-shaft geometry difference, "not a
+                    //    different phenomenon") is RETRACTED: it was an
+                    //    attribution, never a measurement. Recorded as
+                    //    ranking 14 in docs/parity-coverage.md — its own
+                    //    defect, open and uninvestigated.
                     //
                     // Parity, not defect: the port must reproduce the
                     // web's snaps, not smooth past them. The position jump
@@ -2463,22 +2467,51 @@ mod tests {
                     // (measured 0.110 m ≈ 2·|offset⊥|·sin(max_spin), the
                     // oriented offset swinging with the frame). Each wrap
                     // is one isolated step inside its window, never two.
-                    let tilt_wrap =
-                        sport == Sport::Skierg && (0.255..0.275).contains(&stroke.cycle_frac);
-                    let spin_wrap =
-                        sport == Sport::Skierg && (0.678..0.698).contains(&stroke.cycle_frac);
-                    let (position_budget, orientation_budget) = if tilt_wrap || spin_wrap {
-                        (0.15, 1.45)
-                    } else {
-                        (0.02, 0.35)
-                    };
+                    // Continuity uses the same tight TOL everywhere — the
+                    // cyc-window widen was a SKIP of the real bound, not a
+                    // tolerance. The angular comparison is wrap-aware so a
+                    // ±π singularity is not mistaken for a step skip.
+                    const POSITION_TOL: f64 = 0.02;
+                    const ORIENTATION_TOL: f64 = 0.35;
                     assert!(
-                        dh < position_budget,
-                        "{sport:?} step {step}: hand jumps {dh:.4}"
+                        dh < POSITION_TOL,
+                        "{sport:?} step {step}: hand jumps {dh:.4} \
+                         (cyc {:.4}, TOL {POSITION_TOL}) \
+                         prev={last_h:?} curr={hand_w:?}",
+                        stroke.cycle_frac
                     );
+                    // WRONG INVARIANT — deliberately left red; do NOT widen
+                    // it to make it pass.
+                    //
+                    // A continuity budget is the wrong shape here. This
+                    // quantity is one `canonical` makes discontinuous, and
+                    // at the wrap the port is *faithful*: its snap at step
+                    // 529 is 1.2992 and the web's at the same phase is
+                    // 1.2991. So "|Δq| < 0.35" and "reproduce the web's
+                    // snaps" are mutually exclusive — this assert stays red
+                    // after the position coupling is fixed, and that is the
+                    // expected outcome, not a regression.
+                    //
+                    // What should replace it: a parity comparison against
+                    // the web's measured `qjump` at the same phase, not a
+                    // continuity budget. That needs the web's per-phase
+                    // oracle wired into the guard and is its own piece of
+                    // work, deliberately not done in this pass.
+                    //
+                    // The measured asymmetry decides that assert's shape,
+                    // so record it here: window 1 is faithful (port 1.2992
+                    // at cyc 0.2645 vs web 1.2991 at cyc 0.2635 — two steps
+                    // apart), window 2 is not (port 1.4482 at cyc 0.6885 vs
+                    // web 1.0961 at cyc 0.7080 — thirty-nine steps early and
+                    // 32% larger). A single "matches the web's snap" rule
+                    // will not cover both; window 2 is its own defect
+                    // (ranking 14), open and uninvestigated.
                     assert!(
-                        dq < orientation_budget,
-                        "{sport:?} step {step}: hand orientation jumps {dq:.4}"
+                        wrap_signed(dq).abs() < ORIENTATION_TOL,
+                        "{sport:?} step {step}: hand orientation jumps {} \
+                         (raw dq {dq:.4}, cyc {:.4}, TOL {ORIENTATION_TOL})",
+                        wrap_signed(dq).abs(),
+                        stroke.cycle_frac
                     );
                 }
                 prev_elbow = Some((elbow_w, hand_w, hand_q));
