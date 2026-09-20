@@ -378,3 +378,13 @@ Each rule exists because the failure happened.
   gate chain piped `cargo test` through a counting grep, the failing
   test's name and output were discarded — nothing to compare a recurrence
   against.
+- Check **exit codes, not output patterns**. A check that greps a command's
+  output for failure markers passes whenever the command never got far
+  enough to emit them: a `cargo test` compile error produces no
+  `test result: FAILED` lines, so a counting grep reports zero and
+  succeeds (2026-09-20: the ad-hoc per-commit rebase gate used exactly
+  that idiom). Verified by grep that it appears nowhere in
+  `.github/workflows/` or `tools/`; the one output grep in `tools/`
+  (`macos.sh`'s `otool | grep -F`) is the safe orientation — it fails the
+  build on the *presence* of a leak signature, not on the absence of a
+  success marker.
