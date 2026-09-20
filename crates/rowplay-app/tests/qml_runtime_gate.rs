@@ -14,6 +14,23 @@
 //! Unlike the 3D smoke screenshot test this needs no GL: the shell is pure
 //! Qt Quick 2D, so `offscreen` renders it and the gate runs in every
 //! `cargo test -p rowplay-app` invocation, including CI on all three OSes.
+//!
+//! Hermeticity: the gate **defaults** to `offscreen` but keeps a
+//! caller-provided `QT_QPA_PLATFORM` (the headless recipe uses xcb under
+//! Xvfb). With an override it runs against a real window system and is
+//! session-dependent — concurrent rendering apps have frozen gate walks
+//! before (`docs/parity-coverage.md`, capture caveat). CI's display is
+//! always clean; local runs after visual work are the risk case.
+//! Recorded 2026-09-20: one per-commit-gate execution failed once and
+//! passed unchanged on immediate re-run — cause **unproven**, recorded as
+//! unexplained rather than dismissed as flake. Two facts narrow it: the
+//! failing exec's environment had `QT_QPA_PLATFORM` unset (`.envrc` does
+//! not set it), so the gate ran on the hermetic `offscreen` default and
+//! the session-dependence above is *excluded* as that incident's cause;
+//! and the failing step's output was not retained — the gate chain pipes
+//! `cargo test` through a counting grep, which kept the failure count and
+//! discarded the failing test's name and output, so a recurrence has
+//! nothing to be compared against.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};

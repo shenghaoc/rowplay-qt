@@ -364,3 +364,17 @@ Each rule exists because the failure happened.
   machine and may be retained there. Only send captures whose contents you
   would publish; the 2026-09-20 T9 captures carried demo workout data only,
   and that is the bar.
+- A failure that does not reproduce is recorded as **unexplained**, never
+  dismissed as "flake" — not reproducing is what flakiness does, so the word
+  asserts a mechanism nobody demonstrated. Name what was checked, what the
+  suspected interference was, and leave the cause open (2026-09-20: one
+  per-commit-gate execution failed once and passed unchanged on re-run;
+  recorded in the QML gate's docs together with the gate's real hermeticity
+  boundary — it defaults to `offscreen` but keeps a caller-provided
+  `QT_QPA_PLATFORM`, so local runs after visual work are session-dependent
+  where CI's clean Xvfb is not. The same record shows what checking the
+  environment buys: the failing exec had `QT_QPA_PLATFORM` unset (offscreen
+  — the session-dependence path excluded as the cause), and because the
+  gate chain piped `cargo test` through a counting grep, the failing
+  test's name and output were discarded — nothing to compare a recurrence
+  against.
