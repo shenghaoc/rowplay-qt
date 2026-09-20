@@ -74,13 +74,71 @@
 - [x] T8 Documentation: ADR 0012 + completed ADR index, README (install,
   build, corrected Status), AGENTS.md (commands, hook, release rule),
   qt-bridges-notes #10 / #5, tools/README, roadmap (R5).
-- [ ] T9 Human eyes on the distributed artifact before the first public
+- [x] T9 Human eyes on the distributed artifact before the first public
   release: open the AppImage on a real Linux machine (X11 and Wayland),
   look at the dashboard, detail and all three replay scenes (R6.1). The
   launch check cannot see pixels. macOS and Windows are not distributed, so
   their human checks are closed as **won't-do** with the distribution
   policy as the reason — the macOS partial look below stays on record but
   blocks nothing.
+  Author inspection (2026-09-20, recorded from the author's report): the
+  author (Shenghao Chen) opened the packaged AppImage on this machine —
+  RHEL 10.2, GNOME on Wayland — the release-run 35457858565 artifact
+  (`rowplay-qt-0.1.0-linux-x86_64.AppImage`, sha256 `7b9b803a…3298e7`,
+  sidecar-verified). What he reports seeing, and all that is recorded:
+  the default **light** first launch showing the styled empty state — a
+  Replay button, the heading "No stroke data" and the subtext "No
+  per-stroke sample at this time." He then opened the replays of **all
+  three sports — rower, SkiErg and bike — in the packaged AppImage**
+  (his word as the evidence; the review holds no pixel capture of
+  those scenes on the packaged binary). His inspection observations —
+  not everything is ported, loading feels slow, the animation feels
+  jerky at times — are recorded with the jerkiness analysis in
+  `docs/roadmap.md` UI follow-ups. His screenshot also corrects an
+  earlier review claim recorded here: the first-launch main area is
+  **not blank** — it is the styled empty state above; the earlier
+  "completely empty main area" reading came from coarse luminance
+  sampling, which reads sparse text on a plain background as flat. A
+  fresh light-theme capture of the same first-launch state is retained
+  as `artifacts/t9/packaged-first-launch.png` (the review's earlier
+  captures forced dark via `ROWPLAY_FORCE_COLOR_SCHEME`).
+  The review's own pixel captures independently verify the packaged
+  dashboard and the detail screen (title, date, metric tiles,
+  split-breakdown charts, an enabled Replay button) against a fresh
+  debug build of the same source (`artifacts/t9/packaged-detail.png`);
+  that evidence is the review agent's, not the author's, and nothing
+  beyond the report above is attributed to him.
+  Synthetic-input record (method limits, claim narrowed to what was
+  demonstrated): the X11 routes are refused on this machine — GNOME
+  denies XTEST pointer faking, and `XSendEvent` **button** events are
+  ignored by Qt xcb under XWayland while `XSendEvent` **key** events do
+  arrive (measured) — `/dev/uinput` is root-gated and no nested X server
+  is installed. The conclusion "synthetic input is impossible" was first
+  recorded before the Wayland-native and accessibility routes had been
+  tried; of those, AT-SPI was subsequently exercised (below) and the
+  RemoteDesktop portal (`org.freedesktop.portal.RemoteDesktop`, libei
+  back-end) remains **untried** — it requires one author consent dialog.
+  Accessibility (measured, screen-reader audit): Qt 6.11 ships **no**
+  `plugins/accessiblebridge/` directory at all — that is the Qt 5
+  layout; the AT-SPI support is compiled into `libQt6Gui`, and the
+  bundle's copy carries exactly the same AT-SPI string count as the
+  installed Qt (74 each), so the distributed artifact has **no**
+  accessibility-plugin gap of the missing-bridge kind. Running the
+  packaged binary on the GNOME session with no environment flag, the app
+  exposes a usable AT-SPI tree: named list items carrying the full
+  workout summary ("RowErg 2000m test; May 27, 2026; 2.00 km;
+  1:44.7/500m"), named combo boxes and check boxes, and the Replay
+  button with role `button`, name `Replay` and a `Press` action — a
+  screen reader can see and act on the distributed app.
+  AT-SPI drive attempt (recorded as a follow-up seed): invoking `Press`
+  on the Replay button over AT-SPI returned success; the app then
+  re-created its X window and the main pane rendered blank white while
+  the sidebar stayed intact — the 3D scene was not captured and the
+  state was not diagnosed within budget. Building an
+  accessibility-driven gate walk against the packaged artifact (instead
+  of a debug build) would close the Quick 3D deployment boundary
+  permanently rather than once per release by hand; left as a follow-up.
+  Captures retained under `artifacts/t9/` (gitignored).
   Done, Linux (2026-09-19, measured on RHEL 10.2, GNOME 49.4 Wayland,
   Intel UHD 630 / Mesa 25.2.7, 1920x1080@144): the PR AppImage
   (`rowplay-qt-0.1.0-linux-x86_64.AppImage`, sha256 verified, no
@@ -93,7 +151,9 @@
   build's gate walk under the same native Wayland session captures all
   screens with zero QML errors, and the row/ski/bike replay viewports show
   complete scenes (athlete, equipment, venue, shadows) — no black
-  viewports. Native-Wayland frame medians are re-measured in the same
+  viewports; the review's gate re-walk measured the three venues'
+  viewports physically (water ≈69, snow ≈196, road ≈124 mean-luma, σ
+  10–45 — no flat or black viewport). Native-Wayland frame medians are re-measured in the same
   session (see the Task 2 report).
   Partial, macOS (2026-09-19, measured): the deployed bundle's live window
   was screenshotted on the build Mac — dark scheme, day-sectioned sidebar

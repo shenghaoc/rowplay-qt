@@ -342,3 +342,25 @@ Each rule exists because the failure happened.
   ours). Run `git status --porcelain` before every commit inside a rebase,
   and confirm `git branch --show-current` (or the intended detached commit)
   before every commit, amend or push.
+- A vision model's description of a capture is **not evidence**. Compute
+  pixel statistics from the bytes first (region luminance and variance,
+  tile-wise diffs between expected states); use a vision model only to
+  corroborate what those numbers already show, never as the observation
+  that establishes a state. On 2026-09-20 a vision pass produced confident,
+  detailed descriptions of detail views and three 3D venues for captures
+  that pixel-diffing proved were identical dashboard frames whose only
+  variation was a blinking text cursor; every readout was discarded.
+- A flat luminance sample does **not** mean an empty region — sparse text
+  on a plain background reads as flat. Confirm with a crop or a glyph-edge
+  count before concluding a pane is empty (2026-09-20: the first-launch
+  main pane, actually the styled "No stroke data" empty state, was recorded
+  as blank and the claim had to be corrected in the spec).
+- `pkill -f <pattern>` matches your own shell's command line, because the
+  pattern appears in it — twice this killed the driving script mid-run
+  (same family as `git add -A`: a command whose scope is wider than the
+  mental model of it). Kill by PID: record `$!` or read it from
+  `pgrep -x <process-name>`, then `kill <pid>`.
+- A capture handed to a third-party vision/describe service leaves this
+  machine and may be retained there. Only send captures whose contents you
+  would publish; the 2026-09-20 T9 captures carried demo workout data only,
+  and that is the bar.
