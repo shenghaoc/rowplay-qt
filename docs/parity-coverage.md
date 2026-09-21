@@ -1006,11 +1006,17 @@ tree clean).
    carve-out; (iii) done — 0.2146 / **0.0404** / 0.2613 m/frame for the
    SkiErg windows and press ramp, against the web's own 0.2783 / 0.0414
    / 0.2574 at the same cadence, rower and bike unchanged; (iv) done —
-   not one existing fixture moved. (ii) is done as far as this machine
-   allows: the step walk captures steps 520–540 and the gate is green,
-   but the 3D viewport comes back black from `grabToImage` on this
-   macOS host (qt-bridges-notes #17), so the *visual* read of those
-   frames still needs a Linux session's gate walk.
+   not one existing fixture moved. (ii) done from the Linux CI leg's
+   step captures (this Mac's `grabToImage` returns a black 3D viewport —
+   qt-bridges-notes #17 — so the walk was pixel-compared on the runner's
+   artifact against `main`'s, not eyeballed): `main` shows an isolated
+   screen event at 528→529 (3.66% of viewport pixels moving >40 levels
+   against 0.87–0.93% at every neighbour) at exactly the step the
+   pre-fix guard failed on, and the fix leaves step 531→532 (3.01%) as
+   the strip's only outlier — the faithful snap, at the index the fixed
+   guard reports `dh` 0.0405 / `dq` 1.2993 at. Both indices agree with
+   the guard because the capture walk poses through
+   `Replay.setGuardCycleStep`, the guard's own sample.
 
 **The decision the author needed to make — ANSWERED (2026-09-21):**
 reproduce the web's faithful orientation snaps; the guard pins them
