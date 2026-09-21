@@ -14,8 +14,12 @@
 //! glTF space, so the contract's bend hints apply unrotated.
 
 use rowplay_core::models::Sport;
-use rowplay_core::replay::hand_grip::{hand_curl_axis, hand_long_axis, hand_palm_normal_out};
+use rowplay_core::replay::bike_equipment::HOOD_RADIUS;
+use rowplay_core::replay::hand_grip::{
+    HAND_FIST_CENTRE, hand_channel_centre, hand_curl_axis, hand_long_axis, hand_palm_normal_out,
+};
 use rowplay_core::replay::rig_pose::{BikeErgRigPose, RowerRigPose, SkiErgRigPose, SportRigPose};
+use rowplay_core::replay::row_equipment::SCULL_GRIP_RADIUS;
 use rowplay_core::replay::row_equipment::{
     FOREARM_LENGTH, UPPER_ARM_LENGTH, rower_requested_wrist_reach, solve_rower_oar_yaw,
 };
@@ -514,6 +518,48 @@ struct Binding {
     bend_hint: [f64; 3],
 }
 
+/// The hand contact point the arm chain actually closes on, per sport (web
+/// `gripEffectorOffsets` in `renderer3d.ts`).
+///
+/// The V4 contract's authored hand offsets are the **palm surface** points
+/// (`v4LeftHand` = [−0.08, −0.01, 0.035], the `HAND_PALM_CONTACT` the grip
+/// channel was fitted from). The web's controller overrides them before the
+/// contact pass: SkiErg drives the fitted **fist-channel centre** ("the centre
+/// of the closed fist onto the shaft, not the authored palm-surface point: the
+/// latter lays the pole across the knuckles and the fingers shut beside it
+/// instead of around it"), RowErg and BikeErg drive the **channel centre** for
+/// their equipment radius, and the feet keep the authored sole offsets.
+///
+/// Porting the authored palm offsets instead had two measured consequences
+/// (issue #40, ranking 13):
+///
+/// 1. The hand never closed on its grip: with the web's own target the port
+///    sat 5–10 cm short of it through the SkiErg contact window (0.090 at
+///    step 518 rising to 0.102 at 528), while the web V4 hero chain drives
+///    its fist-channel centre onto that target to `0.0000007` m at every step
+///    of the same 2000-step sweep.
+/// 2. The wrist refinements' ±π snaps displaced the hand further: the
+///    angular change moves the *terminal bone origin* by `|Δ(R·offset)|`, and
+///    the palm offset is 0.0874 m against the fist centre's 0.0427 m, so the
+///    same world-frame change swings the origin roughly twice as far.
+fn effective_hand_offset(sport: Sport, side: f64, authored: [f64; 3]) -> [f64; 3] {
+    let offset = match sport {
+        // Mirrored exactly as the web's override is: x by side, y/z unchanged.
+        Sport::Skierg => [
+            side * HAND_FIST_CENTRE[0],
+            HAND_FIST_CENTRE[1],
+            HAND_FIST_CENTRE[2],
+        ],
+        Sport::Rower => hand_channel_centre(SCULL_GRIP_RADIUS, side),
+        Sport::Bike => hand_channel_centre(HOOD_RADIUS, side),
+    };
+    if offset.iter().all(|value| value.is_finite()) {
+        offset
+    } else {
+        authored
+    }
+}
+
 /// Build one hand's wrist rest frame from the athlete's rest hierarchy
 /// (web `wristRest` construction): the twist axis is the hand joint's own
 /// offset in its parent (the forearm), the rest orientation is aligned so
@@ -662,13 +708,31 @@ impl PoseSolver {
             work.locals[self.bindings[0].lower].rotation,
             work.locals[self.bindings[1].lower].rotation,
         ];
+        // The sport's effective hand contact offsets: the web overrides the
+        // contract's authored palm points per sport before the contact pass
+        // (`gripEffectorOffsets`), and the arm chains — the reach clamp, the
+        // measured distal length, the alternation's contact chord and the
+        // contact residual — must all close on the same point the visible
+        // equipment sits at. See [`effective_hand_offset`].
+        let bindings = [
+            Binding {
+                offset: effective_hand_offset(sport, -1.0, self.bindings[0].offset),
+                ..self.bindings[0]
+            },
+            Binding {
+                offset: effective_hand_offset(sport, 1.0, self.bindings[1].offset),
+                ..self.bindings[1]
+            },
+            self.bindings[2],
+            self.bindings[3],
+        ];
 
         // Row's long reach benefits from an initial arm clearance solve
         // before the pelvis is placed; its clamp results are throwaway.
         if sport == Sport::Rower {
             for (binding, target) in [
-                (self.bindings[0], targets.left_hand),
-                (self.bindings[1], targets.right_hand),
+                (bindings[0], targets.left_hand),
+                (bindings[1], targets.right_hand),
             ] {
                 let target = work.clamp_hand_target(&binding, target).0;
                 work.solve_limb(&binding, target);
@@ -704,7 +768,7 @@ impl PoseSolver {
             if let Some(oar) = oar {
                 let mut solved = [0.0f64; 2];
                 for (index, side) in [(0usize, -1.0f64), (1usize, 1.0f64)] {
-                    let binding = self.bindings[index];
+                    let binding = bindings[index];
                     let shoulder = work.world_pos[binding.upper];
                     let elbow = work.world_pos[binding.lower];
                     let wrist = work.point(binding.offset, binding.terminal);
@@ -756,30 +820,36 @@ impl PoseSolver {
         }
 
         let mut effective = targets;
-        // Structural segment lengths per hand chain, measured once per
-        // frame from the clip-sampled pose (web `correctContactChain`):
-        // consumed unchanged by every solve pass below so the reach
-        // boundary cannot shift between passes (the alternating-pass
-        // re-measure was the elbow-branch snap at near-extension).
+        // Structural segment lengths per hand chain, measured once per frame
+        // from the clip-sampled pose (web `correctContactChain`:
+        // `proximalLength = |elbow − shoulder|`, `distalLength = |hand −
+        // elbow|`). Both are **bone** lengths — neither contains the terminal
+        // contact offset — so they cannot move when a solve re-aims the hand,
+        // and every pass below consumes the same pair (the alternating-pass
+        // re-measure was the elbow-branch snap at near-extension). The web's
+        // `solvePositionTowardTarget` then aims the *hand bone's origin* at
+        // `anchor − R·offset`, which is what makes the offset's rotation a
+        // rigid re-aim about a fixed contact instead of a chord that moves
+        // with the wrist frame (issue #40).
         let measured_hands = [
             (
                 length(sub(
-                    work.world_pos[self.bindings[0].lower],
-                    work.world_pos[self.bindings[0].upper],
+                    work.world_pos[bindings[0].lower],
+                    work.world_pos[bindings[0].upper],
                 )),
                 length(sub(
-                    work.point(self.bindings[0].offset, self.bindings[0].terminal),
-                    work.world_pos[self.bindings[0].lower],
+                    work.world_pos[bindings[0].terminal],
+                    work.world_pos[bindings[0].lower],
                 )),
             ),
             (
                 length(sub(
-                    work.world_pos[self.bindings[1].lower],
-                    work.world_pos[self.bindings[1].upper],
+                    work.world_pos[bindings[1].lower],
+                    work.world_pos[bindings[1].upper],
                 )),
                 length(sub(
-                    work.point(self.bindings[1].offset, self.bindings[1].terminal),
-                    work.world_pos[self.bindings[1].lower],
+                    work.world_pos[bindings[1].terminal],
+                    work.world_pos[bindings[1].lower],
                 )),
             ),
         ];
@@ -790,7 +860,7 @@ impl PoseSolver {
             (3, targets.right_foot, false),
         ];
         for (index, target, is_hand) in roles {
-            let binding = self.bindings[index];
+            let binding = bindings[index];
             let solve_target = if is_hand {
                 let (clamped, forgiven) = work.clamp_hand_target(&binding, target);
                 if forgiven {
@@ -810,6 +880,8 @@ impl PoseSolver {
             // fallback if that degenerates. The static Studio hint flips
             // the elbow branch where it crosses the chord under the fixed
             // plant (measured 1.74 rad wrist-demand snap at cyc 0.2745).
+            // Hands keep the effector frame the orient chose (the web's
+            // counter-rotation); feet close the sole directly.
             if is_hand && sport == Sport::Skierg && index < frames.len() {
                 let hint = project_bend_hint(
                     frames[index].ski_bend_hint,
@@ -821,10 +893,18 @@ impl PoseSolver {
                     solve_target,
                     hint,
                     Some(measured_hands[index]),
-                    false,
+                    true,
+                );
+            } else if is_hand {
+                work.solve_limb_measured(
+                    &binding,
+                    solve_target,
+                    binding.bend_hint,
+                    Some(measured_hands[index]),
+                    true,
                 );
             } else {
-                work.solve_limb(&binding, solve_target);
+                work.solve_limb_contact(&binding, solve_target);
             }
         }
 
@@ -851,15 +931,15 @@ impl PoseSolver {
             let stable_forearms = [
                 normalised_or(
                     sub(
-                        work.world_pos[self.bindings[0].terminal],
-                        work.world_pos[self.bindings[0].lower],
+                        work.world_pos[bindings[0].terminal],
+                        work.world_pos[bindings[0].lower],
                     ),
                     [0.0, -1.0, 0.0],
                 ),
                 normalised_or(
                     sub(
-                        work.world_pos[self.bindings[1].terminal],
-                        work.world_pos[self.bindings[1].lower],
+                        work.world_pos[bindings[1].terminal],
+                        work.world_pos[bindings[1].lower],
                     ),
                     [0.0, -1.0, 0.0],
                 ),
@@ -892,7 +972,7 @@ impl PoseSolver {
             // jump in one sample)"; their fix — always converge fully, the
             // same structure this port now matches.
             for (index, side) in [(0, -1.0), (1, 1.0)] {
-                let binding = self.bindings[index];
+                let binding = bindings[index];
                 let frame = frames[index];
                 wrist[index] = self.orient_hand_with_forearm(
                     &mut work,
@@ -907,11 +987,11 @@ impl PoseSolver {
                 for (index, target) in [(0, effective.left_hand), (1, effective.right_hand)] {
                     let hint = project_bend_hint(
                         frames[index].ski_bend_hint,
-                        work.world_pos[self.bindings[index].upper],
+                        work.world_pos[bindings[index].upper],
                         target,
                     );
                     work.solve_limb_measured(
-                        &self.bindings[index],
+                        &bindings[index],
                         target,
                         hint,
                         Some(measured_hands[index]),
@@ -921,7 +1001,7 @@ impl PoseSolver {
             }
             for _pass in 0..4 {
                 for (index, side) in [(0, -1.0), (1, 1.0)] {
-                    let binding = self.bindings[index];
+                    let binding = bindings[index];
                     let frame = frames[index];
                     wrist[index] = self.orient_hand_with_forearm(
                         &mut work,
@@ -935,11 +1015,11 @@ impl PoseSolver {
                 for (index, target) in [(0, effective.left_hand), (1, effective.right_hand)] {
                     let hint = project_bend_hint(
                         frames[index].ski_bend_hint,
-                        work.world_pos[self.bindings[index].upper],
+                        work.world_pos[bindings[index].upper],
                         target,
                     );
                     work.solve_limb_measured(
-                        &self.bindings[index],
+                        &bindings[index],
                         target,
                         hint,
                         Some(measured_hands[index]),
@@ -949,17 +1029,23 @@ impl PoseSolver {
             }
         } else {
             for (index, side) in [(0, -1.0), (1, 1.0)] {
-                let binding = self.bindings[index];
+                let binding = bindings[index];
                 let frame = frames[index];
                 wrist[index] = self.orient_hand(&mut work, sport, binding, side, &frame);
             }
             for (index, target) in [(0, effective.left_hand), (1, effective.right_hand)] {
-                work.solve_limb(&self.bindings[index], target);
+                work.solve_limb_measured(
+                    &bindings[index],
+                    target,
+                    bindings[index].bend_hint,
+                    Some(measured_hands[index]),
+                    true,
+                );
             }
         }
         if sport == Sport::Skierg {
             for (index, side) in [(0, -1.0), (1, 1.0)] {
-                let binding = self.bindings[index];
+                let binding = bindings[index];
                 wrist[index].humerus_roll =
                     self.distribute_ski_elbow_twist(&mut work, snapshot[index], binding, side);
             }
@@ -975,10 +1061,10 @@ impl PoseSolver {
             }
         };
         let residuals = Residuals {
-            left_hand: residual(&self.bindings[0], effective.left_hand),
-            right_hand: residual(&self.bindings[1], effective.right_hand),
-            left_foot: residual(&self.bindings[2], effective.left_foot),
-            right_foot: residual(&self.bindings[3], effective.right_foot),
+            left_hand: residual(&bindings[0], effective.left_hand),
+            right_hand: residual(&bindings[1], effective.right_hand),
+            left_foot: residual(&bindings[2], effective.left_foot),
+            right_foot: residual(&bindings[3], effective.right_foot),
             pelvis: length(sub(work.world_pos[self.hips], targets.pelvis)),
         };
         for local in &mut work.locals {
@@ -1262,28 +1348,57 @@ impl<'a> Workspace<'a> {
     }
 
     fn point(&self, offset: [f64; 3], joint: usize) -> [f64; 3] {
+        add(self.world_pos[joint], self.offset_world(offset, joint))
+    }
+
+    /// The joint's scaled contact offset rotated into world space — the
+    /// vector from the joint's origin to its contact point.
+    fn offset_world(&self, offset: [f64; 3], joint: usize) -> [f64; 3] {
         let s = self.world_scale[joint];
         let scaled = [offset[0] * s[0], offset[1] * s[1], offset[2] * s[2]];
-        add(self.world_pos[joint], rotate(self.world_rot[joint], scaled))
+        rotate(self.world_rot[joint], scaled)
     }
 
     /// Clamp a hand target into the arm's reach (web parity: best-effort
-    /// constrain). Returns the target to solve toward and whether the
+    /// constrain). The reach bounds apply to the **effector origin** — the
+    /// anchor pulled back by the oriented contact offset, exactly the
+    /// quantity `solvePositionTowardTarget` clamps — against the bone reach
+    /// with the web's absolute 2 mm margins, including its folded-chain
+    /// floor `|proximal − distal| + 0.002` (which keeps the two sphere
+    /// intersections off their tangent point, the measured 0.138 m
+    /// bifurcation). Returns the anchor to solve toward and whether the
     /// shortfall is small enough to be forgiven by the residual gate.
     fn clamp_hand_target(&self, binding: &Binding, target: [f64; 3]) -> ([f64; 3], bool) {
         let shoulder = self.world_pos[binding.upper];
-        let elbow = self.world_pos[binding.lower];
-        let contact = self.point(binding.offset, binding.terminal);
-        let reach = (length(sub(elbow, shoulder)) + length(sub(contact, elbow))) * 0.998;
-        let delta = sub(target, shoulder);
+        let lower = self.world_pos[binding.lower];
+        let offset = self.offset_world(binding.offset, binding.terminal);
+        let desired = sub(target, offset);
+        let first = length(sub(lower, shoulder));
+        let second = length(sub(self.world_pos[binding.terminal], lower));
+        let maximum = first + second - 0.002;
+        let minimum = (first - second).abs() + 0.002;
+        let delta = sub(desired, shoulder);
         let distance = length(delta);
-        if distance > reach && distance > 1e-6 && reach > 1e-5 {
-            let clamped = add(shoulder, scale(delta, reach / distance));
-            return (clamped, distance - reach <= GRIP_REACH_SHORTFALL_TOLERANCE);
+        if distance <= 1e-6 || maximum <= 1e-5 {
+            return (target, false);
         }
-        (target, false)
+        let clamped_distance = distance.clamp(minimum.min(maximum), maximum);
+        if clamped_distance == distance {
+            return (target, false);
+        }
+        let clamped = add(
+            add(shoulder, scale(delta, clamped_distance / distance)),
+            offset,
+        );
+        (
+            clamped,
+            (distance - maximum).max(0.0) <= GRIP_REACH_SHORTFALL_TOLERANCE,
+        )
     }
 
+    /// Solve one limb onto its contact with the binding's static bend hint.
+    /// Hands take the origin aim (the web's terminal law); feet close the
+    /// sole contact directly, which is the quantity the rig fixtures pin.
     fn solve_limb(&mut self, binding: &Binding, target: [f64; 3]) {
         self.solve_limb_hinted(binding, target, binding.bend_hint);
     }
@@ -1299,17 +1414,61 @@ impl<'a> Workspace<'a> {
         self.solve_limb_measured(binding, target, hint, None, false);
     }
 
+    /// Close one foot's sole contact on its target: the chain's distal length
+    /// is measured to the *contact point* and the sole is swung onto the
+    /// target directly (no oriented-offset origin aim, no counter-rotation).
+    /// The sole offset is part of the foot's closed geometry rather than a
+    /// grip the hand frame steers, and the rig fixtures pin the sole on the
+    /// pedal / plate.
+    fn solve_limb_contact(&mut self, binding: &Binding, target: [f64; 3]) {
+        let root = self.world_pos[binding.upper];
+        let joint = self.world_pos[binding.lower];
+        let contact = self.point(binding.offset, binding.terminal);
+        let (first, second) = (length(sub(joint, root)), length(sub(contact, joint)));
+        if !first.is_finite() || !second.is_finite() || first <= 1e-5 || second <= 1e-5 {
+            return; // degenerate limb: keep the clip pose
+        }
+        let solution = solve3d(root, target, first, second, binding.bend_hint);
+        self.aim_joint(binding.upper, root, joint, solution.joint);
+        let new_joint = self.world_pos[binding.lower];
+        let current_contact = self.point(binding.offset, binding.terminal);
+        self.aim_joint(binding.lower, new_joint, current_contact, solution.end);
+    }
+
     /// [`Self::solve_limb_hinted`] with fixed structural segment lengths.
-    /// The web's V4 `correctContactChain` measures `proximalLength` /
-    /// `distalLength` once per correction, from the pre-solve pose, and
-    /// both its reach clamp and its two-bone solve consume the same pair;
-    /// the follow-up passes reuse them unchanged. Re-measuring inside the
-    /// solve (the pre-fix port) read the *just-solved* pose — where the
-    /// wrist's oriented contact offset has already been re-aimed — so the
-    /// distal length alternated between passes (measured 0.449/0.372 m)
-    /// and the reach boundary shifted frame-to-frame, snapping the elbow
-    /// branch at the near-extension singularity (a 2.0 rad twist-demand
-    /// jump at cyc ≈ 0.2645 in the dense guard).
+    ///
+    /// This is the web's `solvePositionTowardTarget` (`renderer3dV4Motion`),
+    /// and its shape is what keeps a wrist-frame snap out of position:
+    ///
+    /// - The chain it solves is **bone only**: `first` = |elbow − shoulder|,
+    ///   `second` = |hand − elbow|, measured once per correction from the
+    ///   pre-solve pose and consumed unchanged by every pass. Re-measuring
+    ///   inside the solve (the pre-fix port) read the *just-solved* pose, so
+    ///   the distal length alternated between passes (measured 0.449/0.372 m)
+    ///   and the reach boundary shifted frame-to-frame, snapping the elbow
+    ///   branch at the near-extension singularity (a 2.0 rad twist-demand
+    ///   jump at cyc ≈ 0.2645 in the dense guard).
+    /// - The point it aims is the **effector origin** `anchor − R·offset`,
+    ///   not the contact point itself: the oriented contact offset is
+    ///   subtracted from the anchor before the solve and the chain is aimed
+    ///   at the remainder, so the contact lands exactly on the anchor while
+    ///   the offset's rotation is absorbed by the wrist bone's own re-aim.
+    ///   Aiming the contact point directly (the pre-fix port solved
+    ///   `target − R·offset` but swung the forearm onto the contact point)
+    ///   makes the hand frame's ±π refinement snaps translate the rendered
+    ///   hand by `|Δ(R·offset)|` — the issue #40 coupling.
+    /// - The reach clamp is applied to that same origin, with the web's
+    ///   absolute 2 mm margins on both ends.
+    ///
+    /// `preserve_terminal` counter-rotates the effector after the forearm
+    /// swing (web `solvePositionTowardTarget`'s tail): grip-frame hands need
+    /// the wrist frame chosen by `orient_hand` to survive the solve, "so the
+    /// palm offset remains stable; the next pass can then close the rigid
+    /// grip instead of chasing a contact point that moves with every IK
+    /// pass" — the chasing is what flipped the forearm across the shaft at
+    /// near-extension. It is set only inside the skierg alternating
+    /// orient/solve loop; the generic rower/bike path keeps the clip wrist
+    /// until `orient_hand` replaces it, as before.
     fn solve_limb_measured(
         &mut self,
         binding: &Binding,
@@ -1320,28 +1479,33 @@ impl<'a> Workspace<'a> {
     ) {
         let root = self.world_pos[binding.upper];
         let joint = self.world_pos[binding.lower];
-        let contact = self.point(binding.offset, binding.terminal);
+        let effector = self.world_pos[binding.terminal];
         let (first, second) =
-            measured.unwrap_or_else(|| (length(sub(joint, root)), length(sub(contact, joint))));
+            measured.unwrap_or_else(|| (length(sub(joint, root)), length(sub(effector, joint))));
         if !first.is_finite() || !second.is_finite() || first <= 1e-5 || second <= 1e-5 {
             return; // degenerate limb: keep the clip pose
         }
-        let solution = solve3d(root, target, first, second, hint);
-        // Preserve the effector's world orientation across the parent-bone
-        // swings (web `solvePositionTowardTarget`'s counter-rotation):
-        // grip-frame hands need the wrist frame chosen by `orient_hand` to
-        // survive the forearm solve, "so the palm offset remains stable;
-        // the next pass can then close the rigid grip instead of chasing a
-        // contact point that moves with every IK pass" — the chasing is
-        // what flipped the forearm across the shaft at near-extension.
-        // `preserve_terminal` is set only inside the skierg alternating
-        // orient/solve loop; the generic rower/bike path keeps the clip
-        // wrist until `orient_hand` replaces it, as before.
+        let offset = self.offset_world(binding.offset, binding.terminal);
+        let desired = sub(target, offset);
+        let reach = length(sub(desired, root));
+        let maximum = first + second - 0.002;
+        let minimum = (first - second).abs() + 0.002;
+        let reachable = if reach > maximum && reach > 1e-6 {
+            add(root, scale(sub(desired, root), maximum / reach))
+        } else if reach < minimum && reach > 1e-6 {
+            add(root, scale(sub(desired, root), minimum / reach))
+        } else {
+            desired
+        };
+        let solution = solve3d(root, reachable, first, second, hint);
         let preserved = self.world_rot[binding.terminal];
         self.aim_joint(binding.upper, root, joint, solution.joint);
+        // The forearm aims from where the upper-bone swing just left it, not
+        // from the pre-swing origin: the web's `swingBoneToward(chain.middle,
+        // chain.effector, solvedEnd)` reads the same just-moved joints.
         let new_joint = self.world_pos[binding.lower];
-        let current_contact = self.point(binding.offset, binding.terminal);
-        self.aim_joint(binding.lower, new_joint, current_contact, solution.end);
+        let moved = self.world_pos[binding.terminal];
+        self.aim_joint(binding.lower, new_joint, moved, solution.end);
         if preserve_terminal {
             self.set_world_rotation(binding.terminal, preserved);
         }
@@ -2247,22 +2411,6 @@ mod tests {
         solver.parent_of(joint)
     }
 
-    /// Smallest signed angular difference, wrapped to (-PI, PI].
-    fn wrap_signed(delta: f64) -> f64 {
-        use std::f64::consts::{PI, TAU};
-        let w = (delta + PI).rem_euclid(TAU) - PI;
-        if w == -PI { PI } else { w }
-    }
-
-    #[test]
-    fn wrap_signed_covers_the_near_and_far_sides_of_the_circle() {
-        use std::f64::consts::{PI, TAU};
-        assert!((wrap_signed(0.1) - 0.1).abs() < 1e-12);
-        assert!((wrap_signed(TAU - 0.1) - (-0.1)).abs() < 1e-12);
-        assert!((wrap_signed(-TAU + 0.1) - 0.1).abs() < 1e-12);
-        assert_eq!(wrap_signed(PI), PI);
-    }
-
     /// SkiErg pre-clamp twist demand saturates at the 30° keep budget.
     ///
     /// Measured (2000 samples/cycle): max `|requested_twist|` =
@@ -2306,6 +2454,94 @@ mod tests {
         assert_skierg_twist_saturates_at_keep(SKI_WRIST_TWIST_KEEP, false);
     }
 
+    /// The guard's sampling density (steps per cycle).
+    const STEPS: usize = 2000;
+    /// Continuity budgets for the sports with no inherited ±π snap, and for
+    /// the contact point itself (the hand must ride its equipment).
+    const POSITION_TOL: f64 = 0.02;
+    const ORIENTATION_TOL: f64 = 0.35;
+    /// An oracle orientation step at or above this is one of the web's
+    /// refinement ±π snaps rather than ordinary motion: the largest
+    /// non-snap step the fixture records is 0.066 rad.
+    const SNAP_FLOOR: f64 = 0.5;
+    /// How far the port's refinement crossing may lag the web's (samples).
+    const ORACLE_WINDOW: usize = 20;
+    /// Slacks that absorb the port's slightly different chain geometry at the
+    /// oracle's own snap, stated from measurement rather than taste: at its
+    /// window-1 snap the port moves its hand bone 0.0405 m against the web's
+    /// 0.0379 m (its elbow 0.0411 against 0.0154 — see the fixture's
+    /// `leftForearmDelta`), and its orientation snap is 1.2993 rad against the
+    /// web's 1.2953. Both land inside these slacks with ~2x headroom; the
+    /// pre-fix coupling (0.0961 m hand, 0.1102 m at window 2) missed by 2-3x.
+    const ORACLE_SLACK: f64 = 0.03;
+    const ORIENTATION_SLACK: f64 = 0.35;
+
+    /// One step's rendered hand: origin, elbow, orientation and the contact
+    /// point the chain closed on.
+    type HandFrame = ([f64; 3], [f64; 3], [f64; 4], [f64; 3]);
+
+    /// One step of the port's measured continuity (the oracle comparison's
+    /// left-hand side, kept so the two can be reported together).
+    #[derive(Debug, Clone, Copy, Default)]
+    struct OracleStep {
+        hand: f64,
+        elbow: f64,
+        orientation: f64,
+        contact: f64,
+    }
+
+    /// The web's own per-step hand continuity, read from the generated oracle
+    /// fixture (`replay-v4-hand-parity.json`).
+    struct Oracle {
+        steps: Vec<OracleStep>,
+    }
+
+    impl Oracle {
+        fn load() -> Self {
+            let fixture: serde_json::Value =
+                rowplay_fixtures::load_json("replay-v4-hand-parity.json")
+                    .expect("the V4 hand oracle fixture (tools/gen-v4-hand-parity.mjs)");
+            let samples = fixture["samples"].as_array().expect("oracle samples");
+            let steps: Vec<OracleStep> = samples
+                .iter()
+                .map(|sample| {
+                    let value = |key: &str| sample[key].as_f64().expect("oracle field");
+                    // The fixture records both sides; the port's guard walks
+                    // the left hand, so compare like for like.
+                    OracleStep {
+                        hand: value("leftHandDelta"),
+                        elbow: value("leftForearmDelta"),
+                        orientation: value("leftOrientationDelta"),
+                        contact: value("leftContactDelta"),
+                    }
+                })
+                .collect();
+            assert!(
+                steps.len() >= STEPS,
+                "the oracle fixture must cover the guard's sweep"
+            );
+            Self { steps }
+        }
+
+        fn at(&self, step: usize) -> OracleStep {
+            self.steps[step]
+        }
+
+        /// The web's worst per-step values within ±[`ORACLE_WINDOW`] of `step`.
+        fn window(&self, step: usize) -> OracleStep {
+            let lo = step.saturating_sub(ORACLE_WINDOW);
+            let hi = (step + ORACLE_WINDOW).min(self.steps.len() - 1);
+            let mut worst = OracleStep::default();
+            for sample in &self.steps[lo..=hi] {
+                worst.hand = worst.hand.max(sample.hand);
+                worst.elbow = worst.elbow.max(sample.elbow);
+                worst.orientation = worst.orientation.max(sample.orientation);
+                worst.contact = worst.contact.max(sample.contact);
+            }
+            worst
+        }
+    }
+
     #[test]
     fn requested_twist_stays_continuous_and_engages_the_budgets() {
         // The unclamped demand distinguishes a saturating budget from an
@@ -2322,16 +2558,24 @@ mod tests {
         // ~0.04 rad dense steps plus the ±π wrap. Comparing circularly at
         // density makes the assert measure continuity, not sampling.
         use crate::replay::grip::{grip_frames, warped_cycle};
+        // The port's continuity assert is not a budget of its own invention any
+        // more: where the port is allowed to snap, it is allowed exactly
+        // because the web's own V4 hero chain snaps there, and that is measured
+        // rather than asserted (`tools/gen-v4-hand-parity.mjs` drives the real
+        // avatar through this exact sweep and records what it renders). The
+        // fixture covers SkiErg, the only sport with an inherited ±π snap.
+        let oracle = Oracle::load();
+        let mut oracle_measured = vec![OracleStep::default(); STEPS];
+        let mut oracle_residual = vec![0.0f64; STEPS];
         let athlete = vendored();
         let solver = PoseSolver::new(&athlete).expect("plan");
-        const STEPS: usize = 2000;
         for sport in [Sport::Rower, Sport::Skierg, Sport::Bike] {
             let clip = athlete.clip_for(sport_name(sport)).expect("clip");
             let mut previous: Option<f64> = None;
-            let mut prev_elbow: Option<([f64; 3], [f64; 3], [f64; 4])> = None;
+            let mut prev_elbow: Option<HandFrame> = None;
             let mut engaged = false;
             let mut max_abs_requested = 0.0f64;
-            for step in 0..STEPS {
+            for (step, oracle_step_slot) in oracle_measured.iter_mut().enumerate() {
                 let step_f = step as f64;
                 let phase = step_f / STEPS as f64 * std::f64::consts::TAU;
                 let stroke = fallback_stroke_pose(sport, phase, 30.0);
@@ -2411,77 +2655,142 @@ mod tests {
                         }
                         p
                     };
-                    (pos, elbow, rot)
+                    // The point the arm chain actually closes on — the rig
+                    // contact offset rotated by the solved hand frame. This
+                    // is the quantity that must NEVER jump: the hand rides
+                    // its equipment, and the equipment does not teleport.
+                    let contact = add(
+                        pos,
+                        crate::replay::equipment::rotate_vec(
+                            rot,
+                            effective_hand_offset(sport, -1.0, solver.bindings[0].offset),
+                        ),
+                    );
+                    (pos, elbow, rot, contact)
                 };
-                let (hand_w, elbow_w, hand_q) = hand_fk;
-                if let Some((last_e, last_h, last_q)) = prev_elbow {
+                let (hand_w, elbow_w, hand_q, contact_w) = hand_fk;
+                if let Some((last_e, last_h, last_q, last_c)) = prev_elbow {
                     let d = length(sub(elbow_w, last_e));
                     let dh = length(sub(hand_w, last_h));
+                    let dc = length(sub(contact_w, last_c));
+                    // Wrap-aware angular distance: the quaternion double
+                    // cover is collapsed with |dot| (both factors of a unit
+                    // quaternion). The pre-fix form was two defects in one
+                    // expression — `2·acos(q[3]).clamp(-1, 1)` carried no
+                    // `abs`, so the double cover was not collapsed at all
+                    // (it never bit only because `q[3]` happens to stay
+                    // positive through this sweep), and the clamp was applied
+                    // to `acos`'s *result* rather than its argument, which is
+                    // dead on the lower bound and would have saturated `dq`
+                    // at 2.0 rad instead of erroring. Both are gone with the
+                    // form below, and `wrap_signed(dq)` — the identity on the
+                    // whole reachable range, i.e. a safeguard that could
+                    // never fire — is gone with them.
                     let dq = {
                         let q = quat_mul(hand_q, conjugate(last_q));
-                        2.0 * q[3].acos().clamp(-1.0, 1.0)
+                        2.0 * q[3].abs().min(1.0).acos()
                     };
-                    // Web-class continuity at this sampling density: the
-                    // fastest legitimate motion is the press ramp (measured
-                    // peak 0.0101 m/step at cyc ≈ 0.19, a smooth monotonic
-                    // run — verified by tracing neighbors before trusting
-                    // this bound), while the two-bone branch flip the Phase
-                    // 7.5 rewrite removed measured 0.05–0.31 m *between
-                    // sub-mm steps*. 0.02 separates both classes ≥2×.
-                    assert!(
-                        d < 0.02,
-                        "{sport:?} step {step}: elbow jumps {d:.4} (hand {dh:.4})"
-                    );
-                    // The hand carries two inherited web discontinuities,
-                    // both ±π wraps of an atan2 refinement angle — the web's
-                    // own comment names the class ("the same ±π singularity
-                    // as the rowing feather … wrap-guards at π") but the
-                    // wrist refinements themselves have no guard:
-                    //
-                    // 1. TILT wrap (refineGripTiltForWrist), late press:
-                    //    the port snaps 1.299 rad at cyc 0.2645, the web
-                    //    driven identically snaps 1.299 rad at cyc 0.2635
-                    //    (tools/web-tilt-probe.mjs: qjump 1.2991).
-                    // 2. SPIN wrap (refineGripSpinForWrist), mid flight:
-                    //    both sweep the same monotone −π approach through
-                    //    the carried-pole window; the port crosses at cyc
-                    //    0.6885 (1.448 rad), the web at cyc 0.7080
-                    //    (qjump 1.0961) — the ~0.02 cycle offset is the
-                    //    small forearm-vs-shaft geometry difference between
-                    //    the two solvers, not a different phenomenon.
-                    //
-                    // Parity, not defect: the port must reproduce the
-                    // web's snaps, not smooth past them. The position jump
-                    // differs by architecture, not by law — the web's
-                    // procedural path sets `arm.hand.position` directly
-                    // from the pole solve (its measured hand stays smooth
-                    // at 0.0069 m/step through its own wrap), while the
-                    // port — like the web's V4 hero chain, which the Node
-                    // harness cannot drive — solves the wrist as
-                    // `target − R_hand·offset`, so the π flip of the hand
-                    // frame couples into the contact-chasing position
-                    // (measured 0.110 m ≈ 2·|offset⊥|·sin(max_spin), the
-                    // oriented offset swinging with the frame). Each wrap
-                    // is one isolated step inside its window, never two.
-                    let tilt_wrap =
-                        sport == Sport::Skierg && (0.255..0.275).contains(&stroke.cycle_frac);
-                    let spin_wrap =
-                        sport == Sport::Skierg && (0.678..0.698).contains(&stroke.cycle_frac);
-                    let (position_budget, orientation_budget) = if tilt_wrap || spin_wrap {
-                        (0.15, 1.45)
+                    if sport == Sport::Skierg {
+                        let oracle_step = oracle.at(step);
+                        let oracle_window = oracle.window(step);
+                        assert!(
+                            dc < POSITION_TOL,
+                            "{sport:?} step {step}: contact jumps {dc:.4} \
+                             (cyc {:.4}, oracle {:.4}, TOL {POSITION_TOL})",
+                            stroke.cycle_frac,
+                            oracle_step.contact
+                        );
+                        // Phase-tolerant parity: the port's refinements cross
+                        // their ±π singularities up to ORACLE_WINDOW steps
+                        // from the web's (window 1 lags 10 steps; window 2's
+                        // crossing phase is the open divergence recorded as
+                        // ranking 14 in docs/parity-coverage.md), so each
+                        // step is compared against the web's own worst
+                        // *neighbourhood* rather than its same-index value.
+                        let (w_hand, w_elbow, w_ori, w_contact) = (
+                            oracle_window.hand,
+                            oracle_window.elbow,
+                            oracle_window.orientation,
+                            oracle_window.contact,
+                        );
+                        assert!(
+                            dh <= w_hand + ORACLE_SLACK + POSITION_TOL,
+                            "{sport:?} step {step}: hand moves {dh:.4} against the web's \
+                             neighbourhood worst {w_hand:.4} (cyc {:.4})",
+                            stroke.cycle_frac
+                        );
+                        assert!(
+                            d <= w_elbow + ORACLE_SLACK + POSITION_TOL,
+                            "{sport:?} step {step}: elbow moves {d:.4} against the web's \
+                             neighbourhood worst {w_elbow:.4} (cyc {:.4}, hand {dh:.4})",
+                            stroke.cycle_frac
+                        );
+                        assert!(
+                            dc <= w_contact + ORACLE_SLACK + POSITION_TOL,
+                            "{sport:?} step {step}: contact moves {dc:.4} against the web's \
+                             neighbourhood worst {w_contact:.4} (cyc {:.4})",
+                            stroke.cycle_frac
+                        );
+                        // The orientation comparison is one-sided on purpose:
+                        // the port may not rotate further in one step than
+                        // the web's own neighbourhood does, but it is not
+                        // required to reproduce a snap the web takes at a
+                        // different phase (ranking 14). Its faithfulness
+                        // where it does snap is pinned below.
+                        assert!(
+                            dq <= w_ori + ORIENTATION_SLACK,
+                            "{sport:?} step {step}: hand orientation jumps {dq:.4} against \
+                             the web's neighbourhood worst {w_ori:.4} (cyc {:.4})",
+                            stroke.cycle_frac
+                        );
                     } else {
-                        (0.02, 0.35)
-                    };
-                    assert!(
-                        dh < position_budget,
-                        "{sport:?} step {step}: hand jumps {dh:.4}"
-                    );
-                    assert!(
-                        dq < orientation_budget,
-                        "{sport:?} step {step}: hand orientation jumps {dq:.4}"
-                    );
+                        // RowErg and BikeErg have no inherited ±π snaps: both
+                        // stay under these budgets through the whole cycle
+                        // (measured worst 0.0048 m / 0.024 rad on the rower,
+                        // 0.00005 m / 0.0003 rad on the bike).
+                        assert!(
+                            dc < POSITION_TOL,
+                            "{sport:?} step {step}: contact jumps {dc:.4}"
+                        );
+                        assert!(
+                            dh < POSITION_TOL,
+                            "{sport:?} step {step}: hand jumps {dh:.4}"
+                        );
+                        assert!(
+                            d < POSITION_TOL,
+                            "{sport:?} step {step}: elbow jumps {d:.4} (hand {dh:.4})"
+                        );
+                        assert!(
+                            dq < ORIENTATION_TOL,
+                            "{sport:?} step {step}: hand orientation jumps {dq:.4}"
+                        );
+                    }
+                    if sport == Sport::Skierg {
+                        *oracle_step_slot = OracleStep {
+                            hand: dh,
+                            elbow: d,
+                            orientation: dq,
+                            contact: dc,
+                        };
+                        oracle_residual[step] =
+                            posed.residuals.left_hand.max(posed.residuals.right_hand);
+                        // Ranking 13 of docs/parity-coverage.md: the SkiErg
+                        // grip shortfall that `is_usable` never caught only
+                        // because the one test sampling it strides 0.025 of
+                        // the cycle across a 0.005-wide breach. With the
+                        // chain closing on the sport's grip channel the hand
+                        // stays on its target through the whole window
+                        // (worst 0.0090 m against the 0.09 m limit, down from
+                        // 0.1016 m), so the dense guard asserts it directly.
+                        assert!(
+                            oracle_residual[step] <= GRIP_CONTACT_BUDGET,
+                            "skierg step {step}: hand misses its grip by \
+                             {:.4} m (budget {GRIP_CONTACT_BUDGET})",
+                            oracle_residual[step]
+                        );
+                    }
                 }
-                prev_elbow = Some((elbow_w, hand_w, hand_q));
+                prev_elbow = Some((elbow_w, hand_w, hand_q, contact_w));
                 if let Some(last) = previous {
                     let mut delta = (requested - last).abs();
                     if delta > std::f64::consts::PI {
@@ -2515,6 +2824,137 @@ mod tests {
                 }
                 Sport::Skierg => {
                     assert_skierg_twist_saturates_at_keep(max_abs_requested, engaged);
+                    // Parity is two-sided. The oracle comparison above allows
+                    // the port to snap where the web snaps; this half refuses
+                    // the opposite failure — a port that smoothed the snap
+                    // away would satisfy every `<=` above and silently
+                    // diverge from the rendered oracle. Every one of the web's
+                    // own large orientation steps must have a port step of
+                    // comparable magnitude inside the phase window.
+                    {
+                        let worst = |key: fn(&OracleStep) -> f64| {
+                            oracle_measured
+                                .iter()
+                                .enumerate()
+                                .max_by(|a, b| key(a.1).total_cmp(&key(b.1)))
+                                .map_or((0, 0.0), |(i, m)| (i, key(m)))
+                        };
+                        let web_worst = |key: fn(&OracleStep) -> f64| {
+                            oracle
+                                .steps
+                                .iter()
+                                .enumerate()
+                                .max_by(|a, b| key(a.1).total_cmp(&key(b.1)))
+                                .map_or((0, 0.0), |(i, m)| (i, key(m)))
+                        };
+                        println!(
+                            "guard report: port hand {:?} web {:?} | port elbow {:?} web {:?} | \
+                             port contact {:?} web {:?} | port ori {:?} web {:?}",
+                            worst(|m| m.hand),
+                            web_worst(|m| m.hand),
+                            worst(|m| m.elbow),
+                            web_worst(|m| m.elbow),
+                            worst(|m| m.contact),
+                            web_worst(|m| m.contact),
+                            worst(|m| m.orientation),
+                            web_worst(|m| m.orientation),
+                        );
+                        let port_snaps: Vec<(usize, f64)> = oracle_measured
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, m)| m.orientation > SNAP_FLOOR)
+                            .map(|(i, m)| (i, (m.orientation * 1e4).round() / 1e4))
+                            .collect();
+                        let web_snaps: Vec<(usize, f64)> = oracle
+                            .steps
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, m)| m.orientation > SNAP_FLOOR)
+                            .map(|(i, m)| (i, (m.orientation * 1e4).round() / 1e4))
+                            .collect();
+                        println!("guard report: port snaps {port_snaps:?} web snaps {web_snaps:?}");
+                        let worst_res = oracle_residual
+                            .iter()
+                            .enumerate()
+                            .max_by(|a, b| a.1.total_cmp(b.1))
+                            .map_or((0, 0.0), |(i, r)| (i, *r));
+                        println!(
+                            "guard report: port hand residual worst {:.4} at step {} (is_usable                              limit 0.09)",
+                            worst_res.1, worst_res.0
+                        );
+                    }
+                    let port_snaps: Vec<(usize, f64)> = oracle_measured
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, m)| m.orientation > SNAP_FLOOR)
+                        .map(|(i, m)| (i, (m.orientation * 1e4).round() / 1e4))
+                        .collect();
+                    let web_snaps: Vec<(usize, f64)> = oracle
+                        .steps
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, m)| m.orientation > SNAP_FLOOR)
+                        .map(|(i, m)| (i, (m.orientation * 1e4).round() / 1e4))
+                        .collect();
+                    // The fixture's shape is part of the claim: exactly the
+                    // web's two refinement ±π crossings, one per window.
+                    assert_eq!(
+                        web_snaps.len(),
+                        2,
+                        "the oracle must carry the web's two refinement snaps; got {web_snaps:?}"
+                    );
+                    for (snap_index, (step, expected)) in web_snaps.iter().enumerate() {
+                        let lo = step.saturating_sub(ORACLE_WINDOW);
+                        let hi = (step + ORACLE_WINDOW).min(oracle_measured.len() - 1);
+                        let matched = oracle_measured[lo..=hi]
+                            .iter()
+                            .filter(|measured| measured.orientation >= expected - ORIENTATION_SLACK)
+                            .count();
+                        if snap_index == 0 {
+                            // Window 1 (the tilt refinement, late press) is
+                            // faithful: the port must render the web's snap,
+                            // within the phase window and magnitude slack.
+                            assert!(
+                                matched > 0,
+                                "the web snaps {expected:.4} rad about step {step}, but the \
+                                 port never reaches it within ±{ORACLE_WINDOW} steps — its \
+                                 window-1 snap has been smoothed away (port snaps: \
+                                 {port_snaps:?})"
+                            );
+                        } else {
+                            // Window 2 (the spin refinement, mid flight) is the
+                            // open divergence: ranking 14 of
+                            // docs/parity-coverage.md records that the port's
+                            // spin angle runs on a different trajectory and
+                            // fired 39 samples early at 32% smaller magnitude
+                            // before this fix; with the position coupling gone
+                            // it no longer fires at all, while the web still
+                            // snaps 1.675 rad here. Recorded, not asserted
+                            // away — when ranking 14 is fixed, this branch is
+                            // what must change, and the change is the point.
+                            assert_eq!(
+                                matched, 0,
+                                "the port now renders {matched} step(s) comparable to the \
+                                 web's window-2 snap about step {step} — if ranking 14 has \
+                                 been fixed, update this record (and the docs) rather than \
+                                 loosening it"
+                            );
+                        }
+                    }
+                    // Whatever the port's own snap table is, it must stay one
+                    // snapshot per window: a second snap in the neighbourhood
+                    // is a fresh defect, not parity.
+                    for (step, value) in &port_snaps {
+                        let neighbours = port_snaps
+                            .iter()
+                            .filter(|(other, _)| other.abs_diff(*step) <= ORACLE_WINDOW)
+                            .count();
+                        assert_eq!(
+                            neighbours, 1,
+                            "step {step} ({value:.4} rad) is one of {neighbours} port snaps \
+                             inside ±{ORACLE_WINDOW} steps"
+                        );
+                    }
                 }
                 Sport::Bike => {
                     assert!(
@@ -2659,6 +3099,102 @@ mod tests {
             }
         }
         assert!(engaged, "the shoulder share never engaged");
+    }
+
+    /// Issue #40's render-cadence re-measurement, kept as a reproducible
+    /// probe (ignored: it prints a report, it does not assert).
+    ///
+    /// ```text
+    /// cargo test -p rowplay-viewmodel --lib render_cadence_probe -- --ignored --nocapture
+    /// ```
+    ///
+    /// The dense guard samples 2000 steps/cycle; the screen shows 60 frames
+    /// per second at 41 spm, so a guard-density discontinuity is spread over a
+    /// frame interval and competes with the stroke's own speed. This probe
+    /// reproduces the #35 method — 60 fps, 41 spm, the rendered hand's
+    /// frame-to-frame motion, all three sports — so a fix can be checked
+    /// against the thing the athlete actually sees. The web's equivalent
+    /// numbers come from `tools/web-tilt-probe.mjs`'s sibling driver (same
+    /// avatar, same rate); the port's must stay in the same band.
+    #[test]
+    #[ignore = "measurement probe: prints a report, asserts nothing"]
+    fn render_cadence_probe() {
+        use crate::replay::equipment::rotate_vec;
+        use crate::replay::grip::{grip_frames, warped_cycle};
+        let athlete = vendored();
+        let solver = PoseSolver::new(&athlete).expect("plan");
+        const FPS: f64 = 60.0;
+        const SPM: f64 = 41.0;
+        const FRAMES: usize = 400;
+        for sport in [Sport::Rower, Sport::Skierg, Sport::Bike] {
+            let clip = athlete.clip_for(sport_name(sport)).expect("clip");
+            let mut prev: Option<[f64; 3]> = None;
+            let mut rows: Vec<(usize, f64, f64)> = Vec::new();
+            for frame in 0..FRAMES {
+                let time = frame as f64 / FPS;
+                let cycle = (time * SPM / 60.0).fract();
+                let stroke = fallback_stroke_pose(sport, cycle * std::f64::consts::TAU, SPM);
+                let rig = solve_rig_pose(sport, &stroke, time * 3.0, false);
+                let targets = rig_targets(&rig);
+                let frames = grip_frames(
+                    sport,
+                    &rig,
+                    targets.poles,
+                    warped_cycle(stroke.warped_phase),
+                );
+                let clip_time = clip_fraction(
+                    stroke.cycle_frac,
+                    stroke.phase,
+                    stroke.drive_frac,
+                    clip.drive_end,
+                ) * f64::from(clip.duration);
+                let posed = solver.pose(
+                    &athlete,
+                    sport,
+                    clip,
+                    clip_time,
+                    &targets.contacts,
+                    &frames,
+                    targets.oar,
+                );
+                // The rendered hand origin, through the same FK the guard uses.
+                let binding = solver.bindings[0];
+                let mut chain = vec![];
+                let mut cur = Some(binding.terminal);
+                while let Some(j) = cur {
+                    chain.push(j);
+                    cur = solver_parent(&solver, j);
+                }
+                chain.reverse();
+                let mut pos = [0.0f64; 3];
+                let mut rot = [0.0f64, 0.0, 0.0, 1.0];
+                for &j in &chain {
+                    let local = &posed.locals[j];
+                    let t = rotate_vec(rot, local.translation);
+                    pos = [pos[0] + t[0], pos[1] + t[1], pos[2] + t[2]];
+                    rot = quat_mul(rot, local.rotation);
+                }
+                if let Some(last) = prev {
+                    rows.push((frame, stroke.cycle_frac, length(sub(pos, last))));
+                }
+                prev = Some(pos);
+            }
+            println!("--- {sport:?} (60 fps, {SPM} spm, {FRAMES} frames) ---");
+            for (name, lo, hi) in [
+                ("window 1 (tilt wrap)", 0.255, 0.275),
+                ("window 2 (spin wrap)", 0.678, 0.698),
+                ("press ramp", 0.19, 0.24),
+            ] {
+                let in_window = rows.iter().filter(|(_, c, _)| (lo..=hi).contains(c));
+                let (worst_frame, worst_cycle, worst) =
+                    in_window.fold((0usize, 0.0f64, 0.0f64), |best, (f, c, d)| {
+                        if *d > best.2 { (*f, *c, *d) } else { best }
+                    });
+                println!(
+                    "  {name}: max {worst:.4} m/frame at frame {worst_frame} (cyc {worst_cycle:.4})"
+                );
+            }
+        }
     }
 
     #[test]
