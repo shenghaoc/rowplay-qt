@@ -365,14 +365,17 @@ Each rule exists because the failure happened.
   letting a green assert imply the mechanism is gone.
 - **A closing keyword is a scope wider than the sentence it sits in.**
   GitHub treats `close` / `fix` / `resolve` in **any tense**, followed by
-  `#N`, as closing that issue — in **commit bodies** and PR descriptions
-  alike. Filing issue #44 for the residue while writing "Both became
-  issues rather than a claim of parity: #44" in the commit body closed it
-  at the merge, because the parser read `fixed: #44` (AGENTS.md's own
-  rule, one level down from `git add -A`: the grammar's scope, not the
-  author's). When an issue must stay open, write "tracked in #44",
-  "see #44" or "refs #44" — never "fixed"/"closes"/"resolves" beside the
-  number. Check the issue list after a merge that names issues.
+  an issue reference, as closing that issue — in **commit bodies** and PR
+  descriptions alike. A commit body that filed the coupling's residue as
+  its own issue and, in the same paragraph, wrote "claimed fixed" beside
+  its number closed that issue at the merge: the parser read the phrase as
+  a closing keyword, not as prose. (The first attempt to write this lesson
+  *quoted* the offending phrase, and closed the same issue a second time —
+  quotation is not an escape, and neither are backticks.) When an issue
+  must stay open, write "tracked in", "see" or "refs" before the number,
+  and never a close/fix/resolve word beside it. Check the issue list after
+  a merge that names issues, and write this rule with placeholders rather
+  than a live example.
 
 - After any conflict resolution, grep the whole tree for conflict markers
   (`rg -n '^(<{7}|={7}|>{7})'`) before continuing the rebase.
