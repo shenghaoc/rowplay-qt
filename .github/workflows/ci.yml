@@ -167,10 +167,10 @@ jobs:
           if-no-files-found: error
 
   # The SkiErg wrap windows (steps 529 / 1377) and the guard conversion that
-  # exposed them: issue #40 fixed the coupling, so the guard is green and
-  # these captures carry the on-screen evidence for a host whose
-  # `grabToImage` renders the 3D viewport (macOS/Metal does not — bridge
-  # note #17). This job does not wait on core.
+  # exposed them: issue #40 reduced the coupling ~11x, so the guard is green
+  # (residue tracked as issue #44) and these captures carry the on-screen
+  # evidence for a host whose `grabToImage` renders the 3D viewport
+  # (macOS/Metal does not — bridge note #17). This job does not wait on core.
   step529-straddle:
     name: Step-529 straddle captures
     runs-on: ubuntu-24.04

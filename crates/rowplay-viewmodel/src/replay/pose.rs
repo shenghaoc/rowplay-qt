@@ -2542,6 +2542,49 @@ mod tests {
         }
     }
 
+    /// A web refinement snap is *established by the port* only when a port
+    /// snap is both **in phase and of comparable magnitude**; magnitude alone
+    /// does not identify a crossing. `snaps` is the port's `(step, rad)`
+    /// table, `step`/`expected` the web's crossing and its magnitude.
+    fn port_establishes_snap(snaps: &[(usize, f64)], step: usize, expected: f64) -> bool {
+        snaps
+            .iter()
+            .map(|&(i, value)| (i, value, i.abs_diff(step)))
+            .min_by_key(|&(_, _, distance)| distance)
+            .is_some_and(|(_, value, distance)| {
+                distance <= ORACLE_WINDOW && value >= expected - ORIENTATION_SLACK
+            })
+    }
+
+    /// The phase half of [`port_establishes_snap`] is a real constraint, not
+    /// decoration: a snap in the wrong part of the cycle must not be read as
+    /// satisfying a window's record (issue #43's pin asserts an *absence*, so
+    /// a stray large step would otherwise look like the fix landed).
+    #[test]
+    fn snap_establishment_requires_phase_and_magnitude() {
+        // The guard's live table: one snap, at window 1's index.
+        let port = [(532usize, 1.2993f64)];
+        // Window 1's crossing at 522, magnitude 1.2953: established.
+        assert!(port_establishes_snap(&port, 522, 1.2953));
+        // Window 2's crossing at 1399, magnitude 1.6752: the port's only snap
+        // is 867 steps away, so it is not this window's crossing.
+        assert!(!port_establishes_snap(&port, 1399, 1.6752));
+        // The phase half is a real constraint. A snap big enough for window
+        // 2 (floor 1.6752 − 0.35 = 1.3252) but placed in window 1's phase is
+        // rejected; the same magnitude moved into window 2's phase matches.
+        assert!(!port_establishes_snap(&[(532, 1.40)], 1399, 1.6752));
+        assert!(port_establishes_snap(&[(1399, 1.40)], 1399, 1.6752));
+        // A snap that is in window 2's phase but too small is not a match.
+        assert!(!port_establishes_snap(&[(1401, 1.30)], 1399, 1.6752));
+        // Neither is one in the window but short of the magnitude floor
+        // (window 1's floor is 1.2953 − 0.35 = 0.9453).
+        assert!(!port_establishes_snap(&[(534, 0.9)], 522, 1.2953));
+        // The rule is symmetric: an in-phase, large-enough snap does match.
+        assert!(port_establishes_snap(&[(1401, 1.40)], 1399, 1.6752));
+        // An empty table establishes nothing.
+        assert!(!port_establishes_snap(&[], 522, 1.2953));
+    }
+
     #[test]
     fn requested_twist_stays_continuous_and_engages_the_budgets() {
         // The unclamped demand distinguishes a saturating budget from an
@@ -2704,9 +2747,16 @@ mod tests {
                         // their ±π singularities up to ORACLE_WINDOW steps
                         // from the web's (window 1 lags 10 steps; window 2's
                         // crossing phase is the open divergence recorded as
-                        // ranking 14 in docs/parity-coverage.md), so each
-                        // step is compared against the web's own worst
-                        // *neighbourhood* rather than its same-index value.
+                        // ranking 14 in docs/parity-coverage.md, issue #43),
+                        // so each step is compared against the web's own
+                        // worst *neighbourhood* rather than its same-index
+                        // value. The `<=` bounds below are the one-sided half
+                        // of this comparison (the port may not move more than
+                        // the web); the two-sided half — the port may not
+                        // *smooth away* a snap the web takes — is the
+                        // magnitude-and-phase snap match after the loop, and
+                        // it holds for window 1 only, with window 2 pinned as
+                        // an absence.
                         let (w_hand, w_elbow, w_ori, w_contact) = (
                             oracle_window.hand,
                             oracle_window.elbow,
@@ -2782,6 +2832,18 @@ mod tests {
                         // stays on its target through the whole window
                         // (worst 0.0090 m against the 0.09 m limit, down from
                         // 0.1016 m), so the dense guard asserts it directly.
+                        //
+                        // `GRIP_CONTACT_BUDGET` was NOT tuned around that
+                        // 0.0090: it predates this fix (Phase 5b, `558c590`)
+                        // and is stricter than the old gate it replaces
+                        // (`is_usable()` forgave 0.01 + 0.08 = 0.09 for
+                        // hands). But the 0.0090 is the residue of issue #40's
+                        // coupling — the port's snap still spreads ~2.1x
+                        // further along the arm chain than the web's, whose
+                        // own residual stays under 9.4e-7 through its snaps —
+                        // so the ~10% margin under this budget is measuring
+                        // **issue #44**, and whoever trips this assert next
+                        // should read that issue before retuning the budget.
                         assert!(
                             oracle_residual[step] <= GRIP_CONTACT_BUDGET,
                             "skierg step {step}: hand misses its grip by \
@@ -2903,6 +2965,16 @@ mod tests {
                         2,
                         "the oracle must carry the web's two refinement snaps; got {web_snaps:?}"
                     );
+                    // A web snap is established by the port only when a port
+                    // snap is **in phase and of comparable magnitude** —
+                    // [`port_establishes_snap`], unit-tested below. The two
+                    // windows are 877 steps apart and each scans ±20, so a
+                    // window-1 snap can never reach window 2 regardless; the
+                    // rule's job is to refuse a stray in-phase step that
+                    // would otherwise satisfy window 2's absence record (a
+                    // fresh defect in the spin region reading as "ranking 14
+                    // fixed"). The "one snapshot per window" assert below is
+                    // what keeps "nearest" well defined.
                     for (snap_index, (step, expected)) in web_snaps.iter().enumerate() {
                         let lo = step.saturating_sub(ORACLE_WINDOW);
                         let hi = (step + ORACLE_WINDOW).min(oracle_measured.len() - 1);
@@ -2910,34 +2982,42 @@ mod tests {
                             .iter()
                             .filter(|measured| measured.orientation >= expected - ORIENTATION_SLACK)
                             .count();
+                        let nearest = port_snaps
+                            .iter()
+                            .map(|&(i, value)| (i, value, i.abs_diff(*step)))
+                            .min_by_key(|&(_, _, distance)| distance);
                         if snap_index == 0 {
                             // Window 1 (the tilt refinement, late press) is
                             // faithful: the port must render the web's snap,
                             // within the phase window and magnitude slack.
                             assert!(
-                                matched > 0,
+                                port_establishes_snap(&port_snaps, *step, *expected),
                                 "the web snaps {expected:.4} rad about step {step}, but the \
                                  port never reaches it within ±{ORACLE_WINDOW} steps — its \
                                  window-1 snap has been smoothed away (port snaps: \
-                                 {port_snaps:?})"
+                                 {port_snaps:?}, nearest {nearest:?})"
                             );
                         } else {
                             // Window 2 (the spin refinement, mid flight) is the
                             // open divergence: ranking 14 of
-                            // docs/parity-coverage.md records that the port's
-                            // spin angle runs on a different trajectory and
-                            // fired 39 samples early at 32% smaller magnitude
-                            // before this fix; with the position coupling gone
-                            // it no longer fires at all, while the web still
-                            // snaps 1.675 rad here. Recorded, not asserted
-                            // away — when ranking 14 is fixed, this branch is
-                            // what must change, and the change is the point.
-                            assert_eq!(
-                                matched, 0,
-                                "the port now renders {matched} step(s) comparable to the \
-                                 web's window-2 snap about step {step} — if ranking 14 has \
-                                 been fixed, update this record (and the docs) rather than \
-                                 loosening it"
+                            // docs/parity-coverage.md (issue #43) records that
+                            // the port's spin angle runs on a different
+                            // trajectory and fired 39 samples early at 32%
+                            // smaller magnitude before this fix; with the
+                            // position coupling gone it no longer fires at
+                            // all, while the web still snaps 1.675 rad here.
+                            // Recorded, not asserted away — when ranking 14 is
+                            // fixed, this branch is what must change, and the
+                            // change is the point. The check is
+                            // phase-and-magnitude (see `established`), so a
+                            // wrong-phase port snap cannot fake the fix.
+                            assert!(
+                                !port_establishes_snap(&port_snaps, *step, *expected),
+                                "the port renders a snap within ±{ORACLE_WINDOW} steps of step \
+                                 {step} comparable to the web's {expected:.4} rad (port snaps: \
+                                 {port_snaps:?}, nearest {nearest:?}, matched {matched}) — if \
+                                 ranking 14 (issue #43) has been fixed, update this record (and \
+                                 the docs) rather than loosening it"
                             );
                         }
                     }

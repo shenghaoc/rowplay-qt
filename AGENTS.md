@@ -352,6 +352,17 @@ Each rule exists because the failure happened.
   re-tuning them. If a bound needs an exception, the exception is a TODO
   with a date and an issue number, and it is deleted with the fix — never
   quietly widened.
+- **An 11x improvement is not parity, and the residual is the next issue.**
+  The issue #40 fix took the rendered hand's snap from 0.096 m to 0.0405
+  (the web's 0.0379) — close enough to read as "fixed". The oracle's own
+  residual showed it was not: the web holds its contact point exact
+  through its snaps (≤ 9.4e-7) while the port's snap still reached the
+  elbow 2.1x further than the web's (0.0411 vs 0.0193), and the surviving
+  9 mm grip residual was passing under a pre-existing 10 mm budget with
+  ~10 % margin. Both became issues (#44) rather than a claim of parity.
+  When a fix moves a number most of the way, compare the *structure* of
+  the remaining error against the oracle's, and file it by name instead of
+  letting a green assert imply the mechanism is gone.
 
 - After any conflict resolution, grep the whole tree for conflict markers
   (`rg -n '^(<{7}|={7}|>{7})'`) before continuing the rebase.
