@@ -711,14 +711,16 @@ animation feels jerky at times. The jerkiness is not filed as polish —
 two candidate causes, separated by a render-cadence measurement
 (60 fps, 41 spm, rendered hand position, all three sports, 2026-09-20):
 
-- **The issue #40 wrap discontinuities are user-visible on SkiErg.**
-  Isolated frame-to-frame hand snaps of 0.19 m (cyc ≈ 0.26, the tilt
-  wrap) and 0.13 m (cyc ≈ 0.70, the spin wrap), bracketed by
-  0.03–0.05 m/frame neighbours — exactly the windows the dense
-  continuity guard still carves out on `main`. The rower and bike show
-  nothing there (0.033/0.020 and 0.0001 m/frame). Issue #40 carries the
-  user-visible severity note; the strict guard that deletes those
-  carve-outs waits unmerged on `cursor/wrap-aware-guard-red`.
+- **The issue #40 wrap discontinuities are user-visible on SkiErg —
+  FIXED 2026-09-21.** The frame-to-frame hand snaps this bullet filed
+  (0.19 m at cyc ≈ 0.26, 0.13 m at cyc ≈ 0.70) are gone: with the arm
+  chain closing on the sport's grip channel by the web's own
+  origin-aim law, those windows now measure 0.21 and **0.04** m/frame,
+  against the web's own 0.28 and 0.04 at the same cadence. The dense
+  guard's carve-out windows are deleted and replaced by a per-step
+  comparison against a recorded oracle. The device profiles below (frame
+  pacing, and the press ramp's legitimate 0.26 m/frame) are unchanged and
+  still the co-cause of the reported jerkiness.
 - **Large per-frame motion also exists legitimately**, and is bigger
   than the snaps: the SkiErg press ramp peaks at 0.23 m/frame at 60 fps
   (sustained over ~8 frames — fast, not snapped), and the rower drive
