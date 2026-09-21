@@ -331,6 +331,28 @@ rowplay-studio style, e.g. `feat: Phase 1 - Core parity foundation`.
 
 Each rule exists because the failure happened.
 
+- **A port that mirrors an architecture must mirror its law, not just its
+  shape.** Issue #40 was filed as "the V4 contact architecture couples a
+  wrist snap into hand position" — and the web *does* use that architecture
+  (bone-chain IK closing a `target − R·offset` contact), so the coupling
+  looked inherited. It was not: the port aimed the chain at the contact
+  point while the web aims it at the terminal *origin* and lets the wrist
+  bone absorb the offset, and the port closed on the contract's authored
+  palm point where the web overrides it per sport. Both differences were
+  visible only by **driving the web's own code** — the "the Node harness
+  cannot drive the hero chain" assumption in the issue was wrong, and one
+  headless install of the real controller turned three weeks of
+  architectural explanation into two measured arithmetic errors
+  (2026-09-21). When a defect is attributed to an architecture the port
+  copies, drive the original and measure it before writing the
+  attribution into a comment or a doc.
+- **A widened tolerance and a skipped window are the same defect wearing
+  different clothes.** The guard's two carved-out cycle windows were the
+  record of issue #40 for two phases; the fix deleted them rather than
+  re-tuning them. If a bound needs an exception, the exception is a TODO
+  with a date and an issue number, and it is deleted with the fix — never
+  quietly widened.
+
 - After any conflict resolution, grep the whole tree for conflict markers
   (`rg -n '^(<{7}|={7}|>{7})'`) before continuing the rebase.
 - Inside a fold rebase (`git rebase --onto` + `amend`), stage **explicit

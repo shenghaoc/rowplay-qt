@@ -473,9 +473,12 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     the solve state instead of a thread-local, and (b) accept that
     unwrapping diverges from the web's rendered orientation at the wrap
     — it makes the port smoother than its oracle, a deliberate deviation
-    to record in `docs/source-map.md`, not silent parity. Until then the
-    wraps are carved out of the dense continuity guard with this note
-    (`requested_twist_stays_continuous_and_engages_the_budgets`).
+    to record in `docs/source-map.md`, not silent parity. **CLOSED
+    (2026-09-21, issue #40):** the wraps are still there and still
+    faithful — the port renders one, 1.2993 rad at step 532 against the
+    web's 1.2953 at step 522 — but they no longer move the hand, because
+    the coupling this ranking measured was a port defect rather than the
+    architecture it was read as. See "The coupling fixed" below.
     Step 529 IS this wrap class — see ranking 12, whose re-measurement
     (clamp-path probe, this PR) retires the earlier "IK branch flip"
     attribution.
@@ -610,12 +613,10 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     The loop's next event is the ranking-11 spin-wrap window at step
     1377 — measured below, a second position discontinuity of the same
     class, NOT inherited orientation-only. The step-529 discontinuity
-    itself is tracked in issue #40. **The guard conversion that exposes
-    both lives unmerged on branch `cursor/wrap-aware-guard-red`, where
-    the carve-out is replaced by the wrap-aware tight-TOL comparison and
-    is red at steps 529 and 1377 by design; it lands with the fix, not
-    before. `main` keeps the carve-out windows. See the dedicated entry
-    below.**
+    itself was tracked in issue #40. **The guard conversion that exposed
+    both lived unmerged on branch `cursor/wrap-aware-guard-red` (red at
+    steps 529 and 1377 by design) and landed with the fix — see the
+    dedicated entry below for what replaced it.**
 
 ### Guard reachability sweep (post–Phase 7.5 cleanup)
 
@@ -771,21 +772,29 @@ is `local = normalise(quat_mul(conjugate(parent_world), desired))` with
 `orient_hand_to_grip_channel` + per-frame `stable_forearm`; it is not
 read from a previous step's `kept_twist`.
 
-### Spin-wrap carve-out: what converting it to wrap-aware measures
+### Spin-wrap carve-out: CLOSED — the coupling fixed (issue #40)
 
-The cyc-window budget widen (0.678–0.698 / 0.255–0.275) is a SKIP of the
-tight TOL, not a tolerance. Converting it — `wrap_signed` + TOL 0.02/0.35
-everywhere, no carve-out — lives unmerged on branch
-`cursor/wrap-aware-guard-red` and is **red by design**, tracked in issue
-#40. It stays red until the two discontinuities below are fixed
-honestly, and lands with the fix rather than before it; that guard is
-the record of the defect, not something to route around. Measured on the
-conversion: the guard fails at Skierg step 529 (cyc=0.2645, tilt-wrap
-window) with dh=0.0961 > POSITION_TOL=0.02;
-prev=[-0.3194, 0.8947, -0.4476] curr=[-0.2895, 0.9817, -0.4756]. Neither
-budget was widened and the skip was not restored. The guard on `main`
-keeps the carve-out windows until that PR lands; everything measured
-below is independent of which guard is compiled.
+**Status: fixed 2026-09-21.** The whole section below is the pre-fix
+record; the fix, its measurements and what it changed are in
+"The coupling fixed" immediately after it. The dense guard no longer
+carves out any window: it compares every step of the SkiErg sweep
+against the web's own rendered continuity, recorded in
+`tests/fixtures/replay-v4-hand-parity.json` by
+`tools/gen-v4-hand-parity.mjs`, which drives the real
+`ReplayV4MotionController` on the real avatar exactly the way the guard
+drives the port.
+
+The cyc-window budget widen (0.678–0.698 / 0.255–0.275) was a SKIP of the
+tight TOL, not a tolerance. Converting it — tight TOL everywhere, no
+carve-out — was carried unmerged on branch
+`cursor/wrap-aware-guard-red` until this fix landed, **red by design**
+and tracked in issue #40: it failed at Skierg step 529 (cyc 0.2645) with
+dh 0.0961 > POSITION_TOL 0.02. Neither budget was widened and the skip
+was not restored, then or now — the discontinuities themselves were
+fixed, and the conversion landed with them. The branch is superseded by
+this change and can be deleted; the conversion's diagnostic value is
+fully recorded below and in "The coupling fixed". Everything in this
+section is the pre-fix record.
 
 **Both windows measured (clamp-path + cycle probes).** The whole-cycle
 probe (guard pipeline, 2000 steps) finds exactly two discontinuities;
@@ -993,18 +1002,154 @@ tree clean).
    (0.23 m/frame, sustained, smooth) untouched, rower/bike still clean.
    (iv) No fixture regenerated — every parity fixture test must stay
    green untouched, as it did under the experiment.
+   **Status of each (2026-09-21):** (i) done — guard green with no
+   carve-out; (iii) done — 0.2146 / **0.0404** / 0.2613 m/frame for the
+   SkiErg windows and press ramp, against the web's own 0.2783 / 0.0414
+   / 0.2574 at the same cadence, rower and bike unchanged; (iv) done —
+   not one existing fixture moved. (ii) is done as far as this machine
+   allows: the step walk captures steps 520–540 and the gate is green,
+   but the 3D viewport comes back black from `grabToImage` on this
+   macOS host (qt-bridges-notes #17), so the *visual* read of those
+   frames still needs a Linux session's gate walk.
 
-**The decision the author needs to make:** reproduce the web's two
-faithful orientation snaps (position fix only; the guard then pins the
-two measured values by name instead of a window carve-out) or smooth
-them past the oracle (refinement unwrap, a recorded source-map
-divergence) for a guard fully green at 0.02/0.35 — and, under either
-branch of that decision, whether the SkiErg arms move to the web's
-hand-origin target law (recalibrating the contact chord) or keep the
-palm-point chord with the frozen-rotation form.
+**The decision the author needed to make — ANSWERED (2026-09-21):**
+reproduce the web's faithful orientation snaps; the guard pins them
+against the recorded oracle rather than against a budget, and the
+SkiErg arms moved to the web's hand-origin target law with the sport's
+grip-channel offsets. What that turned out to be, and why the
+"architecture" framing above was wrong, is the next section.
 
-13. **SkiErg pole-grip shortfall through the contact window — recorded,
-    not chased (numbered past 12, the step-529 entry above).** Through
+#### The coupling fixed (2026-09-21; issue #40)
+
+**What was wrong.** Three things, and they compounded:
+
+1. **The chord.** `PoseSolver::pose`'s arm solves aimed the *forearm* at
+   the contact point `point(binding.offset, binding.terminal)` while the
+   reach clamp and the two-bone lengths were computed from a mix of
+   bone and palm-inclusive quantities. The web's
+   `solvePositionTowardTarget` does neither: it subtracts the oriented
+   contact offset from the anchor, clamps *that* origin against bone
+   lengths with absolute 2 mm margins at both ends, and aims the chain
+   at the remainder. Aiming the contact point is what let the wrist
+   frame's ±π snap translate the hand by `|Δ(R·offset)|`.
+2. **The offsets themselves.** The port closed on the V4 contract's
+   authored palm points (`v4LeftHand` = `[−0.08, −0.01, 0.035]`). The web
+   overrides them per sport in `renderer3d.ts`'s `gripEffortOffsets`:
+   SkiErg drives the fitted **fist-channel centre** (`HAND_FIST_CENTRE`,
+   |offset| 0.0427 m) — "the centre of the closed fist onto the shaft,
+   not the authored palm-surface point: the latter lays the pole across
+   the knuckles and the fingers shut beside it instead of around it" —
+   and RowErg/BikeErg drive `handChannelCentre(radius, side)`. Porting the
+   authored offsets had two measured consequences: the hand never closed
+   on its grip (the palm sat 6–10 cm short through the SkiErg contact
+   window — ranking 13), and the snap's lever arm was **2.05× larger**
+   (|palm offset| 0.0874 m against the fist centre's 0.0427 m, and the
+   fist offset runs close to the tilt refinement's palm-normal axis,
+   which is exactly why the web's own snap moves its hand bone 0.013 m
+   while its palm skin rotates in place).
+3. **The metric.** The guard's `dq` was
+   `2·acos(q[3]).clamp(-1, 1)`: no `abs`, so the quaternion double cover
+   was never collapsed (it bit nothing only because `q[3]` stays positive
+   through this sweep), and the clamp was applied to `acos`'s *result*
+   rather than its argument — dead on the lower bound, and silently
+   saturating `dq` at 2.0 rad instead of erroring. `wrap_signed(dq)` on
+   top of that was the identity on the whole reachable range: a safeguard
+   that could never fire. Both are gone.
+
+**How it was found.** The web's V4 hero chain — the architecture the port
+mirrors — *is* drivable headless, which the issue's "the Node harness
+cannot drive" note assumed it was not. `tools/gen-v4-hand-parity.mjs`
+installs the real `ReplayV4MotionController` on the real SkiErg avatar
+with the production wiring and drives it through the guard's own sweep.
+That recording is what turned "the architecture couples the snap into
+position" into "the port's chord does, and the web's does not": the web's
+driven hand moves 0.0379 m at its own tilt snap, smooth elsewhere
+(worst non-snap step 0.0154 m).
+
+**Measured, before and after** (left hand, 2000-step guard sweep; the
+web column is the oracle fixture):
+
+| quantity | pre-fix port | web (oracle) | fixed port |
+| --- | --- | --- | --- |
+| `dh` @ window 1 | 0.096140 @ step 529 | 0.037900 @ step 522 (0.01305 neighbours) | 0.040454 @ step 532 |
+| `dh` @ window 2 | 0.110235 @ step 1377 | 0.061890 @ step 1399 | never (0.0017 there) |
+| `dq` @ window 1 | 1.299200 @ 529 | 1.295254 @ 522 | 1.299300 @ 532 |
+| `dq` @ window 2 | 1.448213 @ 1377 | 1.675243 @ 1399 | never (0.0017 there) |
+| contact-point `|Δ|`, sweep max | 0.0961 | 0.01295 @ 530 | 0.012026 @ 523 |
+| elbow `|Δ|`, sweep max | 0.0434 | 0.019314 @ 466 | 0.041073 @ 532 |
+| hand-to-grip residual, sweep max | 0.1016 (@ 528, ranking 13) | 0.0000007 | **0.0090** (@ 529) |
+| non-SkiErg contact `|Δ|`, sweep max | — | — | rower 0.0048, bike 0.00005 |
+
+**What the fix was.** `Binding` gains the sport's effective offsets for
+the two hand chains (`effective_hand_offset`); `solve_limb_measured`
+follows the web's law (subtract the oriented offset, clamp the origin
+with `first + second − 0.002` / `|first − second| + 0.002`, aim the chain
+at the remainder, counter-rotate the terminal under `preserve_terminal`);
+and the measured segment lengths become **bone** lengths
+(`|hand bone − elbow|`, not `|contact − elbow|`) so the reach boundary
+cannot move when a solve re-aims the hand. Feet keep closing their sole
+contact directly (`solve_limb_contact`) — their offset is part of the
+foot's closed geometry rather than a grip the hand frame steers, and the
+rig fixtures pin the sole on the pedal and plate.
+
+**What moved, and what did not.** No parity fixture changed — the
+`replay-rig-phase-parity.json` skierg hand-target tests, the rower oar
+solve, the bike bar anchor, the contact pass and the wrist budgets all
+still pass untouched; the change is inside the pose solve, downstream of
+every target the fixtures pin. Ranking 13's ~9 cm shortfall closed as a
+consequence (the chain now closes on the point the web closes on). The
+bike's `dh`/`dq` through the whole sweep collapsed to ~1e-4 m / 2e-4 rad
+(it had been carrying the same mis-aimed chord harmlessly).
+
+**The guard now.** No carve-out windows, no widened budgets: the SkiErg
+branch of `requested_twist_stays_continuous_and_engages_the_budgets`
+compares each step against the web's own neighbourhood worst
+(`ORACLE_WINDOW = ±20` steps, so the port's later crossing phase is not
+mistaken for a defect), asserts the contact point stays smooth
+(`POSITION_TOL = 0.02` everywhere), asserts the hand stays on its grip
+(`GRIP_CONTACT_BUDGET = 0.01`, which is ranking 13's fix pinned), and
+asserts parity **two-sidedly**: every web snap above `SNAP_FLOOR` must
+have a port step of comparable magnitude in the window. Bite proofs:
+restoring the contact-point chord fails with "contact jumps 0.0377";
+softening the tilt refinement so the port cannot reach the web's
+window-1 snap fails with "its window-1 snap has been smoothed away".
+
+**Render cadence** (`render_cadence_probe`, 60 fps, 41 spm, rendered hand
+position, all three sports — the #35 method, re-run for this fix; the
+web's own numbers at the same cadence in parentheses):
+
+| | window 1 | window 2 | press ramp |
+| --- | --- | --- | --- |
+| pre-fix SkiErg | 0.1889 m/frame | **0.1273** m/frame | 0.2390 |
+| fixed SkiErg | 0.2146 (web 0.2783) | **0.0404** (web 0.0414) | 0.2613 (web 0.2574) |
+| fixed Rower | 0.0289 | 0.0193 | 0.0228 |
+| fixed Bike | 0.0008 | 0.0008 | 0.0009 |
+
+The issue's two SkiErg spikes are gone: window 2 is now a flat 0.040 m/frame
+band matching the web's, and what remains in window 1 is the faithful snap
+inside a press ramp that is itself ~0.26 m/frame at this cadence — the
+web's own window 1 measures 0.2783 there, larger than the port's. The
+asymmetry recorded in the issue ("isolated spikes bracketed by 0.03–0.05
+neighbours") no longer holds: the port and web now describe the same
+profile.
+
+**Not closed by this: ranking 14.** The web's spin snap is still in the
+fixture and the port still does not reproduce it. That record is now an
+assertion (`assert_eq!(matched, 0, ...)` in the window-2 branch) rather
+than prose, so fixing ranking 14 changes that assert rather than sliding
+under a `<=`.
+
+13. **SkiErg pole-grip shortfall through the contact window — CLOSED
+    2026-09-21 (issue #40); the record below is the pre-fix measurement,
+    kept because it is what justified the contact-offset fix.**
+    The shortfall was not a grip-calibration question at all: the port was
+    closing the hand on the V4 contract's *palm* offset where the web
+    overrides it per sport (`gripEffortOffsets`), so the chain aimed at a
+    different point than the one it was driven onto. With the override
+    ported the residual is 0.0090 m at its worst (step 529) against
+    `GRIP_CONTACT_BUDGET` 0.01, and the dense guard asserts it — the
+    sampling gap this ranking identified is closed too.
+    *(pre-fix record:)* Through
     the SkiErg contact window the posed hand misses its authored
     pole-grip target by 9–10 cm persistently — measured on the
     investigation scratch branch (probe, guard pipeline): left-hand residual 0.0898 at step 518 rising monotonically
@@ -1026,7 +1171,10 @@ palm-point chord with the frozen-rotation form.
     constants).
 
 14. **Window 2's spin wrap diverges from the web in phase and
-    magnitude — open, uninvestigated.** The port's spin wrap fires at
+    magnitude — OPEN (re-measured 2026-09-21 after the coupling fix: the
+    port no longer reaches the wrap at all, while the web's 1.6752 rad
+    snap is unchanged, so the divergence is now qualitative as well as
+    quantitative, and the guard pins the *absence* deliberately).** The port's spin wrap fires at
     cyc 0.6885 with `dq` 1.4482; the web's fires at cyc 0.7080 with
     `qjump` 1.0961 (measured, `tools/web-tilt-probe.mjs` at pinned
     `173c6fa`, full cycle at guard density). Thirty-nine steps early and
