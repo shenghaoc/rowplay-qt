@@ -363,6 +363,16 @@ Each rule exists because the failure happened.
   When a fix moves a number most of the way, compare the *structure* of
   the remaining error against the oracle's, and file it by name instead of
   letting a green assert imply the mechanism is gone.
+- **A closing keyword is a scope wider than the sentence it sits in.**
+  GitHub treats `close` / `fix` / `resolve` in **any tense**, followed by
+  `#N`, as closing that issue — in **commit bodies** and PR descriptions
+  alike. Filing issue #44 for the residue while writing "Both became
+  issues rather than a claim of parity: #44" in the commit body closed it
+  at the merge, because the parser read `fixed: #44` (AGENTS.md's own
+  rule, one level down from `git add -A`: the grammar's scope, not the
+  author's). When an issue must stay open, write "tracked in #44",
+  "see #44" or "refs #44" — never "fixed"/"closes"/"resolves" beside the
+  number. Check the issue list after a merge that names issues.
 
 - After any conflict resolution, grep the whole tree for conflict markers
   (`rg -n '^(<{7}|={7}|>{7})'`) before continuing the rebase.
