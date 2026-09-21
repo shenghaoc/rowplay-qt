@@ -166,9 +166,11 @@ jobs:
             artifacts/phase-*.png
           if-no-files-found: error
 
-  # The wrap-aware guard conversion and the two wrap windows it exposes
-  # (steps 529 / 1377) live in their own PR (the viewmodel guard is red
-  # there by design). This job does not wait on core.
+  # The SkiErg wrap windows (steps 529 / 1377) and the guard conversion that
+  # exposed them: issue #40 fixed the coupling, so the guard is green and
+  # these captures carry the on-screen evidence for a host whose
+  # `grabToImage` renders the 3D viewport (macOS/Metal does not — bridge
+  # note #17). This job does not wait on core.
   step529-straddle:
     name: Step-529 straddle captures
     runs-on: ubuntu-24.04
