@@ -173,6 +173,16 @@
       }
     },
     {
+      "path": "replay-v4-hand-parity.json",
+      "bytes": 1070918,
+      "sha256": "0b4df35e8731fe1225f51b179e51dae6ffaefa285dd2ec432f049a0921cc3846",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay",
+        "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+        "path": "tests/fixtures/replay-v4-hand-parity.json"
+      }
+    },
+    {
       "path": "stroke-pose-parity.json",
       "bytes": 2385,
       "sha256": "b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae",

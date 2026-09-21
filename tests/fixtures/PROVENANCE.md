@@ -16,7 +16,7 @@ checked by `crates/rowplay-fixtures` tests.
 Redaction policy: see `Concept2/REDACTION.md` (copied from Studio). No fixture
 contains real athlete data, tokens, cookies, or hardware identifiers.
 
-Three fixtures are generated locally rather than vendored:
+Four fixtures are generated locally rather than vendored:
 
 - `replay-row-phase-parity.json` pins the web avatar's rower stroke-phase
   calibration (seat slide, oar sweep yaw, oar dip roll per cycle) directly
@@ -32,6 +32,18 @@ Three fixtures are generated locally rather than vendored:
   contact landmarks from `renderer3d{Row,Ski,Bike}Avatar.ts` at the pinned
   rowplay commit `173c6fa` (384 samples × 2 timing sweeps). Regenerate with
   `node --experimental-transform-types tools/gen-rig-phase-parity.mjs`.
+- `replay-v4-hand-parity.json` (issue #40) records the web's **rendered**
+  V4 SkiErg hand continuity through the dense guard's own sweep — the
+  hand bone's, elbow's and contact point's per-step deltas, and the
+  residual between that contact point and the target the sport drives it
+  onto — by driving the real `ReplayV4MotionController` on the real
+  avatar with the production wiring (`gripEffectorOffsets` included).
+  Regenerate with
+  `node --experimental-transform-types tools/gen-v4-hand-parity.mjs`
+  (Node ≥ 23.6, web `node_modules` present). It is the oracle the dense
+  guard compares against instead of its former continuity budgets; the
+  generator refuses to write unless the driven chain closes on its target
+  (worst residual < 1e-6) and the avatar actually moved.
 - `replay-stroke-model-parity.json` (parity coverage audit ranking 5,
   `docs/parity-coverage.md`) pins the **production stroke-pose pipeline**:
   `buildStrokeTimeline`, `strokePoseAt` and `fallbackStrokePose` imported from
