@@ -720,7 +720,9 @@ two candidate causes, separated by a render-cadence measurement
   guard's carve-out windows are deleted and replaced by a per-step
   comparison against a recorded oracle. The device profiles below (frame
   pacing, and the press ramp's legitimate 0.26 m/frame) are unchanged and
-  still the co-cause of the reported jerkiness.
+  still the co-cause of the reported jerkiness. The *rendered hand* no
+  longer snaps; a ~11x-smaller residue still reaches the elbow at the
+  snap (issues #44, #43).
 - **Large per-frame motion also exists legitimately**, and is bigger
   than the snaps: the SkiErg press ramp peaks at 0.23 m/frame at 60 fps
   (sustained over ~8 frames — fast, not snapped), and the rower drive

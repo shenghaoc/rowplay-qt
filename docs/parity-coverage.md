@@ -474,11 +474,11 @@ audit's stage 3 fixed the bike (two constants, `rig_phase_parity_bike` green).
     unwrapping diverges from the web's rendered orientation at the wrap
     — it makes the port smoother than its oracle, a deliberate deviation
     to record in `docs/source-map.md`, not silent parity. **CLOSED
-    (2026-09-21, issue #40):** the wraps are still there and still
+    (2026-09-21; issue #40; residue tracked in issue #44):** the wraps are still there and still
     faithful — the port renders one, 1.2993 rad at step 532 against the
     web's 1.2953 at step 522 — but they no longer move the hand, because
     the coupling this ranking measured was a port defect rather than the
-    architecture it was read as. See "The coupling fixed" below.
+    architecture it was read as. See "The coupling reduced ~11×" below.
     Step 529 IS this wrap class — see ranking 12, whose re-measurement
     (clamp-path probe, this PR) retires the earlier "IK branch flip"
     attribution.
@@ -772,11 +772,11 @@ is `local = normalise(quat_mul(conjugate(parent_world), desired))` with
 `orient_hand_to_grip_channel` + per-frame `stable_forearm`; it is not
 read from a previous step's `kept_twist`.
 
-### Spin-wrap carve-out: CLOSED — the coupling fixed (issue #40)
+### Spin-wrap carve-out: CLOSED — the position coupling reduced ~11× (issue #40; residue in #44)
 
 **Status: fixed 2026-09-21.** The whole section below is the pre-fix
 record; the fix, its measurements and what it changed are in
-"The coupling fixed" immediately after it. The dense guard no longer
+"The coupling reduced ~11×" immediately after it. The dense guard no longer
 carves out any window: it compares every step of the SkiErg sweep
 against the web's own rendered continuity, recorded in
 `tests/fixtures/replay-v4-hand-parity.json` by
@@ -793,7 +793,7 @@ dh 0.0961 > POSITION_TOL 0.02. Neither budget was widened and the skip
 was not restored, then or now — the discontinuities themselves were
 fixed, and the conversion landed with them. The branch is superseded by
 this change and can be deleted; the conversion's diagnostic value is
-fully recorded below and in "The coupling fixed". Everything in this
+fully recorded below and in "The coupling reduced ~11×". Everything in this
 section is the pre-fix record.
 
 **Both windows measured (clamp-path + cycle probes).** The whole-cycle
@@ -1025,7 +1025,20 @@ SkiErg arms moved to the web's hand-origin target law with the sport's
 grip-channel offsets. What that turned out to be, and why the
 "architecture" framing above was wrong, is the next section.
 
-#### The coupling fixed (2026-09-21; issue #40)
+#### The coupling reduced ~11× (2026-09-21; issue #40; residue tracked in issue #44)
+
+**What this is not.** The coupling is **reduced, not eliminated** (issue
+#44). The web's snap is rigid — it rotates the hand frame and leaves the
+contact point exact, its own grip residual staying under 9.4e-7 through
+every step including both snaps. The port's snap is now a rigid re-aim
+about a fixed contact *in principle*, but it still spreads along the
+chain: at the port's own snap (step 532) its elbow moves 0.0411 against
+the web's worst elbow step of 0.0193 — **2.1× further** — where the web's
+mid-flight snap is nearly elbow-free (0.00197 at its own snap). So the
+grip residual's 0.0090 and its ~10% margin under `GRIP_CONTACT_BUDGET`
+are the residue of this defect, not a settled budget; the assert's
+comment names issue #44 for whoever trips it. The heading above says
+"reduced ~11×" rather than "fixed" for the same reason.
 
 **What was wrong.** Three things, and they compounded:
 
@@ -1114,8 +1127,14 @@ compares each step against the web's own neighbourhood worst
 mistaken for a defect), asserts the contact point stays smooth
 (`POSITION_TOL = 0.02` everywhere), asserts the hand stays on its grip
 (`GRIP_CONTACT_BUDGET = 0.01`, which is ranking 13's fix pinned), and
-asserts parity **two-sidedly**: every web snap above `SNAP_FLOOR` must
-have a port step of comparable magnitude in the window. Bite proofs:
+asserts parity **two-sidedly, for window 1**: every web snap above
+`SNAP_FLOOR` must have a port step of comparable magnitude in the window
+(the port may not smooth a snap away), matched by *nearest snap in phase*
+as well as magnitude. Window 2 is the exception and is pinned as an
+**absence** instead (`assert_eq!(matched, 0)`, issue #43): the port is
+held to the one-sided bound there — it may not move further than the
+web's neighbourhood — but it is not required to reproduce a snap it does
+not take. Bite proofs:
 restoring the contact-point chord fails with "contact jumps 0.0377";
 softening the tilt refinement so the port cannot reach the web's
 window-1 snap fails with "its window-1 snap has been smoothed away".
@@ -1140,10 +1159,10 @@ neighbours") no longer holds: the port and web now describe the same
 profile.
 
 **Not closed by this: ranking 14.** The web's spin snap is still in the
-fixture and the port still does not reproduce it. That record is now an
-assertion (`assert_eq!(matched, 0, ...)` in the window-2 branch) rather
-than prose, so fixing ranking 14 changes that assert rather than sliding
-under a `<=`.
+fixture and the port still does not reproduce it — tracked as issue #43.
+That record is now an assertion (`assert_eq!(matched, 0, ...)` in the
+window-2 branch, matched on phase *and* magnitude) rather than prose, so
+fixing ranking 14 changes that assert rather than sliding under a `<=`.
 
 13. **SkiErg pole-grip shortfall through the contact window — CLOSED
     2026-09-21 (issue #40); the record below is the pre-fix measurement,
@@ -1154,7 +1173,9 @@ under a `<=`.
     different point than the one it was driven onto. With the override
     ported the residual is 0.0090 m at its worst (step 529) against
     `GRIP_CONTACT_BUDGET` 0.01, and the dense guard asserts it — the
-    sampling gap this ranking identified is closed too.
+    sampling gap this ranking identified is closed too. The 0.0090 itself
+    is the residue of the snap coupling (issue #44), not a grip
+    miscalibration; the budget was not tuned around it.
     *(pre-fix record:)* Through
     the SkiErg contact window the posed hand misses its authored
     pole-grip target by 9–10 cm persistently — measured on the
@@ -1177,10 +1198,12 @@ under a `<=`.
     constants).
 
 14. **Window 2's spin wrap diverges from the web in phase and
-    magnitude — OPEN (re-measured 2026-09-21 after the coupling fix: the
-    port no longer reaches the wrap at all, while the web's 1.6752 rad
-    snap is unchanged, so the divergence is now qualitative as well as
-    quantitative, and the guard pins the *absence* deliberately).** The port's spin wrap fires at
+    magnitude — OPEN, tracked as issue #43 (re-measured 2026-09-21 after
+    the coupling fix: the port no longer reaches the wrap at all, while
+    the web's 1.6752 rad snap is unchanged, so the divergence is now
+    qualitative as well as quantitative, and the guard pins the *absence*
+    deliberately, matching a snap on phase and magnitude so a
+    wrong-phase crossing cannot read as a fix).** The port's spin wrap fires at
     cyc 0.6885 with `dq` 1.4482; the web's fires at cyc 0.7080 with
     `qjump` 1.0961 (measured, `tools/web-tilt-probe.mjs` at pinned
     `173c6fa`, full cycle at guard density). Thirty-nine steps early and
