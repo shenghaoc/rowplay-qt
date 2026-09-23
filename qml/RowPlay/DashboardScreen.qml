@@ -24,6 +24,7 @@ Pane {
         clip: true
 
         ColumnLayout {
+            id: content
             width: parent.width
             spacing: Theme.spacingXxxLarge
 
@@ -34,10 +35,13 @@ Pane {
                 Accessible.name: text
             }
 
-            // Metric tiles (adaptive 180–240 grid like Studio).
+            // Metric tiles (Studio's adaptive grid): equal-width columns,
+            // balanced so no tile is left alone on a row.
             GridLayout {
                 Layout.fillWidth: true
-                columns: Math.max(2, Math.floor(screen.width / 220))
+                columns: screen.gridColumns(Library.tilesJson.length, content.width,
+                                            180, columnSpacing)
+                uniformCellWidths: true
                 columnSpacing: Theme.spacingLarge
                 rowSpacing: Theme.spacingLarge
 
@@ -72,7 +76,9 @@ Pane {
                 GridLayout {
                     id: pbGrid
                     Layout.fillWidth: true
-                    columns: Math.max(2, Math.floor(screen.width / 220))
+                    columns: screen.gridColumns(Library.pbCardsJson.length, content.width,
+                                                150, columnSpacing)
+                    uniformCellWidths: true
                     columnSpacing: Theme.spacingMedium
                     rowSpacing: Theme.spacingMedium
 
@@ -338,6 +344,20 @@ Pane {
                 }
             }
         }
+    }
+
+    // Columns for a grid of `count` equal-width cells at least `minWidth`
+    // wide: as many as fit, then spread over the rows so they stay balanced
+    // (four tiles make one row of four or two rows of two, never 3 + 1).
+    // Layout arithmetic only.
+    function gridColumns(count, width, minWidth, gap) {
+        if (!(count > 0)) {
+            return 1
+        }
+        var fit = Math.floor((width + gap) / (minWidth + gap))
+        fit = Math.min(count, Math.max(2, fit))
+        var rows = Math.ceil(count / fit)
+        return Math.ceil(count / rows)
     }
 
     // Bulk series loading: one replace() per change (ground rule).
