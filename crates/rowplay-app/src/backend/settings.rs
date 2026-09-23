@@ -35,6 +35,7 @@ pub struct SettingsBackend {
     gate_mode: bool,
     screenshot_dir: String,
     color_scheme_override: String,
+    contrast_override: String,
     sync_mock_mode: bool,
     /// Comma-separated `Singleton.member` pairs the gate probes (from
     /// `ROWPLAY_GATE_MEMBER_CHECK`); empty outside the gate.
@@ -143,6 +144,7 @@ impl Default for SettingsBackend {
             gate_mode: crate::backend::test_env("ROWPLAY_SMOKE_GATE").is_some(),
             screenshot_dir: std::env::var("ROWPLAY_SMOKE_SCREENSHOT_DIR").unwrap_or_default(),
             color_scheme_override: std::env::var("ROWPLAY_FORCE_COLOR_SCHEME").unwrap_or_default(),
+            contrast_override: std::env::var("ROWPLAY_FORCE_CONTRAST").unwrap_or_default(),
             sync_mock_mode: crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some(),
             gate_member_check: crate::backend::test_env("ROWPLAY_GATE_MEMBER_CHECK")
                 .unwrap_or_default(),
@@ -228,6 +230,10 @@ impl SettingsBackend {
         Member = color_scheme_override,
         Constant
     );
+    // Test/CI override for the contrast preference: "", "high" or "normal"
+    // (ROWPLAY_FORCE_CONTRAST); empty follows the OS
+    // (QStyleHints::accessibility()->contrastPreference()).
+    qproperty!("contrastOverride", Member = contrast_override, Constant);
     // True under ROWPLAY_SYNC_MOCK=1: syncs run against the deterministic
     // MockConcept2Client (demo details) instead of the live Logbook, with no
     // token required. Lets CI exercise the whole worker-thread sync path.
