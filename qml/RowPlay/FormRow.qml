@@ -3,9 +3,12 @@
 // optional detail line under it, one control at the trailing edge (two at
 // most), at least Theme.formRowHeight tall. `stacked` puts a wide control
 // (the token field) under the label at full width; a row without a label
-// lays its controls out from the leading edge. A row whose control is a
-// switch names it in `toggleTarget`: a click anywhere on the row toggles the
-// switch, while keyboard focus stays on the switch itself, never the row.
+// lays its controls out from the leading edge, and so does a row too narrow
+// for its label beside its controls (large text in a narrow window): the
+// controls then sit under the label instead of covering it. A row whose
+// control is a switch names it in `toggleTarget`: a click anywhere on the
+// row toggles the switch, while keyboard focus stays on the switch itself,
+// never the row.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -30,7 +33,13 @@ Item {
     readonly property bool isFormRow: true
     default property alias controls: trailing.data
 
-    readonly property bool leadingControls: stacked || label.length === 0
+    // The label keeps at least this much width beside its controls.
+    readonly property real minimumLabelWidth: Theme.px(140)
+    readonly property bool tooNarrow: label.length > 0 && width > 0
+                                      && trailing.implicitWidth + Theme.spacingXLarge
+                                         + minimumLabelWidth
+                                         > width - 2 * Theme.spacingLarge
+    readonly property bool leadingControls: stacked || label.length === 0 || tooNarrow
     // The inset separator goes above every visible row except the first.
     readonly property bool firstVisibleRow: {
         var siblings = parent ? parent.children : []
