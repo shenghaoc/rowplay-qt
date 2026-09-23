@@ -182,9 +182,11 @@ QtObject {
     readonly property color windowBackground: dark ? "#111317" : "#FFFFFF"
     readonly property color toolbarBackground: windowBackground
     /// The sidebar column.
-    readonly property color sidebarBackground: dark ? "#16191D" : "#F3F4F6"
-    /// Grouped surfaces: cards, grouped settings rows, chart panels.
-    readonly property color groupBackground: dark ? "#191C21" : "#F3F4F6"
+    readonly property color sidebarBackground: dark ? "#16191D" : "#F4F5F7"
+    /// Grouped surfaces: cards, grouped settings rows, chart panels. The
+    /// light value keeps the PM5 duration colour at AA on it (4.53:1; it
+    /// measured 4.496:1 on #F3F4F6).
+    readonly property color groupBackground: dark ? "#191C21" : "#F4F5F7"
     readonly property color panelBackground: groupBackground
     readonly property color cardBackground: groupBackground
     /// A selected card (tonal accent wash; opaque in high contrast).
