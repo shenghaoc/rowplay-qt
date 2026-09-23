@@ -20,12 +20,17 @@ Pane {
     padding: Theme.spacingXxxLarge
 
     ScrollView {
+        id: scroll
         anchors.fill: parent
         clip: true
+        // The column spans the view: sized by parent.width it followed the
+        // Flickable content item, i.e. its own implicit width, and stopped a
+        // quarter to a third short of the pane.
+        contentWidth: availableWidth
 
         ColumnLayout {
             id: content
-            width: parent.width
+            width: scroll.availableWidth
             spacing: Theme.spacingXxxLarge
 
             Label {
