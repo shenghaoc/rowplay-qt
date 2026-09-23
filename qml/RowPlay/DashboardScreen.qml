@@ -58,7 +58,9 @@ Pane {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.spacingLarge
-                visible: pbGrid.count > 0
+                // The Repeater has the count; a GridLayout has none (the
+                // section never showed while this read pbGrid.count).
+                visible: pbRepeater.count > 0
 
                 Label {
                     text: Tr.t("dashboard.pbTitle")
@@ -75,6 +77,7 @@ Pane {
                     rowSpacing: Theme.spacingMedium
 
                     Repeater {
+                        id: pbRepeater
                         model: Library.pbCardsJson
 
                         Pane {
