@@ -38,8 +38,14 @@ AbstractButton {
         }
     }
 
+    // A press dismisses the tooltip until the pointer leaves: otherwise it
+    // stays up over whatever the click opened (the application menu).
+    property bool tipDismissed: false
+    onPressed: tipDismissed = true
+    onHoveredChanged: if (!hovered) tipDismissed = false
+
     AppToolTip {
-        visible: control.hovered && control.label.length > 0
+        visible: control.hovered && !control.tipDismissed && control.label.length > 0
         text: control.label
     }
 
