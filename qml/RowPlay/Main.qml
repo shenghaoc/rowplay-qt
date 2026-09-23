@@ -75,10 +75,15 @@ ApplicationWindow {
     // Everything lives inside one QML-created item: ApplicationWindow's
     // C++ contentItem cannot grabToImage ("item has no QML engine"), and the
     // gate screenshots need a grabbable root. The toolbar is therefore part
-    // of the content, not the window `header`.
-    Item {
+    // of the content, not the window `header`. It is painted in the window
+    // colour because an item grab has no window background under it: on an
+    // unpainted root, translucent pixels (the replay transport's 92 %
+    // background) were stored translucent — alpha in the PNG, the bare colour
+    // in the PPM the tests read — instead of what the screen shows.
+    Rectangle {
         id: shellRoot
         anchors.fill: parent
+        color: Theme.windowBackground
 
         ColumnLayout {
             anchors.fill: parent
