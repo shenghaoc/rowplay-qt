@@ -8,6 +8,10 @@
 // Replay); a click or arrow key only emits `activated(index)` and the caller
 // writes the store, so the binding is never broken and a store that rejects
 // or clamps the value stays the single source of truth.
+//
+// Given less width than its segments need (large text in a narrow window),
+// the control shows the same choices as a pop-up button instead of eliding
+// them; a caller lets it shrink by capping its width below `implicitWidth`.
 import QtQuick
 import QtQuick.Controls
 import RowPlay
@@ -26,6 +30,7 @@ Control {
     signal activated(int index)
 
     readonly property int count: model ? model.length : 0
+    readonly property bool compact: width > 0 && width < implicitWidth - 0.5
     readonly property real segmentWidth: count > 0 ? availableWidth / count : 0
     // Equal segments sized for the widest title in the selected weight.
     readonly property real widestTitle: {
@@ -47,10 +52,12 @@ Control {
     padding: Theme.px(2)
     font.pixelSize: Theme.fontPx(12)
     hoverEnabled: true
-    focusPolicy: Qt.TabFocus
+    focusPolicy: compact ? Qt.NoFocus : Qt.TabFocus
 
     Accessible.role: Accessible.PageTabList
     Accessible.name: label
+    // In the compact form the pop-up button below is the accessible control.
+    Accessible.ignored: compact
 
     Keys.onLeftPressed: select(currentIndex - 1)
     Keys.onRightPressed: select(currentIndex + 1)
@@ -62,6 +69,22 @@ Control {
         }
     }
 
+    // The compact form: the same choices in a pop-up button, at its own
+    // natural width from the leading edge.
+    PopupButton {
+        visible: control.compact
+        width: Math.min(control.width, implicitWidth)
+        height: control.height
+        implicitContentWidthPolicy: ComboBox.WidestText
+        model: control.model
+        currentIndex: control.currentIndex
+        enabled: control.enabled
+        onActivated: function(index) {
+            control.select(index)
+        }
+        Accessible.name: control.label
+    }
+
     FontMetrics {
         id: metrics
         font.pixelSize: control.font.pixelSize
@@ -69,6 +92,7 @@ Control {
     }
 
     background: Rectangle {
+        visible: !control.compact
         radius: Theme.radiusSmall + 1
         color: Theme.segmentTrack
         border.width: Theme.highContrast ? Theme.hairline : 0
@@ -115,6 +139,8 @@ Control {
     }
 
     contentItem: Row {
+        visible: !control.compact
+
         Repeater {
             model: control.model
 
