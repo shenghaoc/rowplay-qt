@@ -798,4 +798,7 @@ stack of seven PRs, each green on its own:
      with xdotool.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
    during the replay.
+   - Delivered in #73 and validated there: the full suite, the captures
+     before and after, and the auto-hide cycle and the sidebar's return
+     driven with xdotool in both schemes.
 7. `ui/07-docs`: the README screenshots and the final documentation pass.

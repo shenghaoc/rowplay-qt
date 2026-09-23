@@ -254,10 +254,15 @@ that delivers it.
     scrubber, the speed `SegmentedControl`, the metric chips (caption over
     value, in their metric colours), the race gap, and the verdict on its
     own line. The loading / error overlay uses the same surface.
-  - [x] T6.2 Auto-hide (R7.2), driven under Xvfb: the HUD hid about 3 s
-    into playback and came back on a pointer move, the Right key and a
-    pause. The first build never hid, because of Qt Quick's per-frame
-    synthetic hover (`docs/qt-bridges-notes.md`).
+  - [x] T6.2 Auto-hide (R7.2), driven under Xvfb. The HUD hides about 3 s
+    into playback and comes back on a pointer move, the Right key, a pause
+    or Tab. It stays up 4.5 s after opening idle and after a pause, and
+    while focus is inside it. The first build never hid, because of Qt
+    Quick's per-frame synthetic hover. A review then found that it hid
+    while paused or idle: `Timer.restart()` overrode the timer's `running`
+    binding, which the drive confirmed before the fix
+    (`docs/qt-bridges-notes.md` on both). The metric chips now update in
+    place instead of rebuilding per frame.
   - [x] T6.3 The sidebar is hidden during the replay and comes back at its
     width (R7.3, #62). The toolbar holds the way back and the workout's
     title, guarded so a replay loaded without selecting its workout shows
@@ -267,5 +272,6 @@ that delivers it.
     colour, every `ScrollView` uses `AppScrollBar`, and the `SplitView`
     handle is the shell's own.
   - [x] T6.5 No camera framing inset (R7.4).
+  - [x] T6.6 Validation (R9): see the PR.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.
