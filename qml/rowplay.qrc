@@ -22,6 +22,26 @@
         <file>RowPlay/SmokeScene.qml</file>
         <file>RowPlay/Theme.qml</file>
         <file>RowPlay/Tr.qml</file>
+        <file>RowPlay/Icon.qml</file>
+        <file>RowPlay/FocusRing.qml</file>
+        <file>RowPlay/ToolbarButton.qml</file>
+        <file>RowPlay/PushButton.qml</file>
+        <file>RowPlay/SegmentedControl.qml</file>
+        <file>RowPlay/ToggleSwitch.qml</file>
+        <file>RowPlay/InputField.qml</file>
+        <file>RowPlay/PopupButton.qml</file>
+        <file>RowPlay/FormSection.qml</file>
+        <file>RowPlay/FormRow.qml</file>
+        <file>RowPlay/ChartTheme.qml</file>
+        <file>RowPlay/AppToolTip.qml</file>
+        <file>RowPlay/AppMenu.qml</file>
+        <file>RowPlay/AppMenuItem.qml</file>
+        <file>RowPlay/AppMenuSeparator.qml</file>
+        <file>RowPlay/AppScrollBar.qml</file>
+        <file>RowPlay/AppProgressBar.qml</file>
+        <file>RowPlay/AppBusyIndicator.qml</file>
+        <file>RowPlay/AppDialog.qml</file>
+        <file>RowPlay/AppDialogButtonBox.qml</file>
         <file>RowPlay/Replay/qmldir</file>
         <file>RowPlay/Replay/ReplayScene.qml</file>
         <!-- The vendored replay packs (assets/replay/) are validated against
