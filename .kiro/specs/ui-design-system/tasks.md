@@ -248,6 +248,24 @@ that delivers it.
     English in every language (#78). The two-way distance-unit choice is
     a pop-up button where ADR 0013 calls for a segmented control; that is
     left to the owner.
-- [ ] T6 (6/7 `ui/06-replay`) R7.
+- [x] T6 (6/7 `ui/06-replay`) R7 and the rest of R2.2.
+  - [x] T6.1 The transport as a floating, opaque HUD over a full-route
+    scene (R7.1): the round play / pause button, the `AppSlider`
+    scrubber, the speed `SegmentedControl`, the metric chips (caption over
+    value, in their metric colours), the race gap, and the verdict on its
+    own line. The loading / error overlay uses the same surface.
+  - [x] T6.2 Auto-hide (R7.2), driven under Xvfb: the HUD hid about 3 s
+    into playback and came back on a pointer move, the Right key and a
+    pause. The first build never hid, because of Qt Quick's per-frame
+    synthetic hover (`docs/qt-bridges-notes.md`).
+  - [x] T6.3 The sidebar is hidden during the replay and comes back at its
+    width (R7.3, #62). The toolbar holds the way back and the workout's
+    title, guarded so a replay loaded without selecting its workout shows
+    no other workout's name. Escape closes the replay, as Back did.
+  - [x] T6.4 `AppSlider` themes the replay scrubber (R2.2). The stock types
+    left are containers: the screens' `Pane`s paint the palette's window
+    colour, every `ScrollView` uses `AppScrollBar`, and the `SplitView`
+    handle is the shell's own.
+  - [x] T6.5 No camera framing inset (R7.4).
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.

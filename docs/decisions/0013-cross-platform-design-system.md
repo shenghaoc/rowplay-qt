@@ -56,7 +56,8 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
 - **Accessibility.** Nothing is conveyed by colour alone: deltas and the race
   verdict carry a sign, word or glyph. Nothing is reachable only by hover.
   Focus rings are visible. Text is in sentence case, never all caps.
-- **Replay.** The playback controls float over the replay scene.
+- **Replay.** The playback controls float over the replay scene, on an
+  opaque surface, and hide while playing until the pointer moves.
 - **Colour.** The PM5 "Erg Display" palette and the Metric Mapping Rule from
   Studio's `DESIGN.md` stay. Surfaces and text use this repository's own
   neutral light and dark ramps, which pass WCAG AA (`docs/source-map.md`).
@@ -67,14 +68,14 @@ designs for full customisation, and `qtquickcontrols2.conf` forces it. The
 shared controls in `qml/RowPlay/` replace every stock visual:
 
 - `Icon`, `FocusRing`, `ToolbarButton`, `PushButton`, `SegmentedControl`,
-  `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`
-  and `ChartTheme`;
+  `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`,
+  `AppSlider` and `ChartTheme`;
 - Basic's own popups and indicators: `AppToolTip`, `AppMenu` /
   `AppMenuItem` / `AppMenuSeparator`, `AppScrollBar`, `AppProgressBar`,
   `AppBusyIndicator`, `AppDialog` and `AppDialogButtonBox`.
 
 Screens use these, never raw `Button`, `ComboBox`, `Switch`, `TextField`,
-`Menu`, `ToolTip` or `Dialog`. `Main.qml` sets every palette role from
+`Slider`, `Menu`, `ToolTip` or `Dialog`. `Main.qml` sets every palette role from
 `Theme.qml`, mapped by how Basic uses each role, as the safety net for any
 stock control.
 
@@ -98,7 +99,7 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   of luminance about 0.183–0.198 both stay under 4.5:1 (tracked in #76).
 - **Contrast.** The OS contrast preference (`QAccessibilityHints`) switches
   to a high-contrast variant: opaque surfaces, stronger separators and
-  outlines, full-contrast secondary text and a solid replay HUD.
+  outlines, and full-contrast secondary text.
 - **Shortcuts.** `QKeySequence.StandardKey` wherever one exists
   (Preferences, Quit, Close, Find, Refresh, Back). The replay keys stay. A
   sidebar toggle uses F9 on Linux and Windows and Ctrl+Cmd+S on macOS, and
