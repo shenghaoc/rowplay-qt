@@ -211,7 +211,26 @@ that delivers it.
       which grows under the pointer, so hovering the bar moved the page
       (2 px at the 12 px base). It reserves the bar's `maximumThickness`
       (2/7).
-- [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
+- [x] T5 (5/7 `ui/05-settings`) R6 and R4.5.
+  - [x] T5.1 The grouped page:
+    - FormSections of FormRows with at most two trailing controls (the
+      sync progress and Cancel moved to their own row);
+    - whole-row switch toggles for demo mode, reduce motion and live mode,
+      each switch re-bound to its store;
+    - the SegmentedControl quality, PopupButton pickers and InputField
+      token;
+    - one prominent or destructive button at a time;
+    - the live-mode panel as a section.
+  - [x] T5.2 The timezone note is the row's detail, no longer a hover-only
+    tooltip (#63).
+  - [x] T5.3 The logout confirmation: an AppDialog with web-string
+    PushButtons in the platform order. The gate opens it (it logs a marker
+    and holds for a tick), and its first run found a binding loop on the
+    dialog's implicit height (fixed).
+  - [x] T5.4 No dismiss button (R4.5): back, Escape and the toolbar toggle
+    close the page.
+  - [x] T5.5 Driven under Xvfb: a click on the reduce-motion row's label
+    turned the switch on and back off, changing only the switch region.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.
