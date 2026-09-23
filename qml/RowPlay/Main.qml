@@ -6,9 +6,10 @@
 // come from Studio's app scene.
 //
 // Design system (ADR 0013): the sidebar runs the full window height and can
-// be hidden; the toolbar sits over the content column with icon-only
-// buttons and the sport filter as a segmented control; the empty state
-// replaces only the content area. The platform layer lives here too:
+// be hidden (it always is during the immersive replay); the toolbar sits
+// over the content column with icon-only buttons and the sport filter as a
+// segmented control, and shows only the way back and the workout's title
+// during the replay; the empty state replaces only the content area. The platform layer lives here too:
 // StandardKey shortcuts, the native macOS menu bar (menu-item roles, so Qt
 // writes the titles) or the toolbar's menu button on Windows and Linux,
 // and the sidebar toggle.
@@ -186,10 +187,11 @@ ApplicationWindow {
                 }
             }
 
-            // Sidebar column (Studio: min 260, ideal 320), full height.
+            // Sidebar column (Studio: min 260, ideal 320), full height;
+            // hidden during the replay, and SplitView restores its width.
             SidebarPanel {
                 id: sidebarColumn
-                visible: root.sidebarShown
+                visible: root.sidebarShown && root.screenIndex !== 3
                 SplitView.preferredWidth: Theme.px(320)
                 SplitView.minimumWidth: Theme.px(260)
                 SplitView.maximumWidth: Theme.px(480)
@@ -207,6 +209,42 @@ ApplicationWindow {
                     Layout.preferredHeight: Theme.toolbarHeight
                     color: Theme.toolbarBackground
 
+                    readonly property bool replayShown: root.screenIndex === 3
+
+                    // Leading, during the replay only: the way back and the
+                    // workout's title.
+                    RowLayout {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: Theme.spacingLarge
+                        anchors.rightMargin: Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingSmall
+                        visible: toolbar.replayShown
+
+                        // Named "Close" (the web's `replay.closePanel`): it
+                        // returns to the workout, where the web's
+                        // "Back to dashboard" would name the wrong place.
+                        ToolbarButton {
+                            iconName: "chevron.left"
+                            label: Tr.t("replay.closePanel")
+                            onClicked: Library.closeReplay()
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            // The route always opens on the selected workout;
+                            // the guard keeps a replay loaded any other way
+                            // (the gate walk loads demo workouts straight into
+                            // Replay) from showing another workout's title.
+                            text: Replay.workoutId === Library.selectedWorkoutId
+                                  ? Detail.workoutType : ""
+                            font: Theme.bodyEmphasized
+                            color: Theme.textPrimary
+                            elide: Text.ElideRight
+                            Accessible.name: text
+                        }
+                    }
+
                     // Principal: the sport filter (Studio's segmented picker),
                     // bound to the Library so a filter set from anywhere —
                     // including the gate walk — shows here. It is centred but
@@ -219,6 +257,7 @@ ApplicationWindow {
                         id: sportFilter
                         readonly property real room: trailingButtons.x
                                                      - 2 * Theme.spacingLarge
+                        visible: !toolbar.replayShown
                         anchors.verticalCenter: parent.verticalCenter
                         width: Math.max(compactWidth, Math.min(implicitWidth, room))
                         x: Math.max(Theme.spacingLarge,
@@ -233,9 +272,10 @@ ApplicationWindow {
                     }
 
                     // Trailing: reload, the settings toggle and, on Windows
-                    // and Linux, the application menu.
+                    // and Linux, the application menu (not during the replay).
                     RowLayout {
                         id: trailingButtons
+                        visible: !toolbar.replayShown
                         anchors.right: parent.right
                         anchors.rightMargin: Theme.spacingLarge
                         anchors.verticalCenter: parent.verticalCenter
@@ -639,7 +679,9 @@ ApplicationWindow {
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (root.screenIndex === 2) {
+            if (root.screenIndex === 3) {
+                Library.closeReplay()
+            } else if (root.screenIndex === 2) {
                 root.toggleSettings()
             } else {
                 Library.clearSelection()
