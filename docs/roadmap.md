@@ -804,3 +804,58 @@ stack of seven PRs, each green on its own:
    - Second-reviewer pass: the scrubber's half-pixel centring, and Space on
      the focused Close button (fixed in 2/7's `ToolbarButton`) (T6.7).
 7. `ui/07-docs`: the README screenshots and the final documentation pass.
+
+**Outcome (2026-09-23, the stack as opened).** PRs #68–#74, in that order;
+each builds and passes the full suite on its own, and each carries before /
+after captures in both schemes.
+
+- **Delivered.** The Basic style drawn from our own tokens: neutral ramps,
+  the PM5 metric colours kept, and every figure measured by the QML runtime
+  and truncated (text ≥ 4.78:1, metric colours ≥ 4.53:1 on the grouped
+  surface). Lengths and type follow the system font, verified at 125 % and
+  150 %. The system accent is used where the platform has one, with a
+  high-contrast variant. The shared controls replace every stock one with a
+  look of its own. The shell has a full-height sidebar, an icon-only
+  toolbar, StandardKey shortcuts, the native macOS menu bar (a toolbar menu
+  on Windows and Linux) and an About dialog built from existing strings.
+  The dashboard and detail sit in balanced card grids in sentence case, and
+  settings is a grouped page. The replay's controls float over the scene
+  and hide while it plays, with the sidebar hidden.
+- **Found on the way.**
+  - The PM5 duration colour measured 4.496:1 on the first light grouped
+    surface, printed as 4.50 (2/7 moved the surface one step).
+  - Qt Quick sends a synthetic hover after every animated frame, which kept
+    the first auto-hide build from ever hiding the HUD.
+  - `Timer.restart()` overrides a `running` binding, which let the HUD
+    hide while paused or idle (found in review, confirmed by driving it).
+  - Large text in a narrow window broke layouts that the default size
+    never showed, found at 150 % text in the 1000 px minimum window. The
+    toolbar filter ran under its neighbours, the splits table elided
+    values, settings rows covered their labels, and the sync buttons ran
+    out of their group. Each is fixed in its own layer: the segmented
+    control's compact form and the stacking row in 2/7, the toolbar in
+    3/7, the table in 4/7 and the settings page in 5/7.
+  - `FontMetrics.advanceWidth()` registers no binding dependency, so a
+    measure taken before its font landed kept the default font. A
+    default-size capture comparison caught it in 5/7's settings (the
+    quality control drew 308 px wide instead of 292), and the fix also
+    moved 4/7's dashboard pace chart 19 px left: its label reserve had
+    been measured at 12 px while the labels draw at 9. Every such binding
+    now reads its metrics' font (2/7, and the table in 4/7), so the widths
+    also follow a live change of the system font.
+  - Qt Quick Layouts round each item's width up to a whole pixel, so the
+    splits table's fractional column shares clipped its last column
+    wherever the table fits, the default size included; the columns are
+    whole pixels now (4/7). A `Flow` does not snap at all, which put a
+    sync button off the pixel grid (5/7 uses a grid).
+
+  The Qt findings are in `docs/qt-bridges-notes.md`.
+- **Verified where.** Linux only, locally: Xvfb + Mesa llvmpipe, light,
+  dark and high contrast, 125 % and 150 % text in the minimum window with
+  the longest labels (Spanish), driven with xdotool, with pixel statistics
+  read before any visual reading. macOS and Windows ran the gate walk offscreen
+  in CI. Their rendering, accent, contrast preference, menu bar and dialog
+  order are known from the Qt sources only (tracked in #66).
+- **Open.** The replay's disabled state explains nothing until the web has
+  a string for it (#64). Two labels inherit web wording that suits the web
+  better (#65). Replay entry is slow and not diagnosed (#67).
