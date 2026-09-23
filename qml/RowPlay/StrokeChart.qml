@@ -9,6 +9,7 @@
 // dashboard's pace chart, so it never prints the raw negated seconds.
 import QtQuick
 import QtQuick.Controls
+import QtQml.Models
 import QtGraphs
 import RowPlay
 
@@ -139,20 +140,6 @@ Rectangle {
                 }
             }
 
-            // Split boundaries (Studio: secondary colour, dashed).
-            Repeater {
-                model: chart.boundaryLines
-
-                LineSeries {
-                    required property var modelData
-                    color: Qt.alpha(Theme.textSecondary, 0.35)
-                    width: 1
-                    strokeStyle: LineSeries.StrokeStyle.DashLine
-                    Component.onCompleted: replace(
-                        ChartUtils.vrule(modelData, chart.yMin, chart.yMax))
-                }
-            }
-
             // Average rule (Studio: 55% opacity, dashed [5,4]).
             LineSeries {
                 id: ruleLine
@@ -169,6 +156,31 @@ Rectangle {
                 color: chart.seriesColor
                 width: 2
             }
+        }
+    }
+
+    // Split boundaries (Studio: secondary colour, dashed). A Repeater cannot
+    // create them — a LineSeries is not an Item, so a Repeater instantiates
+    // nothing and the boundaries never drew — so an Instantiator builds one
+    // series per boundary and hands it to the view, behind the data.
+    Instantiator {
+        id: boundarySeries
+        model: chart.boundaryLines
+
+        delegate: LineSeries {
+            required property var modelData
+            color: Qt.alpha(Theme.textSecondary, 0.35)
+            width: 1
+            strokeStyle: LineSeries.StrokeStyle.DashLine
+            Component.onCompleted: replace(
+                ChartUtils.vrule(modelData, chart.yMin, chart.yMax))
+        }
+
+        onObjectAdded: function(index, object) {
+            view.insertSeries(0, object)
+        }
+        onObjectRemoved: function(index, object) {
+            view.removeSeries(object)
         }
     }
 
@@ -197,7 +209,13 @@ Rectangle {
     }
 
     function reloadBoundaries() {
-        // The Repeater re-instantiates on model change; each boundary line
-        // loads its two points in Component.onCompleted.
+        // A new model re-creates the series (each loads its two points in
+        // Component.onCompleted); a new Y range re-spans the existing ones.
+        for (var i = 0; i < boundarySeries.count; ++i) {
+            var series = boundarySeries.objectAt(i)
+            if (series) {
+                series.replace(ChartUtils.vrule(series.modelData, yMin, yMax))
+            }
+        }
     }
 }
