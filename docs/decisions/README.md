@@ -17,3 +17,4 @@ links back. Format: context, decision, consequences.
 | [0010](0010-venue-baking-route.md) | Venue baking runs the web builder headless in Node; instances live in a contract, not the GLB |
 | [0011](0011-venue-assets-stay-in-plain-git.md) | Venues stay in plain Git; the ADR 0009 ceiling is raised to 100 MB on measured sizes |
 | [0012](0012-packaging-route.md) | Packaging: `macdeployqt` bundle + DMG, `windeployqt` + Inno Setup, `linuxdeploy` AppImage; launch-checked release bundles; ad-hoc signing by default; draft releases on `v*` tags; Flatpak deferred |
+| [0013](0013-ui-follows-apple-hig.md) | The UI follows the Apple HIG (macOS) on every platform, on Fusion-based custom controls and QML-drawn symbols; no SF Symbols, no new assets, no C++ |

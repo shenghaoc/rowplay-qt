@@ -680,6 +680,38 @@ rendering-verified and not signed/notarised.
   215 MB macOS bundle's `QtQuick` QML tree, and macOS x86_64 / Linux aarch64
   (qtbridge's support statement, note #8).
 
+## UI pass — Apple HIG (ADR 0013)
+
+Status: delivered in the HIG pass PR (spec `.kiro/specs/ui-hig-pass/`).
+
+- The shell follows the Apple Human Interface Guidelines for macOS on every
+  platform, on Fusion and `Theme.qml`: macOS system colours for surfaces,
+  text, selection and separators (the PM5 palette and the Metric Mapping Rule
+  unchanged); shared controls — `Icon`, `FocusRing`, `ToolbarButton`,
+  `PushButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
+  `PopupButton`, `FormSection` / `FormRow`, `ChartTheme`; symbols drawn as
+  QML path data (no SF Symbols, nothing under `assets/`).
+- Shell: a full-height sidebar, the unified toolbar over the content column
+  (segmented sport filter, icon buttons, a back chevron and the workout title
+  on the replay route), a hairline divider, Ctrl/Cmd+, and Ctrl/Cmd+F.
+  Sidebar: sport-glyph badges, sentence-case day headers, focused versus
+  unfocused selection. Dashboard: equal-width tiles, PB cards and chart
+  cards on a quiet theme. Detail: the stroke pace axis in Rust-formatted pace
+  labels instead of negated seconds (the one requested Rust fix), the metric
+  strip as a card, a real splits table. Settings: a grouped form without the
+  Dismiss button. Replay: a floating translucent HUD over the scene.
+- Defects the pass found in its own screens and fixed: the first-launch empty
+  detail pane (follow-ups 1–2 below), the recent-pace chart's never-filled
+  dates, split boundaries that never drew, a PB section that never showed,
+  tabular figures that were never applied, and the gate capture named
+  `detail` that showed the settings screen.
+- Verified by before/after captures in light and dark
+  (`docs/screenshots/hig-pass/`), a keyboard-only walk with a visible focus
+  ring at every stop, and the gate, smoke and asset tests.
+- Not done: macOS and Windows rendering is not looked at (Linux captures
+  only, ADR 0012's policy); the look is not native GNOME or KDE on Linux, by
+  design (ADR 0013); follow-up 3 below stays open.
+
 ## UI follow-ups
 
 Recorded 2026-09-20 from the author's first packaged-artifact inspection and
@@ -703,6 +735,19 @@ code changes here — these are banked so they are not rediscovered.**
    `qml/RowPlay/DetailScreen.qml`): it greys out, drops out of tab order, and
    explains nothing. Same fact from the keyboard-walk side: no reachable
    Replay, no reason given.
+
+**HIG pass outcome (2026-09-23).** Items 1 and 2 had one cause, found while
+restyling: the demo library selects its default workout while the `Library`
+singleton is constructed, before the shell connects `selectionChanged`, so
+`Detail` was never told and the first launch showed an empty detail pane —
+the "no title, no date, no summary tiles" observed. Something *was* selected
+(the sidebar showed it); `Detail` just did not know. A genuinely stroke-less
+workout (demo 9001) always kept its header and metric strip and still does;
+the empty state replaces only the charts. `Main.qml` now hands the startup
+selection to `Detail`. The subtext stays the web string. Item 3 stays open:
+there is still no web key to say why Replay is unavailable, and a disabled Qt
+control shows no tooltip; the button does at least read as disabled now
+(Fusion's disabled look barely differed).
 
 Recorded same day from the author's inspection of the packaged AppImage
 (all three sports' replays opened, his report): not everything is ported
@@ -738,4 +783,7 @@ Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after
 a long delay, and the author reports slow loading — possibly one
 phenomenon (the 3D scene rebuilt from scratch on entry). Worth one
-look when the UI work starts.
+look when the UI work starts. The HIG pass saw the same thing under Xvfb +
+llvmpipe: after the Replay press the previous screen stayed on screen for
+more than 12 s, until the scene's first frame landed. Not diagnosed further;
+the pass did not change the scene.

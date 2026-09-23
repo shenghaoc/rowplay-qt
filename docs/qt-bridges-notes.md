@@ -754,3 +754,54 @@ so how those earlier close-ups were framed is an open question
   runs ("typically at or above 22 ms"), never as a single-run p95; medians
   are stable everywhere (9.7–12.8 ms across all 58 samples) and need no such
   treatment.
+- **`Font.TabularNumbers` does not exist; a font object drops it silently**
+  (UI HIG pass). Phase 4's `Theme.qml` fonts were JS objects such as
+  `({ pixelSize: 13, weight: Font.DemiBold, features: Font.TabularNumbers })`.
+  The enum is `undefined` in Qt 6.11, and the object-to-`font` conversion
+  ignores an undefined member without a word, so no text ever got tabular
+  figures. Assigned directly (`font.features: Font.TabularNumbers`) the same
+  mistake is loud — "Unable to assign [undefined] to QVariantMap", which the
+  runtime gate fails on. `font.features` is a map of OpenType tags since Qt
+  6.6: `features: { "tnum": 1 }` works both ways (verified with a two-`Text`
+  repro under the `qml` runtime).
+- **Qt Graphs' Y axis has a fixed 40 px label column** (UI HIG pass). In
+  6.11.2 the Y axis strip is `m_defaultAxisLabelsWidth` 40 + 5 +
+  `m_defaultAxisTickersWidth` 15 px (`qgraphsview_p.h`, marked "Add
+  properties for these"); each label delegate is sized to the 40 px and asked
+  to right-align, whatever its text. A wider custom label (a Rust pace string
+  such as "2:54.3/500m") overflows into the ticks and the plot. Neither the
+  delegate's `implicitWidth` nor `labelFormat` changes the column (measured
+  in a scratch `GraphsView`); what works is right-anchoring the delegate's
+  text and reserving the overflow through `GraphsView.marginLeft`
+  (`ChartUtils.yLabelOverflow`). A transparent axis `color` also removes the
+  tick marks that otherwise sit under long labels.
+- **A `Repeater` cannot create chart series** (UI HIG pass). The stroke
+  charts' split-boundary `LineSeries` were a `Repeater` delegate inside the
+  `GraphsView` since Phase 4: a series is not an `Item`, nothing was created,
+  and nothing warned — the boundaries simply never drew. An `Instantiator`
+  creating the series plus `GraphsView.insertSeries(0, series)` /
+  `removeSeries(series)` in `onObjectAdded` / `onObjectRemoved` works.
+- **Stock Qt Quick Controls layout traps met on the HIG pass.** A
+  `ScrollView` child sized with `width: parent.width` follows its own
+  implicit width (the dashboard and detail columns stopped a quarter to a
+  third short of the pane); `contentWidth: availableWidth` plus
+  `width: scroll.availableWidth` fixes it. `DialogButtonBox` orders its
+  buttons by the platform layout (Log out before Cancel on Linux);
+  `buttonLayout: DialogButtonBox.MacLayout` pins the HIG order everywhere. A
+  window-level `Shortcut` on Left/Right (the replay seek keys) steals the
+  arrows from a focused custom control unless it accepts them in
+  `Keys.onShortcutOverride`. And a thin `SplitView` handle can keep a wide
+  drag area through `containmentMask`, as the SplitView documentation shows.
+- **An item grab is not the screen where the item is translucent** (UI HIG
+  pass). `grabToImage` renders the item on a transparent background; the
+  window background is not part of the item. The 10 % hairlines between the
+  panes sat over nothing the grab root painted, so the gate stored them
+  translucent: alpha 26 in the PNG (a viewer composites it over its own page
+  colour) and, in the alpha-less PPM that the Rust visual assertions read,
+  the bare colour — pure black in light, pure white in dark. An `xwd`
+  capture of the same window showed (229, 229, 229). Repro under the `qml`
+  runtime (offscreen): a 10 % black `Rectangle` inside a bare `Item` grabs
+  as (0, 0, 0, 26) / PPM (0, 0, 0); inside a white `Rectangle` as
+  (229, 229, 229) in both files. Painting the grab root in the window colour
+  (`shellRoot` is now a `Rectangle`) makes every captured pixel opaque, as on
+  screen.

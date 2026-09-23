@@ -35,6 +35,15 @@ Phases 0–8 are done (Phase 8, live mode, is in review); Phase 9 adds the
 packaged builds — see [Packaged builds](#packaged-builds). The bullets below
 are the phase summaries as each landed.
 
+- **UI pass — Apple HIG ([ADR 0013](docs/decisions/0013-ui-follows-apple-hig.md)):**
+  the shell follows the Apple Human Interface Guidelines for macOS on every
+  platform, still on Fusion and `Theme.qml`: shared QML controls (toolbar and
+  push buttons, segmented control, switch, text field, pop-up button, grouped
+  form rows) and original QML-drawn symbols; a full-height sidebar under a
+  unified toolbar, equal-width dashboard tiles and quiet chart cards, stroke
+  pace axes in pace labels, a grouped settings form, a floating replay HUD
+  and a visible keyboard focus ring on every control.
+
 - **Phase 5a — replay assets and scene:** the rowplay V3 rig pack, V4 athlete
   and Poly Haven environment textures vendored with provenance and a SHA-256
   pin; a Qt-free V3 contract validator with named-slot errors; the
@@ -76,21 +85,29 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
 
+The shell since the Apple HIG pass (demo data; the runtime-error gate's
+Linux captures, `ROWPLAY_FORCE_COLOR_SCHEME` pinning the scheme). Before and
+after pairs of every screen in both schemes are in
+[`docs/screenshots/hig-pass/`](docs/screenshots/hig-pass/).
+
 | Dashboard (demo data) | Workout detail (demo data) |
 | --- | --- |
-| ![Dashboard](docs/screenshots/phase-04-dashboard.png) | ![Workout detail](docs/screenshots/phase-04-detail.png) |
+| ![Dashboard](docs/screenshots/hig-pass/after-dashboard-light.png) | ![Workout detail](docs/screenshots/hig-pass/after-detail-full-light.png) |
 
 | Settings (light) | Settings (dark) |
 | --- | --- |
-| ![Settings, light](docs/screenshots/phase-04-settings-light.png) | ![Settings, dark](docs/screenshots/phase-04-settings-dark.png) |
+| ![Settings, light](docs/screenshots/hig-pass/after-settings-light.png) | ![Settings, dark](docs/screenshots/hig-pass/after-settings-dark.png) |
+
+| Replay, RowErg (light) | Replay, RowErg (dark) |
+| --- | --- |
+| ![Replay with the transport HUD, light](docs/screenshots/hig-pass/after-replay-row-light.png) | ![Replay with the transport HUD, dark](docs/screenshots/hig-pass/after-replay-row-dark.png) |
+
+The three sports' replay scenes as Phase 5a landed them, before playback and
+its transport controls existed:
 
 | RowErg | SkiErg | BikeErg |
 | --- | --- | --- |
 | ![Replay scene, RowErg](docs/screenshots/phase-05a-replay-row.png) | ![Replay scene, SkiErg](docs/screenshots/phase-05a-replay-ski.png) | ![Replay scene, BikeErg](docs/screenshots/phase-05a-replay-bike.png) |
-
-The same scene follows the dark scheme (`ROWPLAY_FORCE_COLOR_SCHEME=dark`):
-
-![Replay scene, RowErg, dark scheme](docs/screenshots/phase-05a-replay-row-dark.png)
 
 ## Requirements
 

@@ -82,10 +82,16 @@ ApplicationWindow {
     // Everything lives inside one QML-created item: ApplicationWindow's
     // C++ contentItem cannot grabToImage ("item has no QML engine"), and the
     // gate screenshots need a grabbable root. The toolbar is therefore part
-    // of the content, not the window `header`.
-    Item {
+    // of the content, not the window `header`. It is painted in the window
+    // colour because the pane hairlines are translucent (Theme.separator)
+    // and an item grab has no window background under them: on an
+    // unpainted root the grab stored them translucent, and the PPM the
+    // tests read kept the bare black (light) or white (dark) while the
+    // screen showed the blended grey.
+    Rectangle {
         id: shellRoot
         anchors.fill: parent
+        color: Theme.windowBackground
 
         SplitView {
             id: splitView
@@ -145,7 +151,13 @@ ApplicationWindow {
                         }
                         Label {
                             Layout.fillWidth: true
-                            text: Detail.workoutType
+                            // The route always opens on the selected workout;
+                            // the guard keeps a replay loaded any other way
+                            // (the gate walk loads demo workouts straight
+                            // into Replay) from showing another workout's
+                            // title.
+                            text: Replay.workoutId === Library.selectedWorkoutId
+                                  ? Detail.workoutType : ""
                             font: Theme.bodyEmphasized
                             color: Theme.textPrimary
                             elide: Text.ElideRight
@@ -660,8 +672,12 @@ ApplicationWindow {
             case 11: Settings.setLanguageIndex(0); break  // en
             case 12:
                 // 1001 is already selected at startup (demo default); pick a
-                // different workout so the selection actually changes.
+                // different workout so the selection actually changes. The
+                // walk is still on the settings screen here, so route to the
+                // detail screen too — otherwise the "detail" capture at step
+                // 13 shows settings.
                 Library.selectWorkout(1003)
+                root.screenIndex = 1
                 break
             case 13: root.grabScreen("detail"); break
             case 14: Library.setSportFilter(1); break

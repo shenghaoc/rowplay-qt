@@ -280,6 +280,12 @@ Concept2 token. Cache failures never silently fall back to demo data.
   hardcoded user-visible text); Fusion style coloured from `Theme.qml`;
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
+- Screens follow the Apple HIG (ADR 0013) through the shared controls in
+  `qml/RowPlay/` — `PushButton`, `ToolbarButton`, `SegmentedControl`,
+  `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`,
+  `Icon`, `ChartTheme` — not raw Fusion `Button` / `ComboBox` / `Switch` /
+  `TextField`. New symbols are original path data in `Icon.qml`, never image
+  files.
 
 ## Internationalisation
 
@@ -401,6 +407,14 @@ Each rule exists because the failure happened.
   count before concluding a pane is empty (2026-09-20: the first-launch
   main pane, actually the styled "No stroke data" empty state, was recorded
   as blank and the claim had to be corrected in the spec).
+- A capture's colours are only as honest as its alpha. A gate grab stores
+  pixels that nothing opaque covers as translucent, the PPM beside it keeps
+  their bare colour, and `PIL.Image.convert("RGB")` drops alpha without
+  compositing — so a 10 % grey hairline read back as pure black
+  (2026-09-23, HIG pass; an `xwd` capture of the screen showed the grey,
+  and the fix was painting the grab root). Check that a capture's alpha is
+  255 everywhere before reading its colours, and when a colour looks wrong,
+  capture the screen as well before blaming the code.
 - `pkill -f <pattern>` matches your own shell's command line, because the
   pattern appears in it — twice this killed the driving script mid-run
   (same family as `git add -A`: a command whose scope is wider than the
