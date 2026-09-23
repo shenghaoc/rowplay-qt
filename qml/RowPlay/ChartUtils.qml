@@ -63,6 +63,9 @@ QtObject {
         if (!labels || !metrics) {
             return 0
         }
+        // Read the font so the caller's binding follows it: advanceWidth()
+        // registers no dependency (docs/qt-bridges-notes.md).
+        void metrics.font
         var widest = 0
         for (var i = 0; i < labels.length; ++i) {
             widest = Math.max(widest, metrics.advanceWidth(String(labels[i])))

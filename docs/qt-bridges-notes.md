@@ -830,6 +830,22 @@ so how those earlier close-ups were framed is an open question
   stays 1, the 9 pt system font becomes 18 px, and `Theme.scale` reflows the
   layout (checked in a scratch gallery of every control at 120 and
   144 dpi).
+- **`FontMetrics.advanceWidth()` registers no binding dependency** (UI
+  design system, ADR 0013). A binding re-runs when a property it read
+  changes, and a C++ method call reads nothing on the binding's behalf: a
+  binding over `metrics.advanceWidth(text)` follows its text, never
+  `metrics.font`. If it first runs before the `FontMetrics`' own font
+  binding has landed, it keeps a width measured in the default font, and it
+  never follows a live change of the system font, which `Theme` scales
+  from. Found in 5/7: given `Layout.maximumWidth: implicitWidth`, the
+  settings quality control measured its titles at the default 12 px
+  instead of its own 11 px and drew 308 px wide instead of 292. Repro under
+  the `qml` runtime (offscreen): that `SegmentedControl` in a `FormRow`
+  measures its widest title at 53.78 px, and at 49.30 px without the
+  `Layout` line; a `ChartUtils.yLabelOverflow` binding keeps its 25 px
+  reserve after its metrics' font grows from 10 to 20 px, where 89 px is
+  needed. Reading the font in the binding (`void metrics.font`) registers
+  the dependency: 292 px in every case, and 89 px after the change.
 - **Open popups are not part of any item grab.** A `Popup`, `Menu`,
   `ToolTip` or `Dialog` renders in the window's overlay, a sibling of the
   content item. `grabToImage` on content never includes it, and the

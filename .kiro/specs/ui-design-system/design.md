@@ -77,6 +77,9 @@ Two different things scale a Qt UI, and the design handles both:
   compact form), with focus and the accessible role on the pop-up button.
 - `FormRow` stacks its controls under the label when they and a 140 px
   (scaled) label column do not fit side by side.
+- A binding that measures text with `FontMetrics.advanceWidth()` also reads
+  the metrics' `font`, so the width follows a font that lands late or
+  changes with the system font (`docs/qt-bridges-notes.md`).
 - `FormRow` with a `toggleTarget`: a `TapHandler` over the row toggles the
   switch and emits `toggled()`. Focus stays on the switch.
 - `AppDialogButtonBox` keeps `DialogButtonBox`'s default `buttonLayout`
