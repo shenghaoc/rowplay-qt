@@ -778,6 +778,9 @@ stack of seven PRs, each green on its own:
      125 % and 150 % text, and the app's captures before and after.
 3. `ui/03-shell`: sidebar, toolbar, the platform layer (shortcuts, menus,
    sidebar toggle) and the empty state.
+   - Delivered in #70 and validated there: the full suite, the captures
+     before and after, the platform layer driven with xdotool, and the
+     AppImage's launch check.
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
 5. `ui/05-settings`: the grouped settings page.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
