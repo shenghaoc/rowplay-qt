@@ -704,6 +704,24 @@ code changes here — these are banked so they are not rediscovered.**
    explains nothing. Same fact from the keyboard-walk side: no reachable
    Replay, no reason given.
 
+**Outcome (2026-09-23, the UI stack's `ui/01-fixes`).** Items 1 and 2 had
+one cause: the demo library selects its default workout while the
+`Library` singleton is constructed, before `Main.qml` connects
+`selectionChanged`, so `Detail` was never told and the first launch showed
+an empty detail pane (see #55; a genuinely stroke-less workout keeps its
+header and metric strip). The "at this time" subtext stays the web string.
+Item 3 needs a web locale key first and is tracked in #64. The same pass
+found and filed the shell's other standing defects, each with its own
+issue: the stroke pace axis printed negated seconds (see #48) over crowded
+ticks (#49), wide Y labels overflowed Qt Graphs' fixed 40 px column (#50),
+the trend chart's date list was never filled (#51), split boundaries never
+drew (#52), the PB cards never showed (#53), tabular figures were never
+applied (#54), the dashboard tiles orphaned a tile (#56), scrolled content
+stopped short of the pane (#57), the stroke section repeated the splits
+heading (#58), the splits table numbered from 0 (#59), the gate's
+`detail.png` was the settings screen (#60) and its grabs stored
+translucent pixels (#61).
+
 Recorded same day from the author's inspection of the packaged AppImage
 (all three sports' replays opened, his report): not everything is ported
 (he did not note what was missing at the time); loading feels slow; the
@@ -738,4 +756,6 @@ Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after
 a long delay, and the author reports slow loading — possibly one
 phenomenon (the 3D scene rebuilt from scratch on entry). Worth one
-look when the UI work starts.
+look when the UI work starts. Tracked in #67 with the UI pass's own
+observation (more than 12 s from the Replay press to the first frame under
+Xvfb + llvmpipe); not diagnosed.

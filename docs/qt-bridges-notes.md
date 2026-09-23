@@ -754,3 +754,48 @@ so how those earlier close-ups were framed is an open question
   runs ("typically at or above 22 ms"), never as a single-run p95; medians
   are stable everywhere (9.7–12.8 ms across all 58 samples) and need no such
   treatment.
+- **`Font.TabularNumbers` does not exist; a font object drops it silently**
+  (UI fixes, refs #54). Phase 4's `Theme.qml` fonts were JS objects such as
+  `({ pixelSize: 13, weight: Font.DemiBold, features: Font.TabularNumbers })`.
+  The enum is `undefined` in Qt 6.11, and the object-to-`font` conversion
+  ignores an undefined member without a word (`features {}`), so no text
+  ever got tabular figures. Assigned directly (`font.features:
+  Font.TabularNumbers`) the same mistake is loud — "Unable to assign
+  [undefined] to QVariantMap", which the runtime gate fails on.
+  `font.features` is a map of OpenType tags since Qt 6.6: `features: {
+  "tnum": 1 }` works both ways (verified under the `qml` runtime). DejaVu
+  Sans, the Xvfb default, has tabular digits anyway, so the loss only shows
+  with proportional-digit fonts such as SF Pro.
+- **Qt Graphs' Y axis has a fixed 40 px label column** (UI fixes, refs #50).
+  In 6.11.2 the Y axis strip is `m_defaultAxisLabelsWidth` 40 + 5 +
+  `m_defaultAxisTickersWidth` 15 px (`qgraphsview_p.h`, marked "Add
+  properties for these"); each label delegate is sized to the 40 px and
+  asked to right-align, whatever its text. A wider custom label (a Rust pace
+  string such as "2:54.3/500m") overflows into the ticks and the plot.
+  Neither the delegate's `implicitWidth` nor `labelFormat` changes the
+  column; what works is right-anchoring the delegate's text and reserving
+  the overflow through `GraphsView.marginLeft` (`ChartUtils.yLabelOverflow`),
+  with a transparent axis `color` so no tick marks sit under long labels.
+  The automatic `tickInterval` also aims at about ten ticks regardless of
+  the plot height (refs #49).
+- **A `Repeater` cannot create chart series** (UI fixes, refs #52). The
+  stroke charts' split-boundary `LineSeries` were a `Repeater` delegate
+  inside the `GraphsView` since Phase 4: a series is not an `Item`, nothing
+  was created, and nothing warned. An `Instantiator` creating the series
+  plus `GraphsView.insertSeries(0, series)` / `removeSeries(series)` in
+  `onObjectAdded` / `onObjectRemoved` works.
+- **A `ScrollView` child sized with `width: parent.width` follows its own
+  implicit width** (UI fixes, refs #57): its parent is the Flickable
+  content item, whose width tracks the content. `contentWidth:
+  availableWidth` on the view plus `width: scroll.availableWidth` on the
+  child spans the view.
+- **An item grab is not the screen where the item is translucent** (UI
+  fixes, refs #61). `grabToImage` renders the item on a transparent
+  background; the window background is not part of the item. Pixels that
+  nothing the grab root paints covers are stored translucent: alpha in the
+  PNG (a viewer composites them over its own page colour) and, in the
+  alpha-less PPM the Rust visual assertions read, the bare colour. Repro
+  under the `qml` runtime (offscreen): a 10 % black `Rectangle` inside a
+  bare `Item` grabs as (0, 0, 0, 26) / PPM (0, 0, 0); inside a white
+  `Rectangle` as (229, 229, 229) in both, matching an `xwd` capture of the
+  window. The gate's `shellRoot` is therefore painted in the window colour.
