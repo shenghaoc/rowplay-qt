@@ -55,13 +55,16 @@ pub struct StripMetric {
 /// One splits/intervals table row.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SplitRow {
-    /// Web `Split.index` is 0-based; Studio displays it verbatim.
+    /// Web `Split.index` is 0-based.
     pub index: u32,
-    /// Distance in the preferred unit.
+    /// The row number as displayed: the web's `sp.index + 1` (Studio shows
+    /// the 0-based index verbatim; the web wins, docs/source-map.md).
+    pub number_text: String,
+    /// Distance in the preferred unit; `—` on a rest row (web).
     pub distance_text: String,
     /// Elapsed time with tenths.
     pub time_text: String,
-    /// Split pace.
+    /// Split pace; `—` on a rest row or without a pace (web).
     pub pace_text: String,
     /// Cadence rounded to an integer, "-" when absent (Studio).
     pub cadence_text: String,
@@ -225,11 +228,24 @@ fn split_row(split: &Split, sport: Sport, unit: DistanceUnit) -> SplitRow {
         .as_ref()
         .and_then(|detail| detail.average)
         .or(split.hr);
+    // Web table: `{sp.index + 1}`, `sp.isRest ? '—' : fmtDistance(…)`,
+    // `sp.pace > 0 ? fmtPace(sp.pace) : '—'`.
+    let is_rest = split.is_rest.unwrap_or(false);
     SplitRow {
         index: split.index,
-        distance_text: fmt_distance_in(split.distance, unit),
+        number_text: (u64::from(split.index) + 1).to_string(),
+        distance_text: if is_rest {
+            REST_PLACEHOLDER.to_owned()
+        } else {
+            fmt_distance_in(split.distance, unit)
+        },
         time_text: fmt_time(split.time, true),
-        pace_text: fmt_pace(split.pace),
+        // `pace > 0` is false for NaN too, like the web's comparison.
+        pace_text: if !is_rest && split.pace > 0.0 {
+            fmt_pace(split.pace)
+        } else {
+            REST_PLACEHOLDER.to_owned()
+        },
         cadence_text: match split.spm {
             Some(cadence) if cadence.is_finite() => cadence.round().to_string(),
             _ => "-".to_owned(),
@@ -239,9 +255,12 @@ fn split_row(split: &Split, sport: Sport, unit: DistanceUnit) -> SplitRow {
             Some(average) if average.is_finite() => (average.round() as i64).to_string(),
             _ => "-".to_owned(),
         },
-        is_rest: split.is_rest.unwrap_or(false),
+        is_rest,
     }
 }
+
+/// The web's placeholder for a rest row's distance and pace (an em dash).
+const REST_PLACEHOLDER: &str = "\u{2014}";
 
 /// The splits section title id (web `replay.splitBreakdown` /
 /// `replay.intervalBreakdown`).
@@ -398,7 +417,7 @@ mod tests {
         assert_eq!(rows.len(), detail.splits.len());
         for row in &rows {
             assert!(row.time_text.contains(':'));
-            assert!(row.pace_text.contains(':') || row.pace_text == "--:--");
+            assert!(row.pace_text.contains(':') || row.pace_text == "\u{2014}");
             assert!(!row.distance_text.is_empty());
         }
         assert_eq!(splits_section_id(false), "replay.splitBreakdown");
@@ -415,6 +434,32 @@ mod tests {
         let rows = split_rows(&interval, DistanceUnit::Metric);
         assert!(!rows.is_empty());
         assert!(rows.iter().any(|r| r.is_rest));
+    }
+
+    /// Re-expressed from the web's splits table (`src/routes/replay/[id]/
+    /// +page.svelte` at the pinned reference): rows are numbered
+    /// `sp.index + 1`, and a rest row shows `—` for distance and pace while
+    /// keeping its time.
+    #[test]
+    fn split_rows_number_from_one_and_blank_rest_rows_like_the_web() {
+        let interval = demo_details()
+            .into_iter()
+            .find(|d| d.workout.is_interval)
+            .expect("demo interval piece");
+        let rows = split_rows(&interval, DistanceUnit::Metric);
+        for (position, row) in rows.iter().enumerate() {
+            assert_eq!(row.number_text, (row.index + 1).to_string());
+            assert_eq!(row.index as usize, position);
+            if row.is_rest {
+                assert_eq!(row.distance_text, "\u{2014}");
+                assert_eq!(row.pace_text, "\u{2014}");
+                assert!(row.time_text.contains(':'));
+            } else {
+                assert_ne!(row.distance_text, "\u{2014}");
+                assert!(row.pace_text.contains(':'));
+            }
+        }
+        assert_eq!(rows[0].number_text, "1");
     }
 
     #[test]
