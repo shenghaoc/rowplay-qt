@@ -279,5 +279,17 @@ that delivers it.
     playback, because the replay's window shortcut took the key; 2/7's
     `ToolbarButton` now claims Space while focused (T2.10). The spec's
     layer list and R2.1 now name `AppSlider`.
-- [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
+- [x] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.
+  - [x] T7.1 README: one current set of five screenshots (256-colour PNGs,
+    240 KB) replaces `docs/screenshots/phase-04-*` (514 KB). The Phase 5a
+    replay shots leave the README but stay on disk, where the Phase 5a spec
+    records them. The status list gains a design-system bullet.
+  - [x] T7.2 AGENTS.md: the shared-controls rule beside the QML style
+    line, and two operational lessons (a capture's alpha; thresholds
+    compared unrounded).
+  - [x] T7.3 `docs/roadmap.md`: the stack's outcome. `docs/source-map.md`:
+    the three reduce-motion rows become one current row, and the timezone
+    picker's note drops "4b polish".
+  - [x] T7.4 #47 closed unmerged, with a comment linking the stack; its
+    branch kept.
