@@ -72,7 +72,11 @@ Two different things scale a Qt UI, and the design handles both:
 - `ToolbarButton` has `focusPolicy: Qt.TabFocus`, so a click keeps the focus
   where it was, while Tab reaches the button and shows its ring.
 - `SegmentedControl` emits `activated(index)` and never writes
-  `currentIndex`, so its binding to the store stays intact.
+  `currentIndex`, so its binding to the store stays intact. Capped below
+  its implicit width, it shows the same choices as a `PopupButton` (the
+  compact form), with focus and the accessible role on the pop-up button.
+- `FormRow` stacks its controls under the label when they and a 140 px
+  (scaled) label column do not fit side by side.
 - `FormRow` with a `toggleTarget`: a `TapHandler` over the row toggles the
   switch and emits `toggled()`. Focus stays on the switch.
 - `AppDialogButtonBox` keeps `DialogButtonBox`'s default `buttonLayout`

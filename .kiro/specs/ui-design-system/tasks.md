@@ -48,6 +48,11 @@ that delivers it.
     contrast, font scale and Basic findings), `docs/roadmap.md`, and the
     AGENTS.md coding-style line (Basic, not Fusion).
   - [x] T2.6 Validation (R9): see the PR.
+  - [x] T2.7 Large text in a narrow window, found by driving the screens
+    of 3/7–5/7 at 150 % text in the 1000 px minimum window: a
+    `SegmentedControl` capped below its implicit width becomes a pop-up
+    button with the same choices, and a `FormRow` too narrow for its label
+    beside its controls stacks them under the label.
 - [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
   (R3), the platform layer (R4.1–R4.4), the empty state.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
