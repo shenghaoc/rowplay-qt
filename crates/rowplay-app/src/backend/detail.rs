@@ -338,6 +338,7 @@ impl DetailBackend {
                 .map(|row| {
                     serde_json::json!({
                         "index": row.index,
+                        "numberText": row.number_text,
                         "distanceText": row.distance_text,
                         "timeText": row.time_text,
                         "paceText": row.pace_text,

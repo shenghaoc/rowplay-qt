@@ -178,14 +178,15 @@ Pane {
                         spacing: Theme.spacingLarge
                         opacity: modelData.isRest ? 0.55 : 1.0
                         Accessible.name: Tr.t("replay.segSplits") + " "
-                                       + (modelData.index + 1) + ": "
+                                       + modelData.numberText + ": "
                                        + modelData.distanceText + ", "
                                        + modelData.timeText + ", "
                                        + modelData.paceText
 
                         Label {
                             Layout.preferredWidth: 40
-                            text: modelData.index
+                            // Numbered from 1 like the web (Rust-formatted).
+                            text: modelData.numberText
                             font: Theme.metricValue
                             color: Theme.textPrimary
                             Accessible.ignored: true
