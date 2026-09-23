@@ -38,7 +38,11 @@ that delivers it.
       colour, so `AppDialogButtonBox` replaces it.
 
     The contrast table comes from the QML runtime on the real tokens
-    (`docs/source-map.md`).
+    (`docs/source-map.md`). Read again at four decimals, it found a third
+    defect: the PM5 duration colour measured 4.496:1 on the light grouped
+    surface, which printed as 4.50. The light sidebar and group surface
+    moved from `#F3F4F6` to `#F4F5F7` (4.53:1), and the table's figures
+    are now truncated, never rounded up.
   - [x] T2.5 ADR 0013, this spec, `docs/source-map.md` (the Theme row, the
     surface and text divergence), `docs/qt-bridges-notes.md` (accent,
     contrast, font scale and Basic findings), `docs/roadmap.md`, and the
