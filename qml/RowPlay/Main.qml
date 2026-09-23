@@ -1126,6 +1126,15 @@ ApplicationWindow {
                 root.gateAwaitingReplay = true
                 break
             case 209: Library.closeReplay(); Library.clearSelection(); break
+            // The logout dialog (demo mode never shows the button); held
+            // open for one extra tick so a screen capture can see it.
+            case 210:
+                root.showSettings()
+                detailColumn.children[2].showLogoutDialog(true)
+                console.log("gate: logout dialog open")
+                break
+            case 211: break
+            case 212: detailColumn.children[2].showLogoutDialog(false); root.screenIndex = 0; break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
