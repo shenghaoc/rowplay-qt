@@ -46,8 +46,11 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.spacingXxSmall
 
+            // The web's per-stroke inspector section title; the splits
+            // table below keeps the splits heading, so it no longer appears
+            // twice on the screen.
             Label {
-                text: Tr.t(Detail.splitsSectionId)
+                text: Tr.t("inspector.sectionPerStroke")
                 font: Theme.sectionHeadline
                 color: Theme.textPrimary
                 Accessible.name: text
