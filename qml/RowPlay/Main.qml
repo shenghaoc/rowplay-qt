@@ -5,13 +5,17 @@
 // "Ready When You Are" empty state. The window title and 1000x680 minimum
 // come from Studio's app scene.
 //
-// Design system (ADR 0013): the sidebar runs the full window height; the
-// toolbar sits over the content column with icon-only buttons and the sport
-// filter as a segmented control; the empty state replaces only the content
-// area.
+// Design system (ADR 0013): the sidebar runs the full window height and can
+// be hidden; the toolbar sits over the content column with icon-only
+// buttons and the sport filter as a segmented control; the empty state
+// replaces only the content area. The platform layer lives here too:
+// StandardKey shortcuts, the native macOS menu bar (menu-item roles, so the
+// OS writes the titles) or the toolbar's menu button on Windows and Linux,
+// and the sidebar toggle.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import RowPlay
 import RowPlay.Replay
 
@@ -28,6 +32,12 @@ ApplicationWindow {
     // Detail column routing: 0 = dashboard, 1 = workout detail, 2 = settings,
     // 3 = the replay route.
     property int screenIndex: 0
+    // The platform layer's only branch: macOS has the native menu bar and
+    // its own sidebar-toggle chord.
+    readonly property bool isMac: Qt.platform.os === "osx" || Qt.platform.os === "macos"
+    // The sidebar toggle (F9 / Ctrl+Cmd+S); SplitView keeps the column's
+    // width while it is hidden.
+    property bool sidebarShown: true
     // The runtime-error gate walks every screen and exercises the language
     // switch (driven from Rust by ROWPLAY_SMOKE_GATE=1).
     readonly property bool gateMode: Settings.gateMode
@@ -93,6 +103,31 @@ ApplicationWindow {
         screenIndex = screenIndex === 2 ? (Library.selectedWorkoutId === -1 ? 0 : 1) : 2
     }
 
+    // StandardKey.Back: one level up — the replay to its workout, settings
+    // to where it was opened from, a workout to the dashboard.
+    function goBack() {
+        if (screenIndex === 3) {
+            Library.closeReplay()
+        } else if (screenIndex === 2) {
+            toggleSettings()
+        } else if (screenIndex === 1) {
+            showDashboard()
+        }
+    }
+
+    function toggleSidebar() {
+        if (screenIndex !== 3) {
+            sidebarShown = !sidebarShown
+        }
+    }
+
+    // StandardKey.Find: bring the sidebar back if it was hidden and focus
+    // its search field.
+    function focusSearch() {
+        sidebarShown = true
+        sidebarColumn.focusSearch()
+    }
+
     // Everything lives inside one QML-created item: ApplicationWindow's
     // C++ contentItem cannot grabToImage ("item has no QML engine"), and the
     // gate screenshots need a grabbable root. The toolbar is therefore part
@@ -128,6 +163,7 @@ ApplicationWindow {
             // Sidebar column (Studio: min 260, ideal 320), full height.
             SidebarPanel {
                 id: sidebarColumn
+                visible: root.sidebarShown
                 SplitView.preferredWidth: Theme.px(320)
                 SplitView.minimumWidth: Theme.px(260)
                 SplitView.maximumWidth: Theme.px(480)
@@ -158,7 +194,8 @@ ApplicationWindow {
                         }
                     }
 
-                    // Trailing: reload and the settings toggle.
+                    // Trailing: reload, the settings toggle and, on Windows
+                    // and Linux, the application menu.
                     RowLayout {
                         anchors.right: parent.right
                         anchors.rightMargin: Theme.spacingLarge
@@ -170,11 +207,6 @@ ApplicationWindow {
                             label: Tr.t("pwa.reload")
                             enabled: !Sync.isRunning
                             onClicked: Library.reload()
-
-                            Shortcut {
-                                sequences: ["Ctrl+R", "Meta+R"]
-                                onActivated: Library.reload()
-                            }
                         }
 
                         ToolbarButton {
@@ -183,6 +215,49 @@ ApplicationWindow {
                             checkable: true
                             checked: root.screenIndex === 2
                             onClicked: root.toggleSettings()
+                        }
+
+                        ToolbarButton {
+                            id: menuButton
+                            visible: !root.isMac
+                            iconName: "line.3.horizontal"
+                            label: Tr.t("nav.menuOpen")
+                            onClicked: appMenu.open()
+
+                            // The Windows / Linux application menu: the
+                            // shell's commands with their platform shortcuts
+                            // (macOS gets the native menu bar instead).
+                            AppMenu {
+                                id: appMenu
+                                x: menuButton.width - width
+                                y: menuButton.height + Theme.spacingXSmall
+
+                                AppMenuItem {
+                                    text: Tr.t("nav.dashboard")
+                                    shortcutText: dashboardShortcut.nativeText
+                                    onTriggered: root.showDashboard()
+                                }
+                                AppMenuItem {
+                                    text: Tr.t("workoutList.search")
+                                    shortcutText: findShortcut.nativeText
+                                    enabled: findShortcut.enabled
+                                    onTriggered: root.focusSearch()
+                                }
+                                AppMenuItem {
+                                    text: Tr.t("pwa.reload")
+                                    shortcutText: refreshShortcut.nativeText
+                                    enabled: !Sync.isRunning
+                                    onTriggered: Library.reload()
+                                }
+                                AppMenuSeparator {}
+                                AppMenuItem {
+                                    text: Tr.t("settings.title")
+                                    shortcutText: preferencesShortcut.nativeText.length > 0
+                                                  ? preferencesShortcut.nativeText
+                                                  : preferencesFallback.nativeText
+                                    onTriggered: root.showSettings()
+                                }
+                            }
                         }
                     }
                 }
@@ -305,6 +380,84 @@ ApplicationWindow {
         }
     }
 
+    // macOS About (the native application menu's About item): the product
+    // name, tagline, version and the not-affiliated note, all existing
+    // strings. Windows and Linux show the version on the settings page.
+    AppDialog {
+        id: aboutDialog
+        anchors.centerIn: parent
+        width: Math.min(root.width - 2 * Theme.spacingXxxLarge, Theme.px(400))
+        title: root.title
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Theme.spacingSmall
+
+            Label {
+                Layout.fillWidth: true
+                text: Tr.t("common.tagline")
+                font: Theme.body
+                color: Theme.textPrimary
+                wrapMode: Text.WordWrap
+                Accessible.name: text
+            }
+            Label {
+                Layout.fillWidth: true
+                text: Tr.t("settings.appVersion", { version: Settings.appVersion })
+                font: Theme.subheadline
+                color: Theme.textSecondary
+                Accessible.name: text
+            }
+            Label {
+                Layout.fillWidth: true
+                text: Tr.t("common.notAffiliated")
+                font: Theme.subheadline
+                color: Theme.textSecondary
+                wrapMode: Text.WordWrap
+                Accessible.name: text
+            }
+        }
+
+        footer: AppDialogButtonBox {
+            PushButton {
+                text: Tr.t("common.dismiss")
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+        }
+    }
+
+    // The native macOS menu bar. Its About, Settings… and Quit items carry
+    // menu-item roles, so Qt places them in the application menu with the
+    // platform's own titles and key equivalents (⌘, and ⌘Q); a menu whose
+    // items all move there is hidden. Created only on macOS: elsewhere
+    // Qt.labs.platform has no native menu bar and reports an error.
+    Instantiator {
+        active: root.isMac
+        delegate: Platform.MenuBar {
+            window: root
+
+            Platform.Menu {
+                title: root.title
+
+                Platform.MenuItem {
+                    role: Platform.MenuItem.AboutRole
+                    text: root.title
+                    onTriggered: aboutDialog.open()
+                }
+                Platform.MenuItem {
+                    role: Platform.MenuItem.PreferencesRole
+                    text: Tr.t("settings.title")
+                    onTriggered: root.showSettings()
+                }
+                Platform.MenuItem {
+                    role: Platform.MenuItem.QuitRole
+                    text: root.title
+                    onTriggered: Qt.quit()
+                }
+            }
+        }
+    }
+
     // Singleton wiring: the Library owns the selection, Detail mirrors it,
     // Settings changes invalidate both, and Sync refreshes its policy.
     Connections {
@@ -377,10 +530,71 @@ ApplicationWindow {
         onTriggered: Live.tick()
     }
 
-    // Keyboard navigation (Studio: Cmd+1 dashboard, Escape clears selection).
+    // Keyboard — the platform layer (ADR 0013): QKeySequence.StandardKey
+    // wherever Qt defines one, so each OS gets its own chord (Qt's table:
+    // docs/qt-bridges-notes.md); a custom chord only where none exists, and
+    // none over the platform's Quit or Close. The replay route keeps its
+    // own keys (ReplayScene.qml).
+
+    // Studio: Cmd+1 shows the dashboard.
     Shortcut {
+        id: dashboardShortcut
         sequences: ["Ctrl+1", "Meta+1"]
         onActivated: root.showDashboard()
+    }
+    Shortcut {
+        id: preferencesShortcut
+        sequences: [StandardKey.Preferences]
+        // On macOS the application menu's Settings… item owns ⌘,.
+        enabled: !root.isMac
+        onActivated: root.showSettings()
+    }
+    // Qt maps Preferences on macOS and KDE only; Windows and the other Linux
+    // desktops get the common Ctrl+, where the platform has no chord.
+    Shortcut {
+        id: preferencesFallback
+        sequence: "Ctrl+,"
+        enabled: !root.isMac && preferencesShortcut.nativeText.length === 0
+        onActivated: root.showSettings()
+    }
+    Shortcut {
+        // Linux: Ctrl+Q. macOS: the application menu's Quit item owns ⌘Q.
+        // Windows has no Quit chord (the window's Alt+F4 closes the app).
+        sequences: [StandardKey.Quit]
+        enabled: !root.isMac
+        context: Qt.ApplicationShortcut
+        onActivated: Qt.quit()
+    }
+    Shortcut {
+        sequences: [StandardKey.Close]
+        onActivated: root.close()
+    }
+    Shortcut {
+        id: findShortcut
+        sequences: [StandardKey.Find]
+        enabled: root.screenIndex !== 3
+        onActivated: root.focusSearch()
+    }
+    Shortcut {
+        id: refreshShortcut
+        sequences: [StandardKey.Refresh]
+        enabled: !Sync.isRunning
+        onActivated: Library.reload()
+    }
+    Shortcut {
+        // `sequence`, not `sequences`: only the platform's primary chord
+        // (Alt+Left; ⌘[ on macOS). Windows also lists Backspace, which
+        // belongs to the text fields.
+        sequence: StandardKey.Back
+        onActivated: root.goBack()
+    }
+    Shortcut {
+        // The sidebar toggle: F9 on Windows and Linux, Ctrl+Cmd+S on macOS
+        // (Qt's "Ctrl" is Command there and "Meta" is Control). Off during
+        // the replay.
+        sequence: root.isMac ? "Meta+Ctrl+S" : "F9"
+        enabled: root.screenIndex !== 3
+        onActivated: root.toggleSidebar()
     }
     Shortcut {
         sequence: "Escape"
@@ -815,7 +1029,7 @@ ApplicationWindow {
             // Bench mode (ROWPLAY_REPLAY_BENCH=1): measure 600 frames per
             // sport × tier on hardware GL. Runs after the normal gate.
             case 85:
-                if (!Settings.benchMode) { root.gateStep = 999; break }
+                if (!Settings.benchMode) { root.gateStep = 199; break }
                 Library.selectWorkout(1001)
                 Library.requestReplay(false)
                 root.gateAwaitingReplay = true
@@ -842,6 +1056,15 @@ ApplicationWindow {
             case 99: Replay.seek(0); Replay.setQualityIndex(2); Replay.play(); root.benchRun("bike-high"); break
             case 100: Replay.seek(0); Replay.setQualityIndex(3); Replay.play(); root.benchRun("bike-ultra"); break
             case 101: Replay.setQualityIndex(1); Library.closeReplay(); Library.clearSelection(); break
+            // The shell's platform layer (ADR 0013), after the main walk:
+            // the application menu, the sidebar toggle, the About dialog and
+            // the sort menu are opened once each for the runtime-error scan.
+            case 200: root.screenIndex = 0; appMenu.open(); break
+            case 201: appMenu.close(); root.toggleSidebar(); break
+            case 202: root.grabScreen("sidebar-hidden"); break
+            case 203: root.toggleSidebar(); aboutDialog.open(); break
+            case 204: aboutDialog.close(); sidebarColumn.showSortMenu(true); break
+            case 205: sidebarColumn.showSortMenu(false); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
