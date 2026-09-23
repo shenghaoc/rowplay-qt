@@ -570,6 +570,13 @@ impl LibraryBackend {
             .iter()
             .flat_map(|point| [point.x, point.y])
             .collect();
+        // One locale date per point: the chart's X range and its tick labels
+        // both come from this list (it was never filled, so the axis spanned
+        // only the first point and showed no dates).
+        self.pace_date_texts = pace_points
+            .iter()
+            .map(|point| point.date_text.clone())
+            .collect();
         let domain = recent_pace_domain(&filtered);
         self.pace_domain_low = domain.0;
         self.pace_domain_high = domain.1;
