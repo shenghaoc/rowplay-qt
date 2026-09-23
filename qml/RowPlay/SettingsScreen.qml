@@ -137,6 +137,10 @@ Pane {
                         label: Tr.t("replay.quality")
 
                         SegmentedControl {
+                            // May shrink below its segments' width, taking
+                            // its compact pop-up form (a narrow window).
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: implicitWidth
                             model: Settings.qualityLabels
                             currentIndex: Settings.qualityIndex
                             label: Tr.t("replay.quality")
