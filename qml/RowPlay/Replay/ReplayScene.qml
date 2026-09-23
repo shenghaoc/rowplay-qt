@@ -329,11 +329,13 @@ Item {
     // Back navigation is the toolbar's leading button (Main.qml). The HUD is
     // opaque, on the grouped surface: translucent, text on it fell below AA
     // over dark parts of the scene. All text is pre-rendered in Rust
-    // (Replay.hudText).
+    // (Replay.hudText). While playing it hides after about 3 s without
+    // pointer movement (see "HUD auto-hide" below).
     Rectangle {
         id: hud
 
-        visible: Replay.hasWorkout
+        visible: Replay.hasWorkout && opacity > 0
+        opacity: replayRoot.hudShown ? 1 : 0
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Theme.spacingXLarge
@@ -343,6 +345,11 @@ Item {
         color: Theme.overlayBackground
         border.width: Theme.hairline
         border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
+
+        Behavior on opacity {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { duration: 200 }
+        }
 
         // The verdict: parts[0] is win / lose / tie (locale ids from the web).
         readonly property var verdictParts: Replay.verdictText.split("|")
@@ -487,6 +494,70 @@ Item {
         }
     }
 
+    // ---- HUD auto-hide ----
+    // While playing, the HUD fades out after about 3 s without pointer
+    // movement, and the pointer hides with it. Any pointer movement, a tap,
+    // a replay key, a focus change or a pause brings it back (instantly
+    // under reduce motion). It never hides while keyboard focus is inside it.
+    property bool hudShown: true
+    readonly property bool playbackRunning: Replay.playing
+    readonly property bool hudHasFocus: {
+        var item = replayRoot.Window.activeFocusItem
+        while (item) {
+            if (item === hud) {
+                return true
+            }
+            item = item.parent
+        }
+        return false
+    }
+
+    function wakeHud() {
+        hudShown = true
+        hudTimer.restart()
+    }
+
+    onPlaybackRunningChanged: wakeHud()
+    onVisibleChanged: wakeHud()
+    onHudHasFocusChanged: wakeHud()
+
+    Timer {
+        id: hudTimer
+        interval: 3000
+        running: replayRoot.visible && Replay.playing && replayRoot.hudShown
+                 && !replayRoot.hudHasFocus
+        onTriggered: replayRoot.hudShown = false
+    }
+
+    // Only a real pointer move wakes the HUD. While the scene animates, Qt
+    // Quick delivers a synthetic hover event at the last pointer position
+    // after every frame that changed an item
+    // (QQuickDeliveryAgentPrivate::flushFrameSynchronousEvents, on by
+    // default), and waking on those kept the HUD up forever.
+    property point lastPointer: Qt.point(-1, -1)
+    HoverHandler {
+        cursorShape: replayRoot.hudShown ? Qt.ArrowCursor : Qt.BlankCursor
+        onPointChanged: {
+            const p = point.position
+            if (Math.abs(p.x - replayRoot.lastPointer.x) >= 1
+                    || Math.abs(p.y - replayRoot.lastPointer.y) >= 1) {
+                replayRoot.lastPointer = Qt.point(p.x, p.y)
+                replayRoot.wakeHud()
+            }
+        }
+    }
+    TapHandler {
+        onTapped: replayRoot.wakeHud()
+    }
+    Connections {
+        target: replayRoot.Window.window
+        function onActiveFocusItemChanged() {
+            if (replayRoot.visible) {
+                replayRoot.wakeHud()
+            }
+        }
+    }
+
     // Error / loading overlay (when no workout is loaded): the message and
     // the way back, on the HUD's surface.
     Rectangle {
@@ -527,14 +598,15 @@ Item {
     }
 
     // ---- Keyboard shortcuts (web replay transport keys) ----
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Space"; onActivated: Replay.toggle() }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Left"; onActivated: Replay.seekBy(-10) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Right"; onActivated: Replay.seekBy(10) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Shift+Left"; onActivated: Replay.seekBy(-30) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Shift+Right"; onActivated: Replay.seekBy(30) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "["; onActivated: Replay.stepSpeed(-1) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "]"; onActivated: Replay.stepSpeed(1) }
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequences: ["Home", "0"]; onActivated: Replay.seek(0) }
+    // Every one of them also brings the HUD back.
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Space"; onActivated: { Replay.toggle(); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Left"; onActivated: { Replay.seekBy(-10); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Right"; onActivated: { Replay.seekBy(10); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Shift+Left"; onActivated: { Replay.seekBy(-30); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Shift+Right"; onActivated: { Replay.seekBy(30); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "["; onActivated: { Replay.stepSpeed(-1); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "]"; onActivated: { Replay.stepSpeed(1); replayRoot.wakeHud() } }
+    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequences: ["Home", "0"]; onActivated: { Replay.seek(0); replayRoot.wakeHud() } }
 
     // ---- Connections ----
     Connections {
