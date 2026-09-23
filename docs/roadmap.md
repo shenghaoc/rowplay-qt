@@ -788,6 +788,8 @@ stack of seven PRs, each green on its own:
    - Second-reviewer pass: half-pixel centring, the sort direction for
      screen readers and the list's focus cue off screen (T3.8).
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
+   - Delivered in #71 and validated there: the full suite and the captures
+     before and after, scrolled views included.
 5. `ui/05-settings`: the grouped settings page.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
    during the replay.
