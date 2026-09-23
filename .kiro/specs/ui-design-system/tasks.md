@@ -196,7 +196,10 @@ that delivers it.
     content and the spare width shared, so no value is elided; at 150 %
     in the narrow window the table scrolls sideways inside its card with a
     visible scroll bar, while a vertical wheel over it still scrolls the
-    page (driven under Xvfb in Spanish, the longest labels).
+    page (driven under Xvfb in Spanish, the longest labels). The columns
+    are whole pixels: Qt Quick Layouts round each width up, and fractional
+    shares clipped the last column wherever the table fits, the default
+    size included (found by the default-size capture).
   - [x] T4.5 Validation (R9): see the PR.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
