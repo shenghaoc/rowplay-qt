@@ -981,3 +981,14 @@ so how those earlier close-ups were framed is an open question
   without pointer movement" therefore never hid while the replay played
   (driven under Xvfb). The HUD now wakes only when the position differs by
   at least a pixel from the last one it acted on.
+- **`Timer.restart()` starts a timer whatever its `running` binding says**
+  (UI design system, the replay HUD). `restart()` stops and starts the
+  timer from C++; the `running` binding survives but is re-evaluated only
+  when one of its inputs changes. The HUD called `restart()` from handlers
+  on the same changes the binding depended on (play / pause, focus), so
+  whether a paused or focused HUD hid three seconds later depended on the
+  order the handler and the binding ran. Driven under Xvfb, it hid 4.5 s
+  after a pause and 4.5 s after opening idle. The countdown is now
+  imperative only: no `running` binding, `restart()` only while the HUD
+  may hide, `stop()` otherwise, and the condition checked again on
+  `triggered`.

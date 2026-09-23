@@ -114,12 +114,18 @@ Two different things scale a Qt UI, and the design handles both:
 - The scene fills the route. The HUD is one opaque panel on the grouped
   surface (`Theme.overlayBackground`), centred at the bottom.
 - `hudShown` drives the HUD's opacity: a 200 ms fade, none under reduce
-  motion. A 3 s `Timer` runs only while the replay is visible and playing,
-  the HUD is shown and keyboard focus is not inside it (`hudHasFocus` walks
-  up from `Window.activeFocusItem`). `wakeHud()` shows the HUD and restarts
-  the timer. It is called by pointer moves, taps, the replay shortcuts,
-  focus changes, playback starting or stopping and the route being shown.
-  The pointer hides with the HUD (`HoverHandler.cursorShape`).
+  motion. The HUD may hide only while `hudMayHide` holds: the route is
+  shown, the replay is playing, and keyboard focus is not inside the HUD
+  (`hudHasFocus` walks up from `Window.activeFocusItem`). `wakeHud()`
+  shows the HUD and restarts the 3 s `Timer` while `hudMayHide` holds, and
+  stops it otherwise. The timer has no `running` binding, because
+  `Timer.restart()` starts a stopped timer whatever the binding says. It
+  checks `hudMayHide` again when it fires. `wakeHud()` runs on every change
+  of `hudMayHide`, pointer moves, taps, the replay shortcuts and focus
+  changes. The pointer hides with the HUD (`HoverHandler.cursorShape`).
+- The metric chips' `Repeater` has a constant model (caption id and metric
+  role), and each chip reads its value by index, so frames update the
+  labels in place instead of rebuilding the delegates.
 - Pointer moves are compared by position (at least 1 px from the last one
   acted on), because Qt Quick sends a synthetic hover after every animated
   frame (`docs/qt-bridges-notes.md`).
