@@ -190,6 +190,14 @@ that delivers it.
     - the PB capsule carries "PB".
 
     The replay's race verdict is 6/7's.
+  - [x] T4.4 Large text in a narrow window. The splits table's equal
+    columns elided the pace at 125 % text in the 1000 px window, and most
+    values at 150 %, even at 1200 px. Its columns are now sized by their
+    content and the spare width shared, so no value is elided; at 150 %
+    in the narrow window the table scrolls sideways inside its card with a
+    visible scroll bar, while a vertical wheel over it still scrolls the
+    page (driven under Xvfb in Spanish, the longest labels).
+  - [x] T4.5 Validation (R9): see the PR.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
