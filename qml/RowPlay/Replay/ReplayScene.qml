@@ -425,31 +425,42 @@ Item {
 
                 // Metric chips: the web gauge caption above the tabular value
                 // in its Metric Mapping Rule colour (the caption names the
-                // metric, so the colour is never the only cue).
+                // metric, so the colour is never the only cue). The model is
+                // constant and each chip reads its value by index, so a new
+                // frame updates two labels in place; a model built from the
+                // values would rebuild the chips whenever one changed.
                 Repeater {
                     model: [
-                        { id: "replay.gPace", value: replayRoot.paceText, color: Theme.metricPace },
-                        { id: "replay.gRate", value: replayRoot.rateText, color: Theme.metricCadence },
-                        { id: "replay.gPower", value: replayRoot.wattsText, color: Theme.metricWatts },
-                        { id: "replay.gHeart", value: replayRoot.heartText, color: Theme.metricHeartRate }
+                        { id: "replay.gPace", role: 3 },
+                        { id: "replay.gRate", role: 6 },
+                        { id: "replay.gPower", role: 4 },
+                        { id: "replay.gHeart", role: 5 }
                     ]
 
                     ColumnLayout {
+                        id: chip
+
                         required property var modelData
-                        visible: modelData.value.length > 0
+                        required property int index
+                        readonly property string value: index === 0 ? replayRoot.paceText
+                                                      : index === 1 ? replayRoot.rateText
+                                                      : index === 2 ? replayRoot.wattsText
+                                                      : replayRoot.heartText
+
+                        visible: value.length > 0
                         spacing: 0
-                        Accessible.name: Tr.t(modelData.id) + " " + modelData.value
+                        Accessible.name: Tr.t(modelData.id) + " " + value
 
                         Label {
-                            text: Tr.t(modelData.id)
+                            text: Tr.t(chip.modelData.id)
                             font: Theme.compactLabel
                             color: Theme.textSecondary
                             Accessible.ignored: true
                         }
                         Label {
-                            text: modelData.value
+                            text: chip.value
                             font: Theme.tabularBody
-                            color: modelData.color
+                            color: Theme.metricColor(chip.modelData.role)
                             Accessible.ignored: true
                         }
                     }
