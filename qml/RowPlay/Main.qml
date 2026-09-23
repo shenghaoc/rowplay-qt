@@ -323,9 +323,9 @@ ApplicationWindow {
 
                         DetailScreen {}
 
-                        SettingsScreen {
-                            onClosed: root.toggleSettings()
-                        }
+                        // No dismiss button (ADR 0013): back navigation,
+                        // Escape and the toolbar's settings toggle close it.
+                        SettingsScreen {}
 
                         // Replay route (Phase 5b): the 3D scene with the chase
                         // camera, athlete posing and transport controls.

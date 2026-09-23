@@ -1,115 +1,76 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Live-mode panel — web `LiveModePanel.svelte` / Studio `LiveModePanelView`
 // over the `Live` QML singleton. Logbook polling only (no PM5 / Bluetooth).
+// A grouped-settings section (ADR 0013): the switch row (a click on the row
+// toggles it), the check row with its one button, and the status lines.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import RowPlay
 
-ColumnLayout {
+FormSection {
     id: panel
-    spacing: Theme.spacingMedium
 
-    Label {
-        text: Tr.t("liveMode.title")
-        font: Theme.sectionHeadline
-        color: Theme.textPrimary
-        Accessible.name: text
-    }
+    title: Tr.t("liveMode.title")
 
-    Label {
-        Layout.fillWidth: true
-        Layout.maximumWidth: 480
-        text: Tr.t("liveMode.enabledHint")
-        font: Theme.metricLabel
-        color: Theme.textTertiary
-        wrapMode: Text.WordWrap
-        Accessible.name: text
-    }
-
-    Switch {
-        id: enableToggle
-        text: Tr.t("liveMode.enabled")
-        checked: Live.enabled
-        enabled: Live.canEnable || Live.enabled
-        onToggled: Live.setEnabled(checked)
-        Accessible.name: Tr.t("liveMode.enabled")
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: Theme.spacingMedium
-        visible: Live.enabled
-
-        Button {
-            text: Tr.t("liveMode.refresh")
-            enabled: Live.enabled && !Live.polling
-            onClicked: Live.refresh()
-            Accessible.name: Tr.t("liveMode.refresh")
+    readonly property string statusText: {
+        if (Live.statusId === "liveMode.rateLimitRetry") {
+            return Tr.t("liveMode.rateLimitRetry", { seconds: Live.statusRetrySecs })
         }
+        return Live.statusId.length > 0 ? Tr.t(Live.statusId) : ""
+    }
 
-        BusyIndicator {
+    FormRow {
+        label: Tr.t("liveMode.enabled")
+        detail: Tr.t("liveMode.enabledHint")
+        toggleTarget: enableToggle
+
+        ToggleSwitch {
+            id: enableToggle
+            checked: Live.enabled
+            enabled: Live.canEnable || Live.enabled
+            onToggled: {
+                Live.setEnabled(checked)
+                // The store decides (it can refuse or clear it later).
+                checked = Qt.binding(function() { return Live.enabled })
+            }
+            Accessible.name: Tr.t("liveMode.enabled")
+        }
+    }
+
+    // The last check (or the check in flight) and the one control, Check now.
+    FormRow {
+        visible: Live.enabled
+        label: Live.polling
+               ? Tr.t("liveMode.polling")
+               : Tr.t("liveMode.lastPollLabel") + " "
+                 + (Live.lastPollText.length > 0 ? Live.lastPollText
+                                                 : Tr.t("liveMode.neverUpdated"))
+
+        AppBusyIndicator {
             visible: Live.polling
             running: Live.polling
-            Layout.preferredWidth: 24
-            Layout.preferredHeight: 24
             Accessible.name: Tr.t("liveMode.polling")
         }
 
-        Label {
-            visible: Live.polling
-            text: Tr.t("liveMode.polling")
-            font: Theme.metricLabel
-            color: Theme.textSecondary
-            Accessible.name: text
+        PushButton {
+            text: Tr.t("liveMode.refresh")
+            enabled: Live.enabled && !Live.polling
+            onClicked: Live.refresh()
         }
     }
 
-    Label {
-        Layout.fillWidth: true
-        visible: Live.enabled && !Live.polling
-        text: Tr.t("liveMode.lastPollLabel") + " "
-              + (Live.lastPollText.length > 0
-                 ? Live.lastPollText
-                 : Tr.t("liveMode.neverUpdated"))
-        font: Theme.metricLabel
-        color: Theme.textSecondary
-        Accessible.name: text
+    // Kept visible after a 401 / 403 signs the panel out (enabled becomes
+    // false).
+    FormRow {
+        visible: panel.statusText.length > 0 && !Live.polling
+        detail: panel.statusText
+        detailColor: Theme.alertRed
     }
 
-    Label {
-        Layout.fillWidth: true
-        // Keep visible after 401/403 signed-out (enabled becomes false).
-        visible: Live.statusId.length > 0 && !Live.polling
-        text: {
-            if (Live.statusId === "liveMode.rateLimitRetry")
-                return Tr.t("liveMode.rateLimitRetry",
-                            { seconds: Live.statusRetrySecs })
-            return Live.statusId.length > 0 ? Tr.t(Live.statusId) : ""
-        }
-        font: Theme.metricLabel
-        color: Theme.alertRed
-        wrapMode: Text.WordWrap
-        Accessible.name: text
-    }
-
-    Label {
-        Layout.fillWidth: true
+    FormRow {
         visible: Live.hasWarning
-        text: Tr.t("liveMode.warning", { count: Live.failureCount })
-        font: Theme.metricLabel
-        color: Theme.alertRed
-        wrapMode: Text.WordWrap
-        Accessible.name: text
-    }
-
-    // Keep the enable switch in sync when the backend clears it (401 / stop).
-    Connections {
-        target: Live
-        function onLiveChanged() {
-            if (enableToggle.checked !== Live.enabled) {
-                enableToggle.checked = Live.enabled
-            }
-        }
+        detail: Tr.t("liveMode.warning", { count: Live.failureCount })
+        detailColor: Theme.alertRed
     }
 }
