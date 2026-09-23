@@ -3,6 +3,10 @@
 // boundary rules and an average rule (Studio's splitBoundaryMarks /
 // RuleMark). Series load through a single bulk replace(); boundary and rule
 // lines are two-point LineSeries (the verified Qt 6.11 RuleMark equivalent).
+//
+// A chart whose values are not plain numbers — the negated pace axis — passes
+// Rust-formatted ticks (`axisValues` / `axisLabels`) exactly like the
+// dashboard's pace chart, so it never prints the raw negated seconds.
 import QtQuick
 import QtQuick.Controls
 import QtGraphs
@@ -23,6 +27,34 @@ Rectangle {
     /// Vertical split-boundary positions (chart units).
     property var boundaryLines: []
     property string accessibleText: titleText
+    /// Optional Rust-formatted Y ticks: axis values spanning yMin…yMax and
+    /// their labels (Detail.paceAxisValues / paceAxisLabels).
+    property var axisValues: []
+    property var axisLabels: []
+    /// Left inset shared by stacked charts so their plot origins line up
+    /// (the widest label overflow in the panel).
+    property real minimumLabelOverflow: 0
+
+    readonly property bool customTicks: axisValues !== undefined && axisValues !== null
+                                        && axisValues.length > 1
+    // Room the Rust labels need beyond Qt Graphs' fixed 40 px label column.
+    readonly property real labelOverflow: customTicks
+                                          ? ChartUtils.yLabelOverflow(axisLabels, tickMetrics)
+                                          : 0
+
+    FontMetrics {
+        id: tickMetrics
+        font.pixelSize: 9
+    }
+
+    // No axis line or tick marks under wide Rust labels; other axes keep
+    // the theme's default colour (the Binding restores it when inactive).
+    Binding {
+        target: yAxis
+        property: "color"
+        value: "transparent"
+        when: chart.customTicks
+    }
 
     color: "transparent"
     Accessible.name: accessibleText
@@ -54,6 +86,7 @@ Rectangle {
             width: parent.width
             height: chart.titleText.length > 0 ? parent.height - 18
                                                : parent.height
+            marginLeft: Math.max(chart.labelOverflow, chart.minimumLabelOverflow)
 
             theme: GraphsTheme {
                 colorScheme: Theme.dark ? GraphsTheme.ColorScheme.Dark
@@ -73,13 +106,37 @@ Rectangle {
                 subGridVisible: false
             }
             axisY: ValueAxis {
+                id: yAxis
                 min: chart.yMin
                 max: chart.yMax
                 subTickCount: 0
                 labelDecimals: 0
                 // About four ticks: the automatic interval packed eight to
-                // ten overlapping labels into the short plot.
-                tickInterval: ChartUtils.niceInterval(chart.yMax - chart.yMin, 4)
+                // ten overlapping labels into the short plot. Rust-labelled
+                // axes put one tick on each exported value instead.
+                tickAnchor: chart.customTicks ? chart.yMin : 0
+                tickInterval: chart.customTicks
+                              ? ChartUtils.spanInterval(chart.yMin, chart.yMax,
+                                                        chart.axisValues.length)
+                              : ChartUtils.niceInterval(chart.yMax - chart.yMin, 4)
+                // Qt Graphs sizes this item to its 40 px column (height 0 at
+                // the tick): right-align and centre the text on the tick.
+                labelDelegate: Item {
+                    property string text
+                    implicitWidth: tickLabel.implicitWidth
+                    implicitHeight: tickLabel.implicitHeight
+                    Text {
+                        id: tickLabel
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: chart.customTicks
+                              ? ChartUtils.nearestLabel(chart.axisValues,
+                                                        chart.axisLabels, parent.text)
+                              : parent.text
+                        font.pixelSize: 9
+                        color: Theme.textTertiary
+                    }
+                }
             }
 
             // Split boundaries (Studio: secondary colour, dashed).

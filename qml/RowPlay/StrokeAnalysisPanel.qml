@@ -82,11 +82,16 @@ ColumnLayout {
         // Pace (negated, fast-up) with the average-pace rule and split
         // boundaries — Studio's paceChart.
         StrokeChart {
+            id: paceChart
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.chartStrokeHeight
             titleText: Tr.t("replay.cPace")
             yMin: Detail.paceDomainLow
             yMax: Detail.paceDomainHigh
+            // Pace ticks formatted in Rust (the plotted values are negated
+            // seconds per 500 m, faster up).
+            axisValues: Detail.paceAxisValues
+            axisLabels: Detail.paceAxisLabels
             seriesColor: Theme.metricPace
             flatSeries: Detail.paceSeries
             ruleY: Detail.averagePaceRuleY
@@ -99,6 +104,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.chartStrokeHeight
             titleText: Tr.t("replay.cPower") + " (W)"
+            minimumLabelOverflow: paceChart.labelOverflow
             yMin: 0
             yMax: Math.max(Detail.peakWatts, Detail.averageWatts, 1.0) * 1.1
             seriesColor: Theme.metricWatts
@@ -122,6 +128,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.chartStrokeHeight
                 titleText: Tr.t("replay.cRate")
+                minimumLabelOverflow: paceChart.labelOverflow
                 yMin: 0
                 yMax: Detail.rateMax > 0 ? Detail.rateMax * 1.15 : 40
                 seriesColor: Theme.metricCadence
@@ -135,6 +142,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.chartStrokeHeight
                 titleText: Tr.t("replay.cHeart")
+                minimumLabelOverflow: paceChart.labelOverflow
                 yMin: 0
                 yMax: Detail.hrMax > 0 ? Detail.hrMax * 1.15 : 180
                 seriesColor: Theme.metricHeartRate
