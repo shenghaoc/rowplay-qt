@@ -59,8 +59,9 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R2.2 Every stock popup and indicator the app uses has a themed
   replacement: `AppToolTip`, `AppMenu` / `AppMenuItem` / `AppMenuSeparator`,
   `AppScrollBar`, `AppProgressBar`, `AppBusyIndicator`, `AppDialog` and
-  `AppDialogButtonBox`. The `PopupButton` list is its own. The app has no
-  `Slider`. No raw Basic or Fusion look remains once the stack is complete.
+  `AppDialogButtonBox`. The `PopupButton` list is its own. The replay
+  scrubber's `Slider` is themed with the replay (6/7). No raw Basic or
+  Fusion look remains once the stack is complete.
 - R2.3 The palette on `ApplicationWindow` sets every role from the tokens,
   mapped by how Basic uses each role, as the safety net for any stock
   control.
