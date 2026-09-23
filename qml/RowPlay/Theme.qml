@@ -9,7 +9,12 @@
 //   .monospacedDigit();
 // - macOS materials (.regularMaterial) become tonal opacity surfaces: Qt has
 //   no system material on Linux/Windows, and DESIGN.md's flat-by-default rule
-//   means opacity layers carry the depth.
+//   means opacity layers carry the depth;
+// - surfaces, text, selection, separators and control fills follow the Apple
+//   HIG macOS system colours (windowBackground, label / secondaryLabel,
+//   selectedContentBackground, separator, controlBackground …) on every
+//   platform, so the Fusion-based controls read as one Mac-class family
+//   (ADR 0013). The PM5 palette and the Metric Mapping Rule are unchanged.
 pragma Singleton
 import QtQuick
 
@@ -91,13 +96,54 @@ QtObject {
     }
 
     // MARK: - Surfaces (tonal layering, no shadows — Flat-by-Default Rule)
+    //
+    // Apple HIG macOS system colours (ADR 0013). Secondary text keeps WCAG
+    // AA (≥ 4.5:1) on every surface it is used on: #6e6e73 is 5.1:1 on the
+    // window and 4.6:1 on the sidebar, #a1a1a6 is 6.5:1 / 5.9:1 in dark.
+    // Tertiary text is for placeholders and decoration only (3.6:1 light).
 
-    readonly property color windowBackground: dark ? "#232629" : "#ffffff"
-    readonly property color sidebarBackground: dark ? "#2a2e32" : "#f7f7f7"
-    readonly property color textPrimary: dark ? "#f2f4f6" : "#1a1c1e"
-    readonly property color textSecondary: dark ? "#a8adb3" : "#5c6166"
-    readonly property color textTertiary: dark ? "#7c8187" : "#8a8f95"
+    readonly property color windowBackground: dark ? "#1e1e1e" : "#ffffff"
+    readonly property color sidebarBackground: dark ? "#262628" : "#f4f4f6"
+    /// Unified toolbar above the content column (macOS 11+ window chrome).
+    readonly property color toolbarBackground: dark ? "#242426" : "#fbfbfc"
+    readonly property color textPrimary: dark ? "#f5f5f7" : "#1d1d1f"
+    readonly property color textSecondary: dark ? "#a1a1a6" : "#6e6e73"
+    readonly property color textTertiary: dark ? "#8a8a8f" : "#86868b"
     readonly property color accentColor: primaryBlue
+
+    /// Selected sidebar row while the list has keyboard focus (white text on
+    /// top: 5.0:1 light, 5.5:1 dark).
+    readonly property color selectionFill: dark ? "#0a64d6" : "#0a6cdf"
+    /// Selected row while focus is elsewhere (text keeps its normal colours).
+    readonly property color selectionFillInactive: dark ? Qt.rgba(1, 1, 1, 0.10)
+                                                         : Qt.rgba(0, 0, 0, 0.08)
+    /// Hairline separators: split-view divider, toolbar edge, table rules.
+    readonly property color separator: dark ? Qt.rgba(1, 1, 1, 0.10)
+                                            : Qt.rgba(0, 0, 0, 0.10)
+    /// Borderless-control hover and press washes (toolbar buttons, rows).
+    readonly property color hoverFill: dark ? Qt.rgba(1, 1, 1, 0.06)
+                                            : Qt.rgba(0, 0, 0, 0.045)
+    readonly property color pressedFill: dark ? Qt.rgba(1, 1, 1, 0.12)
+                                              : Qt.rgba(0, 0, 0, 0.09)
+    /// Bezel controls: push buttons, text fields, pop-up buttons.
+    readonly property color controlBackground: dark ? "#3a3a3c" : "#ffffff"
+    readonly property color controlBorder: dark ? Qt.rgba(1, 1, 1, 0.12)
+                                                : Qt.rgba(0, 0, 0, 0.16)
+    /// Segmented control: recessed track and raised selection thumb.
+    readonly property color segmentTrack: dark ? Qt.rgba(1, 1, 1, 0.08)
+                                               : Qt.rgba(0, 0, 0, 0.06)
+    readonly property color segmentThumb: dark ? "#636366" : "#ffffff"
+    /// Keyboard focus ring (drawn 3 px outside the focused control).
+    readonly property color focusRing: Qt.rgba(primaryBlue.r, primaryBlue.g,
+                                               primaryBlue.b, 0.5)
+    /// Grouped-form section box (settings).
+    readonly property color groupBackground: dark ? Qt.rgba(1, 1, 1, 0.045)
+                                                  : Qt.rgba(0, 0, 0, 0.028)
+    /// Chart gridlines and the X axis line (quiet: data first).
+    readonly property color chartGrid: dark ? Qt.rgba(1, 1, 1, 0.08)
+                                            : Qt.rgba(0, 0, 0, 0.07)
+    readonly property color chartAxis: dark ? Qt.rgba(1, 1, 1, 0.22)
+                                            : Qt.rgba(0, 0, 0, 0.20)
 
     /// Subtle grouped background for panels — lighter than the window.
     readonly property color panelBackground: dark ? Qt.rgba(1, 1, 1, 0.03)
@@ -109,9 +155,10 @@ QtObject {
     readonly property color activeCardBackground: Qt.rgba(primaryBlue.r,
                                                           primaryBlue.g,
                                                           primaryBlue.b, 0.08)
-    /// Overlay backdrop (Studio: control background at 0.85).
-    readonly property color overlayBackground: dark ? Qt.rgba(0.16, 0.17, 0.18, 0.85)
-                                                    : Qt.rgba(1, 1, 1, 0.85)
+    /// Overlay backdrop (Studio: control background at 0.85) — the replay
+    /// HUD's translucent material and tooltips.
+    readonly property color overlayBackground: dark ? Qt.rgba(0.14, 0.14, 0.15, 0.84)
+                                                    : Qt.rgba(0.98, 0.98, 0.99, 0.86)
 
     // MARK: - Replay materials (Phase 5a)
     //
@@ -173,6 +220,12 @@ QtObject {
     readonly property int chartHeight: 220        // dashboard-level charts
     readonly property int chartStrokeHeight: 150  // stroke-level charts
 
+    // MARK: - Control metrics (HIG macOS regular control size)
+
+    readonly property int controlHeight: 28     // push / pop-up / field / segment
+    readonly property int toolbarHeight: 52     // unified toolbar
+    readonly property int sidebarRowHeight: 48  // two-line sidebar row
+
     // MARK: - Typography (DESIGN.md hierarchy; system font, weights kept).
     // The One Hero Rule: heroMetric appears at most once per card.
 
@@ -185,10 +238,20 @@ QtObject {
     /// Metric value — data values in badges and cards (callout semibold, 13px).
     readonly property font metricValue: ({ pixelSize: 13, weight: Font.DemiBold,
                                            features: Font.TabularNumbers })
-    /// Strip metric — inline values in detail/replay strips (18px semibold mono).
-    readonly property font stripMetric: ({ pixelSize: 18, weight: Font.DemiBold,
-                                           family: "monospace",
+    /// Strip metric — inline values in detail/replay strips (20px semibold,
+    /// tabular figures on the system font; a monospace family made values
+    /// run into the next label).
+    readonly property font stripMetric: ({ pixelSize: 20, weight: Font.DemiBold,
                                            features: Font.TabularNumbers })
+    /// Emphasised body — sidebar row titles (13px medium).
+    readonly property font bodyEmphasized: ({ pixelSize: 13, weight: Font.Medium })
+    /// Tabular body — table cells and trailing row values (13px semibold).
+    readonly property font tabularBody: ({ pixelSize: 13, weight: Font.DemiBold,
+                                           features: Font.TabularNumbers })
+    /// Sidebar section header — sentence case, bold, small (macOS 11+).
+    readonly property font sidebarSection: ({ pixelSize: 11, weight: Font.Bold })
+    /// Grouped-form section title (HIG "headline", 13px bold).
+    readonly property font groupTitle: ({ pixelSize: 13, weight: Font.Bold })
     /// Metric label — labels beneath values (caption2 medium, 11px).
     readonly property font metricLabel: ({ pixelSize: 11, weight: Font.Medium })
     /// Compact label — dense UI labels (10px medium).
