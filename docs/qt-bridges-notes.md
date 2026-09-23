@@ -805,3 +805,65 @@ so how those earlier close-ups were framed is an open question
   bare `Item` grabs as (0, 0, 0, 26) / PPM (0, 0, 0); inside a white
   `Rectangle` as (229, 229, 229) in both, matching an `xwd` capture of the
   window. The gate's `shellRoot` is therefore painted in the window colour.
+- **Under the Basic style, `AbstractButton` in a property type names Basic's
+  own composite type** (UI design system, ADR 0013). Basic ships an
+  `AbstractButton.qml`, so in a file that imports `QtQuick.Controls`,
+  `property AbstractButton target` is typed as that composite. A `Switch`
+  (Basic's `Switch.qml` derives from `T.Switch`, not from it) is then
+  rejected at load: "Unable to assign ToggleSwitch_QMLTYPE_54 to
+  AbstractButton_QMLTYPE_17". Type such properties with the template:
+  `import QtQuick.Templates as T` and `property T.AbstractButton target`
+  (`FormRow.toggleTarget`).
+- **Basic's `DialogButtonBox` stretches its buttons and paints
+  `palette.window`** (`Basic/DialogButtonBox.qml`: `alignment` is undefined
+  for more than one button, and the background is `control.palette.window`).
+  In a dialog on a popup surface that differs from the window colour, as in
+  dark mode, the box shows a band of the window colour under the buttons.
+  `AppDialogButtonBox` sets `alignment: Qt.AlignRight`, no background and
+  PushButton delegates, and keeps the default `buttonLayout` so the
+  platform theme still orders the buttons.
+- **`QT_FONT_DPI` scales the device pixel ratio, not the font, under
+  high-DPI scaling** (the Qt 6 default). On `xcb`, `QT_FONT_DPI=144` drew
+  the whole UI 1.5× larger while `Qt.application.font` stayed 12 px (9 pt at
+  96 dpi), so it does not exercise a larger system font.
+  `QT_ENABLE_HIGHDPI_SCALING=0 QT_FONT_DPI=144` does: the device pixel ratio
+  stays 1, the 9 pt system font becomes 18 px, and `Theme.scale` reflows the
+  layout (checked in a scratch gallery of every control at 120 and
+  144 dpi).
+- **Open popups are not part of any item grab.** A `Popup`, `Menu`,
+  `ToolTip` or `Dialog` renders in the window's overlay, a sibling of the
+  content item. `grabToImage` on content never includes it, and the
+  window's root item refuses a QML grab ("item has no QML engine", like
+  `ApplicationWindow.contentItem` above). Captures of open popups come from
+  the screen (`import -window root` on the Xvfb display).
+- **The system accent and the contrast preference, per platform** (UI
+  design system, ADR 0013). Read from the qtbase `v6.11.2` sources
+  (`ef55f427`), and probed on Linux.
+  - **Accent on macOS:** `palette.accent` is `NSColor.controlAccentColor`
+    (`qcocoatheme.mm`, `qt_mac_createSystemPalette`).
+  - **Accent on Windows:** the UISettings accent, or the DWM `AccentColor`
+    registry value (`qwindowstheme.cpp`, `qt_accentColor`): AccentDark1 in
+    light mode, AccentLight2 in dark mode.
+  - **Accent on Linux: none.** No Linux platform theme sets
+    `QPalette::Accent`: not the generic theme, the desktop portal,
+    GNOME / gtk3 or KDE. The portal's `accent-color` is not read up to
+    qtbase `dev` of 2026-09-23. The palette therefore keeps
+    `qt_fusionPalette()`'s `#308cc6` (`qplatformtheme.cpp`), and so does
+    `offscreen`. `Theme.qml` reads `#308cc6` as "no system accent" and uses
+    the brand blue.
+  - **Contrast:** `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10)
+    is `HighContrast`:
+    - on macOS under "Increase contrast"
+      (`accessibilityDisplayShouldIncreaseContrast`; the source does not
+      show whether toggling it notifies a running app);
+    - on Windows under a contrast theme (`SPI_GETHIGHCONTRAST`);
+    - on Linux from the portal's `contrast` key or GNOME's
+      `org.gnome.desktop.a11y.interface high-contrast`.
+
+    The generic, KDE and `offscreen` themes always report `NoPreference`.
+  - **Probed here:** under `xcb` on Xvfb with no desktop, and under
+    `offscreen`, the probe reads accent `#308cc6`, `NoPreference`, colour
+    scheme `Unknown` and a 9 pt (12 px) "Sans Serif" system font. The macOS
+    and Windows rows come from the sources only (tracked in #66).
+    `ROWPLAY_FORCE_CONTRAST=high` exercises the high-contrast variant on any
+    platform.
