@@ -97,6 +97,13 @@ QtObject {
         return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
     }
 
+    /// White or near-black, whichever contrasts more with `fill` (a label
+    /// on a solid badge or on the accent).
+    function textOn(fill) {
+        return contrastRatio(fill, "#ffffff") >= contrastRatio(fill, "#0e1014")
+               ? "#ffffff" : "#0e1014"
+    }
+
     // MARK: - Accent (system accent, brand blue fallback)
 
     readonly property SystemPalette systemPalette: SystemPalette {
@@ -112,8 +119,8 @@ QtObject {
     readonly property color brandBlue: dark ? "#0A84FF" : "#0066CC"
     readonly property color accentColor: systemAccentAvailable ? systemPalette.accent : brandBlue
     /// Text and glyphs on an accent fill: white or near-black, whichever
-    /// meets WCAG AA (4.5:1) against the accent in use.
-    readonly property color onAccent: contrastRatio(accentColor, "#ffffff") >= 4.5 ? "#ffffff" : "#0e1014"
+    /// contrasts more with the accent in use (AA for the brand blues).
+    readonly property color onAccent: textOn(accentColor)
 
     // MARK: - Colour palette (DESIGN.md "The PM5 Palette")
 
