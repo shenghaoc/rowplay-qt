@@ -45,19 +45,35 @@ ApplicationWindow {
         screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
     }
 
-    // Fusion, coloured from Theme.qml (DESIGN.md: flat, tonal, no shadows).
+    // The Basic style (qtquickcontrols2.conf), with every palette role set
+    // from Theme.qml (ADR 0013). The app's own controls draw themselves from
+    // the tokens; the palette is the safety net for any stock Basic control,
+    // mapped by how Basic uses each role: `button` fills buttons and combo
+    // boxes, `mid` outlines fields and draws scroll bars, `midlight` is the
+    // off track of switches and progress bars, and `dark` is Basic's "on"
+    // colour (checked buttons, switch-on, progress, busy) with `brightText`
+    // on it. The text size is the system font's (Qt.application.font; Theme
+    // derives its whole scale from it), so no font is set here.
     palette.window: Theme.windowBackground
     palette.windowText: Theme.textPrimary
-    palette.base: Theme.windowBackground
-    palette.alternateBase: Theme.panelBackground
+    palette.base: Theme.controlBackground
+    palette.alternateBase: Theme.groupBackground
     palette.text: Theme.textPrimary
-    palette.button: Theme.windowBackground
+    palette.button: Theme.segmentTrack
     palette.buttonText: Theme.textPrimary
+    palette.brightText: Theme.windowBackground
     palette.highlight: Theme.accentColor
-    palette.highlightedText: "#ffffff"
-    palette.toolTipBase: Theme.overlayBackground
+    palette.highlightedText: Theme.onAccent
+    palette.accent: Theme.accentColor
+    palette.link: Theme.accentColor
+    palette.placeholderText: Theme.textTertiary
+    palette.toolTipBase: Theme.popupBackground
     palette.toolTipText: Theme.textPrimary
-    font.pixelSize: 13
+    palette.light: Theme.controlBackground
+    palette.midlight: Theme.switchTrackOff
+    palette.mid: Theme.controlBorder
+    palette.dark: Theme.textSecondary
+    palette.shadow: Theme.dark ? "#000000" : "#15181d"
 
     function showDashboard() {
         Library.clearSelection()
