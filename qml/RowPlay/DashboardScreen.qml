@@ -238,10 +238,20 @@ Pane {
                         Accessible.ignored: true
                     }
 
+                    // Qt Graphs gives Y labels a fixed 40 px column; the Rust
+                    // pace strings are wider, so the chart reserves the
+                    // overflow on the left (ChartUtils.yLabelOverflow).
+                    FontMetrics {
+                        id: paceTickMetrics
+                        font.pixelSize: 10
+                    }
+
                     GraphsView {
                         id: paceChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        marginLeft: ChartUtils.yLabelOverflow(Library.paceAxisLabels,
+                                                              paceTickMetrics)
 
                         theme: GraphsTheme {
                             colorScheme: Theme.dark ? GraphsTheme.ColorScheme.Dark
@@ -285,22 +295,27 @@ Pane {
                             min: Library.paceDomainLow
                             max: Library.paceDomainHigh
                             tickAnchor: Library.paceDomainLow
-                            tickInterval: Library.paceAxisValues.length > 1
-                                          ? (Library.paceDomainHigh
-                                             - Library.paceDomainLow)
-                                            / (Library.paceAxisValues.length - 1)
-                                          : 0
+                            tickInterval: ChartUtils.spanInterval(Library.paceDomainLow,
+                                                                  Library.paceDomainHigh,
+                                                                  Library.paceAxisValues.length)
                             subTickCount: 0
-                            titleText: Tr.t("replay.pacePer500m")
-                            titleFont.pixelSize: 10
-                            titleVisible: true
-                            // Pace ticks display the Rust-formatted labels.
+                            // No axis line or tick marks under the long
+                            // labels, and no rotated title: it was drawn on
+                            // top of the labels, and every tick already
+                            // reads "/500m".
+                            color: "transparent"
+                            titleVisible: false
+                            // Pace ticks display the Rust-formatted labels,
+                            // right-anchored on the tick (the delegate is
+                            // sized to the fixed 40 px column).
                             labelDelegate: Item {
                                 property string text
                                 implicitWidth: paceLabel.implicitWidth
                                 implicitHeight: paceLabel.implicitHeight
                                 Text {
                                     id: paceLabel
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
                                     text: ChartUtils.nearestLabel(
                                               Library.paceAxisValues,
                                               Library.paceAxisLabels,
