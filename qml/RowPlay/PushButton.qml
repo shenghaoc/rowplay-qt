@@ -16,7 +16,10 @@ Button {
     /// Optional leading Icon.qml glyph.
     property string iconName: ""
 
-    readonly property color labelColor: prominent ? "#ffffff"
+    // A disabled default button loses its accent (macOS): the neutral bezel
+    // with a dimmed label, so it cannot read as live in either scheme.
+    readonly property bool accentFill: prominent && enabled
+    readonly property color labelColor: accentFill ? "#ffffff"
                                         : (destructive ? Theme.alertRed
                                                        : Theme.textPrimary)
 
@@ -58,8 +61,8 @@ Button {
     background: Rectangle {
         implicitWidth: 64
         radius: 6
-        color: control.prominent ? Theme.accentColor : Theme.controlBackground
-        border.width: control.prominent ? 0 : 1
+        color: control.accentFill ? Theme.accentColor : Theme.controlBackground
+        border.width: control.accentFill ? 0 : 1
         border.color: Theme.controlBorder
         opacity: control.enabled ? 1.0 : 0.6
 
@@ -67,11 +70,11 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: control.down ? (control.prominent ? Qt.rgba(0, 0, 0, 0.18)
-                                                     : Theme.pressedFill)
+            color: control.down ? (control.accentFill ? Qt.rgba(0, 0, 0, 0.18)
+                                                      : Theme.pressedFill)
                                 : (control.hovered && control.enabled
-                                   ? (control.prominent ? Qt.rgba(1, 1, 1, 0.08)
-                                                        : Theme.hoverFill)
+                                   ? (control.accentFill ? Qt.rgba(1, 1, 1, 0.08)
+                                                         : Theme.hoverFill)
                                    : "transparent")
         }
 
