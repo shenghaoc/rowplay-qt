@@ -53,6 +53,13 @@ Control {
 
     Keys.onLeftPressed: select(currentIndex - 1)
     Keys.onRightPressed: select(currentIndex + 1)
+    // While focused the arrows belong to the control, not to a window
+    // shortcut (the replay route binds Left/Right to seeking).
+    Keys.onShortcutOverride: function(event) {
+        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+            event.accepted = true
+        }
+    }
 
     FontMetrics {
         id: metrics

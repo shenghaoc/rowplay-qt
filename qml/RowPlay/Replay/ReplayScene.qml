@@ -4,7 +4,8 @@
 // from the venue palette, and the V3 equipment / V4 athlete as balsam
 // components (ADR 0008). Phase 5b adds the chase camera, athlete joint
 // posing, equipment motion (oars, poles, crank, wheels on the course loop)
-// and the transport bar. One FrameAnimation drives Replay.tick; one
+// and the transport, a floating HUD since the HIG pass (ADR 0013). One
+// FrameAnimation drives Replay.tick; one
 // onFrameChanged applies the flat frame bundle — one bridge crossing per
 // rendered frame (spec R1.3).
 import QtQuick
@@ -77,10 +78,8 @@ Item {
     // ---- 3D scene ----
     View3D {
         id: scene
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: transportBar.top
+        // The scene fills the route; the transport floats over it (HUD).
+        anchors.fill: parent
 
         // The tier settings resolve MSAA and shadow parameters from the
         // current quality index + sport (Replay.tierSettings JSON).
@@ -324,126 +323,242 @@ Item {
         }
     }
 
-    // ---- Transport bar ----
-    Pane {
-        id: transportBar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+    // ---- Transport HUD (Apple HIG media playback, ADR 0013) ----
+    // A floating translucent capsule over the scene instead of an opaque
+    // strip: play/pause, elapsed time, the scrubber, total time and
+    // distance; then the speed as a segmented control, the metric chips and
+    // the race gap; the race verdict gets its own line when a ghost finishes.
+    // Back navigation is the toolbar's leading chevron (Main.qml), so the
+    // HUD carries none. All text is pre-rendered in Rust (Replay.hudText).
+    Rectangle {
+        id: hud
+
         visible: Replay.hasWorkout
-        padding: Theme.spacingSmall
-        background: Rectangle { color: Theme.windowBackground; opacity: 0.92 }
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Theme.spacingXLarge
+        width: Math.min(760, parent.width - 2 * Theme.spacingXLarge)
+        height: hudColumn.implicitHeight + 2 * Theme.spacingLarge
+        radius: Theme.radiusLarge
+        color: Theme.overlayBackground
+        border.width: 1
+        border.color: Theme.separator
+
+        // The verdict: parts[0] is win / lose / tie (locale ids from the web).
+        readonly property var verdictParts: Replay.verdictText.split("|")
 
         ColumnLayout {
+            id: hudColumn
             anchors.fill: parent
-            spacing: Theme.spacingXSmall
+            anchors.margins: Theme.spacingLarge
+            spacing: Theme.spacingMedium
 
             RowLayout {
-                spacing: Theme.spacingSmall
                 Layout.fillWidth: true
+                spacing: Theme.spacingMedium
 
-                Button {
-                    text: Replay.playing
-                          ? Tr.t("replay.pause") : Tr.t("replay.play")
+                // Play / pause: a round borderless button, the glyph follows
+                // the transport state.
+                ToolbarButton {
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    cornerRadius: 18
+                    iconSize: 18
+                    iconName: Replay.playing ? "pause" : "play"
+                    label: Replay.playing ? Tr.t("replay.pause") : Tr.t("replay.play")
                     onClicked: Replay.toggle()
-                    Accessible.name: text
                 }
+
                 Label {
-                    text: replayRoot.clockText + " / " + replayRoot.totalText
-                    font: Theme.body
+                    text: replayRoot.clockText
+                    font: Theme.tabularBody
+                    color: Theme.textPrimary
                     Accessible.name: text
                 }
+
                 Slider {
                     id: seekSlider
                     Layout.fillWidth: true
-                    from: 0; to: 1
+                    from: 0
+                    to: 1
                     value: Replay.progress
                     onMoved: Replay.seek(value)
+                    focusPolicy: Qt.TabFocus
                     Accessible.name: Tr.t("replay.seekSlider")
+
+                    // Thin HIG scrubber: a 4 px track with the elapsed part
+                    // in the accent, a 14 px white knob.
+                    background: Rectangle {
+                        x: seekSlider.leftPadding
+                        y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+                        implicitWidth: 200
+                        implicitHeight: 4
+                        width: seekSlider.availableWidth
+                        height: 4
+                        radius: 2
+                        color: Theme.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(0, 0, 0, 0.14)
+
+                        Rectangle {
+                            width: seekSlider.visualPosition * parent.width
+                            height: parent.height
+                            radius: 2
+                            color: Theme.accentColor
+                        }
+                    }
+                    handle: Rectangle {
+                        x: seekSlider.leftPadding
+                           + seekSlider.visualPosition * (seekSlider.availableWidth - width)
+                        y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+                        implicitWidth: 14
+                        implicitHeight: 14
+                        radius: 7
+                        color: "#ffffff"
+                        border.width: 1
+                        border.color: Qt.rgba(0, 0, 0, seekSlider.pressed ? 0.3 : 0.18)
+
+                        FocusRing {
+                            visible: seekSlider.visualFocus
+                            controlRadius: 7
+                        }
+                    }
+                }
+
+                Label {
+                    text: replayRoot.totalText
+                    font: Theme.tabularBody
+                    color: Theme.textSecondary
+                    Accessible.name: text
                 }
                 Label {
+                    Layout.leftMargin: Theme.spacingSmall
                     text: replayRoot.distanceText
-                    font: Theme.body
+                    font: Theme.tabularBody
+                    color: Theme.metricDistance
                     Accessible.name: text
                 }
             }
 
             RowLayout {
-                spacing: Theme.spacingSmall
                 Layout.fillWidth: true
+                spacing: Theme.spacingXLarge
 
-                Repeater {
+                SegmentedControl {
                     model: Replay.speedLabels
-                    Button {
-                        flat: true; text: modelData
-                        highlighted: index === Replay.speedIndex
-                        onClicked: Replay.setSpeedIndex(index)
-                        Accessible.name: Tr.t("replay.playbackSpeed")
-                                         + " " + modelData
+                    currentIndex: Replay.speedIndex
+                    label: Tr.t("replay.playbackSpeed")
+                    onActivated: function(index) {
+                        Replay.setSpeedIndex(index)
                     }
                 }
+
                 Item { Layout.fillWidth: true }
-                Label { text: Tr.t("replay.gPace") + " " + replayRoot.paceText;  font: Theme.body; visible: paceText.length > 0 }
-                Label { text: Tr.t("replay.gRate") + " " + replayRoot.rateText;  font: Theme.body; visible: rateText.length > 0 }
-                Label { text: Tr.t("replay.gPower") + " " + replayRoot.wattsText; font: Theme.body; visible: wattsText.length > 0 }
-                Label { text: Tr.t("replay.gHeart") + " " + replayRoot.heartText; font: Theme.body; visible: heartText.length > 0 }
+
+                // Metric chips: the web gauge caption above the tabular value
+                // (Metric Mapping Rule colours).
+                Repeater {
+                    model: [
+                        { id: "replay.gPace", value: replayRoot.paceText, color: Theme.metricPace },
+                        { id: "replay.gRate", value: replayRoot.rateText, color: Theme.metricCadence },
+                        { id: "replay.gPower", value: replayRoot.wattsText, color: Theme.metricWatts },
+                        { id: "replay.gHeart", value: replayRoot.heartText, color: Theme.metricHeartRate }
+                    ]
+
+                    ColumnLayout {
+                        required property var modelData
+                        visible: modelData.value.length > 0
+                        spacing: 0
+                        Accessible.name: Tr.t(modelData.id) + " " + modelData.value
+
+                        Label {
+                            text: Tr.t(modelData.id)
+                            font: Theme.compactLabel
+                            color: Theme.textSecondary
+                            Accessible.ignored: true
+                        }
+                        Label {
+                            text: modelData.value
+                            font: Theme.tabularBody
+                            color: modelData.color
+                            Accessible.ignored: true
+                        }
+                    }
+                }
+
                 // Race gap (visible when a ghost is loaded).
                 Label {
-                    text: Replay.gapText
-                    font: Theme.body
                     visible: Replay.hasGhost && Replay.gapText.length > 0
+                    text: Replay.gapText
+                    font: Theme.tabularBody
+                    color: Theme.textPrimary
                     Accessible.name: text
                 }
-                // Race verdict at finish (locale ids from the web).
-                Label {
-                    visible: Replay.hasGhost && Replay.verdictText.length > 0
-                    text: {
-                        var parts = Replay.verdictText.split("|")
-                        if (parts[0] === "win")
-                            return Tr.t("replay.raceVerdictWinSession",
-                                { seconds: parts[1], m: parts[2],
-                                  date: "", distance: "" })
-                        if (parts[0] === "lose")
-                            return Tr.t("replay.raceVerdictLoseSession",
-                                { seconds: parts[1], m: parts[2],
-                                  date: "", distance: "" })
-                        return Tr.t("replay.raceFinished")
-                    }
-                    font: Theme.body
-                    color: {
-                        var parts = Replay.verdictText.split("|")
-                        return parts[0] === "win" ? Theme.energeticGreen
-                             : parts[0] === "lose" ? Theme.alertRed
-                             : Theme.textPrimary
-                    }
-                    Accessible.name: text
+            }
+
+            // Race verdict at finish (locale ids from the web).
+            Label {
+                Layout.fillWidth: true
+                visible: Replay.hasGhost && Replay.verdictText.length > 0
+                text: {
+                    var parts = hud.verdictParts
+                    if (parts[0] === "win")
+                        return Tr.t("replay.raceVerdictWinSession",
+                            { seconds: parts[1], m: parts[2],
+                              date: "", distance: "" })
+                    if (parts[0] === "lose")
+                        return Tr.t("replay.raceVerdictLoseSession",
+                            { seconds: parts[1], m: parts[2],
+                              date: "", distance: "" })
+                    return Tr.t("replay.raceFinished")
                 }
-                Button { text: Tr.t("replay.back"); onClicked: Library.closeReplay(); Accessible.name: text }
+                font: Theme.bodyEmphasized
+                color: hud.verdictParts[0] === "win" ? Theme.energeticGreen
+                     : hud.verdictParts[0] === "lose" ? Theme.alertRed
+                     : Theme.textPrimary
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                Accessible.name: text
             }
         }
     }
 
-    // Error / loading overlay (when no workout is loaded).
-    Label {
-        anchors.left: parent.left
-        anchors.bottom: transportBar.visible ? transportBar.top : parent.bottom
-        anchors.margins: Theme.spacingXxLarge
-        visible: Replay.loadState !== "ready" && !Replay.hasWorkout
-        text: Replay.loadState === "error"
-              ? Tr.t("replay.view3dError")
-                + (Replay.errorText.length > 0 ? " — " + Replay.errorText : "")
-              : Tr.t("replay.view3dLoading")
-        font: Theme.body
-        color: Replay.loadState === "error" ? Theme.alertRed : Theme.textSecondary
-        Accessible.name: text
-    }
-    Button {
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: Theme.spacingXxLarge
+    // Error / loading overlay (when no workout is loaded): the message and
+    // the way back, on the same translucent material as the HUD.
+    Rectangle {
         visible: !Replay.hasWorkout
-        text: Tr.t("replay.back"); onClicked: Library.closeReplay()
-        Accessible.name: text
+        anchors.centerIn: parent
+        width: Math.min(420, parent.width - 2 * Theme.spacingXLarge)
+        height: overlayColumn.implicitHeight + 2 * Theme.spacingXLarge
+        radius: Theme.radiusLarge
+        color: Theme.overlayBackground
+        border.width: 1
+        border.color: Theme.separator
+
+        ColumnLayout {
+            id: overlayColumn
+            anchors.fill: parent
+            anchors.margins: Theme.spacingXLarge
+            spacing: Theme.spacingLarge
+
+            Label {
+                Layout.fillWidth: true
+                visible: Replay.loadState !== "ready"
+                text: Replay.loadState === "error"
+                      ? Tr.t("replay.view3dError")
+                        + (Replay.errorText.length > 0 ? " — " + Replay.errorText : "")
+                      : Tr.t("replay.view3dLoading")
+                font: Theme.body
+                color: Replay.loadState === "error" ? Theme.alertRed : Theme.textSecondary
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                Accessible.name: text
+            }
+            PushButton {
+                Layout.alignment: Qt.AlignHCenter
+                text: Tr.t("replay.back")
+                iconName: "chevron.left"
+                onClicked: Library.closeReplay()
+            }
+        }
     }
 
     // ---- Keyboard shortcuts (web replay transport keys) ----
