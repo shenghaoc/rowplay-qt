@@ -231,16 +231,34 @@ Pane {
                     footer: Tr.t("settings.syncNote")
 
                     FormRow {
-                        PushButton {
-                            text: Tr.t("settings.syncIncremental")
-                            enabled: Sync.canSync
-                            onClicked: Sync.start()
-                        }
+                        id: syncRow
 
-                        PushButton {
-                            text: Tr.t("settings.syncFull")
-                            enabled: Sync.canSync
-                            onClicked: Sync.startFull()
+                        // The two buttons stand side by side while the row
+                        // has room for both, and one under the other when
+                        // it has not (large text in a narrow window). A
+                        // grid, not a Flow: like the row's own layout it
+                        // puts them on whole pixels. FormRow insets its
+                        // controls by spacingLarge on each side.
+                        GridLayout {
+                            columns: incremental.implicitWidth + columnSpacing
+                                     + full.implicitWidth
+                                     <= syncRow.width - 2 * Theme.spacingLarge ? 2 : 1
+                            columnSpacing: Theme.spacingMedium
+                            rowSpacing: Theme.spacingMedium
+
+                            PushButton {
+                                id: incremental
+                                text: Tr.t("settings.syncIncremental")
+                                enabled: Sync.canSync
+                                onClicked: Sync.start()
+                            }
+
+                            PushButton {
+                                id: full
+                                text: Tr.t("settings.syncFull")
+                                enabled: Sync.canSync
+                                onClicked: Sync.startFull()
+                            }
                         }
                     }
 
