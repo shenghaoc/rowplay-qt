@@ -231,6 +231,16 @@ that delivers it.
     close the page.
   - [x] T5.5 Driven under Xvfb: a click on the reduce-motion row's label
     turned the switch on and back off, changing only the switch region.
+  - [x] T5.6 Large text in a narrow window, driven at 150 % text in the
+    1000 px minimum window (Spanish): the sync buttons stack onto a second
+    line (a two-column `GridLayout` that drops to one column; a `Flow` put
+    the second button off the pixel grid), and the rows too narrow for
+    their label beside their controls stack them under it (`FormRow`,
+    2/7). The quality control's segments fit under its label there; it
+    may shrink into its compact pop-up form (2/7) where even they would
+    not. A click on a switch itself turns it on and off once per click,
+    like a click on its row.
+  - [x] T5.7 Validation (R9): see the PR.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.
