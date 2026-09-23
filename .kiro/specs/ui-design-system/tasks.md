@@ -166,7 +166,30 @@ that delivers it.
       out or scrolled away; it rings itself then (checked on a plain
       ListView in a scratch Qt Quick Test);
     - the menu titles are Qt's "Preferences…", not "Settings…" (#80).
-- [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
+- [x] T4 (4/7 `ui/04-dashboard-detail`) R5.
+  - [x] T4.1 Dashboard:
+    - tiles and PB cards as tonal cards in balanced grids
+      (`Theme.balancedColumns`);
+    - the PB value on `Theme.cardMetric`, a scaled token for the inline
+      font that 1/7 gave its tabular figures;
+    - both charts on `ChartTheme`, with about four nice ticks on the bars;
+    - the `AppScrollBar`.
+  - [x] T4.2 Detail:
+    - Replay as the one prominent button (a label, no icon);
+    - the metric grid in a card with sentence-case labels;
+    - the stroke charts in one card on `ChartTheme`, the title height
+      measured;
+    - the splits table in a card with right-aligned tabular numbers;
+    - rest rows in the secondary text colour instead of 55 % opacity
+      (below AA);
+    - the targets card.
+  - [x] T4.3 No `toUpperCase()` is left in `qml/` (R5.2). Nothing on these
+    screens relies on colour alone (R5.3):
+    - every metric colour sits under the label that names it;
+    - rest rows keep their "—";
+    - the PB capsule carries "PB".
+
+    The replay's race verdict is 6/7's.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
