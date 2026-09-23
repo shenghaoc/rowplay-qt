@@ -2,9 +2,12 @@
 // The application shell — a port of rowplay-studio's ContentView:
 // a split view (sidebar column min 260 / ideal 320, detail area), the sport
 // filter and reload toolbar, the dashboard/detail navigation state and the
-// "Ready When You Are" empty state. The sidebar and detail *screens* are
-// placeholders in Phase 4a and become the real ports in 4b; the window title
-// and 1000x680 minimum come from Studio's app scene.
+// "Ready When You Are" empty state; the window title and 1000x680 minimum
+// come from Studio's app scene.
+//
+// Layout follows the macOS 11+ window (Apple HIG Sidebars / Toolbars, ADR
+// 0013): the sidebar runs the full window height, the unified toolbar sits
+// over the content column only, and a hairline divides the two.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -37,20 +40,28 @@ ApplicationWindow {
     Component.onCompleted: {
         Qt.uiLanguage = Settings.languageCode
         // The demo library starts with its default workout selected (Studio's
-        // SceneStorage initial value); route to the detail screen if so.
+        // SceneStorage initial value); route to the detail screen if so. The
+        // Library made that selection while it was constructed, before the
+        // selectionChanged wiring below existed, so hand it to Detail here —
+        // otherwise the first launch showed an empty detail pane.
+        Detail.selectWorkout(Library.selectedWorkoutId)
         screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
     }
 
     // Fusion, coloured from Theme.qml (DESIGN.md: flat, tonal, no shadows).
+    // The shell's own controls draw their HIG bezels themselves; the palette
+    // colours what stays stock Fusion (menus, pop-up lists, tooltips,
+    // scroll bars, the progress bar and the busy indicator).
     palette.window: Theme.windowBackground
     palette.windowText: Theme.textPrimary
-    palette.base: Theme.windowBackground
+    palette.base: Theme.controlBackground
     palette.alternateBase: Theme.panelBackground
     palette.text: Theme.textPrimary
-    palette.button: Theme.windowBackground
+    palette.button: Theme.controlBackground
     palette.buttonText: Theme.textPrimary
     palette.highlight: Theme.accentColor
     palette.highlightedText: "#ffffff"
+    palette.placeholderText: Theme.textTertiary
     palette.toolTipBase: Theme.overlayBackground
     palette.toolTipText: Theme.textPrimary
     font.pixelSize: 13
@@ -76,70 +87,128 @@ ApplicationWindow {
         id: shellRoot
         anchors.fill: parent
 
-        ColumnLayout {
+        SplitView {
+            id: splitView
             anchors.fill: parent
-            spacing: 0
 
-            ToolBar {
-                Layout.fillWidth: true
-                padding: Theme.spacingMedium
-
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: Theme.spacingLarge
-
-                    // Studio: segmented sport picker, 280 wide ("All" + sports).
-                    ComboBox {
-                        id: sportFilter
-                        Layout.preferredWidth: 280
-                        model: [Tr.t("dashboard.all")].concat(Library.sportNames)
-                        onActivated: function(index) {
-                            Library.setSportFilter(index)
-                        }
-                        Accessible.name: Tr.t("workoutList.filtersTitle")
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Button {
-                        text: Tr.t("pwa.reload")
-                        enabled: !Sync.isRunning
-                        onClicked: Library.reload()
-                        Accessible.name: Tr.t("pwa.reload")
-
-                        Shortcut {
-                            sequences: ["Ctrl+R", "Meta+R"]
-                            onActivated: Library.reload()
-                        }
-                    }
-
-                    Button {
-                        text: Tr.t("nav.settings")
-                        checkable: true
-                        checked: root.screenIndex === 2
-                        onClicked: root.toggleSettings()
-                        Accessible.name: Tr.t("nav.settings")
-                    }
+            // A hairline divider (HIG Sidebars) with a wider invisible drag
+            // area: the containment mask is the documented SplitView way to
+            // enlarge a handle's hit region without changing its look.
+            handle: Rectangle {
+                id: splitHandle
+                implicitWidth: 1
+                implicitHeight: 1
+                color: Theme.separator
+                containmentMask: Item {
+                    x: (splitHandle.width - width) / 2
+                    width: 9
+                    height: splitHandle.height
                 }
             }
 
-            SplitView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+            // Sidebar column (Studio: min 260, ideal 320), full height.
+            SidebarPanel {
+                id: sidebarColumn
+                SplitView.preferredWidth: 320
+                SplitView.minimumWidth: 260
+                SplitView.maximumWidth: 480
+            }
 
-                // Sidebar column (Studio: min 260, ideal 320).
-                SidebarPanel {
-                    id: sidebarColumn
-                    SplitView.preferredWidth: 320
-                    SplitView.minimumWidth: 260
-                    SplitView.maximumWidth: 480
+            // Content column: the unified toolbar over the routed screens.
+            ColumnLayout {
+                SplitView.fillWidth: true
+                spacing: 0
+
+                Rectangle {
+                    id: toolbar
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.toolbarHeight
+                    color: Theme.toolbarBackground
+
+                    readonly property bool replayShown: root.screenIndex === 3
+
+                    // Leading: navigation back out of the replay route plus
+                    // the workout title, only while the route is shown.
+                    RowLayout {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(0, (toolbar.width - sportFilter.width) / 2
+                                           - Theme.spacingLarge - Theme.spacingMedium)
+                        spacing: Theme.spacingSmall
+                        visible: toolbar.replayShown
+
+                        ToolbarButton {
+                            iconName: "chevron.left"
+                            label: Tr.t("replay.back")
+                            onClicked: Library.closeReplay()
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: Detail.workoutType
+                            font: Theme.bodyEmphasized
+                            color: Theme.textPrimary
+                            elide: Text.ElideRight
+                            Accessible.name: text
+                        }
+                    }
+
+                    // Principal: the sport filter (Studio's segmented
+                    // picker), bound to the Library so a filter set from
+                    // anywhere — including the gate walk — shows here.
+                    SegmentedControl {
+                        id: sportFilter
+                        anchors.centerIn: parent
+                        model: [Tr.t("dashboard.all")].concat(Library.sportNames)
+                        currentIndex: Library.sportFilterIndex
+                        label: Tr.t("workoutList.filtersTitle")
+                        onActivated: function(index) {
+                            Library.setSportFilter(index)
+                        }
+                    }
+
+                    // Trailing: reload and the settings toggle.
+                    RowLayout {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingXSmall
+
+                        ToolbarButton {
+                            iconName: "arrow.clockwise"
+                            label: Tr.t("pwa.reload")
+                            enabled: !Sync.isRunning
+                            onClicked: Library.reload()
+
+                            Shortcut {
+                                sequences: ["Ctrl+R", "Meta+R"]
+                                onActivated: Library.reload()
+                            }
+                        }
+
+                        ToolbarButton {
+                            iconName: "sliders"
+                            label: Tr.t("settings.title")
+                            checkable: true
+                            checked: root.screenIndex === 2
+                            onClicked: root.toggleSettings()
+                        }
+                    }
+                }
+
+                // The toolbar's bottom hairline.
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Theme.separator
                 }
 
                 // Detail column: dashboard | workout detail | settings |
                 // replay route (Phase 5 renders the route itself).
                 StackLayout {
                     id: detailColumn
-                    SplitView.fillWidth: true
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     currentIndex: root.screenIndex
 
                     DashboardScreen {}
@@ -214,18 +283,17 @@ ApplicationWindow {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: Theme.spacingMedium
 
-                    Button {
+                    // The view's one prominent action (HIG Buttons).
+                    PushButton {
                         Layout.alignment: Qt.AlignHCenter
                         text: Tr.t("landing.exploreDemo")
-                        highlighted: true
+                        prominent: true
                         onClicked: Settings.setDemoModeEnabled(true)
-                        Accessible.name: text
                     }
-                    Button {
+                    PushButton {
                         Layout.alignment: Qt.AlignHCenter
                         text: Tr.t("landing.connect")
                         onClicked: root.showSettings()
-                        Accessible.name: text
                     }
                 }
             }
@@ -304,10 +372,20 @@ ApplicationWindow {
         onTriggered: Live.tick()
     }
 
-    // Keyboard navigation (Studio: Cmd+1 dashboard, Escape clears selection).
+    // Keyboard navigation (Studio: Cmd+1 dashboard, Escape clears selection;
+    // HIG Keyboard: Cmd+, opens settings, Cmd+F finds). On macOS Qt maps
+    // "Ctrl" to Command, hence both spellings.
     Shortcut {
         sequences: ["Ctrl+1", "Meta+1"]
         onActivated: root.showDashboard()
+    }
+    Shortcut {
+        sequences: ["Ctrl+,", "Meta+,"]
+        onActivated: root.showSettings()
+    }
+    Shortcut {
+        sequences: ["Ctrl+F", "Meta+F"]
+        onActivated: sidebarColumn.focusSearch()
     }
     Shortcut {
         sequence: "Escape"
