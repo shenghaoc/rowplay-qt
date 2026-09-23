@@ -5,8 +5,10 @@
 // All views reference these tokens instead of hardcoding colors, spacing or
 // typography, exactly like Studio. Divergences (docs/source-map.md):
 // - the system font replaces SF Pro / SF Pro Rounded (cross-platform); the
-//   DESIGN.md size and weight scale is kept, and Font.TabularNumbers replaces
-//   .monospacedDigit();
+//   DESIGN.md size and weight scale is kept, and the OpenType `tnum` feature
+//   (`features: { "tnum": 1 }`) replaces .monospacedDigit() — Qt 6.11 has no
+//   Font.TabularNumbers enum, and a font object silently drops the undefined
+//   value;
 // - macOS materials (.regularMaterial) become tonal opacity surfaces: Qt has
 //   no system material on Linux/Windows, and DESIGN.md's flat-by-default rule
 //   means opacity layers carry the depth.
@@ -184,11 +186,11 @@ QtObject {
     readonly property font sectionHeadline: ({ pixelSize: 15, weight: Font.DemiBold })
     /// Metric value — data values in badges and cards (callout semibold, 13px).
     readonly property font metricValue: ({ pixelSize: 13, weight: Font.DemiBold,
-                                           features: Font.TabularNumbers })
+                                           features: { "tnum": 1 } })
     /// Strip metric — inline values in detail/replay strips (18px semibold mono).
     readonly property font stripMetric: ({ pixelSize: 18, weight: Font.DemiBold,
                                            family: "monospace",
-                                           features: Font.TabularNumbers })
+                                           features: { "tnum": 1 } })
     /// Metric label — labels beneath values (caption2 medium, 11px).
     readonly property font metricLabel: ({ pixelSize: 11, weight: Font.Medium })
     /// Compact label — dense UI labels (10px medium).
