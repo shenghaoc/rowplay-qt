@@ -6,7 +6,8 @@
 //
 // A chart whose values are not plain numbers — the negated pace axis — passes
 // Rust-formatted ticks (`axisValues` / `axisLabels`) exactly like the
-// dashboard's pace chart, so it never prints the raw negated seconds.
+// dashboard's pace chart, so it never prints the raw negated seconds. Styled
+// by the shared ChartTheme; label sizes follow the system-font scale.
 import QtQuick
 import QtQuick.Controls
 import QtQml.Models
@@ -45,7 +46,7 @@ Rectangle {
 
     FontMetrics {
         id: tickMetrics
-        font.pixelSize: 9
+        font: Theme.chartLabel
     }
 
     // No axis line or tick marks under wide Rust labels; other axes keep
@@ -76,6 +77,8 @@ Rectangle {
         spacing: Theme.spacingXxSmall
 
         Label {
+            id: title
+            visible: chart.titleText.length > 0
             text: chart.titleText
             font: Theme.metricLabel
             color: Theme.textSecondary
@@ -85,19 +88,9 @@ Rectangle {
         GraphsView {
             id: view
             width: parent.width
-            height: chart.titleText.length > 0 ? parent.height - 18
-                                               : parent.height
+            height: parent.height - (title.visible ? title.height + parent.spacing : 0)
             marginLeft: Math.max(chart.labelOverflow, chart.minimumLabelOverflow)
-
-            theme: GraphsTheme {
-                colorScheme: Theme.dark ? GraphsTheme.ColorScheme.Dark
-                                        : GraphsTheme.ColorScheme.Light
-                backgroundVisible: false
-                plotAreaBackgroundVisible: false
-                gridVisible: true
-                labelTextColor: Theme.textTertiary
-                labelFont.pixelSize: 9
-            }
+            theme: ChartTheme {}
 
             axisX: ValueAxis {
                 min: 0
@@ -112,6 +105,7 @@ Rectangle {
                 max: chart.yMax
                 subTickCount: 0
                 labelDecimals: 0
+                lineVisible: false
                 // About four ticks: the automatic interval packed eight to
                 // ten overlapping labels into the short plot. Rust-labelled
                 // axes put one tick on each exported value instead.
@@ -134,8 +128,8 @@ Rectangle {
                               ? ChartUtils.nearestLabel(chart.axisValues,
                                                         chart.axisLabels, parent.text)
                               : parent.text
-                        font.pixelSize: 9
-                        color: Theme.textTertiary
+                        font: Theme.chartLabel
+                        color: Theme.textSecondary
                     }
                 }
             }
