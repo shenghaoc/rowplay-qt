@@ -324,6 +324,20 @@ QtObject {
     readonly property int iconSize: px(16)
     readonly property int hairline: 1
 
+    /// Columns for a grid of `count` equal-width cells at least `minWidth`
+    /// wide: as many as fit, then spread over the rows so they stay balanced
+    /// (four tiles make one row of four or two rows of two, never 3 + 1).
+    /// Layout arithmetic only.
+    function balancedColumns(count, width, minWidth, gap) {
+        if (!(count > 0)) {
+            return 1
+        }
+        var fit = Math.floor((width + gap) / (minWidth + gap))
+        fit = Math.min(count, Math.max(2, fit))
+        var rows = Math.ceil(count / fit)
+        return Math.ceil(count / rows)
+    }
+
     // MARK: - Chart sizing
 
     readonly property int chartHeight: px(220)        // dashboard-level charts
@@ -350,6 +364,9 @@ QtObject {
     /// Metric value — data values in badges and cards (13 px semibold).
     readonly property font metricValue: ({ pixelSize: fontPx(13), weight: Font.DemiBold,
                                            features: { "tnum": 1 } })
+    /// Card metric — the value on a personal-best card (16 px semibold).
+    readonly property font cardMetric: ({ pixelSize: fontPx(16), weight: Font.DemiBold,
+                                          features: { "tnum": 1 } })
     /// Strip metric — inline values in detail/replay strips (20 px semibold).
     readonly property font stripMetric: ({ pixelSize: fontPx(20), weight: Font.DemiBold,
                                            features: { "tnum": 1 } })
