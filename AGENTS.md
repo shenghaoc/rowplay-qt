@@ -285,6 +285,14 @@ Concept2 token. Cache failures never silently fall back to demo data.
   scaled from the system font, the system accent and contrast preference);
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
+- Screens use the shared controls in `qml/RowPlay/`: `PushButton`,
+  `ToolbarButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
+  `PopupButton`, `FormSection` / `FormRow`, `AppSlider`, and the `App*`
+  menus, tool tips, dialogs, scroll bars and indicators. Never a raw
+  `Button`, `ComboBox`, `Switch`, `TextField`, `Slider`, `Menu`, `ToolTip`
+  or `Dialog`. New symbols are original path data in `Icon.qml`, never
+  image files. Text is in sentence case (no `toUpperCase()`), nothing is
+  conveyed by colour alone, and nothing is reachable only by hover.
 
 ## Internationalisation
 
@@ -406,6 +414,36 @@ Each rule exists because the failure happened.
   count before concluding a pane is empty (2026-09-20: the first-launch
   main pane, actually the styled "No stroke data" empty state, was recorded
   as blank and the claim had to be corrected in the spec).
+- A capture's colours are only as honest as its alpha. A gate grab stores
+  pixels that nothing opaque covers as translucent, the PPM beside it keeps
+  their bare colour, and `PIL.Image.convert("RGB")` drops alpha without
+  compositing — so a 10 % grey hairline read back as pure black
+  (2026-09-23, the unmerged HIG pass; an `xwd` capture of the screen
+  showed the grey, and painting the grab root cured it; see #61). Check
+  that a capture's alpha is 255 everywhere before reading its colours, and
+  when a colour looks wrong, capture the screen as well before blaming the
+  code.
+- Compare a measurement with its threshold **unrounded**. WCAG does not
+  round: 4.496:1 fails 4.5:1. The design system's contrast table printed
+  two decimals, so the PM5 duration colour on the light grouped surface
+  read "4.50" and stood in four stacked PRs before a four-decimal read
+  caught it (2026-09-23; the surface moved one step, to `#F4F5F7`). Two of
+  the table's passing figures had been rounded up as well. Assert on the
+  raw value, and state measured figures truncated, never rounded up.
+- A fix aimed at one configuration is checked in all the others. The
+  narrow-window fixes of the design-system stack were driven at 150 % text
+  in the minimum window and passed every test, yet they changed the
+  default size three times (2026-09-23): the settings quality control grew
+  16 px, because a `FontMetrics` measure had never depended on its font
+  and a new `Layout` binding read it early; a sync button moved a pixel
+  off the grid, placed by a `Flow`; and the new splits table clipped its
+  last column, because Qt Quick Layouts round fractional widths up. The
+  first two surfaced only in a pixel diff of the default-size captures
+  against the heads before the fixes, the third only once that view was
+  captured at all. After fixing one size, scheme or language, capture the
+  others, diff them against the head before the fix, and look at every
+  difference, explained ones included: beyond the known run-to-run glyph
+  noise, each is a finding until checked.
 - `pkill -f <pattern>` matches your own shell's command line, because the
   pattern appears in it — twice this killed the driving script mid-run
   (same family as `git add -A`: a command whose scope is wider than the
