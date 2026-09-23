@@ -773,6 +773,9 @@ stack of seven PRs, each green on its own:
    accent with a brand-blue fallback, a high-contrast variant); the shared
    controls and themed popups. Screens keep their stock controls,
    coloured by the palette, until their own PR.
+   - Delivered in #69 and validated there: the full suite under CI's Linux
+     recipe, the controls rendered light, dark and high contrast at 100 %,
+     125 % and 150 % text, and the app's captures before and after.
 3. `ui/03-shell`: sidebar, toolbar, the platform layer (shortcuts, menus,
    sidebar toggle) and the empty state.
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
