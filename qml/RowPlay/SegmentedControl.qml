@@ -32,8 +32,12 @@ Control {
     readonly property int count: model ? model.length : 0
     readonly property bool compact: width > 0 && width < implicitWidth - 0.5
     readonly property real segmentWidth: count > 0 ? availableWidth / count : 0
-    // Equal segments sized for the widest title in the selected weight.
+    // Equal segments sized for the widest title in the selected weight. The
+    // binding reads the metrics' font itself: advanceWidth() registers no
+    // dependency, and the width must follow a font that lands after this
+    // binding first ran or changes with the system font.
     readonly property real widestTitle: {
+        void metrics.font
         var widest = 0
         for (var i = 0; i < count; ++i) {
             widest = Math.max(widest, metrics.advanceWidth(String(model[i])))

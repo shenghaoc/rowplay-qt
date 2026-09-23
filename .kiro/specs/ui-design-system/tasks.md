@@ -53,6 +53,12 @@ that delivers it.
     `SegmentedControl` capped below its implicit width becomes a pop-up
     button with the same choices, and a `FormRow` too narrow for its label
     beside its controls stacks them under the label.
+  - [x] T2.8 Text measured in a binding follows its font.
+    `FontMetrics.advanceWidth()` registers no dependency, so
+    `SegmentedControl.widestTitle` and `ChartUtils.yLabelOverflow` read the
+    metrics' font themselves. Without that, a measure taken before the font
+    landed stayed (5/7's quality control drew 308 px wide instead of 292),
+    and so did one taken before a live change of the system font.
 - [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
   (R3), the platform layer (R4.1–R4.4), the empty state.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
