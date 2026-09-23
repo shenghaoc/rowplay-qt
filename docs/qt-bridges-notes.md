@@ -917,3 +917,44 @@ so how those earlier close-ups were framed is an open question
     and Windows rows come from the sources only (tracked in #66).
     `ROWPLAY_FORCE_CONTRAST=high` exercises the high-contrast variant on any
     platform.
+- **`QKeySequence.StandardKey` per platform** (UI design system, shortcuts;
+  qtbase `v6.11.2` `qplatformtheme.cpp` key-binding table). Priority rows
+  come first, and the first entry is what `QKeySequence(StandardKey)` and a
+  singular `Shortcut.sequence` use.
+
+  | Key | Generic Unix (X11 scheme) | macOS (Ctrl = Command) | Windows |
+  | --- | --- | --- | --- |
+  | Preferences | none (KDE: Ctrl+Shift+,) | Cmd+, | none |
+  | Quit | Ctrl+Q | Cmd+Q | none |
+  | Close | Ctrl+W | Cmd+W, Cmd+F4 | Ctrl+F4, Ctrl+W |
+  | Find | Ctrl+F | Cmd+F | Ctrl+F |
+  | Refresh | F5 (GNOME: Ctrl+R first) | Cmd+R | F5 |
+  | Back | Alt+Left | Cmd+[, Cmd+Left | Alt+Left, Backspace |
+
+  The dedicated keys (Settings, Exit, Close, Find, Refresh, Back) are left
+  out of the table. The `offscreen` platform sets no keyboard scheme and
+  falls back to the Windows column: a probe read Close as Ctrl+F4 and Quit
+  as none there, against Ctrl+W and Ctrl+Q under `xcb`.
+- **Bind `StandardKey.Back` to its primary chord only.**
+  `QQuickTextInput::event` accepts `ShortcutOverride` for Backspace and a
+  list of editing sequences, but not for `MoveToStartOfLine`. On macOS that
+  is Cmd+Left, the second `Back` chord, so a window shortcut with
+  `sequences: [StandardKey.Back]` would take "move to line start" away from
+  every text field. `sequence: StandardKey.Back` binds only the primary
+  chord (Alt+Left; Cmd+[ on macOS). It logs "Only binding to one of
+  multiple key bindings associated with 13" once at load, which is
+  expected.
+- **`Qt.labs.platform`'s `MenuBar` is native on macOS only.** Elsewhere,
+  without `QApplication`, it prints "ERROR: No native Menu implementation
+  available. Qt Labs Platform requires Qt Widgets on this setup." (probed
+  under `xcb`). The shell therefore creates it through an `Instantiator`
+  that is active only on macOS.
+  - **Role items.** On macOS, items with a role (About, Preferences, Quit)
+    move into the application menu. Their titles come from Qt's own
+    `MAC_APPLICATION_MENU` strings ("About %1", "Preferences...", "Quit %1",
+    `qcocoamenuitem.mm`) through `QCoreApplication::translate`. The app
+    loads only its own `qml_<lang>.qm` (note 12), so those titles stay in
+    English until Qt's catalogues are shipped.
+  - **Empty menus.** A menu left with no visible items after the move is
+    hidden (`qcocoamenubar.mm`).
+  - **Not verified on a Mac** (tracked in #66).

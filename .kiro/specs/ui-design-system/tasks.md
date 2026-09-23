@@ -84,8 +84,50 @@ that delivers it.
     - parts centred inside a control could sit on half pixels.
 
     `AppScrollBar.maximumThickness` serves 4/7's splits table.
-- [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
-  (R3), the platform layer (R4.1–R4.4), the empty state.
+- [x] T3 (3/7 `ui/03-shell`) The shell and the platform layer.
+  - [x] T3.1 Full-height sidebar beside a content column. The toolbar holds
+    the segmented sport filter and the icon-only reload and settings
+    buttons, and the split handle is a hairline with a 9 px drag area.
+    Sidebar rows (R3):
+    - InputFields for search and dates;
+    - the sort menu as an AppMenu with a checkmark and a direction arrow;
+    - day headers in sentence case;
+    - sport glyphs;
+    - the PB capsule in solid orange with `Theme.textOn` text (the 15 %
+      wash measured 4.16:1);
+    - the focused / unfocused selection.
+
+    The empty state now replaces only the content area.
+  - [x] T3.2 The platform layer (R4.1–R4.4):
+    - StandardKey Preferences (Ctrl+, where the platform has none), Quit,
+      Close, Find, Refresh and Back (primary chord only);
+    - the sidebar toggle (F9, or Ctrl+Cmd+S on macOS; off in the replay);
+    - the macOS menu bar with About / Settings… / Quit roles, created only
+      on macOS;
+    - the Windows / Linux menu button with the shell's commands and their
+      shortcut texts;
+    - the About dialog of existing strings.
+
+    Dialog order comes from `AppDialogButtonBox` (2/7), and title bars stay
+    native. The gate walks the menu, the toggle, About and the sort menu.
+  - [x] T3.3 Driven under Xvfb with xdotool:
+    - the menu opens with its shortcut hints;
+    - F9 hides and restores the sidebar at its width (mean difference
+      0.06);
+    - Ctrl+F rings the search field;
+    - Ctrl+, opens settings;
+    - Alt+Left walks back from settings to the workout, then to the
+      dashboard;
+    - Ctrl+Q exits 0.
+
+    The Tab walk runs search → sort → From → To → list (accent selection)
+    → sport filter → reload → settings → menu, each stop with its ring. It
+    found that a toolbar button's tooltip stayed over the popup its click
+    opened (fixed).
+  - [x] T3.4 `tools/package/linux.sh` deploys `Qt/labs/platform` and
+    `QtQuick/Shapes` into the AppImage, and its launch check rendered 30
+    frames and exited 0. macOS and Windows packaging was not run: the
+    release workflow does not trigger on these paths.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
