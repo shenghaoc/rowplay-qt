@@ -759,3 +759,24 @@ phenomenon (the 3D scene rebuilt from scratch on entry). Worth one
 look when the UI work starts. Tracked in #67 with the UI pass's own
 observation (more than 12 s from the Replay press to the first frame under
 Xvfb + llvmpipe); not diagnosed.
+
+## UI design system (ADR 0013)
+
+One visual design system of our own, the same on Linux, macOS and Windows,
+plus a thin platform-behaviour layer. It supersedes the unmerged Apple-HIG
+pass (#47). The spec is `.kiro/specs/ui-design-system/`, delivered as a
+stack of seven PRs, each green on its own:
+
+1. `ui/01-fixes`: the pre-existing defects above, one issue each.
+2. `ui/02-foundation`: the Basic style; the tokens (neutral ramps that pass
+   WCAG AA, every length and font a ratio of the system font, the system
+   accent with a brand-blue fallback, a high-contrast variant); the shared
+   controls and themed popups. Screens keep their stock controls,
+   coloured by the palette, until their own PR.
+3. `ui/03-shell`: sidebar, toolbar, the platform layer (shortcuts, menus,
+   sidebar toggle) and the empty state.
+4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
+5. `ui/05-settings`: the grouped settings page.
+6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
+   during the replay.
+7. `ui/07-docs`: the README screenshots and the final documentation pass.

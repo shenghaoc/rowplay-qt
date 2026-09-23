@@ -1,0 +1,53 @@
+# UI design system — tasks
+
+A stack of seven PRs (`design.md`, "Stack"). Each task is ticked in the PR
+that delivers it.
+
+- [x] T1 (1/7 `ui/01-fixes`) Pre-existing defects fixed one commit at a
+  time, each with its own issue (#48–#61). Recorded in `docs/roadmap.md`.
+- [x] T2 (2/7 `ui/02-foundation`) The Basic style and the tokens.
+  - [x] T2.1 `qtquickcontrols2.conf` selects Basic. `Main.qml` sets every
+    palette role from the tokens, mapped by Basic's use of each role (R2.3).
+    No `font.pixelSize` on the window: the system font is the base.
+  - [x] T2.2 `Theme.qml` (R1):
+    - the PM5 palette and metric colours unchanged;
+    - the neutral ramps and control-part tokens;
+    - `destructiveText` (the PM5 red measures 4.46:1 on the dark control
+      fill);
+    - the system-font scale (`basePx`, `scale`, `px`, `fontPx`) on every
+      length and font;
+    - the accent with the brand-blue fallback and `onAccent`;
+    - the high-contrast variant, with `ROWPLAY_FORCE_CONTRAST` →
+      `Settings.contrastOverride`;
+    - the reduce-motion flag for control motion.
+  - [x] T2.3 The shared controls rebuilt on Basic, plus the popups and
+    indicators Basic needs themed (R2.1, R2.2), registered in `qmldir` and
+    the qrc. The glyph set gains `line.3.horizontal` and `ellipsis`. No
+    screen uses them yet.
+  - [x] T2.4 Rendered in the scratch gallery (`design.md`, "Verification
+    harness"):
+    - light, dark, and high contrast in both schemes;
+    - focus forced on each control;
+    - the menu, pop-up list, tooltip and dialog open;
+    - 125 % and 150 % text (base 15 and 18 px) with nothing clipped.
+
+    The gallery found two defects, both fixed:
+    - `FormRow.toggleTarget` rejected a `ToggleSwitch` under Basic, so it is
+      now typed `T.AbstractButton`;
+    - Basic's `DialogButtonBox` stretched the buttons and painted the window
+      colour, so `AppDialogButtonBox` replaces it.
+
+    The contrast table comes from the QML runtime on the real tokens
+    (`docs/source-map.md`).
+  - [x] T2.5 ADR 0013, this spec, `docs/source-map.md` (the Theme row, the
+    surface and text divergence), `docs/qt-bridges-notes.md` (accent,
+    contrast, font scale and Basic findings), `docs/roadmap.md`, and the
+    AGENTS.md coding-style line (Basic, not Fusion).
+  - [x] T2.6 Validation (R9): see the PR.
+- [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
+  (R3), the platform layer (R4.1–R4.4), the empty state.
+- [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
+- [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
+- [ ] T6 (6/7 `ui/06-replay`) R7.
+- [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
+  screenshots; #47 superseded, with links to the stack.
