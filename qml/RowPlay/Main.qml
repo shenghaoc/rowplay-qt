@@ -2,9 +2,13 @@
 // The application shell — a port of rowplay-studio's ContentView:
 // a split view (sidebar column min 260 / ideal 320, detail area), the sport
 // filter and reload toolbar, the dashboard/detail navigation state and the
-// "Ready When You Are" empty state. The sidebar and detail *screens* are
-// placeholders in Phase 4a and become the real ports in 4b; the window title
-// and 1000x680 minimum come from Studio's app scene.
+// "Ready When You Are" empty state. The window title and 1000x680 minimum
+// come from Studio's app scene.
+//
+// Design system (ADR 0013): the sidebar runs the full window height; the
+// toolbar sits over the content column with icon-only buttons and the sport
+// filter as a segmented control; the empty state replaces only the content
+// area.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -21,7 +25,8 @@ ApplicationWindow {
     minimumHeight: 680
     title: "rowplay"
 
-    // Detail column routing: 0 = dashboard, 1 = workout detail, 2 = settings.
+    // Detail column routing: 0 = dashboard, 1 = workout detail, 2 = settings,
+    // 3 = the replay route.
     property int screenIndex: 0
     // The runtime-error gate walks every screen and exercises the language
     // switch (driven from Rust by ROWPLAY_SMOKE_GATE=1).
@@ -93,164 +98,207 @@ ApplicationWindow {
     // gate screenshots need a grabbable root. The toolbar is therefore part
     // of the content, not the window `header`. It is painted in the window
     // colour because an item grab has no window background under it: on an
-    // unpainted root, translucent pixels (the replay transport's 92 %
-    // background) were stored translucent — alpha in the PNG, the bare colour
-    // in the PPM the tests read — instead of what the screen shows.
+    // unpainted root, translucent pixels were stored translucent — alpha in
+    // the PNG, the bare colour in the PPM the tests read — instead of what
+    // the screen shows.
     Rectangle {
         id: shellRoot
         anchors.fill: parent
         color: Theme.windowBackground
 
-        ColumnLayout {
+        SplitView {
+            id: splitView
             anchors.fill: parent
-            spacing: 0
 
-            ToolBar {
-                Layout.fillWidth: true
-                padding: Theme.spacingMedium
+            // A hairline divider with a wider invisible drag area: the
+            // containment mask enlarges a handle's hit region without
+            // changing its look.
+            handle: Rectangle {
+                id: splitHandle
+                implicitWidth: Theme.hairline
+                implicitHeight: Theme.hairline
+                color: Theme.separator
+                containmentMask: Item {
+                    x: (splitHandle.width - width) / 2
+                    width: Theme.px(9)
+                    height: splitHandle.height
+                }
+            }
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: Theme.spacingLarge
+            // Sidebar column (Studio: min 260, ideal 320), full height.
+            SidebarPanel {
+                id: sidebarColumn
+                SplitView.preferredWidth: Theme.px(320)
+                SplitView.minimumWidth: Theme.px(260)
+                SplitView.maximumWidth: Theme.px(480)
+            }
 
-                    // Studio: segmented sport picker, 280 wide ("All" + sports).
-                    ComboBox {
+            // Content column: the toolbar over the routed screens.
+            ColumnLayout {
+                SplitView.fillWidth: true
+                spacing: 0
+
+                Rectangle {
+                    id: toolbar
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.toolbarHeight
+                    color: Theme.toolbarBackground
+
+                    // Principal: the sport filter (Studio's segmented picker),
+                    // bound to the Library so a filter set from anywhere —
+                    // including the gate walk — shows here.
+                    SegmentedControl {
                         id: sportFilter
-                        Layout.preferredWidth: 280
+                        anchors.centerIn: parent
                         model: [Tr.t("dashboard.all")].concat(Library.sportNames)
+                        currentIndex: Library.sportFilterIndex
+                        label: Tr.t("workoutList.filtersTitle")
                         onActivated: function(index) {
                             Library.setSportFilter(index)
                         }
-                        Accessible.name: Tr.t("workoutList.filtersTitle")
                     }
 
-                    Item { Layout.fillWidth: true }
+                    // Trailing: reload and the settings toggle.
+                    RowLayout {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingXSmall
 
-                    Button {
-                        text: Tr.t("pwa.reload")
-                        enabled: !Sync.isRunning
-                        onClicked: Library.reload()
-                        Accessible.name: Tr.t("pwa.reload")
+                        ToolbarButton {
+                            iconName: "arrow.clockwise"
+                            label: Tr.t("pwa.reload")
+                            enabled: !Sync.isRunning
+                            onClicked: Library.reload()
 
-                        Shortcut {
-                            sequences: ["Ctrl+R", "Meta+R"]
-                            onActivated: Library.reload()
-                        }
-                    }
-
-                    Button {
-                        text: Tr.t("nav.settings")
-                        checkable: true
-                        checked: root.screenIndex === 2
-                        onClicked: root.toggleSettings()
-                        Accessible.name: Tr.t("nav.settings")
-                    }
-                }
-            }
-
-            SplitView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                // Sidebar column (Studio: min 260, ideal 320).
-                SidebarPanel {
-                    id: sidebarColumn
-                    SplitView.preferredWidth: 320
-                    SplitView.minimumWidth: 260
-                    SplitView.maximumWidth: 480
-                }
-
-                // Detail column: dashboard | workout detail | settings |
-                // replay route (Phase 5 renders the route itself).
-                StackLayout {
-                    id: detailColumn
-                    SplitView.fillWidth: true
-                    currentIndex: root.screenIndex
-
-                    DashboardScreen {}
-
-                    DetailScreen {}
-
-                    SettingsScreen {
-                        onClosed: root.toggleSettings()
-                    }
-
-                    // Replay route (Phase 5b): the 3D scene with the chase
-                    // camera, athlete posing and transport controls.
-                    ReplayScene {
-                        Component.onCompleted: {
-                            Replay.setSchemeDark(Theme.dark)
-                            Replay.setReduceMotion(Settings.reduceReplayMotion)
-                            Replay.setQualityIndex(Settings.qualityIndex)
-                        }
-                        Connections {
-                            target: Theme
-                            function onDarkChanged() {
-                                Replay.setSchemeDark(Theme.dark)
+                            Shortcut {
+                                sequences: ["Ctrl+R", "Meta+R"]
+                                onActivated: Library.reload()
                             }
                         }
-                        Connections {
-                            target: Settings
-                            function onSettingsChanged() {
+
+                        ToolbarButton {
+                            iconName: "sliders"
+                            label: Tr.t("settings.title")
+                            checkable: true
+                            checked: root.screenIndex === 2
+                            onClicked: root.toggleSettings()
+                        }
+                    }
+                }
+
+                // The toolbar's bottom hairline.
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.hairline
+                    color: Theme.separator
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    // Detail column: dashboard | workout detail | settings |
+                    // replay route (Phase 5 renders the route itself).
+                    StackLayout {
+                        id: detailColumn
+                        anchors.fill: parent
+                        currentIndex: root.screenIndex
+
+                        DashboardScreen {}
+
+                        DetailScreen {}
+
+                        SettingsScreen {
+                            onClosed: root.toggleSettings()
+                        }
+
+                        // Replay route (Phase 5b): the 3D scene with the chase
+                        // camera, athlete posing and transport controls.
+                        ReplayScene {
+                            Component.onCompleted: {
+                                Replay.setSchemeDark(Theme.dark)
                                 Replay.setReduceMotion(Settings.reduceReplayMotion)
                                 Replay.setQualityIndex(Settings.qualityIndex)
                             }
+                            Connections {
+                                target: Theme
+                                function onDarkChanged() {
+                                    Replay.setSchemeDark(Theme.dark)
+                                }
+                            }
+                            Connections {
+                                target: Settings
+                                function onSettingsChanged() {
+                                    Replay.setReduceMotion(Settings.reduceReplayMotion)
+                                    Replay.setQualityIndex(Settings.qualityIndex)
+                                }
+                            }
                         }
                     }
-                }
-            }
-        }
 
-        // Studio's empty state: library empty and demo mode off.
-        Rectangle {
-            anchors.fill: parent
-            visible: Library.isEmpty && !Settings.demoModeEnabled
-                     && root.screenIndex !== 2
-            color: Theme.windowBackground
+                    // Studio's empty state (library empty and demo mode off)
+                    // replaces the content area, like Studio's detail column.
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: Library.isEmpty && !Settings.demoModeEnabled
+                                 && root.screenIndex !== 2
+                        color: Theme.windowBackground
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: Theme.spacingXxxLarge
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            width: Math.min(parent.width - 2 * Theme.spacingXxxLarge,
+                                            Theme.px(440))
+                            spacing: Theme.spacingXxxLarge
 
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: Theme.spacingLarge
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.spacingLarge
 
-                    Label {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.t("landing.title1")
-                        font: Theme.pageTitle
-                        color: Theme.metricDuration
-                        Accessible.name: text
-                    }
-                    Label {
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.maximumWidth: 420
-                        text: Tr.t("landing.lead")
-                        font: Theme.body
-                        color: Theme.textSecondary
-                        wrapMode: Text.WordWrap
-                        horizontalAlignment: Text.AlignHCenter
-                        Accessible.name: text
-                    }
-                }
+                                Icon {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    name: "sport.rower"
+                                    size: Theme.px(48)
+                                    color: Theme.metricDuration
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: Tr.t("landing.title1")
+                                    font: Theme.pageTitle
+                                    color: Theme.textPrimary
+                                    wrapMode: Text.WordWrap
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Accessible.name: text
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: Tr.t("landing.lead")
+                                    font: Theme.body
+                                    color: Theme.textSecondary
+                                    wrapMode: Text.WordWrap
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Accessible.name: text
+                                }
+                            }
 
-                ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    spacing: Theme.spacingMedium
+                            ColumnLayout {
+                                Layout.alignment: Qt.AlignHCenter
+                                spacing: Theme.spacingMedium
 
-                    Button {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.t("landing.exploreDemo")
-                        highlighted: true
-                        onClicked: Settings.setDemoModeEnabled(true)
-                        Accessible.name: text
-                    }
-                    Button {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.t("landing.connect")
-                        onClicked: root.showSettings()
-                        Accessible.name: text
+                                // The view's one prominent action.
+                                PushButton {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: Tr.t("landing.exploreDemo")
+                                    prominent: true
+                                    onClicked: Settings.setDemoModeEnabled(true)
+                                }
+                                PushButton {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: Tr.t("landing.connect")
+                                    onClicked: root.showSettings()
+                                }
+                            }
+                        }
                     }
                 }
             }
