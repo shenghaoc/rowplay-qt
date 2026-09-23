@@ -10,6 +10,7 @@
 use qtbridge::qobject;
 use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::models::WorkoutDetail;
+use rowplay_viewmodel::dashboard::pace_axis_labels;
 use rowplay_viewmodel::detail::{
     header, metric_strip, split_column_ids, split_rows, splits_section_id, target_rows,
 };
@@ -63,6 +64,10 @@ pub struct DetailBackend {
     hr_segments_json: serde_json::Value,
     pace_domain_low: f64,
     pace_domain_high: f64,
+    // Pace-axis ticks: the (negated) axis values and their pace labels,
+    // formatted in Rust (never in QML) like the dashboard's pace chart.
+    pace_axis_values: Vec<f64>,
+    pace_axis_labels: Vec<String>,
     split_boundaries: Vec<f64>,
     distance_axis: String,
 }
@@ -107,6 +112,8 @@ impl Default for DetailBackend {
             hr_segments_json: serde_json::Value::Array(Vec::new()),
             pace_domain_low: -180.0,
             pace_domain_high: -60.0,
+            pace_axis_values: Vec::new(),
+            pace_axis_labels: Vec::new(),
             split_boundaries: Vec::new(),
             distance_axis: "km".to_owned(),
         }
@@ -223,6 +230,19 @@ impl DetailBackend {
     qproperty!(
         "paceDomainHigh",
         Member = pace_domain_high,
+        Notify = detail_changed
+    );
+    // Pace tick values (negated seconds per 500 m, spanning the domain) and
+    // their Rust-formatted labels; the stroke pace chart maps its axis ticks
+    // onto these instead of printing the raw negated numbers.
+    qproperty!(
+        "paceAxisValues",
+        Member = pace_axis_values,
+        Notify = detail_changed
+    );
+    qproperty!(
+        "paceAxisLabels",
+        Member = pace_axis_labels,
         Notify = detail_changed
     );
     qproperty!(
@@ -373,6 +393,9 @@ impl DetailBackend {
         let domain = pace_chart_domain(&detail.strokes);
         self.pace_domain_low = domain.0;
         self.pace_domain_high = domain.1;
+        let axis = pace_axis_labels(domain, 4);
+        self.pace_axis_values = axis.iter().map(|(value, _)| *value).collect();
+        self.pace_axis_labels = axis.into_iter().map(|(_, label)| label).collect();
         self.split_boundaries = split_boundary_distances(&detail.splits, unit);
         distance_axis_label(unit).clone_into(&mut self.distance_axis);
     }
@@ -409,6 +432,8 @@ impl DetailBackend {
         self.hr_segments_json = serde_json::Value::Array(Vec::new());
         self.pace_domain_low = -180.0;
         self.pace_domain_high = -60.0;
+        self.pace_axis_values.clear();
+        self.pace_axis_labels.clear();
         self.split_boundaries.clear();
     }
 }

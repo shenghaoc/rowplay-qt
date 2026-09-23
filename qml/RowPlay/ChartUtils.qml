@@ -31,6 +31,57 @@ QtObject {
         return [{ x: x, y: minY }, { x: x, y: maxY }]
     }
 
+    // A "nice" tick step (1, 2, 2.5 or 5 × 10^k) giving about `targetTicks`
+    // intervals over `span` — axis spacing for HIG-quiet charts (four or five
+    // gridlines, not ten). Layout arithmetic, not value formatting: the
+    // labels themselves stay Qt Graphs' numbers or Rust-rendered strings.
+    function niceInterval(span, targetTicks) {
+        if (!(span > 0) || !(targetTicks > 0)) {
+            return 1
+        }
+        var raw = span / targetTicks
+        var magnitude = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10))
+        var normalized = raw / magnitude
+        var step = normalized <= 1 ? 1
+                 : normalized <= 2 ? 2
+                 : normalized <= 2.5 ? 2.5
+                 : normalized <= 5 ? 5 : 10
+        return step * magnitude
+    }
+
+    // Qt Graphs 6.11 lays the Y axis out in a fixed strip: a 40 px label
+    // column, a 5 px gap and 15 px of ticker (QGraphsViewPrivate's
+    // m_defaultAxisLabelsWidth and friends — private, no API; "Add properties
+    // for these" in the header). Each label item gets exactly that 40 px and
+    // is asked to right-align in it, so a wider Rust label (a pace such as
+    // "2:54.3/500m") must right-anchor its text and the chart must reserve the
+    // overflow on the left through marginLeft. Returns that overflow for the
+    // widest of `labels` in `metrics`' font.
+    readonly property real yLabelColumn: 40
+
+    function yLabelOverflow(labels, metrics) {
+        if (!labels || !metrics) {
+            return 0
+        }
+        var widest = 0
+        for (var i = 0; i < labels.length; ++i) {
+            widest = Math.max(widest, metrics.advanceWidth(String(labels[i])))
+        }
+        return Math.max(0, Math.ceil(widest) - yLabelColumn)
+    }
+
+    // The tick step that puts `count` ticks on low…high, both ends included
+    // (the anchor is `low`). Shrunk by a part in 10^9: the floating-point sum
+    // low + (count − 1) · step can land a hair above `high`, and Qt Graphs
+    // then drops the top tick and its label. nearestLabel() still maps every
+    // tick onto its exact Rust label.
+    function spanInterval(low, high, count) {
+        if (!(count > 1) || !(high > low)) {
+            return 0
+        }
+        return (high - low) / (count - 1) * (1 - 1e-9)
+    }
+
     // ValueAxis tick labels are printf numbers; the pace axis needs the
     // pre-rendered pace strings from Rust. Maps the injected label text to
     // the nearest exported tick value and returns its formatted label.

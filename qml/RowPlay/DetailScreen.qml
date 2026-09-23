@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Workout detail — a port of Studio's WorkoutDetailView: header, metric
 // strip, stroke analysis, splits/intervals table and the targets read-out.
-// The Replay action keeps Studio's availability policy (the route itself
-// renders in Phase 5); tools/annotations/comparison/export stay deferred.
+// The Replay action keeps Studio's availability policy; tools/annotations/
+// comparison/export stay deferred.
+//
+// HIG layout (ADR 0013): the title with the sport in a capsule and Replay as
+// the view's one prominent button; the metric strip, the charts, the table
+// and the targets each sit in a card; the table has a header row, hairline
+// row separators and right-aligned tabular numbers.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -13,22 +18,29 @@ Pane {
 
     padding: Theme.spacingXxxLarge
 
+    background: Rectangle {
+        color: Theme.windowBackground
+    }
+
     ScrollView {
+        id: scroll
         anchors.fill: parent
         clip: true
+        contentWidth: availableWidth
 
         ColumnLayout {
-            width: parent.width
-            spacing: Theme.spacingXxxLarge
+            width: scroll.availableWidth
+            spacing: Theme.spacingXxLarge
 
             // Header (Studio: title + sport, date/time/source/intervals,
             // comments).
-            ColumnLayout {
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingMedium
+                spacing: Theme.spacingLarge
 
-                RowLayout {
+                ColumnLayout {
                     Layout.fillWidth: true
+                    spacing: Theme.spacingSmall
 
                     Label {
                         Layout.fillWidth: true
@@ -38,88 +50,123 @@ Pane {
                         elide: Text.ElideRight
                         Accessible.name: text
                     }
-                    Label {
-                        text: Detail.sportName
-                        font: Theme.sectionHeadline
-                        color: Theme.textSecondary
-                        Accessible.name: text
-                    }
-                    Button {
-                        text: Tr.t("common.replay")
-                        // Studio's policy: replay needs stroke data and no
-                        // sync in flight; Phase 5 renders the route.
-                        enabled: Detail.hasStrokeData && !Sync.isRunning
-                        onClicked: Library.requestReplay(Sync.isRunning)
-                        Accessible.name: Tr.t("common.replay")
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spacingMedium
+
+                        // The sport in a subtle capsule (trademark name,
+                        // untranslated).
+                        Rectangle {
+                            visible: Detail.sportName.length > 0
+                            implicitWidth: sportLabel.implicitWidth + 2 * Theme.spacingMedium
+                            implicitHeight: sportLabel.implicitHeight + Theme.spacingXSmall
+                            radius: height / 2
+                            color: Qt.alpha(Theme.textPrimary, 0.07)
+
+                            Label {
+                                id: sportLabel
+                                anchors.centerIn: parent
+                                text: Detail.sportName
+                                font: Theme.metricLabel
+                                color: Theme.textSecondary
+                                Accessible.name: text
+                            }
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: [Detail.dateText, Detail.timeText,
+                                   Detail.sourceText,
+                                   Detail.isInterval
+                                   ? Tr.t("workout.tag.interval") : ""]
+                                  .filter(function(part) { return part.length > 0 })
+                                  .join("  ")
+                            font: Theme.subheadline
+                            color: Theme.textSecondary
+                            elide: Text.ElideRight
+                            Accessible.name: Detail.headerAccessible
+                        }
                     }
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.spacingMedium
-
-                    Label {
-                        text: [Detail.dateText, Detail.timeText,
-                               Detail.sourceText,
-                               Detail.isInterval
-                               ? Tr.t("workout.tag.interval") : ""]
-                              .filter(function(part) { return part.length > 0 })
-                              .join("  ")
-                        font: Theme.subheadline
-                        color: Theme.textSecondary
-                        Accessible.name: Detail.headerAccessible
-                    }
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    visible: Detail.hasComments
-                    text: Detail.comments
-                    font: Theme.body
-                    color: Theme.textSecondary
-                    wrapMode: Text.WordWrap
-                    Accessible.name: text
+                PushButton {
+                    Layout.alignment: Qt.AlignTop
+                    text: Tr.t("common.replay")
+                    iconName: "play"
+                    prominent: true
+                    // Studio's policy: replay needs stroke data and no sync
+                    // in flight.
+                    enabled: Detail.hasStrokeData && !Sync.isRunning
+                    onClicked: Library.requestReplay(Sync.isRunning)
                 }
             }
 
-            // Metric strip (Studio's performanceMetric row: uppercased
-            // labels, tabular values in semantic colours).
-            Flow {
+            Label {
                 Layout.fillWidth: true
-                spacing: 0
+                visible: Detail.hasComments
+                text: Detail.comments
+                font: Theme.body
+                color: Theme.textSecondary
+                wrapMode: Text.WordWrap
+                Accessible.name: text
+            }
 
-                Repeater {
-                    model: Detail.stripJson
+            // Metric strip (Studio's performanceMetric row): equal columns,
+            // four across (two when narrow), the caption above the tabular
+            // value in its semantic colour.
+            Rectangle {
+                Layout.fillWidth: true
+                visible: Detail.stripJson.length > 0
+                implicitHeight: stripGrid.implicitHeight + 2 * Theme.spacingXLarge
+                radius: Theme.radiusLarge
+                color: Theme.panelBackground
 
-                    ColumnLayout {
-                        required property var modelData
-                        width: Math.max(140, screen.width
-                                        / Math.max(1, Detail.stripJson.length))
-                        spacing: Theme.spacingSmall
-                        Accessible.name: modelData.accessibleLabelId
-                                         ? Tr.t(modelData.accessibleLabelId)
-                                         : Tr.t(modelData.labelId)
-                        Accessible.description: modelData.accessibleValue
-                                                ? modelData.accessibleValue
-                                                : modelData.valueText
+                GridLayout {
+                    id: stripGrid
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingXLarge
+                    columns: width >= 520 ? 4 : 2
+                    uniformCellWidths: true
+                    columnSpacing: Theme.spacingLarge
+                    rowSpacing: Theme.spacingXLarge
 
-                        Label {
-                            Layout.leftMargin: Theme.spacingXLarge
-                            text: Tr.t(modelData.labelId).toUpperCase()
-                            font: Theme.metricLabel
-                            color: Theme.textSecondary
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.leftMargin: Theme.spacingXLarge
-                            Layout.rightMargin: Theme.spacingXLarge
-                            text: modelData.valueText
-                            font: Theme.stripMetric
-                            color: Theme.metricColor(modelData.role)
-                            elide: Text.ElideRight
-                            fontSizeMode: Text.HorizontalFit
-                            minimumPixelSize: 12
-                            Accessible.ignored: true
+                    Repeater {
+                        model: Detail.stripJson
+
+                        ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingXSmall
+                            Accessible.name: modelData.accessibleLabelId
+                                             ? Tr.t(modelData.accessibleLabelId)
+                                             : Tr.t(modelData.labelId)
+                            Accessible.description: modelData.accessibleValue
+                                                    ? modelData.accessibleValue
+                                                    : modelData.valueText
+
+                            // Uppercase is a caption style here, not number
+                            // formatting.
+                            Label {
+                                Layout.fillWidth: true
+                                text: Tr.t(modelData.labelId).toUpperCase()
+                                font: Theme.metricLabel
+                                color: Theme.textSecondary
+                                elide: Text.ElideRight
+                                Accessible.ignored: true
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: modelData.valueText
+                                font: Theme.stripMetric
+                                color: Theme.metricColor(modelData.role)
+                                elide: Text.ElideRight
+                                fontSizeMode: Text.HorizontalFit
+                                minimumPixelSize: 13
+                                Accessible.ignored: true
+                            }
                         }
                     }
                 }
@@ -129,142 +176,205 @@ Pane {
                 Layout.fillWidth: true
             }
 
-            // Splits / intervals table (Studio's Grid; web th* keys). The
-            // column widths mirror Studio's grid: leading index column, then
-            // the six metric columns.
-            ColumnLayout {
+            // Splits / intervals table (Studio's Grid; web th* keys): the
+            // index column, then six equal metric columns, right-aligned.
+            Rectangle {
                 Layout.fillWidth: true
-                spacing: Theme.spacingLarge
                 visible: Detail.splitsJson.length > 0
+                implicitHeight: splitsColumn.implicitHeight + 2 * Theme.spacingXLarge
+                radius: Theme.radiusLarge
+                color: Theme.panelBackground
 
-                Label {
-                    text: Tr.t(Detail.splitsSectionId)
-                    font: Theme.sectionHeadline
-                    color: Theme.textPrimary
-                    Accessible.name: text
-                }
+                ColumnLayout {
+                    id: splitsColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingXLarge
+                    spacing: 0
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.spacingLarge
+                    Label {
+                        Layout.bottomMargin: Theme.spacingLarge
+                        text: Tr.t(Detail.splitsSectionId)
+                        font: Theme.sectionHeadline
+                        color: Theme.textPrimary
+                        Accessible.name: text
+                    }
 
-                    Repeater {
-                        model: Detail.splitColumnIds
+                    // Header row.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.bottomMargin: Theme.spacingSmall
+                        spacing: Theme.spacingLarge
 
-                        Label {
-                            required property string modelData
-                            required property int index
-                            Layout.preferredWidth: [40, 110, 110, 100, 80,
-                                                    90, 70][index]
-                            text: Tr.t(modelData).toUpperCase()
-                            font: Theme.metricLabel
-                            color: Theme.textSecondary
-                            Accessible.ignored: true
+                        Repeater {
+                            model: Detail.splitColumnIds
+
+                            Label {
+                                required property string modelData
+                                required property int index
+                                Layout.fillWidth: index > 0
+                                Layout.preferredWidth: index > 0 ? 1 : 36
+                                text: Tr.t(modelData)
+                                font: Theme.metricLabel
+                                color: Theme.textSecondary
+                                elide: Text.ElideRight
+                                horizontalAlignment: index > 0 ? Text.AlignRight
+                                                               : Text.AlignLeft
+                                Accessible.ignored: true
+                            }
                         }
                     }
-                }
 
-                Repeater {
-                    model: Detail.splitsJson
+                    Repeater {
+                        model: Detail.splitsJson
 
-                    RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: Theme.spacingLarge
-                        opacity: modelData.isRest ? 0.55 : 1.0
-                        Accessible.name: Tr.t("replay.segSplits") + " "
-                                       + (modelData.index + 1) + ": "
-                                       + modelData.distanceText + ", "
-                                       + modelData.timeText + ", "
-                                       + modelData.paceText
+                        ColumnLayout {
+                            id: splitRow
 
-                        Label {
-                            Layout.preferredWidth: 40
-                            text: modelData.index
-                            font: Theme.metricValue
-                            color: Theme.textPrimary
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 110
-                            text: modelData.distanceText
-                            font: Theme.metricValue
-                            color: Theme.metricDistance
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 110
-                            text: modelData.timeText
-                            font: Theme.metricValue
-                            color: Theme.textPrimary
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 100
-                            text: modelData.paceText
-                            font: Theme.metricValue
-                            color: Theme.metricPace
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 80
-                            text: modelData.cadenceText
-                            font: Theme.metricValue
-                            color: Theme.metricCadence
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 90
-                            text: modelData.powerText
-                            font: Theme.metricValue
-                            color: Theme.metricWatts
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            Layout.preferredWidth: 70
-                            text: modelData.hrText
-                            font: Theme.metricValue
-                            color: Theme.metricHeartRate
-                            Accessible.ignored: true
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Accessible.name: Tr.t("replay.segSplits") + " "
+                                           + (modelData.index + 1) + ": "
+                                           + modelData.distanceText + ", "
+                                           + modelData.timeText + ", "
+                                           + modelData.paceText
+
+                            // Hairline rule above every row.
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                color: Theme.separator
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 32
+                                spacing: Theme.spacingLarge
+                                // Rest intervals recede.
+                                opacity: splitRow.modelData.isRest ? 0.55 : 1.0
+
+                                Label {
+                                    Layout.preferredWidth: 36
+                                    text: splitRow.modelData.index
+                                    font: Theme.tabularBody
+                                    color: Theme.textSecondary
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.distanceText
+                                    font: Theme.tabularBody
+                                    color: Theme.metricDistance
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.timeText
+                                    font: Theme.tabularBody
+                                    color: Theme.textPrimary
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.paceText
+                                    font: Theme.tabularBody
+                                    color: Theme.metricPace
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.cadenceText
+                                    font: Theme.tabularBody
+                                    color: Theme.metricCadence
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.powerText
+                                    font: Theme.tabularBody
+                                    color: Theme.metricWatts
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    text: splitRow.modelData.hrText
+                                    font: Theme.tabularBody
+                                    color: Theme.metricHeartRate
+                                    horizontalAlignment: Text.AlignRight
+                                    elide: Text.ElideLeft
+                                    Accessible.ignored: true
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // Targets read-out (web replay.mTarget* keys).
-            ColumnLayout {
+            Rectangle {
                 Layout.fillWidth: true
-                spacing: Theme.spacingMedium
                 visible: Detail.targetsJson.length > 0
+                implicitHeight: targetsColumn.implicitHeight + 2 * Theme.spacingXLarge
+                radius: Theme.radiusLarge
+                color: Theme.panelBackground
 
-                Label {
-                    text: Tr.t("replay.targetsTitle")
-                    font: Theme.sectionHeadline
-                    color: Theme.textPrimary
-                    Accessible.name: text
-                }
+                ColumnLayout {
+                    id: targetsColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingXLarge
+                    spacing: Theme.spacingMedium
 
-                Repeater {
-                    model: Detail.targetsJson
+                    Label {
+                        text: Tr.t("replay.targetsTitle")
+                        font: Theme.sectionHeadline
+                        color: Theme.textPrimary
+                        Accessible.name: text
+                    }
 
-                    RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: Theme.spacingLarge
+                    Repeater {
+                        model: Detail.targetsJson
 
-                        Label {
-                            Layout.preferredWidth: 180
-                            text: Tr.t(modelData.labelId)
-                            font: Theme.metricLabel
-                            color: Theme.textSecondary
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            text: modelData.valueText
-                            font: Theme.metricValue
-                            color: Theme.textPrimary
-                            Accessible.name: Tr.t(modelData.labelId) + ": "
-                                               + modelData.valueText
+                        RowLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingLarge
+
+                            Label {
+                                Layout.preferredWidth: 180
+                                text: Tr.t(modelData.labelId)
+                                font: Theme.subheadline
+                                color: Theme.textSecondary
+                                elide: Text.ElideRight
+                                Accessible.ignored: true
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: modelData.valueText
+                                font: Theme.tabularBody
+                                color: Theme.textPrimary
+                                Accessible.name: Tr.t(modelData.labelId) + ": "
+                                                 + modelData.valueText
+                            }
                         }
                     }
                 }

@@ -256,6 +256,36 @@ mod tests {
         assert_eq!(pace_chart_domain(&junk), (-180.0, -60.0));
     }
 
+    /// The detail pace chart's ticks (`Detail.paceAxisValues/Labels`): the
+    /// negated, fast-up stroke domain maps onto formatted paces spanning it
+    /// end to end — never the raw negative axis numbers the chart printed
+    /// before — with the slowest pace on the bottom tick.
+    #[test]
+    fn pace_axis_ticks_over_the_stroke_domain_read_as_paces() {
+        let strokes = vec![
+            stroke(0.0, 0.0, 118.0),
+            stroke(10.0, 50.0, 125.0),
+            stroke(20.0, 100.0, 121.0),
+        ];
+        let domain = pace_chart_domain(&strokes);
+        let ticks = crate::dashboard::pace_axis_labels(domain, 4);
+        assert_eq!(ticks.len(), 4);
+        assert_eq!(ticks[0].0, domain.0);
+        assert_eq!(ticks[3].0, domain.1);
+        for (value, label) in &ticks {
+            assert!(*value < 0.0, "axis values stay negated (fast is up)");
+            assert_eq!(*label, fmt_pace(-value));
+            assert!(!label.starts_with('-'), "{label} reads as a pace");
+        }
+        assert!(-ticks[0].0 > -ticks[3].0, "the bottom tick is the slowest");
+        // The stroke-less placeholder domain still yields pace labels.
+        let empty = crate::dashboard::pace_axis_labels(pace_chart_domain(&[]), 4);
+        assert_eq!(
+            empty.first().map(|(_, label)| label.as_str()),
+            Some("3:00.0/500m")
+        );
+    }
+
     #[test]
     fn split_boundaries_accumulate_except_the_last() {
         let splits = vec![

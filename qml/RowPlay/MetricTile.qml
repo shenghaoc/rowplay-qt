@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Dashboard metric tile — a port of Studio's MetricTile: icon-less (no SF
-// Symbols on Qt; divergence recorded), hero value in the semantic colour,
-// tertiary label, tonal card background, read-only (no hover/active state).
+// Symbols on Qt; divergence recorded), read-only (no hover/active state). HIG
+// layout (ADR 0013): the caption on top in secondary text, the hero value
+// below it in the semantic colour (the One Hero Rule), on a tonal card.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -23,12 +24,21 @@ Pane {
 
     background: Rectangle {
         color: Theme.cardBackground
-        radius: Theme.radiusMedium
+        radius: Theme.radiusLarge
     }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spacingLarge
+        spacing: Theme.spacingSmall
+
+        Label {
+            Layout.fillWidth: true
+            text: tile.label
+            font: Theme.subheadline
+            color: Theme.textSecondary
+            elide: Text.ElideRight
+            Accessible.ignored: true
+        }
 
         // The One Hero Rule: this is the only hero-sized element per card.
         Label {
@@ -39,15 +49,6 @@ Pane {
             elide: Text.ElideRight
             fontSizeMode: Text.HorizontalFit
             minimumPixelSize: 18
-            Accessible.ignored: true
-        }
-
-        Label {
-            Layout.fillWidth: true
-            text: tile.label
-            font: Theme.metricLabel
-            color: Theme.textTertiary
-            elide: Text.ElideRight
             Accessible.ignored: true
         }
     }

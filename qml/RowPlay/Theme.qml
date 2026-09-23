@@ -5,8 +5,10 @@
 // All views reference these tokens instead of hardcoding colors, spacing or
 // typography, exactly like Studio. Divergences (docs/source-map.md):
 // - the system font replaces SF Pro / SF Pro Rounded (cross-platform); the
-//   DESIGN.md size and weight scale is kept, and Font.TabularNumbers replaces
-//   .monospacedDigit();
+//   DESIGN.md size and weight scale is kept, and the OpenType `tnum` feature
+//   (`features: { "tnum": 1 }`) replaces .monospacedDigit() — Qt 6.11 has no
+//   Font.TabularNumbers enum, and a font object silently dropped the
+//   undefined value, so tabular figures were not applied before the HIG pass;
 // - macOS materials (.regularMaterial) become tonal opacity surfaces: Qt has
 //   no system material on Linux/Windows, and DESIGN.md's flat-by-default rule
 //   means opacity layers carry the depth;
@@ -237,17 +239,17 @@ QtObject {
     readonly property font sectionHeadline: ({ pixelSize: 15, weight: Font.DemiBold })
     /// Metric value — data values in badges and cards (callout semibold, 13px).
     readonly property font metricValue: ({ pixelSize: 13, weight: Font.DemiBold,
-                                           features: Font.TabularNumbers })
+                                           features: { "tnum": 1 } })
     /// Strip metric — inline values in detail/replay strips (20px semibold,
     /// tabular figures on the system font; a monospace family made values
     /// run into the next label).
     readonly property font stripMetric: ({ pixelSize: 20, weight: Font.DemiBold,
-                                           features: Font.TabularNumbers })
+                                           features: { "tnum": 1 } })
     /// Emphasised body — sidebar row titles (13px medium).
     readonly property font bodyEmphasized: ({ pixelSize: 13, weight: Font.Medium })
     /// Tabular body — table cells and trailing row values (13px semibold).
     readonly property font tabularBody: ({ pixelSize: 13, weight: Font.DemiBold,
-                                           features: Font.TabularNumbers })
+                                           features: { "tnum": 1 } })
     /// Sidebar section header — sentence case, bold, small (macOS 11+).
     readonly property font sidebarSection: ({ pixelSize: 11, weight: Font.Bold })
     /// Grouped-form section title (HIG "headline", 13px bold).
