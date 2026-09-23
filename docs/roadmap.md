@@ -793,6 +793,9 @@ stack of seven PRs, each green on its own:
    - Second-reviewer pass: Replay's clipped focus ring and scroll-bar
      overlap, and the splits card's jump on hovering its scroll bar (T4.6).
 5. `ui/05-settings`: the grouped settings page.
+   - Delivered in #72 and validated there: the full suite, the captures
+     before and after, and the whole-row and direct switch clicks driven
+     with xdotool.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
    during the replay.
 7. `ui/07-docs`: the README screenshots and the final documentation pass.
