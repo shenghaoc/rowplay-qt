@@ -31,6 +31,24 @@ QtObject {
         return [{ x: x, y: minY }, { x: x, y: maxY }]
     }
 
+    // A "nice" tick step (1, 2, 2.5 or 5 × 10^k) that puts about
+    // `targetTicks` intervals on `span`. Layout arithmetic only: Qt Graphs'
+    // automatic interval aims at about ten ticks whatever the plot height,
+    // which packs a 50 px stroke chart with overlapping labels.
+    function niceInterval(span, targetTicks) {
+        if (!(span > 0) || !(targetTicks > 0)) {
+            return 1
+        }
+        var raw = span / targetTicks
+        var magnitude = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10))
+        var normalized = raw / magnitude
+        var step = normalized <= 1 ? 1
+                 : normalized <= 2 ? 2
+                 : normalized <= 2.5 ? 2.5
+                 : normalized <= 5 ? 5 : 10
+        return step * magnitude
+    }
+
     // ValueAxis tick labels are printf numbers; the pace axis needs the
     // pre-rendered pace strings from Rust. Maps the injected label text to
     // the nearest exported tick value and returns its formatted label.

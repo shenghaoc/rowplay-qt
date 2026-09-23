@@ -77,6 +77,9 @@ Rectangle {
                 max: chart.yMax
                 subTickCount: 0
                 labelDecimals: 0
+                // About four ticks: the automatic interval packed eight to
+                // ten overlapping labels into the short plot.
+                tickInterval: ChartUtils.niceInterval(chart.yMax - chart.yMin, 4)
             }
 
             // Split boundaries (Studio: secondary colour, dashed).
