@@ -500,7 +500,6 @@ Item {
     // a replay key, a focus change or a pause brings it back (instantly
     // under reduce motion). It never hides while keyboard focus is inside it.
     property bool hudShown: true
-    readonly property bool playbackRunning: Replay.playing
     readonly property bool hudHasFocus: {
         var item = replayRoot.Window.activeFocusItem
         while (item) {
@@ -511,22 +510,33 @@ Item {
         }
         return false
     }
+    // The one state in which the HUD may hide: shown, playing, and keyboard
+    // focus elsewhere. Every change of it (play or pause, the route shown or
+    // left, focus into or out of the HUD) wakes the HUD.
+    readonly property bool hudMayHide: visible && Replay.playing && !hudHasFocus
 
+    // Shows the HUD and restarts the countdown, only while it may hide.
+    // Timer.restart() starts a stopped timer whatever a `running` binding
+    // says, so the countdown is driven here alone, never by a binding.
     function wakeHud() {
         hudShown = true
-        hudTimer.restart()
+        if (hudMayHide) {
+            hudTimer.restart()
+        } else {
+            hudTimer.stop()
+        }
     }
 
-    onPlaybackRunningChanged: wakeHud()
-    onVisibleChanged: wakeHud()
-    onHudHasFocusChanged: wakeHud()
+    onHudMayHideChanged: wakeHud()
 
     Timer {
         id: hudTimer
         interval: 3000
-        running: replayRoot.visible && Replay.playing && replayRoot.hudShown
-                 && !replayRoot.hudHasFocus
-        onTriggered: replayRoot.hudShown = false
+        onTriggered: {
+            if (replayRoot.hudMayHide) {
+                replayRoot.hudShown = false
+            }
+        }
     }
 
     // Only a real pointer move wakes the HUD. While the scene animates, Qt
