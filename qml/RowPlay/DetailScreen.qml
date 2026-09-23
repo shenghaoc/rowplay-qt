@@ -186,13 +186,65 @@ Pane {
             }
 
             // Splits / intervals table (Studio's Grid; web th* keys): the
-            // number column, then six equal metric columns, right-aligned.
+            // number column, then six metric columns, right-aligned. Every
+            // column is as wide as its widest header or value, and spare
+            // width is shared equally among the metric columns, so the
+            // header and every row line up and no value is ever elided.
+            // Where even the content widths do not fit (large text in a
+            // narrow window), the table scrolls sideways inside its card.
             Rectangle {
+                id: splitsCard
                 Layout.fillWidth: true
                 visible: Detail.splitsJson.length > 0
                 implicitHeight: splitsColumn.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
+
+                // One key per column, in Detail.splitColumnIds' order.
+                readonly property var cellKeys: [
+                    "numberText", "distanceText", "timeText", "paceText",
+                    "cadenceText", "powerText", "hrText"
+                ]
+                // Content widths: the widest of the header and every row. The
+                // binding reads both metrics' fonts: advanceWidth() registers
+                // no dependency (docs/qt-bridges-notes.md).
+                readonly property var contentWidths: {
+                    void headerMetrics.font
+                    void valueMetrics.font
+                    var ids = Detail.splitColumnIds
+                    var rows = Detail.splitsJson
+                    var widths = []
+                    for (var c = 0; c < cellKeys.length; ++c) {
+                        var w = headerMetrics.advanceWidth(Tr.t(ids[c]))
+                        for (var r = 0; r < rows.length; ++r) {
+                            w = Math.max(w, valueMetrics.advanceWidth(rows[r][cellKeys[c]]))
+                        }
+                        widths.push(Math.ceil(w) + Theme.px(4))
+                    }
+                    return widths
+                }
+                readonly property real minimumTableWidth: {
+                    var sum = 0
+                    for (var c = 0; c < contentWidths.length; ++c) {
+                        sum += contentWidths[c]
+                    }
+                    return sum + (contentWidths.length - 1) * Theme.spacingLarge
+                }
+                readonly property real tableWidth: Math.max(splitsScroller.width,
+                                                            minimumTableWidth)
+                // The final widths: the spare width goes to the metric columns
+                // in equal shares; the number column keeps its content width.
+                readonly property var columnWidths: {
+                    var spare = (tableWidth - minimumTableWidth) / (contentWidths.length - 1)
+                    var widths = []
+                    for (var c = 0; c < contentWidths.length; ++c) {
+                        widths.push(contentWidths[c] + (c > 0 ? spare : 0))
+                    }
+                    return widths
+                }
+
+                FontMetrics { id: headerMetrics; font: Theme.metricLabel }
+                FontMetrics { id: valueMetrics; font: Theme.tabularBody }
 
                 ColumnLayout {
                     id: splitsColumn
@@ -210,135 +262,109 @@ Pane {
                         Accessible.name: text
                     }
 
-                    // Header row, sentence case.
-                    RowLayout {
+                    Flickable {
+                        id: splitsScroller
                         Layout.fillWidth: true
-                        Layout.bottomMargin: Theme.spacingSmall
-                        spacing: Theme.spacingLarge
-
-                        Repeater {
-                            model: Detail.splitColumnIds
-
-                            Label {
-                                required property string modelData
-                                required property int index
-                                Layout.fillWidth: index > 0
-                                Layout.preferredWidth: index > 0 ? 1 : Theme.px(36)
-                                text: Tr.t(modelData)
-                                font: Theme.metricLabel
-                                color: Theme.textSecondary
-                                elide: Text.ElideRight
-                                horizontalAlignment: index > 0 ? Text.AlignRight
-                                                               : Text.AlignLeft
-                                Accessible.ignored: true
-                            }
+                        Layout.preferredHeight: splitsTable.implicitHeight
+                                                + (interactive ? splitsScrollBar.height : 0)
+                        contentWidth: splitsCard.tableWidth
+                        contentHeight: splitsTable.implicitHeight
+                        flickableDirection: Flickable.HorizontalFlick
+                        boundsBehavior: Flickable.StopAtBounds
+                        interactive: contentWidth > width + 0.5
+                        clip: true
+                        ScrollBar.horizontal: AppScrollBar {
+                            id: splitsScrollBar
+                            policy: splitsScroller.interactive ? ScrollBar.AlwaysOn
+                                                               : ScrollBar.AlwaysOff
                         }
-                    }
-
-                    Repeater {
-                        model: Detail.splitsJson
 
                         ColumnLayout {
-                            id: splitRow
-
-                            required property var modelData
-                            // Rest rows recede in the secondary text colour
-                            // (their distance and pace read "—"); the metric
-                            // colours are for work rows.
-                            readonly property bool rest: modelData.isRest === true
-
-                            function tone(metric) {
-                                return rest ? Theme.textSecondary : metric
-                            }
-
-                            Layout.fillWidth: true
+                            id: splitsTable
+                            width: splitsCard.tableWidth
                             spacing: 0
-                            Accessible.name: Tr.t("replay.segSplits") + " "
-                                             + modelData.numberText + ": "
-                                             + modelData.distanceText + ", "
-                                             + modelData.timeText + ", "
-                                             + modelData.paceText
 
-                            // Hairline rule above every row.
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: Theme.hairline
-                                color: Theme.separator
-                            }
-
+                            // Header row, sentence case.
                             RowLayout {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: Theme.controlHeight
+                                Layout.bottomMargin: Theme.spacingSmall
                                 spacing: Theme.spacingLarge
 
-                                Label {
-                                    Layout.preferredWidth: Theme.px(36)
-                                    // Numbered from 1 like the web
-                                    // (Rust-formatted).
-                                    text: splitRow.modelData.numberText
-                                    font: Theme.tabularBody
-                                    color: Theme.textSecondary
-                                    Accessible.ignored: true
+                                Repeater {
+                                    model: Detail.splitColumnIds
+
+                                    Label {
+                                        required property string modelData
+                                        required property int index
+                                        Layout.preferredWidth: splitsCard.columnWidths[index]
+                                        text: Tr.t(modelData)
+                                        font: Theme.metricLabel
+                                        color: Theme.textSecondary
+                                        horizontalAlignment: index > 0 ? Text.AlignRight
+                                                                       : Text.AlignLeft
+                                        Accessible.ignored: true
+                                    }
                                 }
-                                Label {
+                            }
+
+                            Repeater {
+                                model: Detail.splitsJson
+
+                                ColumnLayout {
+                                    id: splitRow
+
+                                    required property var modelData
+                                    // Rest rows recede in the secondary text
+                                    // colour (their distance and pace read
+                                    // "—"); the metric colours are for work
+                                    // rows.
+                                    readonly property bool rest: modelData.isRest === true
+                                    readonly property var tones: [
+                                        Theme.textSecondary, Theme.metricDistance,
+                                        Theme.textPrimary, Theme.metricPace,
+                                        Theme.metricCadence, Theme.metricWatts,
+                                        Theme.metricHeartRate
+                                    ]
+
                                     Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.distanceText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.metricDistance)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.timeText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.textPrimary)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.paceText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.metricPace)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.cadenceText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.metricCadence)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.powerText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.metricWatts)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    Layout.preferredWidth: 1
-                                    text: splitRow.modelData.hrText
-                                    font: Theme.tabularBody
-                                    color: splitRow.tone(Theme.metricHeartRate)
-                                    horizontalAlignment: Text.AlignRight
-                                    elide: Text.ElideLeft
-                                    Accessible.ignored: true
+                                    spacing: 0
+                                    Accessible.name: Tr.t("replay.segSplits") + " "
+                                                     + modelData.numberText + ": "
+                                                     + modelData.distanceText + ", "
+                                                     + modelData.timeText + ", "
+                                                     + modelData.paceText
+
+                                    // Hairline rule above every row.
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: Theme.hairline
+                                        color: Theme.separator
+                                    }
+
+                                    RowLayout {
+                                        Layout.preferredHeight: Theme.controlHeight
+                                        spacing: Theme.spacingLarge
+
+                                        // Numbered from 1 like the web
+                                        // (Rust-formatted), then the six
+                                        // metrics.
+                                        Repeater {
+                                            model: splitsCard.cellKeys
+
+                                            Label {
+                                                required property string modelData
+                                                required property int index
+                                                Layout.preferredWidth: splitsCard.columnWidths[index]
+                                                text: splitRow.modelData[modelData]
+                                                font: Theme.tabularBody
+                                                color: index === 0 || splitRow.rest
+                                                       ? Theme.textSecondary
+                                                       : splitRow.tones[index]
+                                                horizontalAlignment: index > 0 ? Text.AlignRight
+                                                                               : Text.AlignLeft
+                                                Accessible.ignored: true
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
