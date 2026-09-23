@@ -35,6 +35,17 @@ Phases 0–8 are done (Phase 8, live mode, is in review); Phase 9 adds the
 packaged builds — see [Packaged builds](#packaged-builds). The bullets below
 are the phase summaries as each landed.
 
+- **UI design system (ADR 0013):** one visual system of our own on Linux,
+  macOS and Windows, built on Qt Quick Controls' Basic style. It uses this
+  repository's neutral light and dark ramps with the PM5 metric colours
+  (WCAG AA, measured), scales every length and font size from the system
+  font, and follows the system accent and contrast preference. Shared
+  controls replace the stock ones: toolbar buttons, segmented controls,
+  switches, grouped settings rows, and themed menus, dialogs and scroll bars.
+  A thin platform layer keeps each OS's shortcuts, the native macOS menu bar
+  and the platform's dialog button order. The replay's playback controls
+  float over the scene and hide while it plays.
+
 - **Phase 5a — replay assets and scene:** the rowplay V3 rig pack, V4 athlete
   and Poly Haven environment textures vendored with provenance and a SHA-256
   pin; a Qt-free V3 contract validator with named-slot errors; the
@@ -76,21 +87,21 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
 
-| Dashboard (demo data) | Workout detail (demo data) |
+The current UI, with demo data. It follows the system's light or dark
+scheme (pinned here with `ROWPLAY_FORCE_COLOR_SCHEME`).
+
+| Dashboard | Workout detail, dark |
 | --- | --- |
-| ![Dashboard](docs/screenshots/phase-04-dashboard.png) | ![Workout detail](docs/screenshots/phase-04-detail.png) |
+| ![Dashboard](docs/screenshots/ui-dashboard.png) | ![Workout detail, dark scheme](docs/screenshots/ui-detail-dark.png) |
 
-| Settings (light) | Settings (dark) |
+| Settings | Replay, RowErg |
 | --- | --- |
-| ![Settings, light](docs/screenshots/phase-04-settings-light.png) | ![Settings, dark](docs/screenshots/phase-04-settings-dark.png) |
+| ![Settings](docs/screenshots/ui-settings.png) | ![Replay, RowErg, with the playback controls shown](docs/screenshots/ui-replay-row.png) |
 
-| RowErg | SkiErg | BikeErg |
-| --- | --- | --- |
-| ![Replay scene, RowErg](docs/screenshots/phase-05a-replay-row.png) | ![Replay scene, SkiErg](docs/screenshots/phase-05a-replay-ski.png) | ![Replay scene, BikeErg](docs/screenshots/phase-05a-replay-bike.png) |
+The replay in the dark scheme. Its playback controls hide while it plays and
+come back when the pointer moves:
 
-The same scene follows the dark scheme (`ROWPLAY_FORCE_COLOR_SCHEME=dark`):
-
-![Replay scene, RowErg, dark scheme](docs/screenshots/phase-05a-replay-row-dark.png)
+![Replay, RowErg, dark scheme](docs/screenshots/ui-replay-row-dark.png)
 
 ## Requirements
 
