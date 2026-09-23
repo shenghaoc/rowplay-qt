@@ -128,6 +128,14 @@ that delivers it.
     `QtQuick/Shapes` into the AppImage, and its launch check rendered 30
     frames and exited 0. macOS and Windows packaging was not run: the
     release workflow does not trigger on these paths.
+  - [x] T3.5 Large text in a narrow window. At 150 % text in the 1000 px
+    minimum window (Spanish), the centred sport filter ran under the
+    trailing buttons. It is now clamped clear of them, and where it cannot
+    fit its width is capped, so it takes the segmented control's compact
+    pop-up form (driven under Xvfb: the segmented track's pixels drop to 0
+    in the narrow window and come back at 1200 px, and a choice made in
+    the pop-up filters the list and shows in the segments).
+  - [x] T3.6 Validation (R9): see the PR.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
