@@ -5,6 +5,9 @@
 // Library singleton; the charts load their series in bulk with
 // XYSeries.replace(list<point>) — never point by point.
 //
+// Design system (ADR 0013): tonal cards on the window, balanced equal-width
+// grids, charts on the shared ChartTheme, every size from the Theme scale.
+//
 // Divergences (docs/source-map.md): the Studio "Challenge" tile is dropped
 // (no web key, the web dashboard has no challenge tile); SF Symbols are
 // replaced by the semantic colour on the value.
@@ -27,11 +30,18 @@ Pane {
         // Flickable content item, i.e. its own implicit width, and stopped a
         // quarter to a third short of the pane.
         contentWidth: availableWidth
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        ScrollBar.vertical: AppScrollBar {
+            parent: scroll
+            x: scroll.mirrored ? 0 : scroll.width - width
+            y: scroll.topPadding
+            height: scroll.availableHeight
+        }
 
         ColumnLayout {
             id: content
             width: scroll.availableWidth
-            spacing: Theme.spacingXxxLarge
+            spacing: Theme.spacingXxLarge
 
             Label {
                 text: Tr.t("nav.dashboard")
@@ -44,8 +54,8 @@ Pane {
             // balanced so no tile is left alone on a row.
             GridLayout {
                 Layout.fillWidth: true
-                columns: screen.gridColumns(Library.tilesJson.length, content.width,
-                                            180, columnSpacing)
+                columns: Theme.balancedColumns(Library.tilesJson.length, content.width,
+                                               Theme.px(180), columnSpacing)
                 uniformCellWidths: true
                 columnSpacing: Theme.spacingLarge
                 rowSpacing: Theme.spacingLarge
@@ -66,9 +76,8 @@ Pane {
             // Personal bests (Studio's adaptive card grid).
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingLarge
-                // The Repeater has the count; a GridLayout has none (the
-                // section never showed while this read pbGrid.count).
+                spacing: Theme.spacingMedium
+                // The Repeater has the count; a GridLayout has none.
                 visible: pbRepeater.count > 0
 
                 Label {
@@ -79,10 +88,9 @@ Pane {
                 }
 
                 GridLayout {
-                    id: pbGrid
                     Layout.fillWidth: true
-                    columns: screen.gridColumns(Library.pbCardsJson.length, content.width,
-                                                150, columnSpacing)
+                    columns: Theme.balancedColumns(Library.pbCardsJson.length, content.width,
+                                                   Theme.px(150), columnSpacing)
                     uniformCellWidths: true
                     columnSpacing: Theme.spacingMedium
                     rowSpacing: Theme.spacingMedium
@@ -94,15 +102,17 @@ Pane {
                         Pane {
                             required property var modelData
                             Layout.fillWidth: true
-                            padding: Theme.spacingMedium
+                            padding: Theme.spacingLarge
                             Accessible.name: modelData.label + " "
-                                           + modelData.sportName + " PB"
+                                             + modelData.sportName + " "
+                                             + Tr.t("dashboard.pbTag")
                             Accessible.description: modelData.timeText + ", "
-                                                    + modelData.paceText
+                                                    + modelData.paceText + ", "
+                                                    + modelData.dateText
 
                             background: Rectangle {
                                 color: Theme.cardBackground
-                                radius: Theme.radiusSmall
+                                radius: Theme.radiusMedium
                             }
 
                             ColumnLayout {
@@ -115,35 +125,43 @@ Pane {
 
                                     Label {
                                         text: modelData.label
-                                        font: Theme.compactLabel
+                                        font: Theme.bodyEmphasized
                                         color: Theme.textPrimary
+                                        Accessible.ignored: true
                                     }
                                     Label {
                                         Layout.fillWidth: true
                                         text: modelData.sportName
-                                        font: Theme.compactLabel
+                                        font: Theme.subheadline
                                         color: Theme.textSecondary
                                         elide: Text.ElideRight
+                                        Accessible.ignored: true
                                     }
                                 }
 
                                 Label {
+                                    Layout.fillWidth: true
                                     text: modelData.timeText
-                                    // title3-ish semibold tabular value
-                                    font: ({ pixelSize: 16,
-                                             weight: Font.DemiBold,
-                                             features: { "tnum": 1 } })
+                                    font: Theme.cardMetric
                                     color: Theme.metricDuration
+                                    elide: Text.ElideRight
+                                    Accessible.ignored: true
                                 }
                                 Label {
+                                    Layout.fillWidth: true
                                     text: modelData.paceText
-                                    font: Theme.compactLabel
+                                    font: Theme.metricLabel
                                     color: Theme.metricPace
+                                    elide: Text.ElideRight
+                                    Accessible.ignored: true
                                 }
                                 Label {
+                                    Layout.fillWidth: true
                                     text: modelData.dateText
-                                    font: Theme.compactLabel
-                                    color: Theme.textTertiary
+                                    font: Theme.metricLabel
+                                    color: Theme.textSecondary
+                                    elide: Text.ElideRight
+                                    Accessible.ignored: true
                                 }
                             }
                         }
@@ -154,12 +172,11 @@ Pane {
             // Distance by sport (Studio's bar chart panel).
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: chartColumnHeight
+                Layout.preferredHeight: Theme.chartHeight + sportTitle.implicitHeight
+                                        + 3 * Theme.spacingXLarge
                 color: Theme.panelBackground
-                radius: Theme.radiusMedium
+                radius: Theme.radiusLarge
                 Accessible.name: Tr.t("dashboard.bySport")
-
-                property real chartColumnHeight: Theme.chartHeight + 80
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -167,6 +184,7 @@ Pane {
                     spacing: Theme.spacingLarge
 
                     Label {
+                        id: sportTitle
                         text: Tr.t("dashboard.bySport")
                         font: Theme.sectionHeadline
                         color: Theme.textPrimary
@@ -177,28 +195,24 @@ Pane {
                         id: sportChart
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-
-                        theme: GraphsTheme {
-                            colorScheme: Theme.dark ? GraphsTheme.ColorScheme.Dark
-                                                    : GraphsTheme.ColorScheme.Light
-                            backgroundVisible: false
-                            plotAreaBackgroundVisible: false
-                            labelTextColor: Theme.textSecondary
-                            labelFont.pixelSize: 10
-                        }
+                        theme: ChartTheme {}
 
                         axisX: BarCategoryAxis {
                             categories: Library.sportBarLabels
                             gridVisible: false
                             subGridVisible: false
+                            labelsVisible: true
                         }
                         axisY: ValueAxis {
                             min: 0
                             max: sportChart.barMax
                             titleText: Library.distanceAxis
-                            titleFont.pixelSize: 10
+                            titleFont.pixelSize: Theme.chartLabel.pixelSize
                             titleVisible: true
                             labelDecimals: 0
+                            subTickCount: 0
+                            lineVisible: false
+                            tickInterval: ChartUtils.niceInterval(sportChart.barMax, 4)
                         }
 
                         // Headroom so labels/bars never clip (a display
@@ -218,6 +232,7 @@ Pane {
                             BarSet {
                                 id: sportBarSet
                                 color: Theme.metricDistance
+                                borderWidth: 0
                             }
                         }
                     }
@@ -228,26 +243,31 @@ Pane {
             // faster is up, ticks pre-rendered in Rust).
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.chartHeight + 80
+                Layout.preferredHeight: Theme.chartHeight + trendTitle.implicitHeight
+                                        + trendSubtitle.implicitHeight
+                                        + 4 * Theme.spacingXLarge
                 color: Theme.panelBackground
-                radius: Theme.radiusMedium
+                radius: Theme.radiusLarge
                 Accessible.name: Tr.t("dashboard.trendTitle")
 
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: Theme.spacingXLarge
-                    spacing: Theme.spacingLarge
+                    spacing: Theme.spacingSmall
 
                     Label {
+                        id: trendTitle
                         text: Tr.t("dashboard.trendTitle")
                         font: Theme.sectionHeadline
                         color: Theme.textPrimary
                         Accessible.ignored: true
                     }
                     Label {
+                        id: trendSubtitle
+                        Layout.bottomMargin: Theme.spacingMedium
                         text: Tr.t("dashboard.likeForLike",
                                    { sport: Library.paceSportName })
-                        font: Theme.metricLabel
+                        font: Theme.subheadline
                         color: Theme.textSecondary
                         Accessible.ignored: true
                     }
@@ -257,7 +277,7 @@ Pane {
                     // overflow on the left (ChartUtils.yLabelOverflow).
                     FontMetrics {
                         id: paceTickMetrics
-                        font.pixelSize: 10
+                        font: Theme.chartLabel
                     }
 
                     GraphsView {
@@ -266,15 +286,7 @@ Pane {
                         Layout.fillHeight: true
                         marginLeft: ChartUtils.yLabelOverflow(Library.paceAxisLabels,
                                                               paceTickMetrics)
-
-                        theme: GraphsTheme {
-                            colorScheme: Theme.dark ? GraphsTheme.ColorScheme.Dark
-                                                    : GraphsTheme.ColorScheme.Light
-                            backgroundVisible: false
-                            plotAreaBackgroundVisible: false
-                            labelTextColor: Theme.textSecondary
-                            labelFont.pixelSize: 10
-                        }
+                        theme: ChartTheme {}
 
                         axisX: ValueAxis {
                             min: -0.5
@@ -299,8 +311,8 @@ Pane {
                                         return idx >= 0 && idx < dates.length
                                                ? dates[idx] : ""
                                     }
-                                    font.pixelSize: 9
-                                    color: Theme.textTertiary
+                                    font: Theme.chartLabel
+                                    color: Theme.textSecondary
                                 }
                             }
                         }
@@ -334,7 +346,7 @@ Pane {
                                               Library.paceAxisValues,
                                               Library.paceAxisLabels,
                                               parent.text)
-                                    font.pixelSize: 10
+                                    font: Theme.chartLabel
                                     color: Theme.textSecondary
                                 }
                             }
@@ -349,20 +361,6 @@ Pane {
                 }
             }
         }
-    }
-
-    // Columns for a grid of `count` equal-width cells at least `minWidth`
-    // wide: as many as fit, then spread over the rows so they stay balanced
-    // (four tiles make one row of four or two rows of two, never 3 + 1).
-    // Layout arithmetic only.
-    function gridColumns(count, width, minWidth, gap) {
-        if (!(count > 0)) {
-            return 1
-        }
-        var fit = Math.floor((width + gap) / (minWidth + gap))
-        fit = Math.min(count, Math.max(2, fit))
-        var rows = Math.ceil(count / fit)
-        return Math.ceil(count / rows)
     }
 
     // Bulk series loading: one replace() per change (ground rule).
