@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Borderless icon button for the toolbar and the floating replay controls
+// (ADR 0013): no fill at rest, a rounded wash on hover and press, the glyph in
+// the accent while `checked`. Icon-only, so `label` is both the accessible
+// name and the tooltip — and the tooltip is never the only way in: the
+// command also has its menu entry or shortcut. Tab reaches it (with a focus
+// ring); a click does not take focus, so clicking Reload keeps the list
+// focused.
+import QtQuick
+import QtQuick.Controls
+import RowPlay
+
+AbstractButton {
+    id: control
+
+    /// Icon.qml glyph key.
+    property string iconName: ""
+    /// Translated label: accessible name and tooltip.
+    property string label: ""
+    property real iconSize: Theme.iconSize
+    property real cornerRadius: Theme.radiusSmall
+
+    implicitWidth: Theme.controlHeight
+    implicitHeight: Theme.controlHeight
+    padding: 0
+    hoverEnabled: true
+    focusPolicy: Qt.TabFocus
+
+    Accessible.name: label
+    Accessible.role: Accessible.Button
+
+    AppToolTip {
+        visible: control.hovered && control.label.length > 0
+        text: control.label
+    }
+
+    contentItem: Item {
+        Icon {
+            anchors.centerIn: parent
+            name: control.iconName
+            size: control.iconSize
+            color: !control.enabled ? Theme.textDisabled
+                 : control.checked ? Theme.accentColor
+                 : (control.hovered ? Theme.textPrimary : Theme.textSecondary)
+        }
+    }
+
+    background: Rectangle {
+        radius: control.cornerRadius
+        color: control.down ? Theme.pressedFill
+                            : (control.hovered || control.checked
+                               ? Theme.hoverFill : "transparent")
+
+        FocusRing {
+            visible: control.visualFocus
+            controlRadius: control.cornerRadius
+        }
+    }
+}
