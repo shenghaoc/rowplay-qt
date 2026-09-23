@@ -37,7 +37,11 @@ ApplicationWindow {
     Component.onCompleted: {
         Qt.uiLanguage = Settings.languageCode
         // The demo library starts with its default workout selected (Studio's
-        // SceneStorage initial value); route to the detail screen if so.
+        // SceneStorage initial value); route to the detail screen if so. The
+        // Library made that selection while it was constructed, before the
+        // onSelectionChanged wiring below existed, so hand it to Detail here —
+        // otherwise the first launch showed an empty detail pane.
+        Detail.selectWorkout(Library.selectedWorkoutId)
         screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
     }
 
