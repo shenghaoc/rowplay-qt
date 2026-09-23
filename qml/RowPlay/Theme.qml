@@ -205,11 +205,10 @@ QtObject {
     readonly property color controlBackground: dark ? "#22262C" : "#FFFFFF"
     /// Menus, pop-up lists, tooltips, dialogs.
     readonly property color popupBackground: dark ? "#1C1F24" : "#FFFFFF"
-    /// Floating controls over the replay scene (solid in high contrast).
-    readonly property color overlayBackground: highContrast
-                                               ? (dark ? "#1C1F24" : "#F7F8FA")
-                                               : (dark ? Qt.rgba(0.11, 0.12, 0.14, 0.88)
-                                                       : Qt.rgba(0.97, 0.97, 0.98, 0.90))
+    /// Floating controls over the replay scene: opaque, on the grouped
+    /// surface. Translucent (0.88–0.90 alpha), the metric colours and the
+    /// tertiary text fell below AA over dark parts of the scene.
+    readonly property color overlayBackground: groupBackground
 
     // MARK: - Text (WCAG AA on every surface above; see docs/source-map.md)
 

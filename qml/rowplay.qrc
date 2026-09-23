@@ -38,6 +38,7 @@
         <file>RowPlay/AppMenuItem.qml</file>
         <file>RowPlay/AppMenuSeparator.qml</file>
         <file>RowPlay/AppScrollBar.qml</file>
+        <file>RowPlay/AppSlider.qml</file>
         <file>RowPlay/AppProgressBar.qml</file>
         <file>RowPlay/AppBusyIndicator.qml</file>
         <file>RowPlay/AppDialog.qml</file>

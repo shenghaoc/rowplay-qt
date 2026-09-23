@@ -30,6 +30,7 @@ AppMenu 1.0 AppMenu.qml
 AppMenuItem 1.0 AppMenuItem.qml
 AppMenuSeparator 1.0 AppMenuSeparator.qml
 AppScrollBar 1.0 AppScrollBar.qml
+AppSlider 1.0 AppSlider.qml
 AppProgressBar 1.0 AppProgressBar.qml
 AppBusyIndicator 1.0 AppBusyIndicator.qml
 AppDialog 1.0 AppDialog.qml
