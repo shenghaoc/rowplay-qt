@@ -182,10 +182,19 @@ ApplicationWindow {
 
                     // Principal: the sport filter (Studio's segmented picker),
                     // bound to the Library so a filter set from anywhere —
-                    // including the gate walk — shows here.
+                    // including the gate walk — shows here. It is centred but
+                    // never under the trailing buttons; where even that leaves
+                    // too little room (large text in a narrow window) its
+                    // width is capped and it takes its compact pop-up form.
                     SegmentedControl {
                         id: sportFilter
-                        anchors.centerIn: parent
+                        readonly property real room: trailingButtons.x
+                                                     - 2 * Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(0, Math.min(implicitWidth, room))
+                        x: Math.max(Theme.spacingLarge,
+                                    Math.min((parent.width - width) / 2,
+                                             trailingButtons.x - Theme.spacingLarge - width))
                         model: [Tr.t("dashboard.all")].concat(Library.sportNames)
                         currentIndex: Library.sportFilterIndex
                         label: Tr.t("workoutList.filtersTitle")
@@ -197,6 +206,7 @@ ApplicationWindow {
                     // Trailing: reload, the settings toggle and, on Windows
                     // and Linux, the application menu.
                     RowLayout {
+                        id: trailingButtons
                         anchors.right: parent.right
                         anchors.rightMargin: Theme.spacingLarge
                         anchors.verticalCenter: parent.verticalCenter
