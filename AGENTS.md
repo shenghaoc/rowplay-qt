@@ -87,10 +87,13 @@ a green CI job alone. Do not proceed with 3D work while `cargo build
 -p rowplay-app` fails locally — fix the environment first.
 
 Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
-and exits, `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic mock
-client (no token), `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the palette,
-`ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk.
-All of those are compiled out of release builds (`backend::test_env`).
+and exits and `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic
+mock client (no token); both are compiled out of release builds
+(`backend::test_env`). `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the
+palette, `ROWPLAY_FORCE_CONTRAST=high|normal` pins the contrast variant and
+`ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk;
+these are plain environment reads, documented overrides that change nothing
+but the look (the screenshot directory is used only by the gate walk).
 `ROWPLAY_EXIT_AFTER_FRAMES=N` is the one hook read in every build: the shell
 quits with status 0 after N rendered frames, which is how the packaged
 release bundles are proven to start (`tools/package/launch-check.py`); it can
@@ -277,7 +280,9 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `SPDX-License-Identifier: GPL-3.0-or-later`.
 - QML: one module per directory with a `qmldir`; strings through
   `Tr.t("dotted.web.key", { vars })` (never `qsTr` with inline English, never
-  hardcoded user-visible text); Fusion style coloured from `Theme.qml`;
+  hardcoded user-visible text); the Basic style, drawn from the tokens in
+  `Theme.qml` (ADR 0013: one design system on every OS, lengths and type
+  scaled from the system font, the system accent and contrast preference);
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
 
