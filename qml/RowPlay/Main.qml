@@ -586,8 +586,12 @@ ApplicationWindow {
             case 11: Settings.setLanguageIndex(0); break  // en
             case 12:
                 // 1001 is already selected at startup (demo default); pick a
-                // different workout so the selection actually changes.
+                // different workout so the selection actually changes. The
+                // walk is still on the settings screen here, so route to the
+                // detail screen too — otherwise the "detail" capture at step
+                // 13 shows settings.
                 Library.selectWorkout(1003)
+                root.screenIndex = 1
                 break
             case 13: root.grabScreen("detail"); break
             case 14: Library.setSportFilter(1); break
