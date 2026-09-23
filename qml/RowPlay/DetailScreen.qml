@@ -232,13 +232,20 @@ Pane {
                 }
                 readonly property real tableWidth: Math.max(splitsScroller.width,
                                                             minimumTableWidth)
-                // The final widths: the spare width goes to the metric columns
-                // in equal shares; the number column keeps its content width.
+                // The final widths, in whole pixels: Qt Quick Layouts round
+                // each width up to a whole pixel, so fractional shares would
+                // sum past the table and clip its last column. The spare
+                // width goes to the metric columns in equal shares, with the
+                // rounding remainder on the last one; the number column keeps
+                // its content width.
                 readonly property var columnWidths: {
-                    var spare = (tableWidth - minimumTableWidth) / (contentWidths.length - 1)
+                    var n = contentWidths.length - 1
+                    var spare = Math.max(0, Math.floor(tableWidth - minimumTableWidth))
+                    var share = Math.floor(spare / n)
                     var widths = []
                     for (var c = 0; c < contentWidths.length; ++c) {
-                        widths.push(contentWidths[c] + (c > 0 ? spare : 0))
+                        widths.push(contentWidths[c] + (c > 0 ? share : 0)
+                                    + (c === n ? spare - share * n : 0))
                     }
                     return widths
                 }

@@ -856,6 +856,17 @@ so how those earlier close-ups were framed is an open question
   choices at every text size, so its width never depended on its text.
   The control now measures its widest choice with a `FontMetrics` in the
   button's font (`compactWidth`).
+- **Qt Quick Layouts round each item's width up to a whole pixel** (UI
+  design system, 4/7). `QQuickGridLayoutEngine` constructs its engine with
+  `snapToPixelGrid` set (`qquickgridlayoutengine_p.h`, Qt 6.11.2), so a
+  row of fractional preferred widths computed to fill a width exactly
+  lays out wider than it, by up to a pixel per item. Repro under the `qml`
+  runtime (offscreen): seven `Rectangle`s in a `RowLayout` (`spacing:
+  11`) whose preferred widths sum with the gaps to 832.0 give the row an
+  `implicitWidth` of 835, and the last one ends at 834.9. The splits
+  table's spare-width shares were fractional, so its scroller clipped the
+  last column wherever the table fits; whole-pixel shares end it flush. A
+  `Flow` does not snap: it places an item at a fractional x.
 - **Basic's `ScrollBar` draws a track under the OS contrast preference**
   (UI design system, second-reviewer pass). Its `background` is a
   `Rectangle` in `palette.mid` at the thumb's opacity, visible only while
