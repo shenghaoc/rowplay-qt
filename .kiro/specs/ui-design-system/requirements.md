@@ -51,8 +51,8 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   the fallback when the platform reports none.
 - R1.6 The OS contrast preference (`Qt.styleHints.accessibility`, Qt 6.10+)
   switches to a high-contrast variant: opaque surfaces, stronger separators
-  and outlines, full-contrast secondary text and a solid replay HUD
-  (`ROWPLAY_FORCE_CONTRAST` pins it).
+  and outlines, and full-contrast secondary text (`ROWPLAY_FORCE_CONTRAST`
+  pins it).
 
 ## R2 — Controls on the Basic style
 
@@ -126,11 +126,13 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 
 ## R7 — Replay
 
-- R7.1 Playback controls float over the scene (a solid surface under high
-  contrast).
+- R7.1 Playback controls float over the scene on an opaque surface, so
+  their text and metric colours pass AA whatever the scene shows behind
+  them.
 - R7.2 While playing, the HUD hides after about 3 s without pointer
-  movement. It reappears on pointer movement, a tap, any keyboard input or
-  pause, and appears instantly under reduce motion.
+  movement. It reappears on pointer movement, a tap, a replay key, a
+  keyboard focus move or pause, never hides while keyboard focus is inside
+  it, and appears instantly under reduce motion.
 - R7.3 The sidebar is hidden while the replay is shown and its width is
   restored on exit (#62). Back navigation and the keyboard work.
 - R7.4 A camera framing inset is added only if it touches neither the replay

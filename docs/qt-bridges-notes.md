@@ -969,3 +969,15 @@ so how those earlier close-ups were framed is an open question
   - **Empty menus.** A menu left with no visible items after the move is
     hidden (`qcocoamenubar.mm`).
   - **Not verified on a Mac** (tracked in #66).
+- **While anything animates, Qt Quick sends a synthetic hover every
+  frame** (UI design system, the replay HUD). After each frame that changed
+  an item, `QQuickDeliveryAgentPrivate::flushFrameSynchronousEvents`
+  delivers a hover event at the last known pointer position, unless an item
+  holds the mouse grab (`frameSynchronousHoverEnabled`, a private flag that
+  defaults to on; qtdeclarative `v6.11.2`, `qquickdeliveryagent.cpp` and
+  `qquickdeliveryagent_p_p.h`). It keeps hover states right under moving
+  items, but a `HoverHandler` sees `pointChanged` on every animated frame
+  while the pointer rests. The first build of the HUD's "hide after 3 s
+  without pointer movement" therefore never hid while the replay played
+  (driven under Xvfb). The HUD now wakes only when the position differs by
+  at least a pixel from the last one it acted on.

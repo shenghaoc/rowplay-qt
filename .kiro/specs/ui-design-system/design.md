@@ -105,6 +105,29 @@ Two different things scale a Qt UI, and the design handles both:
   sweep stops (reduce motion): a stopped animation leaves `x` where it was.
 - Parts centred inside a control round to whole pixels: an antialiased
   rounded shape at a half pixel smears on a 1x display.
+- `AppSlider` (6/7, the replay scrubber) draws a thin track with the accent
+  fill and shows its knob on hover, press and keyboard focus, with the
+  focus ring around it.
+
+## Replay
+
+- The scene fills the route. The HUD is one opaque panel on the grouped
+  surface (`Theme.overlayBackground`), centred at the bottom.
+- `hudShown` drives the HUD's opacity: a 200 ms fade, none under reduce
+  motion. A 3 s `Timer` runs only while the replay is visible and playing,
+  the HUD is shown and keyboard focus is not inside it (`hudHasFocus` walks
+  up from `Window.activeFocusItem`). `wakeHud()` shows the HUD and restarts
+  the timer. It is called by pointer moves, taps, the replay shortcuts,
+  focus changes, playback starting or stopping and the route being shown.
+  The pointer hides with the HUD (`HoverHandler.cursorShape`).
+- Pointer moves are compared by position (at least 1 px from the last one
+  acted on), because Qt Quick sends a synthetic hover after every animated
+  frame (`docs/qt-bridges-notes.md`).
+- The toolbar shows the way back (named "Close") and the workout's title,
+  and hides the sport filter and the trailing buttons. `SplitView` keeps the
+  hidden sidebar's width.
+- No camera framing inset (R7.4): auto-hide keeps the scene clear, and the
+  pose, the chase camera and their tests stay untouched.
 
 ## Verification harness
 
