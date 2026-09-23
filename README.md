@@ -1,0 +1,13 @@
+# ui/screenshots — image hosting for the UI stack's PR bodies and issues
+
+This orphan branch holds only the before/after screenshots and evidence crops
+that the `ui/01-fixes` … `ui/07-docs` pull requests and their issues embed.
+It shares no history with `main` and is **never to be merged**: the pairs
+belong in PR bodies, not in the repository's tree (the stack keeps one
+current screenshot set under `docs/screenshots/`).
+
+All captures are the demo library only (no Concept2 account data). They are
+the runtime-error gate's own captures or xdotool-driven screen captures under
+Xvfb + Mesa llvmpipe on Linux; files are quantised or JPEG-compressed to keep
+the branch small. Deleting the branch after the stack lands would break the
+images in those PR bodies and issues.
