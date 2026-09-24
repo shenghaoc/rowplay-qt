@@ -292,6 +292,21 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "a full re-sync must re-download every detail\noutput:\n{combined}"
     );
 
+    // Settings opened over a replay close it on the way in: Back then lands
+    // on the workout with no replay left presented, and Replay opens again
+    // instead of being refused as already presented (block reason 4).
+    assert!(
+        combined.contains("gate settings over the replay: screen 1 closed"),
+        "settings opened over a replay must close it, and Back return to the \
+         workout\n\napp log:\n{}",
+        common::gate_log_lines(&combined)
+    );
+    assert!(
+        combined.contains("gate replay reopened: screen 3 block 0"),
+        "Replay must open again after settings closed it\n\napp log:\n{}",
+        common::gate_log_lines(&combined)
+    );
+
     // Phase 5b: structural equipment inventory check. The scene logs
     // "replay equipment: N of M" after each applySceneRules. The expected
     // counts are fixed here from the V3 contract's anchor table — the app's
