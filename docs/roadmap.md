@@ -665,8 +665,11 @@ ADR 0014 supersedes that:
   and one workflow, `release.yml`, that runs all three on pull requests
   touching a packaging input, on dispatch, and on `v*` tags, where it drafts
   a GitHub release. The release job still attaches the Linux AppImage and
-  `SHA256SUMS` only. Attaching the macOS and Windows packages, as ADR 0014
-  decides, is a workflow change awaiting the author's approval.
+  `SHA256SUMS` only, and doesn't check that the tagged commit passed CI.
+  Attaching the macOS and Windows packages and gating the draft on the
+  tagged commit's `CI` run, as ADR 0014 decides, are a workflow change
+  awaiting the author's approval. Until then, releases are tagged only on
+  commits whose `CI` run passed.
 - Every package is launch-checked on its own runner: the deployed binary
   starts from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`,
   `QT_*`), renders 30 frames under the new release-safe
