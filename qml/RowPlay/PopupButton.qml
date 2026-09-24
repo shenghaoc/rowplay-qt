@@ -79,9 +79,13 @@ ComboBox {
         contentItem: RowLayout {
             spacing: Theme.spacingSmall
 
+            // Laid out in every row, so the labels line up; only the
+            // current row shows it (an Icon with no name hides itself, and
+            // a layout skips hidden items).
             Icon {
                 Layout.preferredWidth: Theme.iconSize
-                name: row.current ? "checkmark" : ""
+                name: "checkmark"
+                opacity: row.current ? 1 : 0
                 size: Theme.iconSize
                 color: row.highlighted ? Theme.selectionText : Theme.textPrimary
             }
