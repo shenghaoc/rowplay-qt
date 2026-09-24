@@ -790,6 +790,8 @@ stack of seven PRs, each green on its own:
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
    - Delivered in #71 and validated there: the full suite and the captures
      before and after, scrolled views included.
+   - Second-reviewer pass: Replay's clipped focus ring and scroll-bar
+     overlap, and the splits card's jump on hovering its scroll bar (T4.6).
 5. `ui/05-settings`: the grouped settings page.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
    during the replay.

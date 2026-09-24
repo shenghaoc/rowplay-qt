@@ -201,6 +201,16 @@ that delivers it.
     shares clipped the last column wherever the table fits, the default
     size included (found by the default-size capture).
   - [x] T4.5 Validation (R9): see the PR.
+  - [x] T4.6 The second-reviewer pass (2026-09-24), each checked in a
+    scratch Qt Quick Test with the real controls:
+    - Replay sat flush against the scroll view's clipped top-right corner,
+      which cut its focus ring's top and trailing sides, and the overlay
+      scroll bar took clicks on its trailing edge. It keeps room for its
+      ring and sits clear of the bar's widest thickness.
+    - The splits card reserved its sideways scroll bar's current height,
+      which grows under the pointer, so hovering the bar moved the page
+      (2 px at the 12 px base). It reserves the bar's `maximumThickness`
+      (2/7).
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
