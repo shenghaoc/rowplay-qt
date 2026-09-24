@@ -541,8 +541,9 @@ push costs a CI round of about ten minutes.
   (`replay-*`, `phase-*`, `step5*`) differed by at most 150 scattered
   pixels with a channel delta of at most 3, and 2D screens by at most 262
   pixels with a delta of at most 6. The bounds add margin: **3D ≤ 250 px,
-  delta ≤ 4; 2D ≤ 400 px, delta ≤ 8.** The smoke test's capture (`smoke`),
-  a `View3D`, takes the 3D bound. `tools/capture-diff.py <before-dir>
+  delta ≤ 4; 2D ≤ 400 px, delta ≤ 8.** The smoke test's capture (`smoke`)
+  has no bound. Its cube turns every frame, so identical runs differ
+  (20–26 k px on CI), and the tool skips it. `tools/capture-diff.py <before-dir>
   <after-dir>` applies them, and reports a capture that only one side has
   as a change. A capture within its bound is unchanged, and a
   PR says so once, not per capture. A capture beyond it changed, and the PR
