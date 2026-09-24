@@ -1046,6 +1046,9 @@ impl ReplayBackend {
             self.sport_index = index;
             self.refresh_palette();
             self.refresh_tier();
+            // As `set_sport` does: QML switches sport through here, and the
+            // hands must close around this sport's equipment (#85).
+            self.refresh_grip();
             self.notify_replay();
         }
         true
@@ -1696,6 +1699,32 @@ mod tests {
             replay.venue_plan
         );
         assert_eq!(replay.venue_plan["quality"], tier);
+    }
+
+    /// Issue #85: QML switches sport through `load_workout`, which refreshed
+    /// the palette and the tier but kept the rower's finger grip table, so
+    /// SkiErg and BikeErg closed the hands around the rower's handle.
+    /// `set_sport` solves the right table; loading must match it.
+    #[test]
+    fn loading_a_workout_solves_its_sports_grip() {
+        seed_demo_library();
+        let rower = ReplayBackend::default();
+        for (id, sport) in [(1003, 1), (1004, 2)] {
+            let mut switched = ReplayBackend::default();
+            switched.set_sport(sport);
+            assert_ne!(
+                switched.grip_poses, rower.grip_poses,
+                "sport {sport} solves a table of its own"
+            );
+            let mut loaded = ReplayBackend::default();
+            loaded.load_workout(id);
+            assert_eq!(loaded.sport_index, sport);
+            assert_eq!(
+                loaded.grip_poses, switched.grip_poses,
+                "load_workout({id}) kept another sport's grip table"
+            );
+            assert_eq!(loaded.grip_contacts, switched.grip_contacts);
+        }
     }
 
     /// The capture-walk close-up camera must frame the athlete, not the venue
