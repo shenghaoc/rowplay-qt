@@ -30,6 +30,14 @@ AbstractButton {
     // checked state while the button is checkable (the settings toggle).
     Accessible.name: label
 
+    // While focused, Space presses the button: a window shortcut on Space
+    // (the replay's play / pause) would otherwise take the key first.
+    Keys.onShortcutOverride: function(event) {
+        if (event.key === Qt.Key_Space && event.modifiers === Qt.NoModifier) {
+            event.accepted = true
+        }
+    }
+
     AppToolTip {
         visible: control.hovered && control.label.length > 0
         text: control.label
