@@ -11,9 +11,12 @@ on:
 # (restacks and repeated events used to leave both running). Every other
 # event gets a group of its own, so a push to main is never cancelled, nor
 # queued behind another run: a shared group would cancel a pending one.
+# Only a first attempt cancels: GitHub applies cancel-in-progress to any
+# run that enters the group, so a re-run of an older run would otherwise
+# cancel the newer head's run. A re-run waits for it instead.
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.run_attempt == '1' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -44,7 +47,10 @@ jobs:
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          # --no-renames: a rename must count its old path too. With rename
+          # detection, moving a code file under docs/ lists only the new
+          # path and would pass as docs-only.
+          changed=$(git diff --no-renames --name-only "origin/${{ github.base_ref }}...HEAD")
           printf '%s\n' "$changed"
           docs='^(docs/|\.kiro/|LICENSES/|LICENSE$|[^/]+\.md$|\.github/pull_request_template\.md$)'
           if [ -n "$changed" ] && ! grep -qvE "$docs" <<< "$changed"; then

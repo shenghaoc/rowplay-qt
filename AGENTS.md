@@ -241,16 +241,17 @@ requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV 1.87
 `App (windows-2025)`. The step-529 job is informational. Rules:
 
 - A newer push to a pull request cancels the run it supersedes. Runs on
-  `main` are never cancelled.
-- A docs-only pull request skips the App jobs' build and test steps and
-  the step-529 job. Docs-only means every changed path is under `docs/`,
+  `main` are never cancelled. A re-run of an older run cancels nothing: it
+  waits for the run in progress.
+- A docs-only pull request skips the App jobs' build and test steps and the
+  step-529 job. Docs-only means every changed path is under `docs/`,
   `.kiro/` or `LICENSES/`, or is `LICENSE`, the pull request template or a
-  repository-root `*.md`. The App jobs still run and report their
-  required checks. The Qt-free job, with its `git diff --check`, always
-  runs, and so does every push to `main`. No test reads those paths. A
-  `.md` anywhere else is code, because the asset and fixture manifest
-  tests police their directories. Widening the list needs the same check
-  against the tests first.
+  repository-root `*.md`. A rename counts both its old and its new path. The
+  App jobs still run and report their required checks. The Qt-free job, with
+  its `git diff --check`, always runs, and so does every push to `main`. No
+  test reads those paths. A `.md` anywhere else is code, because the asset
+  and fixture manifest tests police their directories. Widening the list
+  needs the same check against the tests first.
 - Required check names are load-bearing. Renaming a job or its matrix
   means updating the ruleset. Never skip a required job with a job-level
   `if:`: a matrix job skipped at job level does not report its per-OS

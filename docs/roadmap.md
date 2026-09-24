@@ -29,6 +29,10 @@ Status: delivered (this PR).
   (Qt 6.11 with `qtquick3d qtshadertools qtquicktimeline qtgraphs`); the
   Linux app job also runs the screenshot test. No blocking docs-check job —
   docs are enforced in review (AGENTS.md P1 rule and the PR template).
+  (2026-09-24: a docs-only pull request skips the app build and test steps
+  and the step-529 job, while the app jobs still report their required
+  checks, and a newer push cancels the run it supersedes; AGENTS.md,
+  "Continuous integration".)
 - Docs: README, LICENSE and `LICENSES/`, `ASSET_PROVENANCE.md`, ADRs
   0001–0006, `docs/source-map.md` (web → Swift → Rust),
   `docs/qt-bridges-notes.md`, `.kiro/specs/phase-00-bootstrap/` and
