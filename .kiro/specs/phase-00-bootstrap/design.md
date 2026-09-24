@@ -59,3 +59,9 @@ check), `app` matrix (`ubuntu-24.04`, `macos-26`, `windows-2025`) with
 `jurplel/install-qt-action@v4`, cargo build + clippy of the app; the Ubuntu
 leg installs the xcb runtime libraries and Mesa, runs the smoke test under
 `xvfb-run` and uploads the screenshot as an artifact.
+
+*(2026-09-24: a `changes` job now classifies each pull request. For a
+docs-only one, the `app` matrix skips its build and test steps but still
+reports its checks, and the step-529 job is skipped. A concurrency group
+per pull request cancels superseded runs. See AGENTS.md, "Continuous
+integration".)*
