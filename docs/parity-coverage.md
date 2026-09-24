@@ -1431,6 +1431,14 @@ match the port.
 
 ## Capture caveat (narrower than the earlier wording suggested)
 
+**Resolved 2026-09-24 (docs/qt-bridges-notes.md #17):** the "black
+viewport" was the gate test's `offscreen` default, which draws no Quick 3D,
+not a Metal defect. On the Apple M5 host the note names, the gate walk run
+in a real window (`QT_QPA_PLATFORM` unset, so `cocoa`) captures the replay
+in both schemes. So macOS is a fourth verified path below, as long as the
+walk runs in a real window and not through `cargo test`'s `offscreen`. The
+section is kept as written.
+
 The `ROWPLAY_PHASE_SHOTS=1` baseline **cannot be produced on the one
 macOS/Metal host that hit `grabToImage`'s black-viewport bug**
 (docs/qt-bridges-notes.md #17). That was one previous session's host;

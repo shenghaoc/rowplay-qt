@@ -79,7 +79,8 @@
   look at the dashboard, detail and all three replay scenes (R6.1). The
   launch check cannot see pixels. macOS and Windows are not distributed, so
   their human checks are closed as **won't-do** with the distribution
-  policy as the reason — the macOS partial look below stays on record but
+  policy as the reason *(Superseded on 2026-09-24 by ADR 0014: macOS was checked natively,
+  #66; Windows has no person to check it, #81)* — the macOS partial look below stays on record but
   blocks nothing.
   Author inspection (2026-09-20, recorded from the author's report): the
   author (Shenghao Chen) opened the packaged AppImage on this machine —
@@ -165,6 +166,7 @@
   with a launch check per removed module (R6.3); Flatpak from the same
   AppDir (R6.4); macOS x86_64 / Linux aarch64 (R6.2). Developer ID signing +
   notarytool submission (R4.3) is closed as **won't-do** with the rest of
-  the macOS distribution scope. In-app version (R6.5) is done in this PR:
+  the macOS distribution scope *(Superseded on 2026-09-24 by ADR 0014: an open decision for the
+  author, with Windows code signing)*. In-app version (R6.5) is done in this PR:
   `Settings.appVersion` on the Settings screen through the
   `settings.appVersion` supplement key.
