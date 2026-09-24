@@ -193,6 +193,22 @@ Pane {
                 // The model is rebuilt wholesale (reset), so track the selection
                 // by workout id instead of a stale index.
                 currentIndex: -1
+                // Whether the selected row is on screen, where its accent shows
+                // that the list holds keyboard focus. A search, a filter or a
+                // scroll can take it away while a workout stays selected.
+                readonly property bool selectionInView: {
+                    const top = contentY
+                    const bottom = contentY + height
+                    const rows = contentItem.children
+                    for (let i = 0; i < rows.length; ++i) {
+                        const row = rows[i]
+                        if (row.selected === true && row.visible
+                                && row.y + row.height > top && row.y < bottom) {
+                            return true
+                        }
+                    }
+                    return false
+                }
                 ScrollBar.vertical: AppScrollBar {}
 
                 Keys.onPressed: function(event) {
@@ -390,11 +406,13 @@ Pane {
                 activeFocusOnTab: true
             }
 
-            // With nothing selected there is no accent row to show that the
-            // list holds keyboard focus, so ring the list itself.
+            // With no selected row on screen there is no accent row to show
+            // that the list holds keyboard focus, so ring the list itself. Its
+            // bottom edge stays inside the window.
             FocusRing {
-                visible: listView.activeFocus && Library.selectedWorkoutId === -1
+                visible: listView.activeFocus && !listView.selectionInView
                 controlRadius: Theme.radiusSmall
+                anchors.bottomMargin: Theme.px(2)
             }
         }
     }
