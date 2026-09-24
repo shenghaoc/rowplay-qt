@@ -59,6 +59,14 @@ that delivers it.
     metrics' font themselves. Without that, a measure taken before the font
     landed stayed (5/7's quality control drew 308 px wide instead of 292),
     and so did one taken before a live change of the system font.
+  - [x] T2.9 The compact form's floor, from the Codex review of #70 (its
+    toolbar could cap the sport filter at 0 px, where the control shows
+    nothing). `SegmentedControl.compactWidth` is the narrowest width that
+    still shows every choice whole: the pop-up button around its widest
+    title, measured in the button's own font. The pop-up button is never
+    narrower. `ComboBox.WidestText`, which the compact form had set for
+    this, measures only a `TextInput` content item and read 0 here
+    (`docs/qt-bridges-notes.md`).
 - [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
   (R3), the platform layer (R4.1–R4.4), the empty state.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.

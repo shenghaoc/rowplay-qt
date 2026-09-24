@@ -75,6 +75,10 @@ Two different things scale a Qt UI, and the design handles both:
   `currentIndex`, so its binding to the store stays intact. Capped below
   its implicit width, it shows the same choices as a `PopupButton` (the
   compact form), with focus and the accessible role on the pop-up button.
+  `compactWidth` is the narrowest width that still shows every choice
+  whole (the pop-up button around its widest title, in its own font): a
+  caller that caps the control keeps it at least that wide, and the pop-up
+  button is never narrower.
 - `FormRow` stacks its controls under the label when they and a 140 px
   (scaled) label column do not fit side by side.
 - A binding that measures text with `FontMetrics.advanceWidth()` also reads
