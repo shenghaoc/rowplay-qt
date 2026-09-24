@@ -1464,8 +1464,9 @@ that DO capture the 3D scene:
   walk's own settle and grab timeouts are 18 s and 12 s.
 
   Re-measured later on 2026-09-24, on the same host with #87 and #90 in:
-  - With the window frontmost, the same walk takes about 100 s, in debug
-    and in release, and no hold runs out its bound.
+  - With the window frontmost, the same walk takes about 100 s, and no hold
+    runs out its bound. That holds in debug, and in release with the test
+    hooks kept (`--config profile.release.debug-assertions=true`).
   - A hidden window renders no frames, so every hold runs out its bound
     (about 30 s per 3D capture). The gate timer keeps its 300 ms period
     with or without App Nap, so hiding cannot produce minutes-long pauses.

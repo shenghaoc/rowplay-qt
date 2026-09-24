@@ -203,8 +203,10 @@ before guessing why a walk was slow.
 
 **Natively on macOS, keep the gate's window visible.** Measured on an Apple
 M5 (Metal, 2026-09-24) with the full walk, phase shots and close-ups:
-- With the window frontmost, the walk takes about 100 s, in debug and in
-  release, and no hold runs out its bound.
+- With the window frontmost, the walk takes about 100 s, and no hold runs
+  out its bound. That holds in debug, and in release with the test hooks
+  kept (`--config profile.release.debug-assertions=true`): a standard
+  release build compiles the gate's hooks out.
 - A hidden window renders no frames, so every hold runs out its bound, and
   each 3D capture costs its whole settle and grab bounds (18 s + 12 s). The
   walk reached step 71 of 213 in 255 s, and the timing summary lists every
@@ -218,7 +220,8 @@ llvmpipe) fails at a 4.9 % margin against its 5 % threshold:
 
 ```bash
 QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal ROWPLAY_FORCE_COLOR_SCHEME=light \
-  ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
+  ROWPLAY_PHASE_SHOTS=1 ROWPLAY_PHASE_CLOSEUPS=1 \
+  ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
   cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
 ```
