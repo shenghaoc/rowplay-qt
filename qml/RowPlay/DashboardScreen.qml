@@ -132,7 +132,7 @@ Pane {
                                     // title3-ish semibold tabular value
                                     font: ({ pixelSize: 16,
                                              weight: Font.DemiBold,
-                                             features: Font.TabularNumbers })
+                                             features: { "tnum": 1 } })
                                     color: Theme.metricDuration
                                 }
                                 Label {
