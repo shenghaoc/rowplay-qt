@@ -399,7 +399,10 @@ that signal. The scene re-ran its full rule walk about four times a second
 during playback: a ~115 ms GUI-thread stall every 15 frames. Because the walk
 re-assigns materials, it also made a paused replay redraw itself continuously
 (70 frames/s, 160 % CPU on llvmpipe). With `diagnosticsChanged` as its own
-signal, a paused replay idles at 0.6 % CPU (roadmap, UI follow-ups).
+signal, a paused replay idles at 0.6 % CPU under llvmpipe (roadmap, UI
+follow-ups). On macOS it still renders at the display rate for a separate
+reason: the replay's tick animation runs while paused (#93). On an Apple M5
+the paused replay costs 11 % CPU, down from 44 % before this change.
 
 Repro: expose a ~70-entry `serde_json::Value` map as a `Constant` property and
 read `Obj.map[key]` 1,000 times in a QML loop, against `var m = Obj.map` once

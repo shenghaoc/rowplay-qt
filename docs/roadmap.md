@@ -783,10 +783,15 @@ two candidate causes, separated by a render-cadence measurement
   - playback after: none over 80 ms, p95 53 ms, 22.4 fps;
   - paused before: the scene redrew itself at 66 frames/s for 161 % CPU;
   - paused after: 0 frames, 0.7 % CPU.
+  - on macOS (Apple M5, cocoa on Metal, 120 Hz display, debug build, 10 × 1 s
+    with `top`), paused went from 44 % to 11 % CPU. The remaining 11 % is
+    120 frames/s from the replay's tick animation, which runs while paused
+    (#93).
 
   Two side effects went with it. A paused replay no longer feeds the
   governor, so an idle scene cannot be stepped down any more (it could
-  before, and did at 32 s on llvmpipe). The gate's hold had relied on that
+  before, and did at 32 s on llvmpipe). That holds under llvmpipe: on macOS
+  the paused scene still renders and still feeds the governor (#93). The gate's hold had relied on that
   redraw loop for its frames (qt-bridges-notes, the `grabToImage` entry):
   without it every settle ran out its tick bound and the walk took
   947.7 s; with the hold requesting its own frames it takes 327.8 s
