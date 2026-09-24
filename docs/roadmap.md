@@ -773,7 +773,34 @@ a long delay, and the author reports slow loading — possibly one
 phenomenon (the 3D scene rebuilt from scratch on entry). Worth one
 look when the UI work starts. Tracked in #67 with the UI pass's own
 observation (more than 12 s from the Replay press to the first frame under
-Xvfb + llvmpipe); not diagnosed.
+Xvfb + llvmpipe); measured below.
+
+**Replay entry has a budget (2026-09-24, issue #67).** The runtime-error
+gate times its step 52 (`Library.requestReplay`, the rower) to the first
+presented frame after it, prints the result with the walk's phase
+durations, and warns in CI (a `::warning`, never a failure) above
+**30 s under llvmpipe**. Measured on a 4-core Linux VM, Xvfb + llvmpipe,
+one run per row:
+
+| Case | Entry |
+| --- | --- |
+| First entry, debug, warm shader caches | 13.7 s |
+| First entry, release (test hooks kept) | 13.4 s |
+| First entry, debug, empty shader caches (every CI run) | 15.6 s |
+| Sport switch, debug / release | 13.3–13.9 s / 12.2–13.0 s |
+
+About 12 s of each is Quick 3D prefiltering the procedural sky into the
+light probe's environment map, on the CPU rasteriser: the first frame's
+swap takes 11955 ms with every llvmpipe thread in JIT-compiled shader code.
+With the probe disabled (an experiment, not a change) first entry takes
+1.9 s. Every sport switch rebuilds the sky and bakes again. Pre-baking the
+probes would remove it and is ADR 0004 territory; the budget only makes a
+regression visible. On a GPU the bake is a GPU job, so the llvmpipe
+number says nothing about hardware. The hardware budget is still to be set
+from a measurement on the author's machines: run the same gate with a real
+window (`QT_QPA_PLATFORM=cocoa` on macOS, `wayland` on Linux, as in the
+test commands in AGENTS.md) and `-- --nocapture`, and read its
+"replay entry" line.
 
 ## UI design system (ADR 0013)
 

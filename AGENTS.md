@@ -65,6 +65,11 @@ QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
 # on a Wayland desktop the same tests run without Xvfb:
 QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
   ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts cargo test -p rowplay-app
+# the quick gate profile (intermediate branches of a stack, see "Gate profiles"):
+ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
+  LIBGL_ALWAYS_SOFTWARE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
+  xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
 git diff --check
 tools/package/macos.sh                        # Phase 9: dist/rowplay-qt.app + .dmg (macOS)
 tools/package/linux.sh                        # Phase 9: dist/*.AppImage (Linux x86_64; xvfb-run when headless)
@@ -98,6 +103,46 @@ but the look (the screenshot directory is used only by the gate walk).
 quits with status 0 after N rendered frames, which is how the packaged
 release bundles are proven to start (`tools/package/launch-check.py`); it can
 only shorten a run.
+
+### Gate profiles
+
+`ROWPLAY_GATE_PROFILE` picks the runtime-error gate's walk; like the other
+hooks it is compiled out of release builds.
+
+- `full` (the default) is the whole walk. That covers every screen, all six
+  languages, the member check and the three mock syncs, then the replay:
+  all three sports plus the ghost, tier cycling and, with CI's
+  `ROWPLAY_PHASE_SHOTS=1` / `ROWPLAY_PHASE_CLOSEUPS=1`, the phase shots,
+  their close-ups and the step-529 strip.
+- `quick` skips the rest of the replay walk after the first replay
+  capture (the rower): the other sports, the ghost, tier cycling, the
+  phase shots and the strip. It runs the shell, the languages, the member
+  check, the syncs and one replay load, then the teardown and the shell's
+  closing steps: the application menu, the sidebar toggle, the About
+  dialog, the sort menu, settings opened over a replay, and the logout
+  dialog. The same forbidden-pattern scan applies, and so do the rower's
+  equipment and grip assertions. It does not require a venue: the first
+  rower entry loads none until a sport or tier change sets a plan (#84),
+  and the full walk's rower venue comes from its later rower + ghost
+  entry. A venue that does load is checked against its tier inventory in
+  both profiles.
+
+Which one to run:
+
+- **CI runs `full` on every pull request**, in the App (ubuntu) job and the
+  step-529 job. Nothing here changes that.
+- **A stacked series, validated locally:** run `quick` on the intermediate
+  branches and `full` on the top branch, which contains every change below
+  it. CI still runs `full` on each branch's pull request. This replaces
+  running the full walk on every branch, every round.
+- **A single branch:** run `full` before pushing.
+
+Every gate run prints a timing summary, visible with `-- --nocapture`. It
+lists phase durations, the replay entry (step 52 to its first presented
+frame, budget 30 s under llvmpipe, warned about but never failed) and any
+step whose first frame took over a second. With `ROWPLAY_SMOKE_ARTIFACT_DIR`
+set, the whole timestamped app log is kept as `gate-log.txt`. Read those
+before guessing why a walk was slow.
 
 ## Packaging and releases (Phase 9, ADR 0012; distribution ADR 0014)
 
