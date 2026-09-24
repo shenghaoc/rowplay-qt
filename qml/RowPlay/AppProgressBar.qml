@@ -31,7 +31,7 @@ ProgressBar {
             height: parent.height
             radius: height / 2
             color: Theme.accentColor
-            x: (parent.width - width) / 2
+            x: Math.round((parent.width - width) / 2)
 
             SequentialAnimation on x {
                 running: control.indeterminate && control.visible && !Theme.reduceMotion
@@ -47,7 +47,7 @@ ProgressBar {
                 onRunningChanged: {
                     if (!running) {
                         segment.x = Qt.binding(function() {
-                            return (segment.parent.width - segment.width) / 2
+                            return Math.round((segment.parent.width - segment.width) / 2)
                         })
                     }
                 }
