@@ -31,7 +31,7 @@ ComboBox {
 
     indicator: Icon {
         x: control.width - width - Theme.spacingMedium
-        y: (control.height - height) / 2
+        y: Math.round((control.height - height) / 2)
         name: "chevron.down"
         size: Theme.iconSize
         color: control.enabled ? Theme.textSecondary : Theme.textDisabled
