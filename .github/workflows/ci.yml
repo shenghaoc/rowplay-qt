@@ -93,7 +93,8 @@ jobs:
           # with; a Qt bump is its own pull request (AGENTS.md, "Packaging
           # and releases"). '6.11.*' moved CI to 6.11.3 the day it appeared,
           # before download.qt.io published its checksums, and aqt failed
-          # every run (2026-09-24). release.yml should carry the same pin.
+          # every run (2026-09-24). release.yml carries the same pin; bump
+          # both together.
           version: '6.11.2'
           # aqt 3.3.0 is confirmed to install Qt 6.11.2 with its newer
           # repository layout on Linux/macOS; older aqt releases may not.
