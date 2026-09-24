@@ -546,6 +546,27 @@ so how those earlier close-ups were framed is an open question
   headless (`env -u DISPLAY -u WAYLAND_DISPLAY`) against both packs. The
   workflow's Toolchain report step prints `balsam --version` so a missing
   binary is visible at a glance.
+- **A QML `Timer` runs on the animation clock, not on wall time.** Under
+  Qt 6.11.2's threaded render loop the animation driver advances one
+  display interval (16.7 ms) per presented frame. When frames outrun the
+  display rate (Xvfb has no vsync) a `Timer`'s 300 ms interval fires every
+  18 frames: 288 ms at 62 fps, 237 ms at 76 fps, measured in both a
+  standalone repro and the gate walk (270 frames per 15-tick settle in
+  every run). When frames are slower than the display rate, the driver
+  falls back to wall time: 315 ms per tick at ~10 fps in the same repro.
+  So the gate's tick-counted waits are shorter than their nominal wall
+  time on a fast headless renderer, and never longer. Repro: a `Window`
+  with a `FrameAnimation` that rotates a `Rectangle` each trigger (with and
+  without a 100 ms busy loop) next to a 300 ms repeating `Timer` that logs
+  `Date.now()` deltas and the `frameSwapped` count between ticks; run it
+  with `qml` under `xvfb-run`.
+- **The quality governor made the gate's captures machine-dependent.** It
+  samples every rendered frame, and under llvmpipe it steps the scene down
+  mid-walk, so two identical walks captured `replay-row` at Medium and at
+  Low (4.3 % of pixels, channel delta up to 198). The gate pins the
+  requested tier (`Replay.setGovernorAuto(false)` at step 52); the
+  governor's ladder stays covered by its unit tests in
+  `rowplay_core::replay::motion`.
 - **Dynamic Quick 3D content does not reliably reach the rendered scene;
   static declarations are the pattern** (Phases 5a–6b, three independent
   findings). This is the consolidated rule for the codebase; the entries
@@ -612,6 +633,14 @@ so how those earlier close-ups were framed is an open question
   and release the grab only after both N rendered frames and a minimum
   wall time; the release must `return` without advancing the gate step, or
   the next sport switch lands before the asynchronous grab callback.
+  **A running `FrameAnimation` does not schedule frames on its own**: it
+  fires on frames something else caused. The hold advanced only because
+  the replay scene re-dirtied itself every few frames: the governor's
+  diagnostics refresh re-ran the scene's rule walk through
+  `replayChanged`. With that refresh gone, or with the governor pinned, a
+  paused scene renders once and every settle runs out its tick bound. The
+  hold now calls the window's `update()` on every trigger and on every gate
+  tick while it lasts (2026-09-24).
 - `grabToImage`'s `saveToFile` returns `false` with no Qt warning when the
   target directory does not exist. The gate logged `FAILED` and walked on,
   so every 2D capture in CI (dashboard, settings, detail) had silently never
