@@ -233,6 +233,32 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
 - Icons live under `assets/icon/`, pinned like the replay assets; regenerate
   the `.icns`/`.ico` with `tools/package/gen-icons.py` and re-pin.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` gates every pull request. The ruleset on `main`
+requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV 1.87
+(Qt-free crates)` and `App (ubuntu-24.04)`, `App (macos-26)`,
+`App (windows-2025)`. The step-529 job is informational. Rules:
+
+- A newer push to a pull request cancels the run it supersedes. Runs on
+  `main` are never cancelled.
+- A docs-only pull request skips the App jobs' build and test steps and
+  the step-529 job. Docs-only means every changed path is under `docs/`,
+  `.kiro/` or `LICENSES/`, or is `LICENSE`, the pull request template or a
+  repository-root `*.md`. The App jobs still run and report their
+  required checks. The Qt-free job, with its `git diff --check`, always
+  runs, and so does every push to `main`. No test reads those paths. A
+  `.md` anywhere else is code, because the asset and fixture manifest
+  tests police their directories. Widening the list needs the same check
+  against the tests first.
+- Required check names are load-bearing. Renaming a job or its matrix
+  means updating the ruleset. Never skip a required job with a job-level
+  `if:`: a matrix job skipped at job level does not report its per-OS
+  check names, which blocks merging. Skip its steps instead.
+- The Linux App job and the step-529 job upload the gate's timestamped
+  app log (`gate-log`, `gate-log-step529`) whenever the walk writes one,
+  also when it fails.
+
 ## Architecture boundaries
 
 Dependency direction is **app → viewmodel → platform → core** (ADR 0006,
