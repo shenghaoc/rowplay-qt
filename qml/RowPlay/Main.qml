@@ -90,21 +90,36 @@ ApplicationWindow {
     palette.dark: Theme.textSecondary
     palette.shadow: Theme.dark ? "#000000" : "#15181d"
 
+    // Leaving the replay route by another path closes the replay first, so
+    // the Library's presentation flag never outlives the route: settings
+    // opened over a replay would otherwise return to the workout with the
+    // replay still presented, and Replay would refuse to open again.
     function showDashboard() {
+        if (Library.isReplayPresented) {
+            Library.closeReplay()
+        }
         Library.clearSelection()
         screenIndex = 0
     }
 
     function showSettings() {
+        if (Library.isReplayPresented) {
+            Library.closeReplay()
+        }
         screenIndex = 2
     }
 
     function toggleSettings() {
-        screenIndex = screenIndex === 2 ? (Library.selectedWorkoutId === -1 ? 0 : 1) : 2
+        if (screenIndex === 2) {
+            screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
+        } else {
+            showSettings()
+        }
     }
 
     // StandardKey.Back: one level up — the replay to its workout, settings
-    // to where it was opened from, a workout to the dashboard.
+    // to the workout or the dashboard (a replay was closed on the way in),
+    // a workout to the dashboard.
     function goBack() {
         if (screenIndex === 3) {
             Library.closeReplay()
@@ -1075,6 +1090,27 @@ ApplicationWindow {
             case 203: root.toggleSidebar(); aboutDialog.open(); break
             case 204: aboutDialog.close(); sidebarColumn.showSortMenu(true); break
             case 205: sidebarColumn.showSortMenu(false); break
+            // Settings opened over a replay: the replay closes on the way
+            // in, Back returns to the workout, and Replay opens again (the
+            // gate test asserts both lines).
+            case 206:
+                Library.selectWorkout(1001)
+                Library.requestReplay(false)
+                root.gateReplayWaits = 0
+                root.gateAwaitingReplay = true
+                break
+            case 207: root.showSettings(); break
+            case 208:
+                root.goBack()
+                console.log("gate settings over the replay: screen", root.screenIndex,
+                            Library.isReplayPresented ? "presented" : "closed")
+                Library.requestReplay(false)
+                console.log("gate replay reopened: screen", root.screenIndex,
+                            "block", Library.replayBlockReason)
+                root.gateReplayWaits = 0
+                root.gateAwaitingReplay = true
+                break
+            case 209: Library.closeReplay(); Library.clearSelection(); break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
