@@ -58,7 +58,7 @@ const SINGLETONS: [&str; 5] = ["Library", "Detail", "Settings", "Sync", "Replay"
 const MESSAGE_PATTERN: &str = "%{time process} %{if-category}%{category}: %{endif}%{message}";
 
 /// The gate steps that open each phase of the walk (`Main.qml`'s gate timer).
-const PHASES: [(u32, &str); 10] = [
+const PHASES: [(u32, &str); 11] = [
     (1, "shell, languages, filters"),
     (24, "mock syncs"),
     (44, "sorting, dates, detail captures"),
@@ -68,7 +68,8 @@ const PHASES: [(u32, &str); 10] = [
     (77, "step-529 strip"),
     (79, "phase shots (bike)"),
     (84, "teardown"),
-    (85, "bench, exit"),
+    (85, "bench (ROWPLAY_REPLAY_BENCH only)"),
+    (200, "menus, settings over a replay, dialogs"),
 ];
 
 /// Replay entry, request to first presented frame, under llvmpipe: measured
