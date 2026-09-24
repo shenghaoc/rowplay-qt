@@ -89,6 +89,10 @@ Pane {
                             trailingIcon: active ? (Library.sortAscending ? "arrow.up"
                                                                           : "arrow.down")
                                                  : ""
+                            // The arrow icon is decorative, so the name carries
+                            // the direction, with the glyph main's label showed.
+                            Accessible.name: active ? text + (Library.sortAscending ? " ↑" : " ↓")
+                                                    : text
                             // A click re-sorts (and flips the direction of the
                             // active field); the checkmark follows the store.
                             onTriggered: {
