@@ -59,7 +59,9 @@ Two different things scale a Qt UI, and the design handles both:
 - **Accent.** `Theme.accentColor` is `SystemPalette.accent`, unless that
   reads as Qt's built-in default `#308cc6` (the platform supplied none), in
   which case it is the brand blue `#0066CC` / `#0A84FF`. `Theme.onAccent` is
-  white or `#0e1014`, whichever reaches 4.5:1 on the accent. `focusRing` is
+  white or `#0e1014`, whichever contrasts more with the accent: at least
+  4.5:1 on the brand blues and the macOS system blue, but under it for an
+  accent of luminance about 0.183–0.198 (#76). `focusRing` is
   the accent, or `textPrimary` if the accent falls below 3:1 on the window.
 - **Ramps.** The values and their measured ratios are in
   `docs/source-map.md` ("Surface and text colours").
@@ -70,7 +72,10 @@ Two different things scale a Qt UI, and the design handles both:
   `T.AbstractButton` (`QtQuick.Templates`), because under Basic a plain
   `AbstractButton` names Basic's own composite type, which a `Switch` is not.
 - `ToolbarButton` has `focusPolicy: Qt.TabFocus`, so a click keeps the focus
-  where it was, while Tab reaches the button and shows its ring.
+  where it was, while Tab reaches the button and shows its ring. It keeps
+  the template's accessible role (Button, or CheckBox while checkable) and
+  claims Space while focused, so a window shortcut on Space cannot take the
+  key from it.
 - `SegmentedControl` emits `activated(index)` and never writes
   `currentIndex`, so its binding to the store stays intact. Capped below
   its implicit width, it shows the same choices as a `PopupButton` (the
@@ -90,6 +95,16 @@ Two different things scale a Qt UI, and the design handles both:
   (platform order), right-aligns natural-width PushButtons, and has no
   background of its own: Basic paints `palette.window`, which differs from
   the popup surface in dark mode.
+- `PopupButton` rows keep the checkmark's slot in every row (it shows by
+  opacity), so the labels line up.
+- `AppScrollBar` has no track. Basic's own shows only under the OS contrast
+  preference, in a colour the high-contrast thumb vanishes into (1.00–1.06:1).
+  `maximumThickness` (the widened thumb and its padding) is the room a
+  layout reserves for the bar, so hovering it moves nothing.
+- `AppProgressBar`'s indeterminate segment returns to the centre when its
+  sweep stops (reduce motion): a stopped animation leaves `x` where it was.
+- Parts centred inside a control round to whole pixels: an antialiased
+  rounded shape at a half pixel smears on a 1x display.
 
 ## Verification harness
 

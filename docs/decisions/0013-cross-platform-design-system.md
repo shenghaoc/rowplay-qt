@@ -48,8 +48,8 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
   immediately.
 - **Settings.** Grouped rows: the label on the leading edge and one control
   on the trailing edge (two at most). Clicking anywhere on a row toggles its
-  switch, but the control takes focus rather than the row. Footers carry the
-  notes.
+  switch without moving keyboard focus: the switch is the row's only focus
+  stop. Footers carry the notes.
 - **Buttons.** At most one prominent or destructive button per view. Outside
   the toolbar a button shows an icon or a label, never both.
 - **Icons.** Monochrome symbols drawn from original path data in `Icon.qml`.
@@ -93,7 +93,9 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
 - **Accent.** The system accent (`palette.accent`) colours selection, focus
   rings, switch-on and prominent buttons, with the brand blue as the
   fallback. The metric colours never follow it. Text on an accent fill is
-  white or near-black, whichever passes AA.
+  white or near-black, whichever contrasts more. That passes AA on the brand
+  blues and on the macOS system blue, but not on every accent: for an accent
+  of luminance about 0.183–0.198 both stay under 4.5:1 (tracked in #76).
 - **Contrast.** The OS contrast preference (`QAccessibilityHints`) switches
   to a high-contrast variant: opaque surfaces, stronger separators and
   outlines, full-contrast secondary text and a solid replay HUD.
@@ -103,14 +105,17 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   is disabled during the replay. No custom shortcut shadows the platform's
   Quit or Close.
 - **Menus.** macOS gets the native menu bar, whose items carry roles
-  (Preferences, Quit, About) so the OS supplies their titles. Windows and
-  Linux get a menu button at the toolbar's trailing edge. No new strings.
+  (Preferences, Quit, About), so Qt moves them into the application menu
+  under its own titles and key equivalents: "About rowplay",
+  "Preferences…" (⌘,) and "Quit rowplay" (⌘Q), in English until Qt's own
+  catalogues ship (tracked in #80). Windows and Linux get a menu button at
+  the toolbar's trailing edge. No new strings.
 - **Dialog button order.** `DialogButtonBox` keeps its default layout, so the
   platform theme orders the buttons.
 - **Window chrome.** Native title bars everywhere.
 - **Settings** stay an in-app page with no dismiss button. On macOS the
-  native Settings… item and the Preferences shortcut open it. Back
-  navigation, Escape and the toolbar toggle close it.
+  application menu's Preferences… item (⌘,) opens it. Back navigation,
+  Escape and the toolbar toggle close it.
 
 ## Consequences
 
@@ -124,14 +129,20 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   declares `PageTabList` / `PageTab` itself). Basic's templates
   (`QtQuick.Templates`) are the stable base. A Qt upgrade that changes a
   Basic default can change only what the palette still colours.
-- `QtQuick.Shapes` is a runtime QML module (the icons and the busy
-  indicator). The packaging scripts deploy what `qml/` imports (linuxdeploy's
-  `QML_SOURCES_PATHS`, `macdeployqt` and `windeployqt` `-qmldir`), so it
-  ships without a script change.
-- **What is verified where.** Linux rendering is verified locally and by the
-  runtime gate's visual assertions in CI. macOS and Windows run the gate
-  offscreen in CI; their rendering, the native menu bar, the accent and the
-  contrast preference need a human on those systems (tracked in #66). The
+- `QtQuick.Shapes` (the icons and the busy indicator) and, from 3/7,
+  `Qt.labs.platform` (the macOS menu bar) are runtime QML modules. The
+  packaging scripts deploy what `qml/` imports (linuxdeploy's
+  `QML_SOURCES_PATHS`, `macdeployqt` and `windeployqt` `-qmldir`), so they
+  ship without a script change. That was checked for the AppImage (3/7) and
+  for the macOS bundle (`tools/package/macos.sh` at 7/7's head,
+  2026-09-24, launch check included); the Windows installer is built only in
+  CI.
+- **What is verified where.** Linux rendering was verified locally (Xvfb +
+  Mesa). The runtime gate's visual assertions in CI read only the replay's
+  3D captures, so CI checks none of the design system's 2D rendering. macOS
+  and Windows run the gate offscreen in CI. macOS was checked natively on
+  2026-09-24 (#66, which lists what is left for a human there); Windows has
+  CI only. The
   per-OS behaviour found on the way is recorded in `docs/qt-bridges-notes.md`,
   and every divergence from the web and Studio is recorded in
   `docs/source-map.md`.
