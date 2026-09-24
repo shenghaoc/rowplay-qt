@@ -1463,6 +1463,17 @@ that DO capture the 3D scene:
   captures while the app stayed busy. The pauses are unexplained: the
   walk's own settle and grab timeouts are 18 s and 12 s.
 
+  Re-measured later on 2026-09-24, on the same host with #87 and #90 in:
+  - With the window frontmost, the same walk takes about 100 s, in debug
+    and in release, and no hold runs out its bound.
+  - A hidden window renders no frames, so every hold runs out its bound
+    (about 30 s per 3D capture). The gate timer keeps its 300 ms period
+    with or without App Nap, so hiding cannot produce minutes-long pauses.
+  - The 56-minute run predates #87 and #90 and stays unexplained.
+  - The pass depends on the scheme: in the dark one, `replay-row`'s shadow
+    check fails at a 4.9 % margin against its 5 % threshold, and it passes
+    with `ROWPLAY_FORCE_COLOR_SCHEME=light` (AGENTS.md, "Gate profiles").
+
 `common::assert_viewport_rendered` samples the viewport region whenever
 `QSG_RHI_BACKEND` is set, so a blank 3D area fails instead of riding on the
 chrome; that's the guard for the black-viewport case regardless of host.

@@ -299,7 +299,10 @@ configuration this note names:
   and 2248 in dark, with no near-black sample, at 2400 × 1600 on the Retina
   display.
 - Through the test itself, `QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal
-  ROWPLAY_PHASE_SHOTS=1` passes. The test keeps a caller-provided platform,
+  ROWPLAY_PHASE_SHOTS=1` passes in the light scheme. In the dark one,
+  `replay-row`'s shadow check fails at a 4.9 % margin against its 5 %
+  threshold, which was calibrated on llvmpipe; `ROWPLAY_FORCE_COLOR_SCHEME=light`
+  pins the scheme (2026-09-24). The test keeps a caller-provided platform,
   and `QSG_RHI_BACKEND` turns on its viewport and shadow checks: all twelve
   phase shots clear `assert_viewport_rendered` (docs/parity-coverage.md,
   "Capture caveat").

@@ -201,6 +201,28 @@ step whose first frame took over a second. With `ROWPLAY_SMOKE_ARTIFACT_DIR`
 set, the whole timestamped app log is kept as `gate-log.txt`. Read those
 before guessing why a walk was slow.
 
+**Natively on macOS, keep the gate's window visible.** Measured on an Apple
+M5 (Metal, 2026-09-24) with the full walk, phase shots and close-ups:
+- With the window frontmost, the walk takes about 100 s, in debug and in
+  release, and no hold runs out its bound.
+- A hidden window renders no frames, so every hold runs out its bound, and
+  each 3D capture costs its whole settle and grab bounds (18 s + 12 s). The
+  walk reached step 71 of 213 in 255 s, and the timing summary lists every
+  starved hold.
+- The gate timer kept its 300 ms period while hidden, with and without
+  `-NSAppSleepDisabled YES`: App Nap does not throttle it.
+
+To run the visual assertions natively, pin the light scheme. In the dark
+one, `replay-row`'s shadow check (`assert_shadows`, calibrated on
+llvmpipe) fails at a 4.9 % margin against its 5 % threshold:
+
+```bash
+QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal ROWPLAY_FORCE_COLOR_SCHEME=light \
+  ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
+  ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
+```
+
 ## Packaging and releases (Phase 9, ADR 0012; distribution ADR 0014)
 
 `tools/package/{macos.sh,linux.sh,windows.ps1}` build the `.app`/`.dmg`,
@@ -224,7 +246,8 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
   - **macOS:** a person looks at the packaged app on a Mac before a release
     is published. The gate walk run in a real window there captures every
     screen, 3D included, and `cargo test` with `QT_QPA_PLATFORM=cocoa
-    QSG_RHI_BACKEND=metal` runs its visual assertions too (note #17).
+    QSG_RHI_BACKEND=metal` runs its visual assertions too (note #17), in
+    the light scheme ("Gate profiles").
   - **Windows:** there is no one to look, so it ships verified by CI only
     (#81), and the release notes say so.
 
