@@ -178,11 +178,8 @@ hooks it is compiled out of release builds.
   closing steps: the application menu, the sidebar toggle, the About
   dialog, the sort menu, settings opened over a replay, and the logout
   dialog. The same forbidden-pattern scan applies, and so do the rower's
-  equipment and grip assertions. It does not require a venue: the first
-  rower entry loads none until a sport or tier change sets a plan (#84),
-  and the full walk's rower venue comes from its later rower + ghost
-  entry. A venue that does load is checked against its tier inventory in
-  both profiles.
+  equipment, grip and venue assertions: its venue must load before the
+  first sport switch and match its tier inventory.
 
 Which one to run:
 
