@@ -101,9 +101,15 @@ README install recipe); source it (or `direnv allow`) before any
 - **Validate a stack in one extra worktree and `git switch` it between
   the branches.** A switch rewrites the changed files with fresh mtimes, so
   Cargo rebuilds exactly what changed (verified by switching back and
-  forth). Dependencies are built once, and there is one target directory
-  instead of one per branch. Keep the primary checkout for the branch you
-  are working on.
+  forth). That includes files a switch adds: `build.rs` also watches the
+  directories it scans (`i18n/`, `assets/replay/environments/`,
+  `assets/replay/venues/procedural/`) and the Qt tools it runs, so a new
+  catalogue or texture reruns it (#92). Dependencies are built once, and
+  there is one target directory instead of one per branch. Keep the primary
+  checkout for the branch you are working on. Plain `git switch` refuses a
+  branch that another worktree has checked out (the primary checkout's, for
+  one), so switch the validation worktree with
+  `git switch --detach <branch>`.
 - **To share compiled dependencies between worktrees, use sccache with
   base directories (opt-in).** sccache caches by content, so it cannot
   hand one worktree another's stale artifact. Base directories strip each
@@ -124,10 +130,13 @@ README install recipe); source it (or `direnv allow`) before any
   default `target/` inside it.
 - **What a worktree costs.** A fresh one is a cold build: about 85 s on a
   4-core VM, most of it qtbridge's C++ glue (about 20 s with the sccache
-  recipe above). It takes ~2.5 GB for debug plus
+  recipe above), and 29 s on an Apple M5. It takes ~2.5 GB for debug plus
   tests, and ~0.6 GB more for a release build. Old worktrees grow far past
   that. Remove a finished one with `git worktree remove <path>`, which
-  deletes its `target/` too.
+  deletes its `target/` too. Measure what a removal frees with `df`, not
+  `du`: `du` counts blocks that APFS clones share in full. Removing four
+  old worktrees that `du` put at 17 GB each freed 1.5 GB on the MacBook
+  (2026-09-24, no local snapshots).
 - **`.cargo/config.toml` keeps dependencies at line-tables-only debug
   info.** That makes the target directory ~17 % smaller and the app
   binary 30 % smaller. Dev-profile tweaks go there, not in `Cargo.toml`,
