@@ -99,7 +99,7 @@ quits with status 0 after N rendered frames, which is how the packaged
 release bundles are proven to start (`tools/package/launch-check.py`); it can
 only shorten a run.
 
-## Packaging and releases (Phase 9, ADR 0012)
+## Packaging and releases (Phase 9, ADR 0012; distribution ADR 0014)
 
 `tools/package/{macos.sh,linux.sh,windows.ps1}` build the `.app`/`.dmg`,
 the AppImage and the Inno Setup installer + zip from a release build with
@@ -114,10 +114,16 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
   package to a release.
 - A Qt bump or a qtbridge bump must be re-packaged and launch-checked on
   all three OSes in the same PR.
-- The launch check proves start / load / render / exit, not pixels. macOS
-  and Windows rendering is verified by a human looking at the packaged
-  app (the gate's visual assertions run on the Linux leg only, note #17);
-  say so in any release PR.
+- All three platforms are distributed (ADR 0014). The launch check proves
+  start / load / render / exit, not pixels.
+  - **macOS:** a person looks at the packaged app on a Mac before a release
+    is published. The gate walk run in a real window there captures every
+    screen, 3D included (note #17).
+  - **Windows:** there is no one to look, so it ships verified by CI only
+    (#81), and the release notes say so.
+
+  The gate's visual assertions run on the Linux leg only. Any release PR
+  says what was looked at, where.
 - Icons live under `assets/icon/`, pinned like the replay assets; regenerate
   the `.icns`/`.ico` with `tools/package/gen-icons.py` and re-pin.
 

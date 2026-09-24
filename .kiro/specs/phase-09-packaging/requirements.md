@@ -78,11 +78,14 @@ the earlier phases established. Decision record: ADR 0012.
   **draft** GitHub release; publishing stays a human action. The macOS and
   Windows packages are built and launch-checked by the same workflow but
   are not attached: Linux is the distributed target, the other platforms
-  exist to keep the port cross-platform.
+  exist to keep the port cross-platform. *(Superseded on 2026-09-24 by ADR 0014: all three
+  platforms are distributed; attaching the macOS and Windows packages is a
+  workflow change awaiting the author's approval.)*
 - R4.3 The workflow needs no secret. Signing is ad-hoc (macOS) / absent
   (Windows); notarisation and signing follow-ups are closed as
   **won't-do** — those platforms are not distributed
-  (`ROWPLAY_MAC_SIGN_IDENTITY` stays unused).
+  (`ROWPLAY_MAC_SIGN_IDENTITY` stays unused). *(Superseded on 2026-09-24 by ADR 0014: signing and
+  notarisation are open decisions for the author, not won't-do.)*
 - R4.4 The existing CI matrix keeps building the app on all three OSes; the
   macOS test step runs without `DYLD_FALLBACK_FRAMEWORK_PATH` so R2.4 stays
   exercised.
@@ -106,7 +109,8 @@ the earlier phases established. Decision record: ADR 0012.
   visual assertions run on the Linux leg and the human look (T9) covers
   the AppImage on X11 and Wayland. macOS/Windows rendering verification
   is closed as **won't-do** — those platforms are built in CI but not
-  distributed.
+  distributed. *(Superseded on 2026-09-24 by ADR 0014: macOS rendering was verified natively
+  (#66); Windows ships verified by CI only (#81).)*
 - R6.2 macOS x86_64 and Linux aarch64 are not packaged (qtbridge's support
   statement, note #8).
 - R6.3 The macOS bundle is ~215 MB because `macdeployqt` copies the whole

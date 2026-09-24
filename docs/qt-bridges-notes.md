@@ -282,6 +282,25 @@ from), or have `run()` return non-zero when no root object was created.
 
 ## 17. `grabToImage` returns a black Quick 3D viewport on **one** macOS/Metal host
 
+**Resolved 2026-09-24: not a Metal defect, but the gate test's `offscreen`
+default.** Re-checked on an Apple M5 host (macOS 27, Qt 6.11.2), the
+configuration this note names:
+
+- `qml_runtime_gate.rs` sets `QT_QPA_PLATFORM=offscreen` whenever the
+  caller leaves it unset, and the `offscreen` platform draws no Quick 3D.
+  The replay's viewport is then the flat window colour: `#ffffff` in light
+  and `#111317` in dark, one colour with zero variance. The dark one reads
+  as "solid black". The repro below runs through `cargo test`, so it ran
+  offscreen.
+- The same gate walk run in a real window (the debug binary run directly
+  with `ROWPLAY_SMOKE_GATE=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=…` and
+  `QT_QPA_PLATFORM` unset, so `cocoa` on Metal) captures the replay: in a
+  200 × 100 downsample of the row viewport, 2602 distinct colours in light
+  and 2248 in dark, with no near-black sample, at 2400 × 1600 on the Retina
+  display.
+
+The rest of this note is the original record.
+
 Not qtbridge, but it silently corrupted a QA baseline, so it belongs here.
 Scope of the bug (**narrow, not "capture is broken"**):
 
@@ -329,12 +348,12 @@ own window shows the scene. If someone hits this on a different macOS
 host, log a comment here — the "one macOS/Metal host" scope stands
 until a second host reproduces.
 
-**Release impact: none (won't-do, Phase 9 distribution policy).** Linux
-AppImage is the only distributed artifact; macOS is built and
-launch-checked in CI to keep the port cross-platform but is not
-distributed, so this capture defect is no longer a release blocker and
-will not be chased. It stays recorded because it silently corrupted a QA
-baseline once and the failure mode is worth knowing on any macOS host.
+**Release impact (updated 2026-09-24, ADR 0014):** macOS is distributed
+now, and there is no capture defect to block it. Run the gate walk in a
+real window to check macOS pixels (see the resolution above). The note
+stays because it silently corrupted a QA baseline once: on any platform,
+an offscreen capture shows no 3D, and a flat viewport in a capture means
+"which platform ran?" before it means "the renderer is broken".
 
 Phase 7's T8 baseline was captured on the RHEL machine and its twelve
 captures are valid — do not re-shoot it on account of this note. New
