@@ -273,5 +273,11 @@ that delivers it.
     handle is the shell's own.
   - [x] T6.5 No camera framing inset (R7.4).
   - [x] T6.6 Validation (R9): see the PR.
+  - [x] T6.7 The second-reviewer pass (2026-09-24): `AppSlider` centred its
+    track and knob on a half pixel at some font sizes (the knob at y 2.5 at
+    the 12 px base); both round. Space on the focused Close button toggled
+    playback, because the replay's window shortcut took the key; 2/7's
+    `ToolbarButton` now claims Space while focused (T2.10). The spec's
+    layer list and R2.1 now name `AppSlider`.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.

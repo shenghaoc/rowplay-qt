@@ -8,7 +8,7 @@ Theme.qml (tokens: palette, ramps, scale, accent, contrast)
    ├── shared controls (qml/RowPlay/*.qml, Basic templates)
    │       Icon, FocusRing, ToolbarButton, PushButton, SegmentedControl,
    │       ToggleSwitch, InputField, PopupButton, FormSection / FormRow,
-   │       ChartTheme, App{ToolTip, Menu, MenuItem, MenuSeparator,
+   │       ChartTheme, AppSlider (6/7), App{ToolTip, Menu, MenuItem, MenuSeparator,
    │       ScrollBar, ProgressBar, BusyIndicator, Dialog, DialogButtonBox}
    │
    ├── ApplicationWindow palette (Main.qml): the safety net for any stock
