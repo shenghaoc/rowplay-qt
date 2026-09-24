@@ -139,6 +139,9 @@ pub struct ReplayBackend {
     /// `replayChanged` emissions, counted at the single emission site like
     /// `emit_count` (the scene re-walks its rules on every one of them).
     replay_notify_count: u64,
+    /// `playbackChanged` emissions, counted the same way (the scene's tick
+    /// animation runs only while `playing` says so, #93).
+    playback_notify_count: u64,
     // Per-sport finger grip table (Phase 7): helper objectName → final
     // local rotation, solved once per sport switch and applied QML-side.
     grip_poses: String,
@@ -305,6 +308,7 @@ impl Default for ReplayBackend {
             workout_id: -1,
             emit_count: 0,
             replay_notify_count: 0,
+            playback_notify_count: 0,
             grip_poses: String::from("{}"),
             grip_contacts: String::from("0/0"),
             ghost_playback: None,
@@ -728,7 +732,9 @@ impl ReplayBackend {
 
     /// Loads a rival workout as the ghost. The ghost uses the same sport's
     /// clips and poses, driven by its own `ReplayState` over the rival's
-    /// strokes. Pass −1 to dismiss the ghost.
+    /// strokes. Pass −1 to dismiss the ghost. A paused replay emits no
+    /// frames, so either way the change pushes one the way a seek does: the
+    /// ghost appears (or leaves) and the chase camera re-frames for it.
     #[qslot]
     fn load_ghost(&mut self, id: i64) {
         if id < 0 {
@@ -738,6 +744,10 @@ impl ReplayBackend {
             self.gap_text.clear();
             self.verdict_text.clear();
             self.notify_playback();
+            self.dirty = true;
+            if self.advance(0.0) {
+                self.notify_frame();
+            }
             return;
         }
         let state = AppState::get();
@@ -762,15 +772,24 @@ impl ReplayBackend {
         self.has_ghost = true;
         self.dirty = true;
         self.notify_playback();
+        if self.advance(0.0) {
+            self.notify_frame();
+        }
     }
 
     /// Advance playback by `dt` seconds of wall time (one call per rendered
     /// frame from the scene's `FrameAnimation`); emits `frameChanged` at most
-    /// once.
+    /// once, and `playbackChanged` when playback reached the end and stopped
+    /// itself: the transport shows play again, and the scene's tick
+    /// animation stops with it (#93).
     #[qslot]
     fn tick(&mut self, dt: f64) {
+        let was_playing = self.playing;
         if self.advance(dt) {
             self.notify_frame();
+        }
+        if self.playing != was_playing {
+            self.notify_playback();
         }
     }
 
@@ -903,11 +922,25 @@ impl ReplayBackend {
         }
     }
 
-    /// The scene's viewport size, for the chase camera's aspect rules.
+    /// The scene's viewport size, for the chase camera's aspect rules. While
+    /// paused, a new aspect pushes a frame so the camera re-frames now (a
+    /// narrow window pulls it back) instead of on the next play; playing,
+    /// the next tick picks it up.
     #[qslot]
     fn set_viewport(&mut self, width: f64, height: f64) {
-        if width.is_finite() && height.is_finite() && width > 0.0 && height > 0.0 {
-            self.aspect = width / height;
+        if !(width.is_finite() && height.is_finite() && width > 0.0 && height > 0.0) {
+            return;
+        }
+        let aspect = width / height;
+        if aspect == self.aspect {
+            return;
+        }
+        self.aspect = aspect;
+        if !self.playing {
+            self.dirty = true;
+            if self.advance(0.0) {
+                self.notify_frame();
+            }
         }
     }
 }
@@ -1069,6 +1102,7 @@ impl ReplayBackend {
     }
 
     fn notify_playback(&mut self) {
+        self.playback_notify_count += 1;
         if self.attached() {
             self.playback_changed();
         }
@@ -1599,6 +1633,85 @@ mod tests {
         replay.seek(0.5);
         assert_eq!(replay.emit_count, 602);
         assert!((replay.progress - 0.5).abs() < 1e-9);
+    }
+
+    /// #93: the scene's tick animation runs only while `playing` says so.
+    /// Playback that reaches the end stops itself inside `advance`, and
+    /// until then nothing told QML: the transport kept showing pause, and
+    /// the animation (and the window) kept running.
+    #[test]
+    fn playback_that_reaches_the_end_tells_the_transport() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.seek(0.999);
+        replay.play();
+        assert!(replay.playing);
+        let before = replay.playback_notify_count;
+        let mut ticks = 0;
+        while replay.playing && ticks < 1000 {
+            replay.tick(MAX_DT_SECONDS);
+            ticks += 1;
+        }
+        assert!(!replay.playing, "playback stopped at the end");
+        assert_eq!(
+            replay.playback_notify_count,
+            before + 1,
+            "the stop notifies the transport exactly once"
+        );
+        // Further ticks change nothing and notify nothing.
+        replay.tick(MAX_DT_SECONDS);
+        assert_eq!(replay.playback_notify_count, before + 1);
+    }
+
+    /// #93: a paused replay renders on demand, so a change made while
+    /// paused must push its own frame, as a seek does. A ghost loaded or
+    /// dismissed waited for the next tick, which a stopped tick animation
+    /// never delivers.
+    #[test]
+    fn a_ghost_loaded_or_dismissed_while_paused_renders_a_frame() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        assert!(!replay.playing);
+        let before = replay.emit_count;
+        replay.load_ghost(1002);
+        assert_eq!(replay.emit_count, before + 1, "loading pushes a frame");
+        assert!(
+            replay.ghost_frame[frame::COURSE_X] != 0.0
+                || replay.ghost_frame[frame::COURSE_Z] != 0.0,
+            "the pushed frame places the ghost"
+        );
+        replay.load_ghost(-1);
+        assert_eq!(replay.emit_count, before + 2, "dismissing pushes a frame");
+        assert!(!replay.has_ghost);
+    }
+
+    /// #93: while paused, a new viewport aspect re-frames the chase camera
+    /// at once (a narrow window pulls it back) instead of on the next play.
+    /// An unchanged aspect pushes nothing, and while playing the next tick
+    /// picks the aspect up.
+    #[test]
+    fn a_new_aspect_reframes_a_paused_replay() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.set_viewport(1600.0, 900.0);
+        let wide = replay.frame[frame::CAMERA_POSITION..frame::CAMERA_POSITION + 3].to_vec();
+        let before = replay.emit_count;
+        replay.set_viewport(1600.0, 900.0);
+        assert_eq!(replay.emit_count, before, "the same aspect pushes nothing");
+        replay.set_viewport(800.0, 900.0);
+        assert_eq!(replay.emit_count, before + 1, "a new aspect pushes a frame");
+        let narrow = &replay.frame[frame::CAMERA_POSITION..frame::CAMERA_POSITION + 3];
+        assert_ne!(wide, narrow, "the narrow aspect moved the camera");
+        replay.play();
+        let playing = replay.emit_count;
+        replay.set_viewport(1600.0, 900.0);
+        assert_eq!(
+            replay.emit_count, playing,
+            "playing, the next tick re-frames"
+        );
     }
 
     /// The developer strip's diagnostics refresh on every 15th render-time
