@@ -971,7 +971,9 @@ ApplicationWindow {
             root.gateStep += 1
             // Quick profile (ROWPLAY_GATE_PROFILE=quick): the shell, all six
             // languages, the member check, the mock syncs and the first
-            // replay load, then teardown. No phase shots, strip or tiers.
+            // replay load, then teardown and the closing steps from 200 on
+            // (menus, sidebar, settings over a replay, dialogs). No other
+            // sport, ghost, tiers, phase shots or strip.
             if (Settings.gateQuick && root.gateStep === 55) root.gateStep = 84
             if (root.gateStep === 1)
                 console.log("gate profile:", Settings.gateQuick ? "quick" : "full")
