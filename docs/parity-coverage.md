@@ -1431,19 +1431,14 @@ match the port.
 
 ## Capture caveat (narrower than the earlier wording suggested)
 
-**Resolved 2026-09-24 (docs/qt-bridges-notes.md #17):** the "black
-viewport" was the gate test's `offscreen` default, which draws no Quick 3D,
-not a Metal defect. On the Apple M5 host the note names, the gate walk run
-in a real window (`QT_QPA_PLATFORM` unset, so `cocoa`) captures the replay
-in both schemes. So macOS is a fourth verified path below, as long as the
-walk runs in a real window and not through `cargo test`'s `offscreen`. The
-section is kept as written.
-
-The `ROWPLAY_PHASE_SHOTS=1` baseline **cannot be produced on the one
-macOS/Metal host that hit `grabToImage`'s black-viewport bug**
-(docs/qt-bridges-notes.md #17). That was one previous session's host;
-it is not a general property. Verified paths that DO capture the 3D
-scene:
+The `ROWPLAY_PHASE_SHOTS=1` baseline needs a platform that renders Quick 3D
+into `grabToImage`. The `offscreen` platform doesn't, and the gate test
+falls back to it whenever `QT_QPA_PLATFORM` is unset: the 3D viewport is
+then one flat colour. That was the "black viewport" on one macOS/Metal host
+(docs/qt-bridges-notes.md #17, corrected 2026-09-24). Until then this
+section said the baseline could not be produced on that host, and that
+macOS should be checked against the live window instead. Verified paths
+that DO capture the 3D scene:
 
 - The Linux CI gate (Xvfb + Mesa, `QSG_RHI_BACKEND=opengl`) — uploads
   `artifacts/phase-*.png`.
@@ -1457,16 +1452,23 @@ scene:
   region.
 - The author's RHEL box (Wayland, Intel UHD 630), used for the Phase 7
   T8 baseline.
+- macOS in a real window: `QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal
+  ROWPLAY_PHASE_SHOTS=1 ROWPLAY_SMOKE_SCREENSHOT_DIR=…
+  cargo test -p rowplay-app --test qml_runtime_gate` (the test keeps a
+  caller-provided platform). Verified 2026-09-24 on the Apple M5 host of
+  note #17 (macOS 27, Qt 6.11.2, Retina 2×): the test passed, with
+  `assert_viewport_rendered` on all twelve phase shots (269–1986 distinct
+  colours in its sample grid, no near-black sample). That run
+  took 56 minutes, pausing for about five minutes at a time between some
+  captures while the app stayed busy. The pauses are unexplained: the
+  walk's own settle and grab timeouts are 18 s and 12 s.
 
-`common::assert_viewport_rendered` samples the viewport region under a
-real GL backend so a blank 3D area fails instead of riding on the
-chrome; that's the guard for the black-viewport case regardless of
-host.
+`common::assert_viewport_rendered` samples the viewport region whenever
+`QSG_RHI_BACKEND` is set, so a blank 3D area fails instead of riding on the
+chrome; that's the guard for the black-viewport case regardless of host.
 
-**Do not read the earlier "verify on the RHEL box" phrasing as a
-requirement.** On the affected macOS host, yes — verify against the
-live window, not a local capture. Everywhere else (any Linux session
-with Xvfb + Mesa), local visual verification is a valid path.
+**Local captures are a valid verification path on each host above.** The
+earlier "verify on the RHEL box" phrasing was never a requirement.
 
 **Run capture and bench walks in isolation on the native-Wayland box**
 (measured 2026-09-20, RHEL 10.2 / GNOME 49.4 / UHD 630): a gate walk

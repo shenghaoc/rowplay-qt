@@ -212,14 +212,17 @@ All three platforms are distributed (ADR 0014). What stands behind each:
 
 - **Linux:** CI and hand-driven checks.
 - **macOS:** CI and a check on a real Mac.
-- **Windows:** CI only. Its build, tests, runtime-error gate walk and
-  launch check all pass, but no person has used it, so problems that only
-  a person would notice can ship (#81).
+- **Windows:** CI only. For the tagged commit, the app's build, its tests
+  (the runtime-error gate walk among them) and the launch check all pass;
+  the other crates' tests run on Linux. No person has used it, so problems
+  that only a person would notice can ship (#81).
 
 **Release assets.** Until the release workflow is changed to attach the
 macOS and Windows packages (pending the author's approval), a draft release
-still attaches only the AppImage and `SHA256SUMS`. The `.dmg`, installer and
-`.zip` are then available as workflow artifacts of the tagged run.
+still attaches only the AppImage and `SHA256SUMS`. Until then, the `.dmg`,
+installer and `.zip`, each with its `.sha256`, are workflow artifacts of the
+tag's run of the **Release** workflow. Downloading them needs a GitHub
+sign-in, and they expire after 90 days.
 
 macOS x86_64 and Linux aarch64 are not packaged (qtbridge's support
 statement, note #8). Flatpak stays deferred (ADR 0012).
@@ -236,8 +239,9 @@ code-signed or notarised yet; that is an open decision (ADR 0014).
 - **Windows:** SmartScreen shows "Windows protected your PC". Choose
   **More info** → **Run anyway**.
 
-Only open packages downloaded from this repository's releases, and compare
-their SHA-256 with the `.sha256` beside them.
+Only open packages that come from this repository: from its releases or,
+for macOS and Windows until the workflow change, from the tagged Release
+run's artifacts. Check each package's SHA-256 against its `.sha256` file.
 
 | Platform | Artifact | Install |
 | --- | --- | --- |

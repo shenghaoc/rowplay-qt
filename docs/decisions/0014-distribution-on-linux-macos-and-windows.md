@@ -28,8 +28,9 @@ What each platform has behind it on 2026-09-24:
   (#66). The native check ran the gate walk in a real window, 3D replay
   included, read the chords, accent, contrast preference, dialog order and
   system font from Qt, and built and launch-checked the package.
-- **Windows:** CI only (build, tests, the gate walk on `offscreen`) and the
-  package's launch check (#81). Nobody has looked at it.
+- **Windows:** CI only (the app's build, clippy and tests, the gate walk on
+  `offscreen` among them) and the package's launch check (#81). Nobody has
+  looked at it.
 
 ## Decision
 
@@ -43,12 +44,20 @@ What each platform has behind it on 2026-09-24:
    and every artifact still comes from `release.yml` only.
 2. **Windows builds ship verified by CI only**, and the release notes say
    so. "CI-verified" means:
-   - **covered:** the Windows build compiles; the Rust tests and the QML
-     runtime-error gate walk pass (on `offscreen`, which proves every screen
-     loads and walks without a QML runtime error); and the deployed
-     installer tree starts from a clean environment, renders 30 frames and
-     exits 0 (`tools/package/launch-check.py`);
-   - **not covered:** anything a person would see or do. That includes
+   - **covered:** for the tagged commit, `ci.yml`'s Windows leg builds the
+     app and passes clippy and the app crate's tests, the QML runtime-error
+     gate walk among them (on `offscreen`, which proves every screen loads
+     and walks without a QML runtime error). `release.yml`'s Windows
+     package, the deployed installer tree, starts from a clean environment,
+     renders 30 frames and exits 0 (`tools/package/launch-check.py`).
+     `ci.yml` doesn't run on tags and `release.yml` doesn't wait for it. So
+     until the workflow change (5) gates the draft release on a passing
+     `CI` run, the author tags only a commit whose `CI` run passed;
+   - **not covered:** the Qt-free crates' tests (core, platform, viewmodel,
+     fixtures), which `ci.yml` runs on Linux only. On Windows the platform
+     layer's keychain backend, its guard against keyring's in-memory mock
+     and its paths are compiled but never tested;
+   - **also not covered:** anything a person would see or do. That includes
      rendering, fonts and text-size scaling, the accent and contrast theme,
      keyboard and mouse behaviour, the 3D replay on real GPUs, the
      installer's own screens and uninstall, and SmartScreen. The gate's
@@ -57,8 +66,9 @@ What each platform has behind it on 2026-09-24:
      then, reports from Windows users are the only verification.
 3. **macOS is checked by a person on a Mac** before a release is published:
    the packaged app is opened and looked at. The gate walk can also be run
-   in a real window there, where it captures every screen, 3D included
-   (qt-bridges-notes #17).
+   in a real window there, where it captures every screen, 3D included, and
+   `cargo test` with `QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal` runs its
+   visual assertions too (qt-bridges-notes #17).
 4. **Signing is unchanged, and the gaps are stated.** ADR 0012's defaults
    stand:
    - macOS: ad-hoc signature, not notarised, so Gatekeeper refuses the first
@@ -69,11 +79,16 @@ What each platform has behind it on 2026-09-24:
    notarisation, and Windows code signing, are open decisions for the author
    (below); none is required to distribute.
 5. **The release workflow follows separately.** `release.yml`'s release job
-   attaches only the AppImage today. Attaching the macOS and Windows
-   packages is a workflow change to a path that runs the paid package
-   matrix, so it lands only with the author's approval. Until it does, the
-   policy is decided but a tagged release still carries the AppImage alone,
-   and the README says so.
+   attaches only the AppImage today, and it doesn't check that the tagged
+   commit passed CI. Two things change the workflow, on a path that runs the
+   paid package matrix, so they land only with the author's approval:
+   - attaching the macOS and Windows packages;
+   - gating the draft release on the tagged commit's `CI` run.
+
+   Until then, the policy is decided but a tagged release still carries the
+   AppImage alone. The macOS and Windows packages are the tagged run's
+   workflow artifacts, which need a GitHub sign-in to download and expire
+   after 90 days, and the README says so.
 
 ## Open decisions for the author
 

@@ -298,6 +298,11 @@ configuration this note names:
   200 × 100 downsample of the row viewport, 2602 distinct colours in light
   and 2248 in dark, with no near-black sample, at 2400 × 1600 on the Retina
   display.
+- Through the test itself, `QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal
+  ROWPLAY_PHASE_SHOTS=1` passes. The test keeps a caller-provided platform,
+  and `QSG_RHI_BACKEND` turns on its viewport and shadow checks: all twelve
+  phase shots clear `assert_viewport_rendered` (docs/parity-coverage.md,
+  "Capture caveat").
 
 The rest of this note is the original record.
 

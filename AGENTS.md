@@ -112,18 +112,22 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
 
 - Release artifacts come only from that workflow. Never upload a hand-built
   package to a release.
+- Tag a release only on a commit whose `CI` run passed. `ci.yml` doesn't
+  run on tags, and `release.yml` doesn't check it yet (ADR 0014); "verified
+  by CI" means nothing for a commit CI never passed.
 - A Qt bump or a qtbridge bump must be re-packaged and launch-checked on
   all three OSes in the same PR.
 - All three platforms are distributed (ADR 0014). The launch check proves
   start / load / render / exit, not pixels.
   - **macOS:** a person looks at the packaged app on a Mac before a release
     is published. The gate walk run in a real window there captures every
-    screen, 3D included (note #17).
+    screen, 3D included, and `cargo test` with `QT_QPA_PLATFORM=cocoa
+    QSG_RHI_BACKEND=metal` runs its visual assertions too (note #17).
   - **Windows:** there is no one to look, so it ships verified by CI only
     (#81), and the release notes say so.
 
-  The gate's visual assertions run on the Linux leg only. Any release PR
-  says what was looked at, where.
+  In CI, the gate's visual assertions run on the Linux leg only. Any
+  release PR says what was looked at, where.
 - Icons live under `assets/icon/`, pinned like the replay assets; regenerate
   the `.icns`/`.ico` with `tools/package/gen-icons.py` and re-pin.
 
