@@ -286,10 +286,13 @@ that delivers it.
     replay shots leave the README but stay on disk, where the Phase 5a spec
     records them. The status list gains a design-system bullet.
   - [x] T7.2 AGENTS.md: the shared-controls rule beside the QML style
-    line, and two operational lessons (a capture's alpha; thresholds
-    compared unrounded).
+    line, and three operational lessons (a capture's alpha; thresholds
+    compared unrounded; a fix aimed at one configuration checked in all
+    the others).
   - [x] T7.3 `docs/roadmap.md`: the stack's outcome. `docs/source-map.md`:
     the three reduce-motion rows become one current row, and the timezone
     picker's note drops "4b polish".
   - [x] T7.4 #47 closed unmerged, with a comment linking the stack; its
     branch kept.
+  - [x] T7.5 The outcome in `docs/roadmap.md` records the Codex reviews of
+    #68 and #70 (T3.7, T2.9 and 1/7's two review commits).

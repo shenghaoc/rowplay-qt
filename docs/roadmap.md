@@ -848,6 +848,19 @@ after captures in both schemes.
     wherever the table fits, the default size included; the columns are
     whole pixels now (4/7). A `Flow` does not snap at all, which put a
     sync button off the pixel grid (5/7 uses a grid).
+  - The Codex reviews of #68 and #70 (2026-09-24, after the stack was
+    opened) raised five findings, all confirmed, the code ones reproduced
+    before their fixes:
+    - the PB time's inline font still named `Font.TabularNumbers`, and
+      the Phase 4 design still prescribed it (1/7);
+    - a keyboard press hid the next hover's tooltip (3/7);
+    - settings opened over the replay left it presented. 6/7 had fixed
+      its own paths only; the fix moved down to 3/7;
+    - very large text could squeeze the toolbar's sport filter to 0 px,
+      where the segmented control shows nothing (3/7). Its floor
+      (`compactWidth`, 2/7) showed that `ComboBox.WidestText` measures
+      only a `TextInput`, so the compact form had been sized by its
+      background alone.
 
   The Qt findings are in `docs/qt-bridges-notes.md`.
 - **Verified where.** Linux only, locally: Xvfb + Mesa llvmpipe, light,
