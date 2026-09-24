@@ -468,7 +468,7 @@ P1 (must fix before merge):
 
 1. `cargo fmt --all -- --check` passes.
 2. `cargo clippy --all-targets -- -D warnings` passes (with `--workspace` where Qt is installed).
-3. `cargo test --workspace` passes (state which crates ran if Qt was unavailable).
+3. `cargo test --workspace` passes, or `cargo test && cargo test -p rowplay-app`, which runs the same tests (state which crates ran if Qt was unavailable).
 4. `git diff --check` passes.
 5. The app builds wherever Qt is available; attach the smoke screenshot for QML / 3D changes.
 6. The PR lists scope, validation commands with results, toolchain versions,
@@ -478,6 +478,60 @@ P1 (must fix before merge):
 
 One PR per phase; commits scoped per logical step with subjects in the
 rowplay-studio style, e.g. `feat: Phase 1 - Core parity foundation`.
+
+## Working efficiently
+
+Numbers from a 4-core Linux VM (Xvfb + llvmpipe, 2026-09-24). With a warm
+build, the gate walk is minutes and everything else is seconds, and every
+push costs a CI round of about ten minutes.
+
+- **Before a long run, check that the build is warm.** A no-op `cargo
+  build -p rowplay-app` takes 0.1 s, a cold one about 85 s, most of it
+  qtbridge's C++ glue. A new worktree is always cold: validate in one that
+  already holds a build, and switch branches in it ("Target directories
+  and worktrees").
+- **Run the Qt-free tests first: `cargo test && cargo test -p
+  rowplay-app`.** Those are the same tests as `cargo test --workspace`,
+  which runs `rowplay-app`'s first, so a failing Qt-free test only shows up
+  after the whole gate walk. Run first, the Qt-free tests report 5 s after
+  an edit to `rowplay-core`. The cost: the Qt-free crates build with their
+  own feature set: qtbridge's build tooling (`qtbridge-gen`, `cxx-build`)
+  turns on `proc-macro2`'s `span-locations`, and the app build carries it
+  through the shared dependency graph. So an edit compiles twice:
+  2.0 s + 3.6 s, against 4.4 s for the workspace. The first split run also
+  builds that variant once (16.5 s here).
+- **In a stack, run the quick gate on the intermediate branches and the
+  full gate on the top one** ("Gate profiles"). CI runs the full walk on
+  every pull request either way.
+- **Batch review fixes per round.** Fix every finding of the round in
+  every layer it touches, then restack once, validate once and push once.
+  Each push re-runs CI, and in a stack it restacks every branch above.
+- **PR bodies link; they don't quote commit SHAs.** A restack rewrites
+  every SHA in the stack, and each SHA quoted in a body or comment then
+  goes stale or needs an edit. Link to branches, compare views or the
+  `ui/screenshots` branch, name commits by subject, and put evidence in as
+  links to the CI run or its artifacts. Update a body only when its facts
+  change. Pinned reference SHAs (rowplay, rowplay-studio) are the
+  exception: they do not move.
+- **Capture noise is defined once, here.** Measured over five pairs of full
+  walks under CI's Linux recipe (270 capture comparisons): 3D captures
+  (`replay-*`, `phase-*`, `step5*`) differed by at most 150 scattered
+  pixels with a channel delta of at most 3, and 2D screens by at most 262
+  pixels with a delta of at most 6. The bounds add margin: **3D ≤ 250 px,
+  delta ≤ 4; 2D ≤ 400 px, delta ≤ 8.** `tools/capture-diff.py <before-dir>
+  <after-dir>` applies them. A capture within its bound is unchanged, and a
+  PR says so once, not per capture. A capture beyond it changed, and the PR
+  says why. With the quality governor running, a 3D capture can also land
+  on another tier (4–5 % of pixels, delta ~200): that is content, not
+  noise. The bounds hold for Xvfb + llvmpipe; macOS and Windows have none
+  yet, since their CI legs take no captures.
+- **Recapture only the screens a change touches.** A change to one screen
+  needs that screen's captures compared against the base
+  (`tools/capture-diff.py <base> <branch> settings`), not the whole set. CI
+  captures everything on every run (the `screenshots` artifact): link that
+  run instead of re-attaching captures. Shared replay code
+  (`ReplayScene.qml`, the replay backend, materials, assets) touches every
+  3D capture.
 
 ## Operational lessons
 
