@@ -8,6 +8,9 @@ current screenshot set under `docs/screenshots/`).
 
 All captures are the demo library only (no Concept2 account data). They are
 the runtime-error gate's own captures or xdotool-driven screen captures under
-Xvfb + Mesa llvmpipe on Linux; files are quantised or JPEG-compressed to keep
-the branch small. Deleting the branch after the stack lands would break the
+Xvfb + Mesa llvmpipe on Linux, and, from the Codex review round of #68 and
+#70 on, captures made on macOS: the gate's captures, crops of the live
+window, and scratch probes of the real controls, each named as such in the
+PR body or issue that embeds it. Files are quantised or JPEG-compressed to
+keep the branch small. Deleting the branch after the stack lands would break the
 images in those PR bodies and issues.
