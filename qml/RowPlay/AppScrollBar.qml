@@ -30,4 +30,9 @@ ScrollBar {
             NumberAnimation { duration: 180 }
         }
     }
+
+    // No track. Basic's own shows only under the OS contrast preference,
+    // in `palette.mid` (Theme.controlBorder), and the high-contrast thumb
+    // measures 1.0–1.06:1 on it: the thumb would vanish into the track.
+    background: Item {}
 }
