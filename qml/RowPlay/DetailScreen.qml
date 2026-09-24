@@ -273,7 +273,7 @@ Pane {
                         id: splitsScroller
                         Layout.fillWidth: true
                         Layout.preferredHeight: splitsTable.implicitHeight
-                                                + (interactive ? splitsScrollBar.height : 0)
+                                                + (interactive ? splitsScrollBar.maximumThickness : 0)
                         contentWidth: splitsCard.tableWidth
                         contentHeight: splitsTable.implicitHeight
                         flickableDirection: Flickable.HorizontalFlick
