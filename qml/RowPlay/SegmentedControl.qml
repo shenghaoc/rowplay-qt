@@ -11,7 +11,8 @@
 //
 // Given less width than its segments need (large text in a narrow window),
 // the control shows the same choices as a pop-up button instead of eliding
-// them; a caller lets it shrink by capping its width below `implicitWidth`.
+// them; a caller lets it shrink by capping its width below `implicitWidth`,
+// and keeps it at least `compactWidth` wide.
 import QtQuick
 import QtQuick.Controls
 import RowPlay
@@ -44,6 +45,18 @@ Control {
         }
         return widest
     }
+    /// The narrowest width that still shows every choice whole: the compact
+    /// form's pop-up button around its widest title, measured in the
+    /// button's own font (the metrics' font is read for the same reason as
+    /// above). Below it a capped control has nothing left to show.
+    readonly property real compactWidth: {
+        void compactMetrics.font
+        var widest = 0
+        for (var i = 0; i < count; ++i) {
+            widest = Math.max(widest, compactMetrics.advanceWidth(String(model[i])))
+        }
+        return Math.ceil(compactButton.leftPadding + widest + compactButton.rightPadding)
+    }
 
     function select(index) {
         if (index >= 0 && index < count && index !== currentIndex) {
@@ -73,13 +86,15 @@ Control {
         }
     }
 
-    // The compact form: the same choices in a pop-up button, at its own
-    // natural width from the leading edge.
+    // The compact form: the same choices in a pop-up button from the leading
+    // edge, at its natural width but never narrower than its widest choice.
+    // ComboBox.WidestText cannot size it: Qt measures only a TextInput
+    // content item, and this one is a Label (docs/qt-bridges-notes.md).
     PopupButton {
+        id: compactButton
         visible: control.compact
-        width: Math.min(control.width, implicitWidth)
+        width: Math.min(control.width, Math.max(implicitWidth, control.compactWidth))
         height: control.height
-        implicitContentWidthPolicy: ComboBox.WidestText
         model: control.model
         currentIndex: control.currentIndex
         enabled: control.enabled
@@ -93,6 +108,11 @@ Control {
         id: metrics
         font.pixelSize: control.font.pixelSize
         font.weight: Font.DemiBold
+    }
+
+    FontMetrics {
+        id: compactMetrics
+        font: compactButton.font
     }
 
     background: Rectangle {
