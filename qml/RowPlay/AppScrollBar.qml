@@ -11,13 +11,20 @@ ScrollBar {
     id: control
 
     readonly property bool scrollable: size < 1.0
+    /// The thumb's thickness at rest, and widened under the pointer.
+    readonly property int restThickness: Theme.px(5)
+    readonly property int hoverThickness: Theme.px(8)
+    /// The bar's widest cross-section, padding included. A layout that
+    /// reserves room for the bar reserves this, so hovering it moves nothing.
+    readonly property real maximumThickness: hoverThickness + 2 * padding
 
     padding: Theme.px(2)
     minimumSize: 0.08
     hoverEnabled: true
 
     contentItem: Rectangle {
-        implicitWidth: control.hovered || control.pressed ? Theme.px(8) : Theme.px(5)
+        implicitWidth: control.hovered || control.pressed ? control.hoverThickness
+                                                          : control.restThickness
         implicitHeight: implicitWidth
         radius: width / 2
         color: control.pressed ? Theme.textSecondary : Theme.textTertiary
