@@ -9,15 +9,19 @@ pixels and the largest channel delta, and it marks each capture that is
 outside the noise bound for its type (AGENTS.md, "Working efficiently"). A
 capture present in only one directory is a change, and is marked too:
 
-    3D captures (replay-*, phase-*, step5*, smoke): at most 250 px, delta at most 4
-    2D screens (everything else):                   at most 400 px, delta at most 8
+    3D captures (replay-*, phase-*, step5*): at most 250 px, delta at most 4
+    2D screens (everything else):            at most 400 px, delta at most 8
 
 Measured over five pairs of full walks under Xvfb + llvmpipe (CI's Linux
 recipe, 270 capture comparisons): 3D captures differed by at most 150
 scattered pixels with a channel delta of at most 3, 2D screens by at most
 262 pixels with a delta of at most 6. The bounds add margin to those
-maxima. They hold for that platform only. The smoke test's capture (smoke)
-is a View3D, so it takes the 3D bound.
+maxima. They hold for that platform only.
+
+The smoke test's capture (smoke) is skipped. Its cube turns on every frame
+(Smoke.tick drives Smoke.cubeAngle), so the capture depends on when it was
+taken. Three CI runs of one unchanged tree differed by 20,807-25,780 px at
+delta 159-170, and no bound can tell that from a change.
 
 Usage: tools/capture-diff.py <before-dir> <after-dir> [name-substring ...]
 
@@ -32,7 +36,9 @@ from pathlib import Path
 
 # (name prefixes, differing pixels, channel delta): the noise bound per
 # capture type; a name matching no prefix is a 2D screen.
-BOUNDS_3D = (("replay-", "phase-", "step5", "smoke"), 250, 4)
+BOUNDS_3D = (("replay-", "phase-", "step5"), 250, 4)
+# Captures with no noise bound: they differ between identical runs.
+SKIPPED = ("smoke",)
 BOUND_2D = (400, 8)
 
 
@@ -99,8 +105,12 @@ def main(argv):
     names = sorted(
         name
         for name in before | after
-        if not filters or any(f in name for f in filters)
+        if (not filters or any(f in name for f in filters))
+        and not name.startswith(SKIPPED)
     )
+    for name in sorted((before | after) - set(names)):
+        if name.startswith(SKIPPED):
+            print(f"{name}: skipped (animated, no noise bound)")
     if not names:
         print("no capture selected in either directory", file=sys.stderr)
         return 2
