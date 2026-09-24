@@ -24,7 +24,11 @@ The `Replay` singleton feeds `PerfGovernor::sample(frame_ms)` from the tick
 delta; when `governor.level()` changes and the mode is Automatic, the scene's
 effective tier = `preferences.tier.degraded(level)`. Pinned tier ⇒ governor
 samples but never applies. Diagnostics strip reads `Replay.diagnosticsText`
-(one Rust-formatted string, updated at 4 Hz, not per frame).
+(one Rust-formatted string, updated at 4 Hz, not per frame). Since
+2026-09-24 it notifies through its own `diagnosticsChanged`; until then it
+rode `replayChanged`, which re-ran the scene's rule walk at that cadence
+(roadmap, UI follow-ups). No QML reads the string yet: the strip was never
+built.
 
 ## Ghosts
 

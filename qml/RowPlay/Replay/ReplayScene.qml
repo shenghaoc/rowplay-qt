@@ -22,6 +22,11 @@ Item {
     // ---- constants from the Replay singleton ----
     readonly property var fl: Replay.frameLayout
     readonly property var el: Replay.equipmentLayout
+    // Read once: every `Replay.meshRoles` access converts the whole JSON map
+    // across the bridge, and walkRigs looks a role up for every node of four
+    // Rigs components (~115 ms per scene walk in a debug build when read per
+    // node, ~1 ms from this copy). The map is Constant.
+    readonly property var meshRoles: Replay.meshRoles
     readonly property string sportPrefix: [
         "equipment:row:", "equipment:ski:", "equipment:bike:",
     ][Replay.sportIndex]
@@ -900,6 +905,9 @@ Item {
     property var venueTextureCache: ({})
     property var venueWalked: ({})
     property bool venueSchemeCached: false
+    // The tier's normal-map flag for the walk in progress, read once per walk
+    // instead of converting Replay.tierSettings for every texture slot.
+    property bool venueNormalMaps: false
 
     function syncVenue() {
         if (Replay.loadState !== "ready") return
@@ -915,6 +923,8 @@ Item {
         if (!plan || !plan.inventory) return
         venueWalked[key] = true
         venueSchemeCached = Replay.schemeDark
+        var tiers = Replay.tierSettings
+        venueNormalMaps = !!(tiers && tiers.normalMaps)
         // The twelve variants sit inside venueRoot in (sport asc, tier asc)
         // declaration order.
         var item = venueRoot.children[Replay.sportIndex * 4 + Replay.effectiveQuality]
@@ -956,11 +966,11 @@ Item {
     // `tint` is set only for instance-bucket materials; `original` is the
     // placeholder material balsam generated, which carries the authored
     // clearcoat values the contract does not duplicate.
-    function venueMaterial(variantKey, name, tint, original) {
+    function venueMaterial(plan, variantKey, name, tint, original) {
         var key = variantKey + "|" + name + (tint ? "#" + tint.join(",") : "")
         if (venueMaterials[key] !== undefined)
             return { material: venueMaterials[key].material, bindings: 0 }
-        var spec = Replay.venuePlan.materials[name]
+        var spec = plan.materials[name]
         if (spec === undefined) {
             failVenue("plan has no material " + name)
             return null
@@ -1004,8 +1014,7 @@ Item {
         var bindings = 0
         for (var slot in textures) {
             var binding = textures[slot]
-            if (slot === "normalMap" && !(Replay.tierSettings
-                                          && Replay.tierSettings.normalMaps)) continue
+            if (slot === "normalMap" && !venueNormalMaps) continue
             var texture = venueTextureCache[binding.source]
             if (texture === undefined) {
                 texture = Qt.createQmlObject(
@@ -1027,7 +1036,7 @@ Item {
 
     // Turn one archetype Model into its bucketed InstanceLists. The bucket
     // tints ride on cloned materials (no custom shaders).
-    function applyInstanceGroup(variantKey, node, plan) {
+    function applyInstanceGroup(venuePlan, variantKey, node, plan) {
         var buckets = plan.buckets
         for (var b = 0; b < buckets.length; ++b) {
             var bucket = buckets[b]
@@ -1040,7 +1049,7 @@ Item {
             }
             qml += "] }"
             var list = Qt.createQmlObject(qml, venueRoot, "venueInstances")
-            var built = venueMaterial(variantKey, node.materials[0].objectName,
+            var built = venueMaterial(venuePlan, variantKey, node.materials[0].objectName,
                                       bucket.tint, node.materials[0])
             if (built === null) return 0
             // A Model carries exactly one instancing, so each bucket draws
@@ -1073,9 +1082,9 @@ Item {
             if (child.instancing !== undefined && child.source !== undefined) {
                 var groupPlan = instanceGroups[child.objectName]
                 if (groupPlan !== undefined) {
-                    applied += applyInstanceGroup(variantKey, child, groupPlan)
+                    applied += applyInstanceGroup(plan, variantKey, child, groupPlan)
                 } else if (child.materials.length > 0) {
-                    var built = venueMaterial(variantKey, child.materials[0].objectName,
+                    var built = venueMaterial(plan, variantKey, child.materials[0].objectName,
                                               null, child.materials[0])
                     if (built === null) return applied
                     child.materials = [built.material]
@@ -1122,7 +1131,7 @@ Item {
         if (!node) return
         var matMap = materialMap || byRole
         var side = isMirror ? "left" : "right"
-        var meta = Replay.meshRoles[node.objectName]
+        var meta = replayRoot.meshRoles[node.objectName]
         if (meta !== undefined) {
             if (node.materials !== undefined && matMap[meta.role] !== undefined) {
                 node.materials = [matMap[meta.role]]

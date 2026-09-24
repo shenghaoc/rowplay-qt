@@ -305,7 +305,8 @@ Wayland (`cargo run -p rowplay-app`).
   geometry, confirmed by wall-clock at 42–54 per 720-frame run), rolls back
   and locks. The user stays at Ultra with occasional stalls rather than being
   dropped to Low. Reducing ghost draw calls or instancing the geometry is the
-  path to fixing the stalls.
+  path to fixing the stalls. *(Re-attributed 2026-09-24: the rate matches
+  the diagnostics-driven scene walk, see UI follow-ups.)*
 - Deferred: compare control UI (default ghost pick already selects
   automatically), rival file import (core parsers tested, the file dialog is
   UI plumbing for Phase 6).
@@ -411,7 +412,9 @@ Wayland (`cargo run -p rowplay-app`).
     release p95 sits inside the debug repeats' range for its cell.
   Wall-clock stalls are 46–55 per 720 frames (6.4–7.6 %), the same
   structural band 5c measured (~6 %) — the venues did not multiply the stall
-  rate. Governor: at venue-era medians the sustained-over window never
+  rate. *(Re-attributed 2026-09-24: 720 / 15 = 48 is the diagnostics-driven
+  scene walk's cadence, see UI follow-ups.)* Governor: at venue-era
+  medians the sustained-over window never
   triggers, so no step-down (and hence no payoff-rollback) fires during the
   Ultra bench — verified by the absence of venue reloads (an effective-tier
   change would re-walk and re-log the venue); the governor's threshold unit
@@ -766,6 +769,32 @@ two candidate causes, separated by a render-cadence measurement
   double the apparent per-frame motion. The measurement cannot attribute
   the author's perception between the snaps (SkiErg-only) and pacing
   (all sports); both are real.
+- **A periodic GUI-thread stall: FIXED 2026-09-24.** The governor's
+  diagnostics string refreshed on every 15th rendered frame through the
+  scene-wide `replayChanged` signal, whose QML handler re-ran the whole scene
+  rule walk. Nothing displays that string (the 5c diagnostics strip was
+  never built), so the walk was the refresh's only effect. The walk re-read
+  the `Replay.meshRoles` JSON map for every node (qt-bridges-notes #18), so
+  each refresh cost ~115 ms of GUI thread in a debug build. Measured on a
+  4-core Linux VM (Xvfb + llvmpipe, rower 5000 m demo at a pinned Low tier,
+  10 s windows, median of 3 runs):
+  - playback before: 12 inter-frame gaps over 120 ms (12–14), p95 136 ms,
+    18.9 fps;
+  - playback after: none over 80 ms, p95 53 ms, 22.4 fps;
+  - paused before: the scene redrew itself at 66 frames/s for 161 % CPU;
+  - paused after: 0 frames, 0.7 % CPU.
+
+  Two side effects went with it. A paused replay no longer feeds the
+  governor, so an idle scene cannot be stepped down any more (it could
+  before, and did at 32 s on llvmpipe). The gate's hold had relied on that
+  redraw loop for its frames (qt-bridges-notes, the `grabToImage` entry):
+  without it every settle ran out its tick bound and the walk took
+  947.7 s; with the hold requesting its own frames it takes 327.8 s
+  (310.5 s before; one run each). App startup also sheds the hidden
+  replay scene's two walks: launch → first frame → exit went 1527 →
+  1228 ms (median of 5, debug). The 5c/6b stall band (42–55 per 720
+  frames) matches the old cadence (720 / 15 = 48): re-measure it on the
+  UHD 630 before attributing what remains to the ghost geometry.
 
 Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after
