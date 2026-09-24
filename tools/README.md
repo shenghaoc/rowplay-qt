@@ -13,6 +13,7 @@ Pipeline scripts. Nothing here is linked into the app.
 | `package/launch-check.py` | Starts a packaged binary from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`, `QT_*`), with `ROWPLAY_EXIT_AFTER_FRAMES=30`, and fails on a non-zero exit, a timeout, or a loader / QML failure signature. Shared by the three package scripts. |
 | `package/gen-icons.py` | Derives the committed `assets/icon/rowplay-qt.icns` / `.ico` from the vendored web icon with Pillow (`--check` compares bytes); both outputs are SHA-256-pinned by `asset_hashes.rs`. |
 | `convert-locales.mjs` | Regenerate the ID-based Qt `.ts` catalogues in `i18n/` from the web locales in `reference/rowplay/src/lib/locales/` (`--check` verifies the committed files; needs Node ≥ 23.6 for type stripping). |
+| `capture-diff.py` | Compares two directories of gate captures (the raw `.ppm` files the walk saves next to its PNGs in `ROWPLAY_SMOKE_SCREENSHOT_DIR`) and marks every capture outside the capture noise bound (AGENTS.md, "Working efficiently"); name substrings narrow it to the captures a change reaches. Standard library only. |
 
 Later phases add asset vendoring and `balsam` pre-processing (Phase 5), and
 the Node venue exporter plus Blender clean-up scripts (Phase 6).
