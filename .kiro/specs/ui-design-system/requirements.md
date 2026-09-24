@@ -11,13 +11,16 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 
 - R0.1 UI and presentation only. No change to the view-model logic, the 3D
   scene, `applyFrame`, the bench code or the gate hooks, except where a
-  requirement below names a Rust change.
+  requirement below names a Rust change, and except 1/7's pre-existing
+  defects that lived in Rust (the stroke pace axis, the trend chart's date
+  list and the splits table rows: #48, #51 and #59).
 - R0.2 No new strings. Every `Tr.t` id is an existing web key
-  (`i18n_parity`), and `i18n/*.ts` is never edited. Where the OS supplies a
-  title (macOS menu-item roles), the OS supplies it.
+  (`i18n_parity`), and `i18n/*.ts` is never edited. Where Qt supplies a
+  title (the macOS menu-item roles), the app does not replace it (#80).
 - R0.3 Nothing is added under `assets/` (`asset_hashes`). No C++. No new
   Rust dependency. Packaging is unchanged (ADR 0012).
-- R0.4 Every new file carries the SPDX header. Every new QML file is listed
+- R0.4 Every new source file (QML, Rust, scripts) carries the SPDX header,
+  as the repository's source files do. Every new QML file is listed
   in `qml/RowPlay/qmldir` and `qml/rowplay.qrc`.
 - R0.5 The QML runtime-error gate stays green: no TypeError,
   ReferenceError, binding loop or "Unable to assign", and every
@@ -34,11 +37,12 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R1.2 Surfaces and text use this repository's own neutral light and dark
   ramps. Every text level passes WCAG AA (≥ 4.5:1) on every surface it is
   used on, control outlines and the focus ring reach ≥ 3:1, and text on an
-  accent fill passes AA. Radii, spacing and chart styling are this
-  repository's own.
+  accent fill passes AA (not met for every possible system accent: #76).
+  Radii, spacing and chart styling are this repository's own.
 - R1.3 Every font size and length derives from the system font
   (`Qt.application.font`) as a ratio of a 13 px reference, with no
-  hardcoded pixel sizes. Controls are about 32 px tall at the reference.
+  hardcoded pixel sizes beyond the window's own size and hairline or 2 px
+  strokes. Controls are about 32 px tall at the reference.
   Nothing clips at 125 % and 150 % text.
 - R1.4 The colour scheme follows `Qt.styleHints.colorScheme`
   (`ROWPLAY_FORCE_COLOR_SCHEME` pins it).
@@ -92,15 +96,15 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   Ctrl+Cmd+S on macOS, and is disabled during the replay. No custom shortcut
   shadows the platform's Quit or Close.
 - R4.2 macOS gets the native menu bar, with menu-item roles (Preferences,
-  Quit, About) so the OS supplies the titles. Windows and Linux get a menu
-  button at the toolbar's trailing edge. Existing keys only (`nav.settings`,
-  `pwa.reload`, …).
+  Quit, About), so Qt supplies the titles and key equivalents (#80).
+  Windows and Linux get a menu button at the toolbar's trailing edge.
+  Existing keys only (`settings.title`, `pwa.reload`, …).
 - R4.3 `DialogButtonBox` keeps its default layout, so the platform orders the
   dialog buttons. No `MacLayout`.
 - R4.4 Native title bars everywhere.
 - R4.5 Settings stay an in-app page with no dismiss button. On macOS the
-  native Settings… item and the Preferences shortcut reach it. Back
-  navigation, Escape and the toolbar toggle close it.
+  application menu's Preferences… item (⌘,) reaches it. Back navigation,
+  Escape and the toolbar toggle close it.
 
 ## R5 — Dashboard and detail
 

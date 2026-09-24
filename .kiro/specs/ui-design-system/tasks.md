@@ -67,6 +67,23 @@ that delivers it.
     narrower. `ComboBox.WidestText`, which the compact form had set for
     this, measures only a `TextInput` content item and read 0 here
     (`docs/qt-bridges-notes.md`).
+  - [x] T2.10 The second-reviewer pass (2026-09-24). Each defect was
+    reproduced before its fix, with a scratch Qt Quick Test on the real
+    control or Qt's own sources:
+    - `ToolbarButton` set `Accessible.Button` explicitly, hiding the
+      CheckBox role the template gives a checkable button (3/7's settings
+      toggle);
+    - a window shortcut on Space took the key from a focused toolbar
+      button (6/7's replay: Space on Close toggled playback);
+    - the pop-up list indented only the current row's label (2/7's own
+      gallery capture shows it);
+    - scroll bars vanished into Basic's track under the OS contrast
+      preference, a track `ROWPLAY_FORCE_CONTRAST` never shows;
+    - the indeterminate progress segment froze off-centre when reduce
+      motion stopped its sweep;
+    - parts centred inside a control could sit on half pixels.
+
+    `AppScrollBar.maximumThickness` serves 4/7's splits table.
 - [ ] T3 (3/7 `ui/03-shell`) Full-height sidebar, toolbar and sidebar rows
   (R3), the platform layer (R4.1–R4.4), the empty state.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.

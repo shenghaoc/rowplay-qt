@@ -856,6 +856,30 @@ so how those earlier close-ups were framed is an open question
   choices at every text size, so its width never depended on its text.
   The control now measures its widest choice with a `FontMetrics` in the
   button's font (`compactWidth`).
+- **Basic's `ScrollBar` draws a track under the OS contrast preference**
+  (UI design system, second-reviewer pass). Its `background` is a
+  `Rectangle` in `palette.mid` at the thumb's opacity, visible only while
+  `Qt.styleHints.accessibility.contrastPreference === Qt.HighContrast`
+  (`Controls/Basic/ScrollBar.qml`, Qt 6.11.2). A scroll bar that replaces
+  only `contentItem` keeps it, and the app's `ROWPLAY_FORCE_CONTRAST=high`
+  never shows it, because Basic reads the OS preference. `AppScrollBar`'s
+  high-contrast thumb measured 1.00–1.06:1 on that track, so it sets
+  `background: Item {}`.
+- **A checkable `AbstractButton` reports the CheckBox role**
+  (`QQuickAbstractButton::accessibleRole()`, qtdeclarative v6.11.2), with
+  its checked state. An explicit `Accessible.role: Accessible.Button`
+  overrides that and hides the toggle from a screen reader.
+- **A window `Shortcut` takes Space from a focused button.** An
+  `AbstractButton` does not accept Space on `ShortcutOverride`, so a window
+  shortcut on the same key wins and the focused button is never pressed
+  (probed with a scratch Qt Quick Test). A control that owns a key while
+  focused accepts it in `Keys.onShortcutOverride`, as `SegmentedControl`
+  does for the arrows and `ToolbarButton` now does for Space.
+- **An `Animation on x` that stops leaves `x` where it was.** The
+  property's binding stays but does not re-run until a dependency changes,
+  so a centred segment stopped mid-sweep stays off-centre (x 113.3 against
+  70.0 in a probe of `AppProgressBar`). Setting the binding again when the
+  animation stops puts it back.
 - **Open popups are not part of any item grab.** A `Popup`, `Menu`,
   `ToolTip` or `Dialog` renders in the window's overlay, a sibling of the
   content item. `grabToImage` on content never includes it, and the
