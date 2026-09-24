@@ -136,6 +136,26 @@ that delivers it.
     in the narrow window and come back at 1200 px, and a choice made in
     the pop-up filters the list and shows in the segments).
   - [x] T3.6 Validation (R9): see the PR.
+  - [x] T3.7 The Codex review of #70 (head `5efc104`): three findings, each
+    reproduced before its fix.
+    - A Space press on a focused toolbar button, with the pointer
+      elsewhere, hid the tooltip from the next hover (a scratch Qt Quick
+      Test on the real control). Any hover change now clears the press's
+      dismissal.
+    - Settings opened over the replay (the toolbar toggle, Preferences, the
+      menus) left the replay presented: Back returned to the workout, and
+      Replay was refused as already presented. `showSettings()` and
+      `showDashboard()` now close the replay first, a change 6/7 had made
+      for itself. Gate steps 206–209 log the route and the gate test
+      asserts it.
+    - Very large text with a wide sidebar capped the sport filter at 0 px,
+      where it shows nothing, and pushed the trailing buttons past the
+      toolbar's leading edge (base 23 px, the sidebar dragged to its
+      maximum, in a probe of the real controls). The filter keeps its
+      compact form's width (`compactWidth`, T2.9), a dragged sidebar stops
+      where the toolbar would get less, and the window's minimum grows past
+      1000 px only where very large text needs it. Nothing moves at 100 %
+      or 150 % text.
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
