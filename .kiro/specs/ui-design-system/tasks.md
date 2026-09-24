@@ -241,6 +241,13 @@ that delivers it.
     not. A click on a switch itself turns it on and off once per click,
     like a click on its row.
   - [x] T5.7 Validation (R9): see the PR.
+  - [x] T5.8 The second-reviewer pass (2026-09-24) found no defect in this
+    layer's own code. Two older string defects show on this page and are
+    tracked: the logout confirmation promises to delete cached workouts
+    that the action keeps (#77), and the quality labels are Rust literals,
+    English in every language (#78). The two-way distance-unit choice is
+    a pop-up button where ADR 0013 calls for a segmented control; that is
+    left to the owner.
 - [ ] T6 (6/7 `ui/06-replay`) R7.
 - [ ] T7 (7/7 `ui/07-docs`) R8.2, the roadmap outcome, the README
   screenshots; #47 superseded, with links to the stack.
