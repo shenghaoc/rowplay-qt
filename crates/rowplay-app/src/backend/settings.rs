@@ -40,6 +40,9 @@ pub struct SettingsBackend {
     /// Comma-separated `Singleton.member` pairs the gate probes (from
     /// `ROWPLAY_GATE_MEMBER_CHECK`); empty outside the gate.
     gate_member_check: String,
+    /// The quick gate profile (`ROWPLAY_GATE_PROFILE=quick`): the walk stops
+    /// after the first replay capture. The default is the full walk.
+    gate_quick: bool,
     /// Replay quality tier index (0 Low, 1 Medium, 2 High, 3 Ultra).
     quality_index: i32,
     /// Quality tier labels for the Settings picker.
@@ -148,6 +151,8 @@ impl Default for SettingsBackend {
             sync_mock_mode: crate::backend::test_env("ROWPLAY_SYNC_MOCK").is_some(),
             gate_member_check: crate::backend::test_env("ROWPLAY_GATE_MEMBER_CHECK")
                 .unwrap_or_default(),
+            gate_quick: crate::backend::test_env("ROWPLAY_GATE_PROFILE")
+                .is_some_and(|profile| profile == "quick"),
             quality_index: i32::from(prefs.replay_quality.unwrap_or(1)),
             quality_labels: vec![
                 "Low".to_owned(),
@@ -243,6 +248,9 @@ impl SettingsBackend {
     // property reads as `undefined` with no QML error, so the runtime gate
     // probes every member QML references and fails on any miss.
     qproperty!("gateMemberCheck", Member = gate_member_check, Constant);
+    // Quick gate profile: shell, languages, member check, mock syncs and one
+    // replay load (AGENTS.md, "Gate profiles").
+    qproperty!("gateQuick", Member = gate_quick, Constant);
     // Replay quality: 0 Low, 1 Medium, 2 High, 3 Ultra.
     qproperty!(
         "qualityIndex",

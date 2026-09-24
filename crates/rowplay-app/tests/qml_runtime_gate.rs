@@ -33,6 +33,7 @@
 //! nothing to be compared against.
 
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -51,6 +52,197 @@ const FORBIDDEN_PATTERNS: [&str; 6] = [
 
 /// The Qt-bridge singletons whose members QML must resolve.
 const SINGLETONS: [&str; 5] = ["Library", "Detail", "Settings", "Sync", "Replay"];
+
+/// Every app log line starts with the seconds since the app's first message,
+/// so the walk can be timed from its log alone.
+const MESSAGE_PATTERN: &str = "%{time process} %{if-category}%{category}: %{endif}%{message}";
+
+/// The gate steps that open each phase of the walk (`Main.qml`'s gate timer).
+const PHASES: [(u32, &str); 10] = [
+    (1, "shell, languages, filters"),
+    (24, "mock syncs"),
+    (44, "sorting, dates, detail captures"),
+    (52, "replay loads and captures"),
+    (61, "tier cycling"),
+    (66, "phase shots (row, ski)"),
+    (77, "step-529 strip"),
+    (79, "phase shots (bike)"),
+    (84, "teardown"),
+    (85, "bench, exit"),
+];
+
+/// Replay entry, request to first presented frame, under llvmpipe: measured
+/// at 13.4-15.6 s (docs/roadmap.md). Over this the test warns, but does
+/// not fail: shared CI runners have produced walks 4x and 30x slower.
+const ENTRY_BUDGET_SECONDS: f64 = 30.0;
+
+/// The walk's profile, `ROWPLAY_GATE_PROFILE`: `full` (the default and what
+/// CI runs) or `quick` (the shell, all six languages, the member check, the
+/// mock syncs and the first replay load). AGENTS.md, "Gate profiles".
+fn gate_profile_is_quick() -> bool {
+    match std::env::var("ROWPLAY_GATE_PROFILE").as_deref() {
+        Err(_) | Ok("full") => false,
+        Ok("quick") => true,
+        Ok(other) => {
+            panic!("unknown ROWPLAY_GATE_PROFILE {other:?}: use \"quick\" or \"full\"")
+        }
+    }
+}
+
+/// `(seconds, text)` for every log line that carries the pattern's stamp.
+fn timed_lines(log: &str) -> Vec<(f64, &str)> {
+    log.lines()
+        .filter_map(|line| {
+            let (stamp, rest) = line.trim_start().split_once(' ')?;
+            Some((stamp.parse::<f64>().ok()?, rest))
+        })
+        .collect()
+}
+
+/// The log lines of a gate hold that gave up at its tick bound (`Main.qml`'s
+/// gate timer: 60 ticks for a replay load or a scene settle, 40 for a grab).
+/// A healthy walk has none, because frames keep arriving and every hold
+/// releases early.
+const BOUND_HITS: [&str; 3] = ["frames never settled", "load timed out", "grab timed out"];
+
+/// The walk's timing: seconds per phase, and for every gate step whose first
+/// presented frame came more than a second later, that latency (replay
+/// entry is step 52; the llvmpipe IBL bake shows up as each sport switch).
+/// It also names the stall signatures: holds that ran out their tick bound
+/// (no frames came, as for a covered window) and the longest silence in
+/// the log. A silence well past a bound's nominal 18 s means the gate timer
+/// itself ran slow (timer throttling). Returns the report and the entry
+/// latency, if the log carried one.
+fn walk_timing(log: &str, quick: bool) -> (String, Option<f64>) {
+    let lines = timed_lines(log);
+    let mut steps: Vec<(f64, u32)> = Vec::new();
+    let mut latencies: Vec<(u32, f64)> = Vec::new();
+    let mut step_now = 0;
+    let mut bound_hits: Vec<u32> = Vec::new();
+    let mut silence = (0.0_f64, 0_u32);
+    let mut previous: Option<f64> = None;
+    for &(at, text) in &lines {
+        if let Some(before) = previous {
+            if at - before > silence.0 {
+                silence = (at - before, step_now);
+            }
+        }
+        previous = Some(at);
+        if BOUND_HITS.iter().any(|needle| text.contains(needle)) {
+            bound_hits.push(step_now);
+        }
+        if let Some(rest) = text.split("gate frame after step ").nth(1) {
+            if let Ok(step) = rest.trim().parse::<u32>() {
+                if let Some(&(started, _)) = steps.iter().rev().find(|(_, n)| *n == step) {
+                    latencies.push((step, at - started));
+                }
+            }
+        } else if let Some(rest) = text.split("gate step ").nth(1) {
+            if let Ok(step) = rest.trim().parse::<u32>() {
+                steps.push((at, step));
+                step_now = step;
+            }
+        }
+    }
+    let Some(&(end, _)) = lines.last() else {
+        return (
+            "gate timing: the log carried no timestamps".to_owned(),
+            None,
+        );
+    };
+    let profile = if quick { "quick" } else { "full" };
+    let mut report = String::new();
+    let _ = writeln!(
+        report,
+        "gate walk ({profile} profile): {end:.1} s of app log"
+    );
+    for (index, (first, name)) in PHASES.iter().enumerate() {
+        let next = PHASES.get(index + 1).map_or(u32::MAX, |(step, _)| *step);
+        let Some(&(start, _)) = steps.iter().find(|(_, n)| (*first..next).contains(n)) else {
+            continue;
+        };
+        let stop = steps
+            .iter()
+            .find(|(_, n)| *n >= next)
+            .map_or(end, |(at, _)| *at);
+        let _ = writeln!(report, "  {name:40} {:7.1} s", stop - start);
+    }
+    let entry = latencies
+        .iter()
+        .find(|(step, _)| *step == 52)
+        .map(|(_, seconds)| *seconds);
+    if let Some(entry) = entry {
+        let _ = writeln!(
+            report,
+            "  replay entry, step 52 to first frame: {entry:.1} s \
+             (budget {ENTRY_BUDGET_SECONDS:.0} s)"
+        );
+    }
+    let slow: Vec<String> = latencies
+        .iter()
+        .filter(|(_, seconds)| *seconds > 1.0)
+        .map(|(step, seconds)| format!("{step} ({seconds:.1} s)"))
+        .collect();
+    if !slow.is_empty() {
+        let _ = writeln!(
+            report,
+            "  steps whose first frame took over 1 s: {}",
+            slow.join(", ")
+        );
+    }
+    if !bound_hits.is_empty() {
+        let hits: Vec<String> = bound_hits.iter().map(u32::to_string).collect();
+        let _ = writeln!(
+            report,
+            "  holds that ran out their tick bound: {} (steps {})",
+            hits.len(),
+            hits.join(", ")
+        );
+    }
+    let _ = writeln!(
+        report,
+        "  longest silence in the app log: {:.1} s, during step {}",
+        silence.0, silence.1
+    );
+    (report, entry)
+}
+
+/// The timing summary reads its numbers from the log alone; a synthetic log
+/// with a starved settle checks every line of it without launching the app.
+#[test]
+fn walk_timing_reads_phases_entry_and_stall_signatures() {
+    let log = "\
+     0.500 qml: gate profile: full
+     0.500 qml: gate step 1
+     0.520 qml: gate frame after step 1
+     1.000 qml: gate step 24
+    10.000 qml: gate step 44
+    12.000 qml: gate step 52
+    25.500 qml: gate frame after step 52
+    26.000 qml: gate step 53
+    26.100 qml: gate scene: settling replay-row from 184 frames
+    44.100 qml: gate scene: frames never settled, grabbing anyway
+    45.000 qml: gate step 84
+    46.000 qml: gate step 85
+    47.000 qml: gate bench: done
+";
+    let (report, entry) = walk_timing(log, false);
+    assert_eq!(entry, Some(13.5), "{report}");
+    for expected in [
+        "gate walk (full profile): 47.0 s of app log",
+        "mock syncs                                   9.0 s",
+        "replay loads and captures                   33.0 s",
+        "replay entry, step 52 to first frame: 13.5 s (budget 30 s)",
+        "steps whose first frame took over 1 s: 52 (13.5 s)",
+        "holds that ran out their tick bound: 1 (steps 53)",
+        "longest silence in the app log: 18.0 s, during step 53",
+    ] {
+        assert!(
+            report.contains(expected),
+            "missing {expected:?} in\n{report}"
+        );
+    }
+}
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -178,9 +370,11 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
         std::fs::create_dir_all(&dir).expect("create screenshot directory");
     }
+    let quick = gate_profile_is_quick();
     let mut command = Command::new(env!("CARGO_BIN_EXE_rowplay-app"));
     command
         .env("ROWPLAY_SMOKE_GATE", "1")
+        .env("QT_MESSAGE_PATTERN", MESSAGE_PATTERN)
         // On Windows Qt routes logging to OutputDebugString when stderr is a
         // pipe, which would blind both the error scan and the walk's own
         // console.log probes; force stderr everywhere (no-op on Unix).
@@ -219,6 +413,24 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     // Scan both streams: console.log may land on either depending on the
     // platform and Qt version.
     let combined = format!("{stdout}\n{stderr}");
+    // Keep the whole log and the walk's timing before any assertion can
+    // fail: a slow or failing walk is only diagnosable from them (CI
+    // uploads the log; a passing walk used to leave nothing behind).
+    if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_ARTIFACT_DIR") {
+        std::fs::create_dir_all(&dir).expect("create artifact directory");
+        std::fs::write(Path::new(&dir).join("gate-log.txt"), &combined).expect("save the gate log");
+    }
+    let (timing, entry) = walk_timing(&combined, quick);
+    eprintln!("{timing}");
+    if let Some(entry) = entry {
+        if entry > ENTRY_BUDGET_SECONDS {
+            eprintln!(
+                "::warning title=Replay entry over budget::the first replay entry took \
+                 {entry:.1} s, over the {ENTRY_BUDGET_SECONDS:.0} s llvmpipe budget \
+                 (docs/roadmap.md); informational, not a failure"
+            );
+        }
+    }
     for pattern in FORBIDDEN_PATTERNS {
         for line in combined.lines() {
             assert!(
@@ -349,7 +561,14 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "a sport's finger helpers did not resolve\n\napp log:\n{}",
         common::gate_log_lines(&combined)
     );
-    for sport in ["row", "ski", "bike"] {
+    // The quick profile loads one replay (the rower); the full walk loads
+    // all three sports.
+    let sports: &[&str] = if quick {
+        &["row"]
+    } else {
+        &["row", "ski", "bike"]
+    };
+    for sport in sports {
         let grip_needle = format!("replay grip {sport}:");
         let lines: Vec<&str> = combined
             .lines()
@@ -450,8 +669,13 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             .lines()
             .filter(|line| line.contains(&needle))
             .collect();
+        // Every venue the walk loads must match a tier inventory, in both
+        // profiles. Only the full walk must load one per sport: the quick
+        // walk's single rower entry gets no venue plan until a sport or
+        // tier change sets one (issue #84; the full walk's rower venue
+        // comes from its later rower + ghost entry).
         assert!(
-            !lines.is_empty(),
+            quick || !lines.is_empty(),
             "no venue log for {sport}; the walk must load a venue per sport\n\napp log:\n{}",
             common::gate_log_lines(&combined)
         );
@@ -531,7 +755,7 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     // concurrently and reads the directory before the walk has saved the
     // captures (CI Linux, fresh checkout, fails deterministically).
     if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
-        for sport in ["row", "ski", "bike"] {
+        for sport in sports {
             let ppm = Path::new(&dir).join(format!("replay-{sport}.ppm"));
             let bytes = std::fs::read(&ppm).unwrap_or_else(|error| {
                 panic!(
@@ -558,7 +782,7 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     // at deterministic mid-workout stroke fractions. Every shot must be a
     // real render — the visual baseline future budget/weight changes
     // compare against.
-    if std::env::var("ROWPLAY_PHASE_SHOTS").is_ok() {
+    if !quick && std::env::var("ROWPLAY_PHASE_SHOTS").is_ok() {
         if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
             for sport in ["row", "ski", "bike"] {
                 for phase in ["catch", "middrive", "finish", "midrecovery"] {

@@ -765,12 +765,39 @@ ApplicationWindow {
     // can still capture the previous state — observed under llvmpipe and
     // under load as a row-palette ski frame and a half-uploaded hull. The
     // walk holds until two frames have rendered since the scene change.
+    // Counted on presented frames (`frameSwapped`), not animation ticks.
     property int gateRenderedFrames: 0
-    onAfterAnimating: if (root.gateMode) root.gateRenderedFrames += 1
+    // The gate step whose first presented frame is still to be logged; the
+    // test turns "gate step N" / "gate frame after step N" into latencies
+    // (replay entry is step 52's).
+    property int gateFrameMarkStep: 0
+    onFrameSwapped: {
+        if (!root.gateMode) return
+        root.gateRenderedFrames += 1
+        if (root.gateFrameMarkStep > 0) {
+            console.log("gate frame after step", root.gateFrameMarkStep)
+            root.gateFrameMarkStep = 0
+        }
+    }
+    // A capture right after the scene changed (sport, effective tier,
+    // workout or ghost) keeps the full settle below: new geometry uploads
+    // over rendered frames. A seek or a camera swap in an unchanged scene
+    // only needs frames rendered after it.
+    property bool gateSceneFresh: true
+    readonly property int gateSeenSport: Replay.sportIndex
+    readonly property int gateSeenTier: Replay.effectiveQuality
+    readonly property int gateSeenWorkout: Replay.workoutId
+    readonly property bool gateSeenGhost: Replay.hasGhost
+    onGateSeenSportChanged: gateSceneFresh = true
+    onGateSeenTierChanged: gateSceneFresh = true
+    onGateSeenWorkoutChanged: gateSceneFresh = true
+    onGateSeenGhostChanged: gateSceneFresh = true
     property bool gateAwaitingScene: false
     property int gateSceneFramesTarget: 0
     property int gateSceneWaits: 0
     property int gateSceneTicks: 0
+    // gateSceneMinTicks after a scene change, one tick otherwise.
+    property int gateSceneTicksNeeded: 0
     property string gateSceneGrabName: ""
     // ROWPLAY_PHASE_CLOSEUPS: after a phase grab settles and saves, take a
     // second grab of the same seek through the close-up camera (the
@@ -780,10 +807,16 @@ ApplicationWindow {
     // An idle scene renders exactly one frame per change, so a "+N frames"
     // settle target is unreachable and mesh-buffer uploads (which only
     // progress on rendered frames) stall mid-geometry. Driving frames for
-    // as long as a replay hold is active advances both.
+    // as long as a replay hold is active advances both. A FrameAnimation
+    // only fires on frames something else caused, so it must request the
+    // next one itself: until 2026-09-24 the replay scene re-dirtied itself
+    // every few frames (a diagnostics-driven rule walk) and that kept these
+    // frames coming; without it a paused scene renders once and every
+    // settle ran out its tick bound. The gate timer kicks the first frame.
     FrameAnimation {
         running: root.gateMode
                  && (root.gateAwaitingReplay || root.gateAwaitingScene)
+        onTriggered: root.update()
     }
 
     // Packaged-launch probe (ROWPLAY_EXIT_AFTER_FRAMES=N, Phase 9): the
@@ -809,14 +842,18 @@ ApplicationWindow {
         if (Settings.screenshotDir.length === 0) {
             return
         }
+        var fresh = gateSceneFresh
+        gateSceneFresh = false
         gateAwaitingScene = true
         gateSceneFramesTarget = gateRenderedFrames + 3
         gateSceneWaits = 0
         gateSceneTicks = 0
+        gateSceneTicksNeeded = fresh ? gateSceneMinTicks : 1
         gateSceneGrabName = name
         gateSceneCloseup = Settings.phaseCloseups && name.indexOf("phase-") === 0
         console.log("gate scene: settling", name, "from",
-                    gateRenderedFrames, "frames")
+                    gateRenderedFrames, "frames",
+                    fresh ? "(scene changed)" : "(same scene)")
     }
 
     function grabScreen(name) {
@@ -845,6 +882,7 @@ ApplicationWindow {
                 root.gateSceneFramesTarget = root.gateRenderedFrames + 3
                 root.gateSceneWaits = 0
                 root.gateSceneTicks = 0
+                root.gateSceneTicksNeeded = 1
                 root.gateSceneGrabName = name + "-closeup"
                 console.log("gate scene: settling", root.gateSceneGrabName,
                             "from", root.gateRenderedFrames, "frames")
@@ -863,6 +901,9 @@ ApplicationWindow {
         repeat: true
         running: root.gateMode
         onTriggered: {
+            if (root.gateAwaitingReplay || root.gateAwaitingScene) {
+                root.update()
+            }
             if (root.grabPending) {
                 root.grabWaits += 1
                 // A replay grab re-renders the 3D scene into the grab layer;
@@ -910,7 +951,7 @@ ApplicationWindow {
                 // grabPending hold above paces the walk from here.
                 root.gateSceneTicks += 1
                 if (root.gateRenderedFrames >= root.gateSceneFramesTarget
-                        && root.gateSceneTicks >= root.gateSceneMinTicks) {
+                        && root.gateSceneTicks >= root.gateSceneTicksNeeded) {
                     root.gateAwaitingScene = false
                     console.log("gate scene: settled", root.gateSceneGrabName,
                                 "after", root.gateSceneTicks, "ticks,",
@@ -928,6 +969,14 @@ ApplicationWindow {
                 return
             }
             root.gateStep += 1
+            // Quick profile (ROWPLAY_GATE_PROFILE=quick): the shell, all six
+            // languages, the member check, the mock syncs and the first
+            // replay load, then teardown. No phase shots, strip or tiers.
+            if (Settings.gateQuick && root.gateStep === 55) root.gateStep = 84
+            if (root.gateStep === 1)
+                console.log("gate profile:", Settings.gateQuick ? "quick" : "full")
+            console.log("gate step", root.gateStep)
+            root.gateFrameMarkStep = root.gateStep
             switch (root.gateStep) {
             case 1:
                 root.screenIndex = 0
@@ -1037,6 +1086,11 @@ ApplicationWindow {
             case 50: Library.selectWorkout(1005); break
             case 51: root.grabScreen("detail-full"); break
             case 52:                                 // route push + rower
+                // Pin the requested tier: the governor otherwise steps an
+                // llvmpipe scene down mid-walk, so which venue a capture
+                // shows would depend on the machine's speed. (The first
+                // rower entry shows none at a steady tier: issue #84.)
+                Replay.setGovernorAuto(false)
                 Library.requestReplay(false)
                 root.gateAwaitingReplay = true
                 break
