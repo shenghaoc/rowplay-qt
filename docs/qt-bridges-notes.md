@@ -375,6 +375,45 @@ introduced it (`cf85cdb`) and Phase 7's own T8 notes record close-up judgement,
 so how those earlier close-ups were framed is an open question
 (`docs/parity-coverage.md`, ranking 4) — not a settled "it never worked".
 
+## 18. A `serde_json::Value` property is converted on every read, and one shared `Notify` fans out
+
+`qproperty!` over a `serde_json::Value` member (the `serde_json` feature, the
+note #4 route for structured data) hands QML a fresh conversion on every
+access: the whole value becomes a `QJsonValue`, then a `QVariant`, then a JS
+object, each time the property is read. Nothing is cached on either side, not
+even for a `Constant` property whose value can never change. A lookup inside a
+loop therefore converts the entire value once per iteration.
+`ReplayScene.qml`'s `walkRigs` read `Replay.meshRoles[node.objectName]` for
+every node of four `Rigs` components, so one scene walk cost 115 ms (median,
+n = 25; debug build, 4-core x86_64 VM, Xvfb + llvmpipe). Reading the map into
+a QML property once brought it to 1 ms. The GUI thread's perf profile had the
+time in `qtbridge_runtime::serde_tools::serde_to_qjsonvalue`,
+`QJsonObject::insertAt` and `QCborValue::fromJsonValue`.
+
+The second half is ours, but qtbridge's shape invites it. Every `Member`
+property needs a `Notify` signal, and the `Replay` singleton shares
+`replayChanged` across about twenty of them, so any emission re-evaluates every
+binding on all of them and runs every `onReplayChanged` handler. The
+governor's diagnostics string, refreshed on every 15th rendered frame, rode
+that signal. The scene re-ran its full rule walk about four times a second
+during playback: a ~115 ms GUI-thread stall every 15 frames. Because the walk
+re-assigns materials, it also made a paused replay redraw itself continuously
+(70 frames/s, 160 % CPU on llvmpipe). With `diagnosticsChanged` as its own
+signal, a paused replay idles at 0.6 % CPU (roadmap, UI follow-ups).
+
+Repro: expose a ~70-entry `serde_json::Value` map as a `Constant` property and
+read `Obj.map[key]` 1,000 times in a QML loop, against `var m = Obj.map` once
+and `m[key]` in the loop.
+
+Workaround used: read structured `Constant` properties into a QML `property
+var` once (`ReplayScene.qml`'s `meshRoles`), pass plans down a walk as
+arguments instead of re-reading them per item, and give values that change
+at frame rate their own notify signal.
+
+Suggestion: convert a `Constant` property once and hand out the cached
+`QVariant`, and document that each read of a `serde_json` property costs
+O(value size).
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -732,7 +771,11 @@ so how those earlier close-ups were framed is an open question
   improve the EMA by ≥10%) so it settles rather than walking the sticky
   ladder to Low. The user stays at their chosen tier with occasional stalls.
   Reducing ghost draw calls — instanced geometry or shared scene-graph nodes
-  — is the path to fixing the stalls in a later phase.
+  — is the path to fixing the stalls in a later phase. *Re-attributed
+  2026-09-24:* the stall rate matches the diagnostics refresh (720 frames /
+  15 = 48), which re-ran the whole scene walk through the shared
+  `replayChanged` signal (note #18). Re-measure on the UHD 630 before
+  attributing whatever remains to the ghost geometry.
 - **Desktop-supplement locale keys** (Phase 5c). The web has no UI toggle
   for reduce-motion, so there's no locale key for it. The converter
   (`tools/convert-locales.mjs`) gained a `DESKTOP_SUPPLEMENT` map that

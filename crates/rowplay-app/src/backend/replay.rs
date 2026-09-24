@@ -136,6 +136,9 @@ pub struct ReplayBackend {
     has_workout: bool,
     workout_id: i64,
     emit_count: u64,
+    /// `replayChanged` emissions, counted at the single emission site like
+    /// `emit_count` (the scene re-walks its rules on every one of them).
+    replay_notify_count: u64,
     // Per-sport finger grip table (Phase 7): helper objectName → final
     // local rotation, solved once per sport switch and applied QML-side.
     grip_poses: String,
@@ -301,6 +304,7 @@ impl Default for ReplayBackend {
             has_workout: false,
             workout_id: -1,
             emit_count: 0,
+            replay_notify_count: 0,
             grip_poses: String::from("{}"),
             grip_contacts: String::from("0/0"),
             ghost_playback: None,
@@ -488,10 +492,12 @@ impl ReplayBackend {
         Member = governor_auto,
         Notify = replay_changed
     );
+    // Its own signal: the ~4 Hz refresh must not re-run the scene's
+    // `replayChanged` handler (the full rule walk) during playback.
     qproperty!(
         "diagnosticsText",
         Member = diagnostics_text,
-        Notify = replay_changed
+        Notify = diagnostics_changed
     );
     // 0 = RowErg, 1 = SkiErg, 2 = BikeErg.
     qproperty!("sportIndex", Member = sport_index, Notify = replay_changed);
@@ -580,6 +586,11 @@ impl ReplayBackend {
     #[qsignal(qml_name = "playbackChanged")]
     fn playback_changed(&mut self);
 
+    /// Emitted when the developer strip's diagnostics text changed (~4 Hz
+    /// while frames render).
+    #[qsignal(qml_name = "diagnosticsChanged")]
+    fn diagnostics_changed(&mut self);
+
     /// Selects the sport whose equipment and palette the scene shows.
     #[qslot]
     fn set_sport(&mut self, index: i64) {
@@ -656,7 +667,9 @@ impl ReplayBackend {
                 self.governor.level(),
                 self.governor.active_budget_ms()
             );
-            self.notify_replay();
+            if self.attached() {
+                self.diagnostics_changed();
+            }
         }
     }
 
@@ -1042,6 +1055,7 @@ impl ReplayBackend {
     }
 
     fn notify_replay(&mut self) {
+        self.replay_notify_count += 1;
         if self.attached() {
             self.replay_changed();
         }
@@ -1578,6 +1592,42 @@ mod tests {
         replay.seek(0.5);
         assert_eq!(replay.emit_count, 602);
         assert!((replay.progress - 0.5).abs() < 1e-9);
+    }
+
+    /// The developer strip's diagnostics refresh on every 15th render-time
+    /// sample. They must not ride `replayChanged`: its QML handler re-walks
+    /// the whole scene (materials, templates, grip helpers, venue check), so
+    /// a diagnostics notify there stalled playback every 15 frames. A
+    /// governor step, by contrast, changes the effective tier, and the scene
+    /// must still hear about that.
+    #[test]
+    fn render_time_samples_notify_the_scene_only_on_a_tier_change() {
+        let mut replay = ReplayBackend::default();
+        replay.set_quality_index(2);
+        let before = replay.replay_notify_count;
+        for _ in 0..600 {
+            replay.sample_render_time(16.0);
+        }
+        assert_eq!(
+            replay.replay_notify_count, before,
+            "steady frames under budget re-notified the scene"
+        );
+        assert!(
+            !replay.diagnostics_text.is_empty(),
+            "the diagnostics text still refreshes"
+        );
+        // Sustained frames far over the calibrated budget: one step down.
+        for _ in 0..200 {
+            replay.sample_render_time(60.0);
+        }
+        assert!(
+            replay.effective_quality < 2,
+            "the governor stepped High down"
+        );
+        assert!(
+            replay.replay_notify_count > before,
+            "a tier step must re-notify the scene"
+        );
     }
 
     /// The V4 athlete contract declares 51 skin joints (19 semantic + 32
