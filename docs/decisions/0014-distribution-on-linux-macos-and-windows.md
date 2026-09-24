@@ -53,10 +53,12 @@ What each platform has behind it on 2026-09-24:
      `ci.yml` doesn't run on tags and `release.yml` doesn't wait for it. So
      until the workflow change (5) gates the draft release on a passing
      `CI` run, the author tags only a commit whose `CI` run passed;
-   - **not covered:** the Qt-free crates' tests (core, platform, viewmodel,
-     fixtures), which `ci.yml` runs on Linux only. On Windows the platform
-     layer's keychain backend, its guard against keyring's in-memory mock
-     and its paths are compiled but never tested;
+   - **not covered:** the Qt-free crates' own tests (core, platform,
+     viewmodel, fixtures), which `ci.yml` runs on Linux only. On Windows the
+     platform layer runs only as the app uses it in the gate walk, where a
+     keychain failure falls back to an in-memory store without failing
+     anything. Its own tests, the guard against keyring's in-memory mock
+     among them, never run there;
    - **also not covered:** anything a person would see or do. That includes
      rendering, fonts and text-size scaling, the accent and contrast theme,
      keyboard and mouse behaviour, the 3D replay on real GPUs, the
