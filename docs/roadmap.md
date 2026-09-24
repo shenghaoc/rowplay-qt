@@ -801,4 +801,6 @@ stack of seven PRs, each green on its own:
    - Delivered in #73 and validated there: the full suite, the captures
      before and after, and the auto-hide cycle and the sidebar's return
      driven with xdotool in both schemes.
+   - Second-reviewer pass: the scrubber's half-pixel centring, and Space on
+     the focused Close button (fixed in 2/7's `ToolbarButton`) (T6.7).
 7. `ui/07-docs`: the README screenshots and the final documentation pass.
