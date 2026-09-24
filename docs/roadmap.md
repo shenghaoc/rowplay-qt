@@ -486,7 +486,10 @@ layer** the port leaves at clip identity rather than rewiring the athlete.
   install-time finger table per sport (`Replay.gripPoses` + `gripContacts`),
   the scene applies it to the finger helper joints on the sport walk
   (player and ghost), and the gate requires `replay grip <sport>: 10/10
-  digit contacts` per sport. Probing the frames anatomically (shafts must
+  digit contacts` per sport. *(2026-09-24: that held for SkiErg only because
+  every sport logged the rower's table, #85. The web's closure gives the
+  rower and the bike 10/10 and SkiErg 8/10, and the gate now requires each
+  sport's count from the grip fixture.)* Probing the frames anatomically (shafts must
   run midline-ward) caught one sign bug the residuals could not see: the
   left scull shaft pointed outboard — the re-solve had hidden it by moving
   the elbow. Residuals cannot validate orientation; the shaft-direction

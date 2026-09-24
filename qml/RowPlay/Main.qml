@@ -1090,8 +1090,7 @@ ApplicationWindow {
             case 52:                                 // route push + rower
                 // Pin the requested tier: the governor otherwise steps an
                 // llvmpipe scene down mid-walk, so which venue a capture
-                // shows would depend on the machine's speed. (The first
-                // rower entry shows none at a steady tier: issue #84.)
+                // shows would depend on the machine's speed.
                 Replay.setGovernorAuto(false)
                 Library.requestReplay(false)
                 root.gateAwaitingReplay = true

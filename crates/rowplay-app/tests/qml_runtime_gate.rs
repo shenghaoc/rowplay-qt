@@ -554,9 +554,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
 
     // Phase 7: finger grip contacts. The scene logs
     // "replay grip <sport>: N/M digit contacts" from the applied table after
-    // each applySceneRules; the vendored closures are full-contact (5 digits
-    // × 2 hands), so every line must read N == M == 10, and a FAILED line
-    // anywhere fails the walk — an unsolved hand must fail loudly.
+    // each applySceneRules. Every line must match the web's own closure for
+    // its sport (the grip fixture, read below): 10/10 for the rower and the
+    // bike, 8/10 for SkiErg. A FAILED line anywhere fails the walk: an
+    // unsolved hand must fail loudly.
     assert!(
         !combined.contains("replay grip FAILED"),
         "a sport's finger helpers did not resolve\n\napp log:\n{}",
