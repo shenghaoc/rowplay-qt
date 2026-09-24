@@ -1,7 +1,9 @@
 # ui/screenshots — image hosting for the UI stack's PR bodies and issues
 
 This orphan branch holds only the before/after screenshots and evidence crops
-that the `ui/01-fixes` … `ui/07-docs` pull requests and their issues embed.
+that the `ui/01-fixes` … `ui/07-docs` pull requests and their issues embed,
+and (`replay-fixes/`) the before/after captures of the pull request for
+#84 and #85.
 It shares no history with `main` and is **never to be merged**: the pairs
 belong in PR bodies, not in the repository's tree (the stack keeps one
 current screenshot set under `docs/screenshots/`).
