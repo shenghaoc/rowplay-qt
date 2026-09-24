@@ -42,6 +42,15 @@ ProgressBar {
                     duration: 1200
                     easing.type: Easing.InOutQuad
                 }
+                // A stopped sweep leaves x where it was, and the centring
+                // binding does not re-run by itself: set it again.
+                onRunningChanged: {
+                    if (!running) {
+                        segment.x = Qt.binding(function() {
+                            return (segment.parent.width - segment.width) / 2
+                        })
+                    }
+                }
             }
         }
     }
