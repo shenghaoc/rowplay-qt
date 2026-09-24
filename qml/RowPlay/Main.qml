@@ -222,7 +222,7 @@ ApplicationWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Math.max(compactWidth, Math.min(implicitWidth, room))
                         x: Math.max(Theme.spacingLarge,
-                                    Math.min((parent.width - width) / 2,
+                                    Math.min(Math.round((parent.width - width) / 2),
                                              trailingButtons.x - Theme.spacingLarge - width))
                         model: [Tr.t("dashboard.all")].concat(Library.sportNames)
                         currentIndex: Library.sportFilterIndex
