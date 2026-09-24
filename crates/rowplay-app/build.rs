@@ -61,6 +61,15 @@ fn find_tool(env_override: &str, tool: &str) -> PathBuf {
     );
 }
 
+/// Reruns this script when a Qt tool's binary changes (a Qt upgrade or
+/// reinstall at the same path), not only when a listed input does. Only an
+/// absolute path that exists: a missing path would rerun it on every build.
+fn watch_tool(tool: &Path) {
+    if tool.is_absolute() && tool.is_file() {
+        println!("cargo::rerun-if-changed={}", tool.display());
+    }
+}
+
 fn find_rcc() -> PathBuf {
     find_tool("ROWPLAY_RCC", "rcc")
 }
@@ -95,6 +104,9 @@ fn build_i18n_resources(rcc: &Path, out_dir: &Path) {
         .join("..")
         .join("i18n");
     let i18n_dir = i18n_dir.canonicalize().unwrap_or(i18n_dir);
+    // The directory too: a catalogue that another branch adds must rerun
+    // this script, not only a change to one listed below.
+    println!("cargo::rerun-if-changed={}", i18n_dir.display());
 
     let mut languages = Vec::new();
     for entry in std::fs::read_dir(&i18n_dir).expect("read i18n/") {
@@ -118,6 +130,7 @@ fn build_i18n_resources(rcc: &Path, out_dir: &Path) {
     );
 
     let lrelease = find_lrelease();
+    watch_tool(&lrelease);
     let qm_dir = out_dir.join("i18n");
     std::fs::create_dir_all(&qm_dir).expect("create OUT_DIR/i18n");
 
@@ -280,6 +293,7 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
 fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
     println!("cargo::rerun-if-env-changed=ROWPLAY_BALSAM");
     let balsam = find_tool("ROWPLAY_BALSAM", "balsam");
+    watch_tool(&balsam);
     let assets = manifest_dir
         .join("..")
         .join("..")
@@ -462,6 +476,7 @@ fn main() {
     println!("cargo::rerun-if-changed={}", qrc.display());
 
     let rcc = find_rcc();
+    watch_tool(&rcc);
     let listed = Command::new(&rcc)
         .arg("--list")
         .arg(&qrc)
@@ -505,6 +520,10 @@ fn build_environments_resource(manifest_dir: &Path, rcc: &Path, out_dir: &Path) 
         (replay.join("environments"), "environments"),
         (replay.join("venues").join("procedural"), "procedural"),
     ] {
+        // The directory too, for files another branch adds (see i18n).
+        // Cargo compares the newest mtime found anywhere under a directory,
+        // so this also covers the files inside each `<family>/`.
+        println!("cargo::rerun-if-changed={}", dir.display());
         let mut paths: Vec<PathBuf> = std::fs::read_dir(&dir)
             .unwrap_or_else(|error| panic!("read {}: {error}", dir.display()))
             .map(|entry| entry.expect("environments entry").path())
