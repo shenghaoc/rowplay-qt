@@ -846,6 +846,16 @@ so how those earlier close-ups were framed is an open question
   reserve after its metrics' font grows from 10 to 20 px, where 89 px is
   needed. Reading the font in the binding (`void metrics.font`) registers
   the dependency: 292 px in every case, and 89 px after the change.
+- **`ComboBox.WidestText` measures only a `TextInput` content item** (UI
+  design system, review of #70). `QQuickComboBoxPrivate::
+  calculateWidestTextWidth()` (qtdeclarative `v6.11.2`) returns 0 unless
+  `contentItem` is a `QQuickTextInput`, so with a `Label` content item the
+  policy leaves `implicitContentWidth` at 0 and the implicit width is the
+  background's. Probed under the `qml` runtime on macOS: the compact
+  `SegmentedControl`'s `PopupButton` (a `Label`) reported 0 for the sport
+  choices at every text size, so its width never depended on its text.
+  The control now measures its widest choice with a `FontMetrics` in the
+  button's font (`compactWidth`).
 - **Open popups are not part of any item grab.** A `Popup`, `Menu`,
   `ToolTip` or `Dialog` renders in the window's overlay, a sibling of the
   content item. `grabToImage` on content never includes it, and the
