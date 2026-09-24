@@ -235,9 +235,12 @@ jobs:
             artifacts/settings.png
             artifacts/detail.png
             artifacts/detail-full.png
+            artifacts/detail-nostrokes.png
+            artifacts/sidebar-hidden.png
             artifacts/replay-row.png
             artifacts/replay-ski.png
             artifacts/replay-bike.png
+            artifacts/replay-ghost.png
             artifacts/phase-*.png
           if-no-files-found: error
 

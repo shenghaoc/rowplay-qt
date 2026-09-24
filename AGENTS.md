@@ -518,8 +518,10 @@ push costs a CI round of about ten minutes.
   (`replay-*`, `phase-*`, `step5*`) differed by at most 150 scattered
   pixels with a channel delta of at most 3, and 2D screens by at most 262
   pixels with a delta of at most 6. The bounds add margin: **3D ≤ 250 px,
-  delta ≤ 4; 2D ≤ 400 px, delta ≤ 8.** `tools/capture-diff.py <before-dir>
-  <after-dir>` applies them. A capture within its bound is unchanged, and a
+  delta ≤ 4; 2D ≤ 400 px, delta ≤ 8.** The smoke test's capture (`smoke`),
+  a `View3D`, takes the 3D bound. `tools/capture-diff.py <before-dir>
+  <after-dir>` applies them, and reports a capture that only one side has
+  as a change. A capture within its bound is unchanged, and a
   PR says so once, not per capture. A capture beyond it changed, and the PR
   says why. With the quality governor running, a 3D capture can also land
   on another tier (4–5 % of pixels, delta ~200): that is content, not
@@ -528,8 +530,10 @@ push costs a CI round of about ten minutes.
 - **Recapture only the screens a change touches.** A change to one screen
   needs that screen's captures compared against the base
   (`tools/capture-diff.py <base> <branch> settings`), not the whole set. CI
-  captures everything on every run (the `screenshots` artifact): link that
-  run instead of re-attaching captures. Shared replay code
+  uploads every PNG capture on every run: the `screenshots` artifact, plus
+  the step-529 strip as `step529-straddle`. Link that run instead of
+  re-attaching captures. The PPMs that `tools/capture-diff.py` reads are
+  not uploaded, so it compares local walks. Shared replay code
   (`ReplayScene.qml`, the replay backend, materials, assets) touches every
   3D capture.
 
