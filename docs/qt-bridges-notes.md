@@ -765,7 +765,13 @@ so how those earlier close-ups were framed is an open question
   `font.features` is a map of OpenType tags since Qt 6.6: `features: {
   "tnum": 1 }` works both ways (verified under the `qml` runtime). DejaVu
   Sans, the Xvfb default, has tabular digits anyway, so the loss only shows
-  with proportional-digit fonts such as SF Pro.
+  with proportional-digit fonts such as SF Pro. Measured on macOS under the
+  `qml` runtime (the system font, 16 px semibold): "1:11.1" is 37.36 px wide
+  and "0:00.0" 48.94 px with the enum or with no feature, and both are
+  48.69 px with `"tnum": 1`. The first fix covered `Theme.qml` and missed
+  one inline font object, the dashboard's PB time (found in review), so the
+  gate test now fails on the name anywhere in `qml/`
+  (`qml_names_no_font_tabular_numbers_enum`).
 - **Qt Graphs' Y axis has a fixed 40 px label column** (UI fixes, refs #50).
   In 6.11.2 the Y axis strip is `m_defaultAxisLabelsWidth` 40 + 5 +
   `m_defaultAxisTickersWidth` 15 px (`qgraphsview_p.h`, marked "Add
