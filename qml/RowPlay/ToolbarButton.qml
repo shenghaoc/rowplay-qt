@@ -26,8 +26,9 @@ AbstractButton {
     hoverEnabled: true
     focusPolicy: Qt.TabFocus
 
+    // No explicit role: the template reports Button, or CheckBox with its
+    // checked state while the button is checkable (the settings toggle).
     Accessible.name: label
-    Accessible.role: Accessible.Button
 
     AppToolTip {
         visible: control.hovered && control.label.length > 0
