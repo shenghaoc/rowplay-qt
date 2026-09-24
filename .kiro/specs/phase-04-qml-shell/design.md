@@ -130,8 +130,12 @@ Theme singleton: `property bool dark: Qt.styleHints.colorScheme === Qt.Dark`
 `dark ? … : …` binding so re-evaluation is automatic. Roles mirror
 `AppDesign.MetricColor`; `deltaColor(delta, threshold, higherIsBetter)` ports
 the helper. Fonts: `Font.system` family; pixel sizes/weights per DESIGN.md;
-`font.features: Font.TabularNumbers` replaces `.monospacedDigit()`; the hero
-style keeps weight Bold (no rounded system font — divergence recorded).
+the OpenType `tnum` feature (`font.features: { "tnum": 1 }`) replaces
+`.monospacedDigit()`; the hero style keeps weight Bold (no rounded system
+font — divergence recorded). This design first named `Font.TabularNumbers`,
+which Qt 6.11 does not have: a font object drops the undefined value
+silently, so no text had tabular figures until the UI fixes (refs #54,
+`docs/qt-bridges-notes.md`).
 
 Navigation: `nav` state in the `Library`/app backend mirrors
 `DetailNavigationState`; QML `StackLayout` (dashboard | detail) + the replay
