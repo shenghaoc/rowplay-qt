@@ -7,11 +7,52 @@ on:
   pull_request:
   workflow_dispatch:
 
+# One run per pull request: a newer push cancels the run it supersedes
+# (restacks and repeated events used to leave both running). Every other
+# event gets a group of its own, so a push to main is never cancelled, nor
+# queued behind another run: a shared group would cancel a pending one.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
 
 jobs:
+  # Docs-only pull requests skip the app builds (AGENTS.md, "Continuous
+  # integration"). "Docs" is an allow-list of paths no test reads: docs/,
+  # the .kiro specs, the licences, the pull request template and the
+  # repository-root *.md files. A .md anywhere else counts as code, since
+  # the asset and fixture manifests police those directories. Pushes and
+  # dispatches always build. The App jobs still run, and still report
+  # their required check names; only their steps are skipped.
+  changes:
+    name: Change scope
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: scope
+        name: Code or docs-only?
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          printf '%s\n' "$changed"
+          docs='^(docs/|\.kiro/|LICENSES/|LICENSE$|[^/]+\.md$|\.github/pull_request_template\.md$)'
+          if [ -n "$changed" ] && ! grep -qvE "$docs" <<< "$changed"; then
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
+
   core:
     name: Qt-free crates (fmt, clippy, test)
     runs-on: ubuntu-24.04
@@ -64,7 +105,7 @@ jobs:
 
   app:
     name: App (${{ matrix.os }})
-    needs: core
+    needs: [core, changes]
     # The step-529 straddle captures have their own core-independent job
     # below; this one stays gated on a green core like any normal PR.
     strategy:
@@ -80,13 +121,23 @@ jobs:
           - os: windows-2025
             aqt-source: git+https://github.com/miurahr/aqtinstall@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b
     runs-on: ${{ matrix.os }}
+    env:
+      # 'false' only for a docs-only pull request (the changes job).
+      RUN_APP: ${{ needs.changes.outputs.code }}
     steps:
+      - name: Docs-only change, app build and tests skipped
+        if: env.RUN_APP != 'true'
+        run: echo "::notice::Docs-only change; the app build and tests were skipped"
       - uses: actions/checkout@v7
+        if: env.RUN_APP == 'true'
       - uses: dtolnay/rust-toolchain@1.98.1
+        if: env.RUN_APP == 'true'
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+        if: env.RUN_APP == 'true'
       - name: Install Qt 6.11
+        if: env.RUN_APP == 'true'
         uses: jurplel/install-qt-action@v4
         with:
           # Pinned to the patch release the repository is built and packaged
@@ -103,7 +154,7 @@ jobs:
           modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
           cache: true
       - name: Linux GL and X11 runtime for the headless smoke test
-        if: runner.os == 'Linux'
+        if: env.RUN_APP == 'true' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -112,6 +163,7 @@ jobs:
             libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
             libdbus-1-dev pkg-config
       - name: Toolchain report
+        if: env.RUN_APP == 'true'
         shell: bash
         run: |
           rustc --version
@@ -121,11 +173,13 @@ jobs:
           # or different-version balsam must be visible at a glance.
           balsam --version || echo "balsam not found on PATH"
       - name: Build app
+        if: env.RUN_APP == 'true'
         run: cargo build -p rowplay-app
       - name: Clippy app
+        if: env.RUN_APP == 'true'
         run: cargo clippy -p rowplay-app --all-targets -- -D warnings
       - name: Headless smoke screenshot and runtime-error gate (Xvfb + Mesa)
-        if: runner.os == 'Linux'
+        if: env.RUN_APP == 'true' && runner.os == 'Linux'
         env:
           ROWPLAY_QT_SMOKE: '1'
           ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts
@@ -149,14 +203,23 @@ jobs:
           LANG: C.UTF-8
         run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
       - name: Smoke test binary starts (no display)
-        if: runner.os != 'Linux'
+        if: env.RUN_APP == 'true' && runner.os != 'Linux'
         # No DYLD_FALLBACK_FRAMEWORK_PATH any more: build.rs emits the Qt
         # lib dir as an LC_RPATH on macOS (docs/qt-bridges-notes.md note 10,
         # Phase 9). Running the tests without the variable is what keeps
         # that fix honest.
         run: cargo test -p rowplay-app
+      # The gate's timestamped app log (gate-log.txt), kept on failure too:
+      # a slow or failing walk is only diagnosable from it.
+      - name: Upload the gate log
+        if: always() && env.RUN_APP == 'true' && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gate-log
+          path: artifacts/gate-log.txt
+          if-no-files-found: ignore
       - name: Upload smoke and shell screenshots
-        if: runner.os == 'Linux'
+        if: env.RUN_APP == 'true' && runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: screenshots
@@ -179,6 +242,8 @@ jobs:
   # (macOS/Metal does not — bridge note #17). This job does not wait on core.
   step529-straddle:
     name: Step-529 straddle captures
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -213,6 +278,13 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
           LANG: C.UTF-8
         run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
+      - name: Upload the gate log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gate-log-step529
+          path: artifacts/gate-log.txt
+          if-no-files-found: ignore
       - name: Expect 21 step-529 frames
         run: test "$(ls -1 artifacts/step5{20..40}.png | wc -l)" -eq 21
       - name: Upload step-529 straddle captures
