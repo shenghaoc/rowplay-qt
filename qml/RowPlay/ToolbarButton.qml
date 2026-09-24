@@ -38,11 +38,13 @@ AbstractButton {
         }
     }
 
-    // A press dismisses the tooltip until the pointer leaves: otherwise it
-    // stays up over whatever the click opened (the application menu).
+    // A press dismisses the tooltip for the rest of the hover: otherwise it
+    // stays up over whatever the click opened (the application menu). Any
+    // hover change clears it, so a Space press made while the pointer was
+    // elsewhere cannot hide the tooltip from the next hover.
     property bool tipDismissed: false
     onPressed: tipDismissed = true
-    onHoveredChanged: if (!hovered) tipDismissed = false
+    onHoveredChanged: tipDismissed = false
 
     AppToolTip {
         visible: control.hovered && !control.tipDismissed && control.label.length > 0
