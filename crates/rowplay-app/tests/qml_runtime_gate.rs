@@ -569,7 +569,37 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     } else {
         &["row", "ski", "bike"]
     };
+    // Each sport's closure is the web's own: replay-current-main-grips.json,
+    // which rowplay-core's grip_closure_parity pins to 1e-9. All ten digits
+    // close on the rower's handle and the bike's bar, and both SkiErg pinkies
+    // stay short of the pole grip (8/10). Until #85 every sport logged the
+    // rower's count, because loading a workout kept the rower's table.
+    let grip_fixture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(repo_root().join("tests/fixtures/replay-current-main-grips.json"))
+            .expect("read the vendored grip fixture"),
+    )
+    .expect("the grip fixture is valid JSON");
+    let expected_contacts = |fixture_sport: &str| -> String {
+        let (mut contacted, mut total) = (0, 0);
+        for side in ["left", "right"] {
+            let digits = grip_fixture["closures"][fixture_sport][side]["contacts"]
+                .as_array()
+                .unwrap_or_else(|| panic!("grip fixture: no {fixture_sport}/{side} contacts"));
+            for digit in digits {
+                total += 1;
+                if digit["contact"].as_bool() == Some(true) {
+                    contacted += 1;
+                }
+            }
+        }
+        format!("{contacted}/{total}")
+    };
     for sport in sports {
+        let expected = expected_contacts(match *sport {
+            "row" => "rower",
+            "ski" => "skierg",
+            other => other,
+        });
         let grip_needle = format!("replay grip {sport}:");
         let lines: Vec<&str> = combined
             .lines()
@@ -583,14 +613,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         for line in lines {
             let rest = line.split(&grip_needle).nth(1).unwrap_or("");
             let count = rest.split_whitespace().next().unwrap_or("");
-            let (contacted, total) = count
-                .split_once('/')
-                .and_then(|(n, m)| Some((n.parse::<usize>().ok()?, m.parse::<usize>().ok()?)))
-                .unwrap_or((usize::MAX, 0));
             assert!(
-                contacted == total && total == 10,
-                "replay grip contacts for {sport}: expected 10/10 digit contacts, \
-                 got \"{count}\" in {line}\n\napp log:\n{}",
+                count == expected,
+                "replay grip contacts for {sport}: expected {expected} digit contacts \
+                 (the web's closure), got \"{count}\" in {line}\n\napp log:\n{}",
                 common::gate_log_lines(&combined)
             );
         }
