@@ -785,6 +785,8 @@ stack of seven PRs, each green on its own:
      settings opened over the replay left it presented, and very large text
      could squeeze the sport filter to 0 px. Each is fixed in its layer
      (the filter's floor is a 2/7 control property) and recorded in T3.7.
+   - Second-reviewer pass: half-pixel centring, the sort direction for
+     screen readers and the list's focus cue off screen (T3.8).
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
 5. `ui/05-settings`: the grouped settings page.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
