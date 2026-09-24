@@ -85,6 +85,54 @@ README install recipe); source it (or `direnv allow`) before any
 `DYLD_*` variable: `build.rs` emits the Qt lib dir as an `LC_RPATH`
 (qt-bridges-notes #10).
 
+### Target directories and worktrees
+
+- **Give every worktree its own target directory. Never share
+  `CARGO_TARGET_DIR` between worktrees.** Cargo names a workspace crate's
+  artifacts after its path relative to the workspace root, so every
+  worktree of this repository maps to the same artifacts, and it judges
+  freshness by file mtimes.
+  - Measured: worktree A, built after worktree B in one shared target
+    directory, linked B's `rowplay-core` while Cargo reported it fresh.
+  - `rowplay-app` itself rebuilt, but only because `build.rs` prints
+    absolute `rerun-if-changed` paths, which differ per worktree.
+  - `-Z checksum-freshness` would make sharing safe, but it is
+    nightly-only.
+- **Validate a stack in one extra worktree and `git switch` it between
+  the branches.** A switch rewrites the changed files with fresh mtimes, so
+  Cargo rebuilds exactly what changed (verified by switching back and
+  forth). Dependencies are built once, and there is one target directory
+  instead of one per branch. Keep the primary checkout for the branch you
+  are working on.
+- **To share compiled dependencies between worktrees, use sccache with
+  base directories (opt-in).** sccache caches by content, so it cannot
+  hand one worktree another's stale artifact. Base directories strip each
+  worktree's root from the compiler's paths, so a second worktree hits the
+  first one's cache. Measured on the 4-core VM with sccache 0.18.0: a new
+  worktree's cold build took 20.1 s instead of 83.4 s (95 % hits, 100 % of
+  the C++ glue, a 206 MB cache). Without base directories the hit rate was
+  0 %, because every compiler call carries its worktree's own target path.
+  Filling the cache costs ~9 s on the first build.
+
+  ```sh
+  export RUSTC_WRAPPER=sccache
+  export SCCACHE_BASEDIRS="$(git worktree list --porcelain | sed -n 's/^worktree //p' | paste -sd: -)"
+  sccache --stop-server   # the server reads the list when it starts
+  ```
+
+  Run it again after adding a worktree. It assumes each worktree keeps its
+  default `target/` inside it.
+- **What a worktree costs.** A fresh one is a cold build: about 85 s on a
+  4-core VM, most of it qtbridge's C++ glue (about 20 s with the sccache
+  recipe above). It takes ~2.5 GB for debug plus
+  tests, and ~0.6 GB more for a release build. Old worktrees grow far past
+  that. Remove a finished one with `git worktree remove <path>`, which
+  deletes its `target/` too.
+- **`.cargo/config.toml` keeps dependencies at line-tables-only debug
+  info.** That makes the target directory ~17 % smaller and the app
+  binary 30 % smaller. Dev-profile tweaks go there, not in `Cargo.toml`,
+  which is a release-workflow trigger.
+
 Phase 5 onward requires a local Qt: the replay scene, materials and athlete
 must be run and looked at by hand on this machine (`cargo run -p rowplay-app`
 under Wayland, plus the headless screenshot tests above), never inferred from

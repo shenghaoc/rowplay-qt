@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Development-build settings. They live here, not in Cargo.toml: a change to
+# the root manifest triggers the release workflow (release.yml's path
+# filters), and this file does not.
+#
+# Dependencies keep line tables only: file:line in backtraces and profiles,
+# no variables or types. Measured on a 4-core Linux VM, fresh target
+# directory:
+#   - debug build plus test binaries: 3.0 GB -> 2.5 GB;
+#   - app binary: 181 MB -> 127 MB;
+#   - cold `cargo build -p rowplay-app`: 86.0 s -> 83.4 s (median of 3).
+# The workspace crates keep full debug info. Optimising the dependencies
+# (opt-level 2) was measured and rejected: the cold build more than doubled
+# (84 s -> 180 s) for a 5 % shorter gate walk (295 s -> 281 s).
+[profile.dev.package."*"]
+debug = "line-tables-only"
