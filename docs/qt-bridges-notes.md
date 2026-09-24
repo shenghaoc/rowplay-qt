@@ -633,14 +633,19 @@ so how those earlier close-ups were framed is an open question
   and release the grab only after both N rendered frames and a minimum
   wall time; the release must `return` without advancing the gate step, or
   the next sport switch lands before the asynchronous grab callback.
-  **A running `FrameAnimation` does not schedule frames on its own**: it
-  fires on frames something else caused. The hold advanced only because
-  the replay scene re-dirtied itself every few frames: the governor's
-  diagnostics refresh re-ran the scene's rule walk through
-  `replayChanged`. With that refresh gone, or with the governor pinned, a
-  paused scene renders once and every settle runs out its tick bound. The
-  hold now calls the window's `update()` on every trigger and on every gate
-  tick while it lasts (2026-09-24).
+  **Under Xvfb + llvmpipe, a running `FrameAnimation` does not schedule
+  frames on its own**: it fires on frames something else caused. The hold
+  advanced only because the replay scene re-dirtied itself every few
+  frames: the governor's diagnostics refresh re-ran the scene's rule walk
+  through `replayChanged`. With that refresh gone, or with the governor
+  pinned, a paused scene renders once and every settle runs out its tick
+  bound. The hold now calls the window's `update()` on every trigger and on
+  every gate tick while it lasts (2026-09-24). **macOS differs:** on cocoa
+  with Metal, a running `FrameAnimation` keeps the window rendering at the
+  display rate. The replay's tick animation runs while paused, so a paused
+  replay renders 120 frames/s on a 120 Hz display (Apple M5, measured with
+  `QSG_RENDER_TIMING=1`; #93). The explicit `update()` calls are harmless
+  there.
 - `grabToImage`'s `saveToFile` returns `false` with no Qt warning when the
   target directory does not exist. The gate logged `FAILED` and walked on,
   so every 2D capture in CI (dashboard, settings, detail) had silently never
