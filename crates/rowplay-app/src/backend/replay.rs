@@ -324,6 +324,10 @@ impl Default for ReplayBackend {
             diag_counter: 0,
         };
         backend.refresh_palette();
+        // The tier also computes the venue plan. Without it the plan stayed
+        // Null until the first sport or tier change, so a rower workout
+        // opened first had no venue (#84).
+        backend.refresh_tier();
         backend.refresh_grip();
         backend
     }
@@ -1673,6 +1677,25 @@ mod tests {
             replay.workout_id, DEFAULT_WORKOUT_ID,
             "unknown ids fall back to the demo default"
         );
+    }
+
+    /// Issue #84: the venue plan was set only by `refresh_tier`, and nothing
+    /// called that before the first sport or tier change. A rower workout
+    /// opened first (the backend starts on the rower, so `load_workout` sees
+    /// no sport change) left the scene without a venue.
+    #[test]
+    fn the_first_rower_replay_has_its_venue_plan() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        assert_eq!(replay.sport_index, 0, "1001 is the demo RowErg workout");
+        let tier = ["low", "medium", "high", "ultra"][replay.effective_quality as usize];
+        assert_eq!(
+            replay.venue_plan["sport"], "rower",
+            "no rower venue plan on the first entry: {}",
+            replay.venue_plan
+        );
+        assert_eq!(replay.venue_plan["quality"], tier);
     }
 
     /// The capture-walk close-up camera must frame the athlete, not the venue

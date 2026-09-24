@@ -670,16 +670,29 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             .lines()
             .filter(|line| line.contains(&needle))
             .collect();
-        // Every venue the walk loads must match a tier inventory, in both
-        // profiles. Only the full walk must load one per sport: the quick
-        // walk's single rower entry gets no venue plan until a sport or
-        // tier change sets one (issue #84; the full walk's rower venue
-        // comes from its later rower + ghost entry).
+        // Every venue the walk loads must match a tier inventory, and every
+        // sport the profile loads must load one (the quick walk loads only
+        // the rower).
         assert!(
-            quick || !lines.is_empty(),
+            (quick && tag != "row") || !lines.is_empty(),
             "no venue log for {sport}; the walk must load a venue per sport\n\napp log:\n{}",
             common::gate_log_lines(&combined)
         );
+        // The first rower entry has its venue: it must load before the first
+        // sport switch (step 55, SkiErg). Until #84 it came only from the
+        // later rower + ghost entry, after a switch had set a plan.
+        if tag == "row" {
+            let first_venue = combined.lines().position(|line| line.contains(&needle));
+            let first_switch = combined
+                .lines()
+                .position(|line| line.trim_end().ends_with("gate step 55"));
+            assert!(
+                matches!((first_venue, first_switch), (Some(venue), Some(switch)) if venue < switch)
+                    || (first_venue.is_some() && first_switch.is_none()),
+                "the first rower entry has no venue: none loaded before the first sport switch\n\napp log:\n{}",
+                common::gate_log_lines(&combined)
+            );
+        }
         for line in &lines {
             let rest = line.split(&needle).nth(1).unwrap_or("");
             let numbers: Vec<usize> = rest
