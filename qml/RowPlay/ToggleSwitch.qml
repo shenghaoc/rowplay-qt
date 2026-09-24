@@ -28,7 +28,7 @@ Switch {
         implicitWidth: Theme.px(36)
         implicitHeight: Theme.px(20)
         x: control.leftPadding
-        y: (control.height - height) / 2
+        y: Math.round((control.height - height) / 2)
         radius: height / 2
         color: !control.enabled ? Theme.segmentTrack
              : control.checked ? Theme.accentColor : Theme.switchTrackOff
