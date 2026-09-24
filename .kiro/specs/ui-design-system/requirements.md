@@ -59,7 +59,8 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R2.1 `qml/qtquickcontrols2.conf` selects Basic. The shared controls draw
   every visual from the tokens: `Icon`, `FocusRing`, `ToolbarButton`,
   `PushButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
-  `PopupButton`, `FormSection` / `FormRow` and `ChartTheme`.
+  `PopupButton`, `FormSection` / `FormRow`, `ChartTheme` and, from 6/7,
+  `AppSlider`.
 - R2.2 Every stock popup and indicator the app uses has a themed
   replacement: `AppToolTip`, `AppMenu` / `AppMenuItem` / `AppMenuSeparator`,
   `AppScrollBar`, `AppProgressBar`, `AppBusyIndicator`, `AppDialog` and
