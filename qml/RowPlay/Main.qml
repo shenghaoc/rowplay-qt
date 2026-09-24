@@ -25,9 +25,20 @@ ApplicationWindow {
     visible: true
     width: 1200
     height: 800
-    minimumWidth: 1000
+    // Studio's 1000 px, or more where very large text needs it: the
+    // sidebar's minimum beside the toolbar's (a text size far past 150 %).
+    minimumWidth: Math.max(1000, sidebarColumn.SplitView.minimumWidth
+                                 + Theme.hairline + toolbarMinimumWidth)
     minimumHeight: 680
     title: "rowplay"
+
+    // The narrowest toolbar that keeps everything reachable: its three
+    // gaps, the sport filter in its compact form and the trailing buttons.
+    // The content column never gets less, so a dragged sidebar stops there
+    // instead of squeezing the filter to nothing.
+    readonly property real toolbarMinimumWidth: 3 * Theme.spacingLarge
+                                                + sportFilter.compactWidth
+                                                + trailingButtons.implicitWidth
 
     // Detail column routing: 0 = dashboard, 1 = workout detail, 2 = settings,
     // 3 = the replay route.
@@ -187,6 +198,7 @@ ApplicationWindow {
             // Content column: the toolbar over the routed screens.
             ColumnLayout {
                 SplitView.fillWidth: true
+                SplitView.minimumWidth: root.toolbarMinimumWidth
                 spacing: 0
 
                 Rectangle {
@@ -200,13 +212,15 @@ ApplicationWindow {
                     // including the gate walk — shows here. It is centred but
                     // never under the trailing buttons; where even that leaves
                     // too little room (large text in a narrow window) its
-                    // width is capped and it takes its compact pop-up form.
+                    // width is capped and it takes its compact pop-up form,
+                    // never below that form's width (toolbarMinimumWidth
+                    // keeps the room for it).
                     SegmentedControl {
                         id: sportFilter
                         readonly property real room: trailingButtons.x
                                                      - 2 * Theme.spacingLarge
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(0, Math.min(implicitWidth, room))
+                        width: Math.max(compactWidth, Math.min(implicitWidth, room))
                         x: Math.max(Theme.spacingLarge,
                                     Math.min((parent.width - width) / 2,
                                              trailingButtons.x - Theme.spacingLarge - width))
