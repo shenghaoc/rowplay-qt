@@ -29,6 +29,7 @@ Pane {
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         ScrollBar.vertical: AppScrollBar {
+            id: detailScrollBar
             parent: scroll
             x: scroll.mirrored ? 0 : scroll.width - width
             y: scroll.topPadding
@@ -101,6 +102,12 @@ Pane {
                 // The view's one prominent action; a label, no icon.
                 PushButton {
                     Layout.alignment: Qt.AlignTop
+                    // Room for its focus ring (FocusRing reaches its gap and
+                    // width outside the button, and the scroll view clips at
+                    // its top edge), and clear of the overlay scroll bar,
+                    // which would otherwise take clicks on its trailing edge.
+                    Layout.topMargin: Theme.px(2) + Theme.focusRingWidth
+                    Layout.rightMargin: detailScrollBar.maximumThickness
                     text: Tr.t("common.replay")
                     prominent: true
                     // Studio's policy: replay needs stroke data and no sync
