@@ -34,7 +34,7 @@ Pane {
     }
 
     // The search row sits in the same band as the content toolbar.
-    topPadding: (Theme.toolbarHeight - Theme.controlHeight) / 2
+    topPadding: Math.round((Theme.toolbarHeight - Theme.controlHeight) / 2)
     leftPadding: Theme.spacingMedium + Theme.px(2)
     rightPadding: Theme.spacingMedium + Theme.px(2)
     bottomPadding: 0
