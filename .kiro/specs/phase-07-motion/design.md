@@ -80,6 +80,11 @@ tested against known rotations; no new dependency (ADR 0007).
 - Gate: `replay grip <sport>: n/m digit contacts` logged from the applied
   table; `qml_runtime_gate.rs` requires n == m for each sport and adds the
   line to `gate_log_lines` filtering.
+  *(2026-09-24: n == m held only because every sport logged the rower's
+  table, #85. The web's own closure,
+  `tests/fixtures/replay-current-main-grips.json`, closes 10/10 for the
+  rower and the bike and 8/10 for SkiErg, whose pinkies stay short of the
+  pole grip. The gate now requires each sport's count from that fixture.)*
 
 ## Per-stroke variation
 

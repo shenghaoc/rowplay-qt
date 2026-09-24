@@ -93,6 +93,10 @@ fixtures (`replay-current-main-grips.json`,
   `replay grip <sport>: <n>/<m> digit contacts` from the applied table, and
   the walk test requires n == m per sport (the fixture closures are
   full-contact; an unsolved hand fails loudly, not silently).
+  *(2026-09-24: the fixture's SkiErg closure is not full-contact: both
+  pinkies stay short of the pole grip, 8/10. n == m passed for SkiErg only
+  because every sport logged the rower's table, #85. The gate now requires
+  each sport's count from the fixture.)*
 
 ## R4 — Per-stroke variation verification
 
