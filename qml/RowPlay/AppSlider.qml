@@ -20,7 +20,7 @@ Slider {
 
     background: Rectangle {
         x: control.leftPadding
-        y: control.topPadding + (control.availableHeight - height) / 2
+        y: control.topPadding + Math.round((control.availableHeight - height) / 2)
         implicitWidth: Theme.px(200)
         implicitHeight: control.emphasised ? Theme.px(6) : Theme.px(4)
         width: control.availableWidth
@@ -40,7 +40,7 @@ Slider {
 
     handle: Rectangle {
         x: control.leftPadding + control.visualPosition * (control.availableWidth - width)
-        y: control.topPadding + (control.availableHeight - height) / 2
+        y: control.topPadding + Math.round((control.availableHeight - height) / 2)
         implicitWidth: Theme.px(16)
         implicitHeight: Theme.px(16)
         radius: width / 2
