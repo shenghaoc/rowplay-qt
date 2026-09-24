@@ -141,6 +141,33 @@ fn referenced_members() -> BTreeSet<String> {
     found
 }
 
+/// `Font.TabularNumbers` is not a Qt 6.11 enum. It reads as `undefined`, and
+/// a font object (`font: ({ …, features: Font.TabularNumbers })`) drops the
+/// undefined member without a word, so the text loses its tabular figures
+/// where the walk below cannot see it (docs/qt-bridges-notes.md). Tabular
+/// digits are the OpenType tag: `features: { "tnum": 1 }`.
+#[test]
+fn qml_names_no_font_tabular_numbers_enum() {
+    let mut files = Vec::new();
+    qml_files(&repo_root().join("qml"), &mut files);
+    assert!(!files.is_empty(), "no QML files found");
+    let offenders: Vec<String> = files
+        .iter()
+        .filter(|path| {
+            let source = std::fs::read_to_string(path)
+                .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+            strip_comments(&source).contains("Font.TabularNumbers")
+        })
+        .map(|path| path.display().to_string())
+        .collect();
+    assert!(
+        offenders.is_empty(),
+        "Font.TabularNumbers is undefined in Qt 6.11 and a font object drops it \
+         silently; use `features: {{ \"tnum\": 1 }}`:\n{}",
+        offenders.join("\n")
+    );
+}
+
 #[test]
 fn shell_walk_produces_no_qml_runtime_errors() {
     // The walk saves per-screen captures here; on a fresh CI checkout the
