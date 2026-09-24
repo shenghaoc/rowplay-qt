@@ -862,13 +862,39 @@ after captures in both schemes.
       only a `TextInput`, so the compact form had been sized by its
       background alone.
 
+  - A second-reviewer pass (2026-09-24) found ten more defects, each
+    reproduced before its fix, in the layer that owns it:
+    - 2/7: a checkable toolbar button lost its toggle role; a window
+      shortcut took Space from a focused button; the pop-up list indented
+      its current row; scroll bars vanished into Basic's track under the OS
+      contrast preference; the progress segment froze off-centre under
+      reduce motion;
+    - 3/7: the sort direction was invisible to screen readers; the focused
+      list showed nothing with its selection off screen;
+    - 4/7: Replay's ring was clipped and its edge under the scroll bar; the
+      splits card jumped when its scroll bar was hovered;
+    - 2/7, 3/7 and 6/7: centred parts sat on half pixels.
+
+    It also filed what lies outside the stack (#76–#80). The macOS menu's
+    role titles turned out to be Qt's English "Preferences…" (#80).
+
   The Qt findings are in `docs/qt-bridges-notes.md`.
-- **Verified where.** Linux only, locally: Xvfb + Mesa llvmpipe, light,
-  dark and high contrast, 125 % and 150 % text in the minimum window with
-  the longest labels (Spanish), driven with xdotool, with pixel statistics
-  read before any visual reading. macOS and Windows ran the gate walk offscreen
-  in CI. Their rendering, accent, contrast preference, menu bar and dialog
-  order are known from the Qt sources only (tracked in #66).
+- **Verified where.**
+  - **Linux**, locally, when the stack was opened: Xvfb + Mesa llvmpipe,
+    light, dark and high contrast, 125 % and 150 % text in the minimum
+    window with the longest labels (Spanish), driven with xdotool, with
+    pixel statistics read before any visual reading. Since then CI only.
+  - **macOS**, natively on 2026-09-24 (Apple M5, macOS 27, Qt 6.11.2; #66):
+    - the gate walk in a real window, light, dark, forced high contrast
+      and Spanish, the 3D replay included;
+    - the chords, accent, contrast preference, dialog order and system font
+      read from Qt;
+    - the package built and launch-checked with `tools/package/macos.sh`.
+
+    #66 lists what still needs a person there: pointer and keyboard
+    driving, the OS accent and contrast switches, and VoiceOver.
+  - **Windows** ran the gate walk offscreen in CI; nobody has looked at it
+    (#81).
 - **Open.** The replay's disabled state explains nothing until the web has
   a string for it (#64). Two labels inherit web wording that suits the web
   better (#65). Replay entry is slow and not diagnosed (#67).

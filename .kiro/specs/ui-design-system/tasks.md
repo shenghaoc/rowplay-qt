@@ -283,16 +283,22 @@ that delivers it.
   screenshots; #47 superseded, with links to the stack.
   - [x] T7.1 README: one current set of five screenshots (256-colour PNGs,
     240 KB) replaces `docs/screenshots/phase-04-*` (514 KB). The Phase 5a
-    replay shots leave the README but stay on disk, where the Phase 5a spec
-    records them. The status list gains a design-system bullet.
+    replay shots leave the README but stay on disk: the Phase 5a spec
+    records the row, ski and bike captures, and
+    `phase-05a-replay-row-dark.png` is now referenced nowhere. The status list gains a design-system bullet.
   - [x] T7.2 AGENTS.md: the shared-controls rule beside the QML style
     line, and three operational lessons (a capture's alpha; thresholds
     compared unrounded; a fix aimed at one configuration checked in all
     the others).
   - [x] T7.3 `docs/roadmap.md`: the stack's outcome. `docs/source-map.md`:
     the three reduce-motion rows become one current row, and the timezone
-    picker's note drops "4b polish".
+    picker's note says what "4b polish" left undone (the region groups).
   - [x] T7.4 #47 closed unmerged, with a comment linking the stack; its
     branch kept.
   - [x] T7.5 The outcome in `docs/roadmap.md` records the Codex reviews of
     #68 and #70 (T3.7, T2.9 and 1/7's two review commits).
+  - [x] T7.6 The second-reviewer pass (2026-09-24): the outcome records its
+    findings (T2.10, T3.8, T4.6, T5.8, T6.7) and the native macOS check
+    (#66). Windows is split out to #81. T7.1 and T7.3 are corrected: one
+    Phase 5a capture is referenced nowhere, and the timezone note rewords
+    "4b polish" rather than dropping it.
