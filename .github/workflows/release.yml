@@ -63,7 +63,7 @@ jobs:
       - name: Install Qt 6.11
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.*'
+          version: '6.11.2'  # the same pin as ci.yml; bump both together
           aqtversion: '==3.3.*'
           aqtsource: ${{ matrix.aqt-source }}
           modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
