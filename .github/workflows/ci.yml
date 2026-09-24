@@ -89,7 +89,12 @@ jobs:
       - name: Install Qt 6.11
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.*'
+          # Pinned to the patch release the repository is built and packaged
+          # with; a Qt bump is its own pull request (AGENTS.md, "Packaging
+          # and releases"). '6.11.*' moved CI to 6.11.3 the day it appeared,
+          # before download.qt.io published its checksums, and aqt failed
+          # every run (2026-09-24). release.yml should carry the same pin.
+          version: '6.11.2'
           # aqt 3.3.0 is confirmed to install Qt 6.11.2 with its newer
           # repository layout on Linux/macOS; older aqt releases may not.
           aqtversion: '==3.3.*'
@@ -181,7 +186,7 @@ jobs:
       - name: Install Qt 6.11
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.11.*'
+          version: '6.11.2'  # pinned; see the App job
           aqtversion: '==3.3.*'
           modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
           cache: true
