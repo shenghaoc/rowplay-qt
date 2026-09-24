@@ -102,8 +102,8 @@ that delivers it.
     - StandardKey Preferences (Ctrl+, where the platform has none), Quit,
       Close, Find, Refresh and Back (primary chord only);
     - the sidebar toggle (F9, or Ctrl+Cmd+S on macOS; off in the replay);
-    - the macOS menu bar with About / Settings… / Quit roles, created only
-      on macOS;
+    - the macOS menu bar with About / Preferences… / Quit roles (Qt titles
+      them, in English: #80), created only on macOS;
     - the Windows / Linux menu button with the shell's commands and their
       shortcut texts;
     - the About dialog of existing strings.
@@ -156,6 +156,16 @@ that delivers it.
       where the toolbar would get less, and the window's minimum grows past
       1000 px only where very large text needs it. Nothing moves at 100 %
       or 150 % text.
+  - [x] T3.8 The second-reviewer pass (2026-09-24):
+    - the sport filter's centring and the sidebar's top padding could land
+      on half pixels (x 295.5 at the reference in the default window); both
+      round;
+    - the sort menu's direction was only an icon, so screen readers lost
+      the ↑ / ↓ main's label showed; the active item's name carries it;
+    - the focused list showed nothing while its selected row was filtered
+      out or scrolled away; it rings itself then (checked on a plain
+      ListView in a scratch Qt Quick Test);
+    - the menu titles are Qt's "Preferences…", not "Settings…" (#80).
 - [ ] T4 (4/7 `ui/04-dashboard-detail`) R5.
 - [ ] T5 (5/7 `ui/05-settings`) R6 and R4.5.
 - [ ] T6 (6/7 `ui/06-replay`) R7.

@@ -9,8 +9,8 @@
 // be hidden; the toolbar sits over the content column with icon-only
 // buttons and the sport filter as a segmented control; the empty state
 // replaces only the content area. The platform layer lives here too:
-// StandardKey shortcuts, the native macOS menu bar (menu-item roles, so the
-// OS writes the titles) or the toolbar's menu button on Windows and Linux,
+// StandardKey shortcuts, the native macOS menu bar (menu-item roles, so Qt
+// writes the titles) or the toolbar's menu button on Windows and Linux,
 // and the sidebar toggle.
 import QtQuick
 import QtQuick.Controls
@@ -465,9 +465,10 @@ ApplicationWindow {
         }
     }
 
-    // The native macOS menu bar. Its About, Settings… and Quit items carry
-    // menu-item roles, so Qt places them in the application menu with the
-    // platform's own titles and key equivalents (⌘, and ⌘Q); a menu whose
+    // The native macOS menu bar. Its About, Preferences and Quit items carry
+    // menu-item roles, so Qt places them in the application menu under its
+    // own titles ("About rowplay", "Preferences…", "Quit rowplay"; English
+    // in every language, #80) and key equivalents (⌘, and ⌘Q); a menu whose
     // items all move there is hidden. Created only on macOS: elsewhere
     // Qt.labs.platform has no native menu bar and reports an error.
     Instantiator {
@@ -584,7 +585,7 @@ ApplicationWindow {
     Shortcut {
         id: preferencesShortcut
         sequences: [StandardKey.Preferences]
-        // On macOS the application menu's Settings… item owns ⌘,.
+        // On macOS the application menu's Preferences… item owns ⌘,.
         enabled: !root.isMac
         onActivated: root.showSettings()
     }
