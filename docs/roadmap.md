@@ -781,6 +781,10 @@ stack of seven PRs, each green on its own:
    - Delivered in #70 and validated there: the full suite, the captures
      before and after, the platform layer driven with xdotool, and the
      AppImage's launch check.
+   - Codex review of #70: a keyboard press hid the next hover's tooltip,
+     settings opened over the replay left it presented, and very large text
+     could squeeze the sport filter to 0 px. Each is fixed in its layer
+     (the filter's floor is a 2/7 control property) and recorded in T3.7.
 4. `ui/04-dashboard-detail`: tiles, charts, metric grid and splits table.
 5. `ui/05-settings`: the grouped settings page.
 6. `ui/06-replay`: the floating HUD with auto-hide, and the sidebar hidden
