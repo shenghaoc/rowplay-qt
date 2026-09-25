@@ -425,6 +425,27 @@ Suggestion: convert a `Constant` property once and hand out the cached
 `QVariant`, and document that each read of a `serde_json` property costs
 O(value size).
 
+## 20. A pure slot must take a receiver and an owned `String`
+
+(Numbered 20: the round-2 design-system stack adds 19.)
+
+`Replay.venueShadowFlags(name)` (#96) is a lookup that needs no state. A
+`#[qslot]` must still be a method, and qtbridge implements `QMetaCallArg`
+for `String` but not `&str`:
+
+```rust
+#[qslot]
+fn venue_shadow_flags(&self, name: &str) -> i64 { /* ... */ }
+// error[E0277]: the trait bound `str: qtbridge::QMetaCallArg` is not satisfied
+```
+
+With `&self, name: String` it builds, and clippy pedantic then reports
+`unused_self` and `needless_pass_by_value`, which the slot allows with the
+reason in a comment.
+
+Suggestion: accept `&str` for string arguments (the call already holds the
+converted string), or allow an associated function as a slot.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
