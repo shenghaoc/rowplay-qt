@@ -28,13 +28,6 @@ Pane {
         // quarter to a third short of the pane.
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-        ScrollBar.vertical: AppScrollBar {
-            id: detailScrollBar
-            parent: scroll
-            x: scroll.mirrored ? 0 : scroll.width - width
-            y: scroll.topPadding
-            height: scroll.availableHeight
-        }
 
         ColumnLayout {
             id: content
@@ -115,7 +108,7 @@ Pane {
                     // scroll bar, which would otherwise take clicks on its
                     // trailing edge.
                     Layout.topMargin: Theme.focusRingExtent
-                    Layout.rightMargin: detailScrollBar.maximumThickness
+                    Layout.rightMargin: scroll.ScrollBar.vertical.width
                     text: Tr.t("common.replay")
                     prominent: true
                     // Studio's policy: replay needs stroke data and no sync
@@ -292,14 +285,14 @@ Pane {
                         id: splitsScroller
                         Layout.fillWidth: true
                         Layout.preferredHeight: splitsTable.implicitHeight
-                                                + (interactive ? splitsScrollBar.maximumThickness : 0)
+                                                + (interactive ? splitsScrollBar.height : 0)
                         contentWidth: splitsCard.tableWidth
                         contentHeight: splitsTable.implicitHeight
                         flickableDirection: Flickable.HorizontalFlick
                         boundsBehavior: Flickable.StopAtBounds
                         interactive: contentWidth > width + 0.5
                         clip: true
-                        ScrollBar.horizontal: AppScrollBar {
+                        ScrollBar.horizontal: ScrollBar {
                             id: splitsScrollBar
                             policy: splitsScroller.interactive ? ScrollBar.AlwaysOn
                                                                : ScrollBar.AlwaysOff

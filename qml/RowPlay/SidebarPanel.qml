@@ -244,254 +244,259 @@ Pane {
             Layout.fillHeight: true
             visible: Library.filteredCount > 0
 
-            ListView {
-                id: listView
+            // A ScrollView hosts the list so the style's scroll bar gets
+            // room where it is not transient (macOS with a mouse, Windows,
+            // Fusion) instead of drawing over the rows' trailing edge.
+            ScrollView {
+                id: listScroll
                 anchors.fill: parent
-                clip: true
-                model: Library
-                spacing: Theme.spacingXxSmall
-                bottomMargin: Theme.spacingMedium
-                // The model is rebuilt wholesale (reset), so track the selection
-                // by workout id instead of a stale index.
-                currentIndex: -1
-                // Whether the selected row is on screen, where its accent shows
-                // that the list holds keyboard focus. A search, a filter or a
-                // scroll can take it away while a workout stays selected.
-                readonly property bool selectionInView: {
-                    const top = contentY
-                    const bottom = contentY + height
-                    const rows = contentItem.children
-                    for (let i = 0; i < rows.length; ++i) {
-                        const row = rows[i]
-                        if (row.selected === true && row.visible
-                                && row.y + row.height > top && row.y < bottom) {
-                            return true
+
+                ListView {
+                    id: listView
+                    clip: true
+                    model: Library
+                    spacing: Theme.spacingXxSmall
+                    bottomMargin: Theme.spacingMedium
+                    // The model is rebuilt wholesale (reset), so track the selection
+                    // by workout id instead of a stale index.
+                    currentIndex: -1
+                    // Whether the selected row is on screen, where its accent shows
+                    // that the list holds keyboard focus. A search, a filter or a
+                    // scroll can take it away while a workout stays selected.
+                    readonly property bool selectionInView: {
+                        const top = contentY
+                        const bottom = contentY + height
+                        const rows = contentItem.children
+                        for (let i = 0; i < rows.length; ++i) {
+                            const row = rows[i]
+                            if (row.selected === true && row.visible
+                                    && row.y + row.height > top && row.y < bottom) {
+                                return true
+                            }
+                        }
+                        return false
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Escape && !panel.inDrawer) {
+                            Library.clearSelection()
+                            event.accepted = true
                         }
                     }
-                    return false
-                }
-                ScrollBar.vertical: AppScrollBar {}
 
-                Keys.onPressed: function(event) {
-                    if (event.key === Qt.Key_Escape && !panel.inDrawer) {
-                        Library.clearSelection()
-                        event.accepted = true
-                    }
-                }
+                    delegate: Item {
+                        id: rowItem
 
-                delegate: Item {
-                    id: rowItem
+                        // Role names are the QModelItem field names verbatim.
+                        required property int workout_id
+                        required property string title
+                        required property string date_text
+                        required property string time_text
+                        required property string distance_text
+                        required property string pace_text
+                        required property string sport_key
+                        required property string sport_name
+                        required property bool is_pb
+                        required property string section_text
+                        required property bool is_section_start
+                        required property string accessible_text
 
-                    // Role names are the QModelItem field names verbatim.
-                    required property int workout_id
-                    required property string title
-                    required property string date_text
-                    required property string time_text
-                    required property string distance_text
-                    required property string pace_text
-                    required property string sport_key
-                    required property string sport_name
-                    required property bool is_pb
-                    required property string section_text
-                    required property bool is_section_start
-                    required property string accessible_text
+                        width: ListView.view.width
+                        implicitHeight: rowContent.height
+                                  + (dayHeader.visible ? dayHeader.height : 0)
+                        Accessible.name: accessible_text
+                        Accessible.role: Accessible.ListItem
 
-                    width: ListView.view.width
-                    implicitHeight: rowContent.height
-                              + (dayHeader.visible ? dayHeader.height : 0)
-                    Accessible.name: accessible_text
-                    Accessible.role: Accessible.ListItem
+                        readonly property bool selected: Library.selectedWorkoutId === workout_id
+                        // Focused selection: the accent with onAccent content.
+                        readonly property bool emphasized: selected && listView.activeFocus
+                        readonly property color primaryText: emphasized ? Theme.selectionText
+                                                                        : Theme.textPrimary
+                        readonly property color secondaryText: emphasized ? Theme.selectionText
+                                                                          : Theme.textSecondary
 
-                    readonly property bool selected: Library.selectedWorkoutId === workout_id
-                    // Focused selection: the accent with onAccent content.
-                    readonly property bool emphasized: selected && listView.activeFocus
-                    readonly property color primaryText: emphasized ? Theme.selectionText
-                                                                    : Theme.textPrimary
-                    readonly property color secondaryText: emphasized ? Theme.selectionText
-                                                                      : Theme.textSecondary
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
 
-                    Column {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                            // Day section header: small, bold, sentence case.
+                            Label {
+                                id: dayHeader
+                                visible: rowItem.is_section_start
+                                width: parent.width
+                                height: implicitHeight + Theme.spacingMedium
+                                topPadding: Theme.spacingMedium
+                                bottomPadding: 0
+                                leftPadding: Theme.spacingSmall
+                                verticalAlignment: Text.AlignBottom
+                                text: rowItem.section_text
+                                font: Theme.sidebarSection
+                                color: Theme.textSecondary
+                                elide: Text.ElideRight
+                                Accessible.ignored: true
+                            }
 
-                        // Day section header: small, bold, sentence case.
-                        Label {
-                            id: dayHeader
-                            visible: rowItem.is_section_start
-                            width: parent.width
-                            height: implicitHeight + Theme.spacingMedium
-                            topPadding: Theme.spacingMedium
-                            bottomPadding: 0
-                            leftPadding: Theme.spacingSmall
-                            verticalAlignment: Text.AlignBottom
-                            text: rowItem.section_text
-                            font: Theme.sidebarSection
-                            color: Theme.textSecondary
-                            elide: Text.ElideRight
-                            Accessible.ignored: true
-                        }
+                            Rectangle {
+                                id: rowContent
+                                width: parent.width
+                                height: Math.max(Theme.sidebarRowHeight,
+                                                 rowLayout.implicitHeight + 2 * Theme.spacingSmall)
+                                radius: Theme.radiusSmall
+                                color: rowItem.emphasized ? Theme.selectionFill
+                                       : (rowItem.selected ? Theme.selectionFillInactive
+                                          : (rowHover.containsMouse ? Theme.hoverFill
+                                                                    : "transparent"))
+                                // Under high contrast the unfocused selection
+                                // keeps the window fill inside a highlight outline.
+                                border.width: rowItem.selected && !rowItem.emphasized
+                                              && Theme.highContrast ? 2 : 0
+                                border.color: Theme.selectionOutline
 
-                        Rectangle {
-                            id: rowContent
-                            width: parent.width
-                            height: Math.max(Theme.sidebarRowHeight,
-                                             rowLayout.implicitHeight + 2 * Theme.spacingSmall)
-                            radius: Theme.radiusSmall
-                            color: rowItem.emphasized ? Theme.selectionFill
-                                   : (rowItem.selected ? Theme.selectionFillInactive
-                                      : (rowHover.containsMouse ? Theme.hoverFill
-                                                                : "transparent"))
-                            // Under high contrast the unfocused selection
-                            // keeps the window fill inside a highlight outline.
-                            border.width: rowItem.selected && !rowItem.emphasized
-                                          && Theme.highContrast ? 2 : 0
-                            border.color: Theme.selectionOutline
+                                RowLayout {
+                                    id: rowLayout
+                                    anchors.fill: parent
+                                    anchors.leftMargin: Theme.spacingSmall
+                                    anchors.rightMargin: Theme.spacingMedium
+                                    spacing: Theme.spacingMedium
 
-                            RowLayout {
-                                id: rowLayout
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.spacingSmall
-                                anchors.rightMargin: Theme.spacingMedium
-                                spacing: Theme.spacingMedium
+                                    // Sport badge: the sport glyph on a neutral
+                                    // rounded square (sports carry no metric colour).
+                                    Rectangle {
+                                        Layout.preferredWidth: Theme.px(28)
+                                        Layout.preferredHeight: Theme.px(28)
+                                        radius: Theme.radiusSmall + 1
+                                        color: Qt.alpha(rowItem.primaryText, 0.08)
+                                        Accessible.ignored: true
 
-                                // Sport badge: the sport glyph on a neutral
-                                // rounded square (sports carry no metric colour).
-                                Rectangle {
-                                    Layout.preferredWidth: Theme.px(28)
-                                    Layout.preferredHeight: Theme.px(28)
-                                    radius: Theme.radiusSmall + 1
-                                    color: Qt.alpha(rowItem.primaryText, 0.08)
-                                    Accessible.ignored: true
-
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        name: "sport." + rowItem.sport_key
-                                        size: Theme.iconSize
-                                        color: rowItem.secondaryText
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: Theme.px(1)
-
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: Theme.spacingSmall
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: rowItem.title
-                                            font: Theme.bodyEmphasized
-                                            color: rowItem.primaryText
-                                            elide: Text.ElideRight
-                                            Accessible.ignored: true
-                                        }
-
-                                        // PB capsule: the comparison orange
-                                        // with text picked for AA on it.
-                                        Rectangle {
-                                            visible: rowItem.is_pb
-                                            Layout.preferredHeight: pbLabel.implicitHeight
-                                                                    + Theme.px(2)
-                                            Layout.preferredWidth: pbLabel.implicitWidth
-                                                                   + 2 * Theme.spacingSmall
-                                            radius: height / 2
-                                            color: Theme.comparisonOrange
-                                            Accessible.ignored: true
-
-                                            Label {
-                                                id: pbLabel
-                                                anchors.centerIn: parent
-                                                text: Tr.t("dashboard.pbTag")
-                                                font: Theme.compactLabel
-                                                color: Theme.textOn(Theme.comparisonOrange)
-                                            }
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            name: "sport." + rowItem.sport_key
+                                            size: Theme.iconSize
+                                            color: rowItem.secondaryText
                                         }
                                     }
 
-                                    RowLayout {
+                                    ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: Theme.spacingSmall
+                                        spacing: Theme.px(1)
 
-                                        // The date, then the distance, which
-                                        // moves under the date when the two do
-                                        // not fit beside the pace: Chinese and
-                                        // Japanese dates at the 12 px floor
-                                        // elided it. Whole-pixel widths, so
-                                        // the Flow places the second on the
-                                        // pixel grid.
-                                        Flow {
-                                            id: metaFlow
+                                        RowLayout {
                                             Layout.fillWidth: true
                                             spacing: Theme.spacingSmall
 
                                             Label {
-                                                width: Math.min(Math.ceil(implicitWidth),
-                                                                metaFlow.width)
-                                                text: rowItem.date_text
-                                                font: Theme.metricLabel
-                                                color: rowItem.secondaryText
+                                                Layout.fillWidth: true
+                                                text: rowItem.title
+                                                font: Theme.bodyEmphasized
+                                                color: rowItem.primaryText
                                                 elide: Text.ElideRight
                                                 Accessible.ignored: true
                                             }
-                                            Label {
-                                                width: Math.min(Math.ceil(implicitWidth),
-                                                                metaFlow.width)
-                                                text: rowItem.distance_text
-                                                font: Theme.metricLabel
-                                                color: rowItem.secondaryText
-                                                elide: Text.ElideRight
+
+                                            // PB capsule: the comparison orange
+                                            // with text picked for AA on it.
+                                            Rectangle {
+                                                visible: rowItem.is_pb
+                                                Layout.preferredHeight: pbLabel.implicitHeight
+                                                                        + Theme.px(2)
+                                                Layout.preferredWidth: pbLabel.implicitWidth
+                                                                       + 2 * Theme.spacingSmall
+                                                radius: height / 2
+                                                color: Theme.comparisonOrange
                                                 Accessible.ignored: true
+
+                                                Label {
+                                                    id: pbLabel
+                                                    anchors.centerIn: parent
+                                                    text: Tr.t("dashboard.pbTag")
+                                                    font: Theme.compactLabel
+                                                    color: Theme.textOn(Theme.comparisonOrange)
+                                                }
                                             }
                                         }
 
-                                        Label {
-                                            text: rowItem.pace_text
-                                            font: Theme.tabularBody
-                                            color: rowItem.primaryText
-                                            Layout.alignment: Qt.AlignRight | Qt.AlignTop
-                                            Accessible.ignored: true
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: Theme.spacingSmall
+
+                                            // The date, then the distance, which
+                                            // moves under the date when the two do
+                                            // not fit beside the pace: Chinese and
+                                            // Japanese dates at the 12 px floor
+                                            // elided it. Whole-pixel widths, so
+                                            // the Flow places the second on the
+                                            // pixel grid.
+                                            Flow {
+                                                id: metaFlow
+                                                Layout.fillWidth: true
+                                                spacing: Theme.spacingSmall
+
+                                                Label {
+                                                    width: Math.min(Math.ceil(implicitWidth),
+                                                                    metaFlow.width)
+                                                    text: rowItem.date_text
+                                                    font: Theme.metricLabel
+                                                    color: rowItem.secondaryText
+                                                    elide: Text.ElideRight
+                                                    Accessible.ignored: true
+                                                }
+                                                Label {
+                                                    width: Math.min(Math.ceil(implicitWidth),
+                                                                    metaFlow.width)
+                                                    text: rowItem.distance_text
+                                                    font: Theme.metricLabel
+                                                    color: rowItem.secondaryText
+                                                    elide: Text.ElideRight
+                                                    Accessible.ignored: true
+                                                }
+                                            }
+
+                                            Label {
+                                                text: rowItem.pace_text
+                                                font: Theme.tabularBody
+                                                color: rowItem.primaryText
+                                                Layout.alignment: Qt.AlignRight | Qt.AlignTop
+                                                Accessible.ignored: true
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            MouseArea {
-                                id: rowHover
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    // A click focuses the list, so the
-                                    // selection shows in the accent.
-                                    listView.forceActiveFocus(Qt.MouseFocusReason)
-                                    panel.choose(rowItem.workout_id)
+                                MouseArea {
+                                    id: rowHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        // A click focuses the list, so the
+                                        // selection shows in the accent.
+                                        listView.forceActiveFocus(Qt.MouseFocusReason)
+                                        panel.choose(rowItem.workout_id)
+                                    }
                                 }
                             }
                         }
+
+                        // Keyboard activation: ListView's arrow keys move
+                        // currentIndex; Enter/Space select the focused row.
+                        Keys.onReturnPressed: panel.choose(rowItem.workout_id)
+                        Keys.onEnterPressed: panel.choose(rowItem.workout_id)
+                        Keys.onSpacePressed: panel.choose(rowItem.workout_id)
                     }
 
-                    // Keyboard activation: ListView's arrow keys move
-                    // currentIndex; Enter/Space select the focused row.
-                    Keys.onReturnPressed: panel.choose(rowItem.workout_id)
-                    Keys.onEnterPressed: panel.choose(rowItem.workout_id)
-                    Keys.onSpacePressed: panel.choose(rowItem.workout_id)
+                    // Arrow navigation selects, matching Studio's sidebar list.
+                    onCurrentIndexChanged: {
+                        if (currentIndex < 0 || currentIndex >= count) {
+                            return
+                        }
+                        var item = itemAtIndex(currentIndex)
+                        if (item !== null) {
+                            Library.selectWorkout(item.workout_id)
+                        }
+                    }
+
+                    // The list itself takes focus, so the arrows work without
+                    // clicking a row first.
+                    activeFocusOnTab: true
                 }
-
-                // Arrow navigation selects, matching Studio's sidebar list.
-                onCurrentIndexChanged: {
-                    if (currentIndex < 0 || currentIndex >= count) {
-                        return
-                    }
-                    var item = itemAtIndex(currentIndex)
-                    if (item !== null) {
-                        Library.selectWorkout(item.workout_id)
-                    }
-                }
-
-                // The list itself takes focus, so the arrows work without
-                // clicking a row first.
-                activeFocusOnTab: true
             }
 
             // With no selected row on screen there is no accent row to show
