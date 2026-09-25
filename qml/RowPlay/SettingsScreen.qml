@@ -9,12 +9,13 @@
 // - the timezone picker is a flat list (labels carry the UTC offset) instead
 //   of the web's grouped <select>, filtered as you type (round 2).
 //
-// Design system (ADR 0013): a grouped page — the label at each row's leading
-// edge, at most two controls at its trailing edge, a click anywhere on a
-// switch's row toggles it (the switch keeps the focus), notes in section
-// footers or row details, never behind a hover. One column at most 640 px
-// (scaled) wide. No dismiss button: back navigation, Escape and the
-// toolbar's settings toggle close the page.
+// ADR 0013, 0015: a grouped page of the style's own controls. Each group is
+// a GroupBox; a row puts its label (and a detail line) beside its control,
+// or above it where the two do not fit; a switch always sits beside its
+// label, which wraps and toggles it; notes sit under the groups or in row
+// details, never behind a hover. One column at most 640 px (scaled) wide. No dismiss
+// button: back navigation, Escape and the toolbar's settings toggle close
+// the page.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -23,7 +24,10 @@ import RowPlay
 Pane {
     id: screen
 
-    padding: Theme.spacingXxxLarge
+    // The page's margin is inside the scroll view, so the style's scroll bar
+    // sits at the pane's edge and the groups keep their distance from it.
+    padding: 0
+    readonly property real pageMargin: Theme.spacingXxxLarge
 
     // The sync section's last result / status line; every branch of the
     // Phase 4 expression is kept.
@@ -65,6 +69,77 @@ Pane {
     readonly property string tokenStatusText: Settings.statusTextId.length > 0
                                               ? Tr.t(Settings.statusTextId) : ""
 
+    // A row's label and its optional detail line (layout, not a control).
+    component RowLabel: ColumnLayout {
+        property string text: ""
+        property string detail: ""
+        property color detailColor: Theme.textSecondary
+        Layout.fillWidth: true
+        spacing: Theme.spacingXxSmall
+
+        Label {
+            Layout.fillWidth: true
+            visible: parent.text.length > 0
+            text: parent.text
+            font: Theme.body
+            color: Theme.textPrimary
+            wrapMode: Text.WordWrap
+            Accessible.name: text
+        }
+        Label {
+            Layout.fillWidth: true
+            visible: parent.detail.length > 0
+            text: parent.detail
+            font: Theme.subheadline
+            color: parent.detailColor
+            wrapMode: Text.WordWrap
+            Accessible.name: text
+        }
+    }
+
+    // A switch beside its label and detail (layout, not a control): they wrap
+    // where the style would elide a switch's own text (a long translation in
+    // a narrow window), and a click on them toggles the switch, as a click on
+    // that text would.
+    component SwitchRow: RowLayout {
+        id: switchRow
+        property alias text: rowLabel.text
+        property alias detail: rowLabel.detail
+        property alias checked: rowSwitch.checked
+        signal toggled()
+        Layout.fillWidth: true
+        spacing: Theme.spacingXLarge
+
+        RowLabel {
+            id: rowLabel
+            TapHandler {
+                onTapped: {
+                    rowSwitch.toggle()
+                    rowSwitch.toggled()
+                }
+            }
+        }
+        Switch {
+            id: rowSwitch
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            onToggled: switchRow.toggled()
+            Accessible.name: rowLabel.text
+            Accessible.description: rowLabel.detail
+        }
+    }
+
+    // A group's note, under it.
+    component Note: Label {
+        Layout.fillWidth: true
+        Layout.leftMargin: Theme.spacingXSmall
+        Layout.rightMargin: Theme.spacingXSmall
+        visible: text.length > 0
+        font: Theme.subheadline
+        color: Theme.textSecondary
+        wrapMode: Text.WordWrap
+        Accessible.name: text
+    }
+
     ScrollView {
         id: scroll
         anchors.fill: parent
@@ -74,13 +149,19 @@ Pane {
 
         Item {
             width: scroll.availableWidth
-            implicitHeight: form.implicitHeight
+            implicitHeight: form.implicitHeight + 2 * screen.pageMargin
 
             ColumnLayout {
                 id: form
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.min(parent.width, Theme.px(640))
+                y: screen.pageMargin
+                width: Math.min(parent.width - 2 * screen.pageMargin, Theme.px(640))
                 spacing: Theme.spacingXxLarge
+
+                // A label and its control side by side while they fit, one
+                // above the other where they do not (large text in a narrow
+                // window).
+                readonly property int columns: width >= Theme.px(460) ? 2 : 1
 
                 // Title + the running version (Phase 9, R6.5: the one string
                 // that identifies the release in a bug report).
@@ -105,16 +186,17 @@ Pane {
                 }
 
                 // Library / demo mode ------------------------------------
-                FormSection {
-                    title: Tr.t("settings.eyebrow")
-                    footer: Tr.t("settings.factDemo")
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spacingSmall
 
-                    FormRow {
-                        label: Tr.t("common.demoMode")
-                        toggleTarget: demoSwitch
+                    GroupBox {
+                        Layout.fillWidth: true
+                        title: Tr.t("settings.eyebrow")
 
-                        ToggleSwitch {
-                            id: demoSwitch
+                        SwitchRow {
+                            width: parent.width
+                            text: Tr.t("common.demoMode")
                             checked: Settings.demoModeEnabled
                             onToggled: {
                                 Settings.setDemoModeEnabled(checked)
@@ -122,39 +204,42 @@ Pane {
                                     return Settings.demoModeEnabled
                                 })
                             }
-                            Accessible.name: Tr.t("common.demoMode")
                         }
                     }
+                    Note { text: Tr.t("settings.factDemo") }
                 }
 
                 // Replay quality + reduce motion -------------------------
                 // The reduce-motion key is a desktop supplement
                 // (tools/convert-locales.mjs DESKTOP_SUPPLEMENT): the web has
                 // none.
-                FormSection {
-                    FormRow {
-                        label: Tr.t("replay.quality")
+                GroupBox {
+                    Layout.fillWidth: true
 
-                        SegmentedControl {
-                            // May shrink below its segments' width, taking
-                            // its compact pop-up form (a narrow window).
-                            Layout.fillWidth: true
-                            Layout.maximumWidth: implicitWidth
+                    GridLayout {
+                        width: parent.width
+                        columns: form.columns
+                        columnSpacing: Theme.spacingXLarge
+                        rowSpacing: Theme.spacingMedium
+
+                        RowLabel { text: Tr.t("replay.quality") }
+                        // A setting changed now and then: the platform's
+                        // pop-up button (design.md, "SegmentedControl, per
+                        // use").
+                        ComboBox {
+                            id: qualityCombo
+                            Layout.preferredWidth: Theme.px(220)
                             model: Settings.qualityLabels
                             currentIndex: Settings.qualityIndex
-                            label: Tr.t("replay.quality")
                             onActivated: function(index) {
                                 Settings.setQualityIndex(index)
                             }
+                            Accessible.name: Tr.t("replay.quality")
                         }
-                    }
 
-                    FormRow {
-                        label: Tr.t("settings.reduceMotion")
-                        toggleTarget: motionSwitch
-
-                        ToggleSwitch {
-                            id: motionSwitch
+                        SwitchRow {
+                            Layout.columnSpan: form.columns
+                            text: Tr.t("settings.reduceMotion")
                             checked: Settings.reduceReplayMotion
                             onToggled: {
                                 Settings.setReduceReplayMotion(checked)
@@ -162,7 +247,6 @@ Pane {
                                     return Settings.reduceReplayMotion
                                 })
                             }
-                            Accessible.name: Tr.t("settings.reduceMotion")
                         }
                     }
                 }
@@ -170,58 +254,82 @@ Pane {
                 // Concept2 token -----------------------------------------
                 // Connected is expressed purely through the Log-out control,
                 // like the web header.
-                FormSection {
-                    title: Tr.t("token.title")
-                    footer: Settings.hasToken
-                            ? ""
-                            : Tr.t("token.introBefore") + Tr.t("token.introLink")
-                              + Tr.t("token.introAfter")
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spacingSmall
 
-                    FormRow {
-                        visible: !Settings.hasToken
-                        stacked: true
-                        label: Tr.t("token.apiToken")
-                        detail: screen.tokenStatusText
-                        detailColor: Theme.alertRed
+                    GroupBox {
+                        Layout.fillWidth: true
+                        title: Tr.t("token.title")
 
-                        InputField {
-                            id: tokenField
-                            Layout.fillWidth: true
-                            echoMode: TextInput.Password
-                            placeholderText: Tr.t("token.placeholder")
-                            Accessible.name: Tr.t("token.apiToken")
-                            onAccepted: saveTokenButton.clicked()
-                        }
+                        ColumnLayout {
+                            width: parent.width
+                            spacing: Theme.spacingMedium
 
-                        // The page's one prominent action.
-                        PushButton {
-                            id: saveTokenButton
-                            text: Tr.t("token.connect")
-                            prominent: true
-                            enabled: tokenField.text.trim().length > 0
-                            onClicked: {
-                                // The token crosses the bridge exactly once,
-                                // into SecretToken + the OS keychain, and the
-                                // field is cleared immediately.
-                                Settings.saveToken(tokenField.text)
-                                tokenField.text = ""
+                            // Not connected: the token field and the page's
+                            // one prominent action, under the row's label.
+                            RowLabel {
+                                visible: !Settings.hasToken
+                                text: Tr.t("token.apiToken")
+                                detail: screen.tokenStatusText
+                                detailColor: Theme.alertRed
+                            }
+                            RowLayout {
+                                visible: !Settings.hasToken
+                                Layout.fillWidth: true
+                                spacing: Theme.spacingMedium
+
+                                TextField {
+                                    id: tokenField
+                                    Layout.fillWidth: true
+                                    echoMode: TextInput.Password
+                                    placeholderText: Tr.t("token.placeholder")
+                                    Accessible.name: Tr.t("token.apiToken")
+                                    onAccepted: saveTokenButton.clicked()
+                                }
+                                Button {
+                                    id: saveTokenButton
+                                    text: Tr.t("token.connect")
+                                    highlighted: true
+                                    enabled: tokenField.text.trim().length > 0
+                                    Accessible.name: text
+                                    onClicked: {
+                                        // The token crosses the bridge exactly
+                                        // once, into SecretToken + the OS
+                                        // keychain, and the field is cleared
+                                        // immediately.
+                                        Settings.saveToken(tokenField.text)
+                                        tokenField.text = ""
+                                    }
+                                }
+                            }
+
+                            // Connected: the status and Log out, instead of the
+                            // token row, so the page never has both a
+                            // prominent and a destructive button.
+                            RowLayout {
+                                visible: Settings.hasToken
+                                Layout.fillWidth: true
+                                spacing: Theme.spacingMedium
+
+                                RowLabel {
+                                    detail: screen.tokenStatusText
+                                    detailColor: Theme.alertRed
+                                }
+                                Button {
+                                    text: Tr.t("auth.logout")
+                                    enabled: !Sync.isRunning
+                                    Accessible.name: text
+                                    onClicked: disconnectDialog.open()
+                                }
                             }
                         }
                     }
-
-                    // Shown instead of the token row, so the page never has
-                    // both a prominent and a destructive button.
-                    FormRow {
-                        visible: Settings.hasToken
-                        detail: screen.tokenStatusText
-                        detailColor: Theme.alertRed
-
-                        PushButton {
-                            text: Tr.t("auth.logout")
-                            destructive: true
-                            enabled: !Sync.isRunning
-                            onClicked: disconnectDialog.open()
-                        }
+                    Note {
+                        text: Settings.hasToken
+                              ? ""
+                              : Tr.t("token.introBefore") + Tr.t("token.introLink")
+                                + Tr.t("token.introAfter")
                     }
                 }
 
@@ -229,87 +337,103 @@ Pane {
                 // Two modes, matching settings.syncNote: the incremental
                 // button is the default; full re-sync is the slower escape
                 // hatch for when something looks wrong.
-                FormSection {
-                    title: Tr.t("settings.syncTitle")
-                    footer: Tr.t("settings.syncNote")
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spacingSmall
 
-                    FormRow {
-                        id: syncRow
+                    GroupBox {
+                        id: syncGroup
+                        Layout.fillWidth: true
+                        title: Tr.t("settings.syncTitle")
 
-                        // The two buttons stand side by side while the row
-                        // has room for both, and one under the other when
-                        // it has not (large text in a narrow window). A
-                        // grid, not a Flow: like the row's own layout it
-                        // puts them on whole pixels. FormRow insets its
-                        // controls by spacingLarge on each side.
-                        GridLayout {
-                            columns: incremental.implicitWidth + columnSpacing
-                                     + full.implicitWidth
-                                     <= syncRow.width - 2 * Theme.spacingLarge ? 2 : 1
-                            columnSpacing: Theme.spacingMedium
-                            rowSpacing: Theme.spacingMedium
+                        ColumnLayout {
+                            width: parent.width
+                            spacing: Theme.spacingMedium
 
-                            PushButton {
-                                id: incremental
-                                text: Tr.t("settings.syncIncremental")
-                                enabled: Sync.canSync
-                                onClicked: Sync.start()
+                            // The two buttons stand side by side while they
+                            // fit, and one under the other when they do not
+                            // (large text in a narrow window).
+                            GridLayout {
+                                columns: incremental.implicitWidth + columnSpacing
+                                         + full.implicitWidth <= parent.width ? 2 : 1
+                                columnSpacing: Theme.spacingMedium
+                                rowSpacing: Theme.spacingMedium
+
+                                Button {
+                                    id: incremental
+                                    text: Tr.t("settings.syncIncremental")
+                                    enabled: Sync.canSync
+                                    Accessible.name: text
+                                    onClicked: Sync.start()
+                                }
+                                Button {
+                                    id: full
+                                    text: Tr.t("settings.syncFull")
+                                    enabled: Sync.canSync
+                                    Accessible.name: text
+                                    onClicked: Sync.startFull()
+                                }
                             }
 
-                            PushButton {
-                                id: full
-                                text: Tr.t("settings.syncFull")
-                                enabled: Sync.canSync
-                                onClicked: Sync.startFull()
+                            // While a sync runs: the progress (determinate
+                            // once the detail pass is sized; the counts are
+                            // rendered in Rust) and its one control, Cancel.
+                            RowLayout {
+                                visible: Sync.isRunning
+                                Layout.fillWidth: true
+                                spacing: Theme.spacingMedium
+
+                                RowLabel {
+                                    text: Sync.progressTotal > 0
+                                          ? Tr.t("sync.inProgress") + " " + Sync.progressText
+                                          : Tr.t("sync.loading")
+                                }
+                                ProgressBar {
+                                    Layout.preferredWidth: Theme.px(140)
+                                    from: 0
+                                    to: 1
+                                    indeterminate: Sync.progressFraction < 0
+                                    value: Sync.progressFraction < 0 ? 0 : Sync.progressFraction
+                                    Accessible.name: Tr.t("sync.inProgress")
+                                }
+                                Button {
+                                    text: Tr.t("workoutList.compareCancel")
+                                    Accessible.name: text
+                                    onClicked: Sync.cancel()
+                                }
+                            }
+
+                            // The last result: a status line, never a dialog.
+                            // A failure names itself ("Sync failed", the
+                            // row's label) above the error it met
+                            // (sync.errorHint is the error alone) and offers
+                            // its retry right here, in the mode that failed.
+                            RowLayout {
+                                visible: !Sync.isRunning && screen.syncStatusText.length > 0
+                                Layout.fillWidth: true
+                                spacing: Theme.spacingMedium
+
+                                RowLabel {
+                                    text: screen.syncFailed ? Tr.t("sync.failed") : ""
+                                    detail: !screen.syncFailed ? screen.syncStatusText
+                                            : Sync.statusMessage.length > 0
+                                              ? Tr.t("sync.errorHint",
+                                                     { message: Sync.statusMessage })
+                                              : ""
+                                    detailColor: screen.syncFailed ? Theme.alertRed
+                                                                   : Theme.textSecondary
+                                }
+                                Button {
+                                    visible: screen.syncFailed
+                                    text: Tr.t("sync.retry")
+                                    enabled: Sync.canSync
+                                    Accessible.name: text
+                                    onClicked: Sync.retry()
+                                }
                             }
                         }
                     }
-
-                    // While a sync runs: the progress (determinate once the
-                    // detail pass is sized; the counts are rendered in Rust)
-                    // and its one control, Cancel.
-                    FormRow {
-                        visible: Sync.isRunning
-                        label: Sync.progressTotal > 0
-                               ? Tr.t("sync.inProgress") + " " + Sync.progressText
-                               : Tr.t("sync.loading")
-
-                        AppProgressBar {
-                            Layout.preferredWidth: Theme.px(140)
-                            from: 0
-                            to: 1
-                            indeterminate: Sync.progressFraction < 0
-                            value: Sync.progressFraction < 0 ? 0 : Sync.progressFraction
-                            Accessible.name: Tr.t("sync.inProgress")
-                        }
-
-                        PushButton {
-                            text: Tr.t("workoutList.compareCancel")
-                            onClicked: Sync.cancel()
-                        }
-                    }
-
-                    // The last result: a status line, never a dialog. A
-                    // failure names itself ("Sync failed", the row's label)
-                    // above the error it met (sync.errorHint is the error
-                    // alone) and offers its retry right here, in the mode
-                    // that failed.
-                    FormRow {
-                        visible: !Sync.isRunning && screen.syncStatusText.length > 0
-                        label: screen.syncFailed ? Tr.t("sync.failed") : ""
-                        detail: !screen.syncFailed ? screen.syncStatusText
-                                : Sync.statusMessage.length > 0
-                                  ? Tr.t("sync.errorHint", { message: Sync.statusMessage })
-                                  : ""
-                        detailColor: screen.syncFailed ? Theme.alertRed : Theme.textSecondary
-
-                        PushButton {
-                            visible: screen.syncFailed
-                            text: Tr.t("sync.retry")
-                            enabled: Sync.canSync
-                            onClicked: Sync.retry()
-                        }
-                    }
+                    Note { text: Tr.t("settings.syncNote") }
                 }
 
                 // Live mode (logbook page-1 polling — not PM5 / Bluetooth).
@@ -318,11 +442,17 @@ Pane {
                 }
 
                 // Units, timezone, language ------------------------------
-                FormSection {
-                    FormRow {
-                        label: Tr.t("workoutList.sortDistance")
+                GroupBox {
+                    Layout.fillWidth: true
 
-                        PopupButton {
+                    GridLayout {
+                        width: parent.width
+                        columns: form.columns
+                        columnSpacing: Theme.spacingXLarge
+                        rowSpacing: Theme.spacingMedium
+
+                        RowLabel { text: Tr.t("workoutList.sortDistance") }
+                        ComboBox {
                             id: unitCombo
                             Layout.preferredWidth: Theme.px(220)
                             // Unit symbols are untranslated by design
@@ -334,38 +464,62 @@ Pane {
                             }
                             Accessible.name: Tr.t("workoutList.sortDistance")
                         }
-                    }
 
-                    FormRow {
-                        label: Tr.t("settings.timezoneLabel")
-                        // The web's explanatory note as the row's detail:
-                        // it was a hover-only tooltip.
-                        detail: Tr.t("settings.timezoneNote")
-
-                        // 48 entries: typing filters them, by city, UTC
-                        // offset or zone name (the view-model decides).
-                        PopupButton {
-                            id: timezoneCombo
-                            Layout.preferredWidth: Theme.px(220)
-                            model: [Tr.t("settings.timezoneUtcDefault")].concat(
-                                       Settings.timezoneLabels)
-                            filterable: true
-                            filterLabel: Tr.t("workoutList.search")
-                            filterIndices: Settings.timezoneMatches(
-                                               filterText, Tr.t("settings.timezoneUtcDefault"))
-                            Component.onCompleted: currentIndex = Settings.homeTimezoneIndex
-                            onActivated: function(index) {
-                                Settings.setHomeTimezoneIndex(index)
-                            }
-                            Accessible.name: Tr.t("settings.timezoneLabel")
-                            Accessible.description: Tr.t("settings.timezoneNote")
+                        // The web's explanatory note as the row's detail: it
+                        // was a hover-only tooltip.
+                        RowLabel {
+                            text: Tr.t("settings.timezoneLabel")
+                            detail: Tr.t("settings.timezoneNote")
                         }
-                    }
+                        // 48 entries: the field filters them, by city, UTC
+                        // offset or zone name (the view-model decides), and
+                        // the pop-up lists the matches. It always shows the
+                        // zone in use, filtered out or not.
+                        ColumnLayout {
+                            Layout.preferredWidth: Theme.px(220)
+                            spacing: Theme.spacingXSmall
 
-                    FormRow {
-                        label: Tr.t("lang.switch")
+                            TextField {
+                                id: timezoneFilter
+                                Layout.fillWidth: true
+                                placeholderText: Tr.t("workoutList.search")
+                                // The view-model reads at most 64 characters
+                                // of a filter.
+                                maximumLength: 64
+                                Accessible.name: Tr.t("workoutList.search")
+                                Accessible.description: Tr.t("settings.timezoneLabel")
+                            }
+                            ComboBox {
+                                id: timezoneCombo
+                                Layout.fillWidth: true
+                                readonly property string utcLabel: Tr.t("settings.timezoneUtcDefault")
+                                readonly property var labels: [utcLabel].concat(Settings.timezoneLabels)
+                                /// The full-list indices the filter keeps, in order.
+                                readonly property var matches: {
+                                    if (timezoneFilter.text.length === 0) {
+                                        var all = []
+                                        for (var i = 0; i < labels.length; ++i) {
+                                            all.push(i)
+                                        }
+                                        return all
+                                    }
+                                    return Settings.timezoneMatches(timezoneFilter.text, utcLabel)
+                                }
+                                property int homeIndex: Settings.homeTimezoneIndex
+                                model: matches.map(function(i) { return labels[i] })
+                                currentIndex: matches.indexOf(homeIndex)
+                                displayText: labels[homeIndex] !== undefined ? labels[homeIndex] : ""
+                                onActivated: function(index) {
+                                    Settings.setHomeTimezoneIndex(matches[index])
+                                    timezoneFilter.text = ""
+                                }
+                                Accessible.name: Tr.t("settings.timezoneLabel")
+                                Accessible.description: Tr.t("settings.timezoneNote")
+                            }
+                        }
 
-                        PopupButton {
+                        RowLabel { text: Tr.t("lang.switch") }
+                        ComboBox {
                             id: languageCombo
                             Layout.preferredWidth: Theme.px(220)
                             model: Settings.languageNames
@@ -385,24 +539,29 @@ Pane {
         target: Settings
         function onSettingsChanged() {
             unitCombo.currentIndex = Settings.distanceUnitIndex
-            timezoneCombo.currentIndex = Settings.homeTimezoneIndex
+            timezoneCombo.homeIndex = Settings.homeTimezoneIndex
             languageCombo.currentIndex = Settings.languageIndex
         }
     }
 
     // Studio wraps Disconnect in a confirmation dialog; the web's log out is
     // immediate. Desktop keeps the confirmation (keychain write is cheap, but
-    // losing the token is annoying). PushButtons with web strings replace
-    // Qt's standard OK / Cancel (never translated by the app's catalogues),
-    // and AppDialogButtonBox keeps Qt's default layout, so the platform
-    // orders them.
-    AppDialog {
+    // losing the token is annoying). The dialog's standard buttons, in the
+    // platform's order, are named with web strings: the app's catalogues
+    // never translated Qt's own OK / Cancel.
+    Dialog {
         id: disconnectDialog
         anchors.centerIn: parent
         // Explicit width: with implicit sizing the Dialog and its content
         // form a binding loop (caught by the runtime-error gate).
         width: Math.min(screen.width - 2 * Theme.spacingXLarge, Theme.px(420))
         title: Tr.t("auth.logout")
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAboutToShow: {
+            standardButton(Dialog.Ok).text = Tr.t("auth.logout")
+            standardButton(Dialog.Cancel).text = Tr.t("workoutList.compareCancel")
+        }
 
         // The text wraps inside a layout that spans the dialog: a bare
         // wrapping Label sized to its parent made the dialog's implicit
@@ -421,32 +580,20 @@ Pane {
             }
         }
 
-        footer: AppDialogButtonBox {
-            PushButton {
-                text: Tr.t("workoutList.compareCancel")
-                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
-            }
-            PushButton {
-                text: Tr.t("auth.logout")
-                destructive: true
-                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
-            }
-        }
-
         onAccepted: Settings.clearToken()
     }
 
-    /// The runtime-error gate filters the timezone list once: it opens the
-    /// pop-up list with `text` typed ("" closes it) and returns how many
-    /// entries the filter keeps.
+    /// The runtime-error gate filters the timezone list once: it types
+    /// `text` into the filter ("" clears it and closes the list), opens the
+    /// list of matches and returns how many the filter keeps.
     function filterTimezones(text) {
+        timezoneFilter.text = text
         if (text.length === 0) {
             timezoneCombo.popup.close()
             return 0
         }
         timezoneCombo.popup.open()
-        timezoneCombo.typeFilter(text)
-        return timezoneCombo.filterIndices.length
+        return timezoneCombo.matches.length
     }
 
     /// The runtime-error gate opens the logout dialog once (demo mode never
