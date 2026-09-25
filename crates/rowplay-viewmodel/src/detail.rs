@@ -31,8 +31,10 @@ pub struct DetailHeader {
     pub is_interval: bool,
     /// Athlete comments ("" when absent).
     pub comments: String,
-    /// Screen-reader line: date, time, source, intervals (Studio's header
-    /// accessibility label).
+    /// Screen-reader line: date, time, source (Studio's header
+    /// accessibility label). An interval piece's tag is translated, so QML
+    /// adds it (`workout.tag.interval`); this line said "intervals" in
+    /// English in every language.
     pub accessible_text: String,
 }
 
@@ -118,9 +120,6 @@ pub fn header(
     let mut parts = vec![date_text.clone(), time_text.clone()];
     if !source_text.is_empty() {
         parts.push(source_text.clone());
-    }
-    if workout.is_interval {
-        parts.push("intervals".to_owned());
     }
 
     DetailHeader {
@@ -379,6 +378,20 @@ mod tests {
         assert!(!header.date_text.is_empty());
         assert!(header.time_text.contains(':'));
         assert!(header.accessible_text.contains(&header.date_text));
+    }
+
+    #[test]
+    fn an_interval_header_leaves_its_tag_to_the_translated_ui() {
+        let mut detail = demo_2000m();
+        detail.workout.is_interval = true;
+        let header = header(&detail, Language::De, None);
+        assert!(header.is_interval);
+        assert!(
+            !header.accessible_text.to_lowercase().contains("interval"),
+            "{}",
+            header.accessible_text
+        );
+        assert!(header.accessible_text.starts_with(&header.date_text));
     }
 
     #[test]
