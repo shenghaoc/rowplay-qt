@@ -80,11 +80,13 @@ What Qt 6.11.2 does, read from its sources at the tag:
    can be revisited on evidence.
 2. **Standard controls are Qt Quick Controls used as they are.** No
    `background` or `contentItem` is replaced on a control the platform
-   draws. Three bounded exceptions: a list delegate (an `ItemDelegate`
+   draws. Four bounded exceptions: a list delegate (an `ItemDelegate`
    carries its row's data as its `contentItem`, and keeps the style's
    background, selection and hover); the sidebar's split handle, a
    hairline with a 9 px hit area where the default handle is Basic's 6 px
-   bar (Fusion's, on Linux, is 2 px);
+   bar (Fusion's, on Linux, is 2 px); the Basic-fallback Drawer's
+   `contentItem`, a structural host for the sidebar's reparenting and
+   in-drawer shortcuts without custom paint;
    and, until Qt Image Formats' WebP plugin is installed and packaged, the
    live-mode panel's spinner: the macOS style's is a WebP animation and
    draws nothing without the plugin.
