@@ -117,8 +117,8 @@ QtObject {
         "magnifyingglass": { mac: "system-search", windows: "system-search", other: "system-search" },
         "arrow.up.arrow.down": { mac: "arrow.up.arrow.down", windows: "\uE8CB", other: "view-sort-ascending" },
         "calendar": { mac: "calendar", windows: "\uE787", other: "x-office-calendar" },
-        "play": { mac: "media-playback-start", windows: "media-playback-start", other: "media-playback-start" },
-        "pause": { mac: "media-playback-pause", windows: "media-playback-pause", other: "media-playback-pause" },
+        "play": { mac: "play.fill", windows: "media-playback-start", other: "media-playback-start" },
+        "pause": { mac: "pause.fill", windows: "media-playback-pause", other: "media-playback-pause" },
         "ellipsis": { mac: "ellipsis", windows: "\uE712", other: "view-more" }
     })
 

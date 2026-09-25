@@ -590,18 +590,31 @@ Item {
                 RowLayout {
                     id: speedControl
 
-                    // Every choice is as wide as the widest (a layout's
-                    // uniform cells take the mean) and at least the minimum
-                    // target.
+                    // Every choice is as wide as the widest label in bold,
+                    // the checked choice's weight, so a change of speed moves
+                    // nothing (a layout's uniform cells take the mean), and
+                    // at least the minimum target.
                     readonly property real choiceWidth: {
                         var widest = replayRoot.minimumTarget
                         for (var i = 0; i < speedRepeater.count; ++i) {
                             var choice = speedRepeater.itemAt(i)
                             if (choice) {
-                                widest = Math.max(widest, choice.implicitWidth)
+                                widest = Math.max(widest, choice.implicitWidth,
+                                                  Math.ceil(boldMetrics.advanceWidth(choice.text))
+                                                  + choice.leftPadding + choice.rightPadding)
                             }
                         }
                         return widest
+                    }
+
+                    FontMetrics {
+                        id: boldMetrics
+                        font: {
+                            var base = speedRepeater.count > 0 ? speedRepeater.itemAt(0).font
+                                                               : Qt.application.font
+                            return Qt.font({ family: base.family, pixelSize: base.pixelSize,
+                                             bold: true })
+                        }
                     }
 
                     function select(index) {
@@ -647,6 +660,11 @@ Item {
                                 minimum: replayRoot.minimumTarget
                                 reachX: 0
                             }
+                            // The checked choice's label is bold as well as on the
+                            // style's checked wash: Basic's wash differs from the
+                            // others by 1.4:1 in light and 1.05:1 in dark, too
+                            // little to carry the choice alone.
+                            font.bold: checked
                             Accessible.role: Accessible.RadioButton
                             Accessible.name: text
                             onClicked: Replay.setSpeedIndex(index)
