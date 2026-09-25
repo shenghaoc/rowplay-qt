@@ -152,7 +152,10 @@ Test/QA environment hooks: `ROWPLAY_SMOKE_GATE=1` walks every screen
 and exits and `ROWPLAY_SYNC_MOCK=1` runs syncs against the deterministic
 mock client (no token); both are compiled out of release builds
 (`backend::test_env`). `ROWPLAY_FORCE_COLOR_SCHEME=dark|light` pins the
-palette, `ROWPLAY_FORCE_CONTRAST=high|normal` pins the contrast variant and
+scheme and asks Qt for it (the macOS and Windows system palettes follow),
+`ROWPLAY_FORCE_CONTRAST=high|normal` pins the contrast preference (high
+draws in the system palette's colours, so on a normal system it shows the
+mapping, not a contrast theme) and
 `ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk;
 these are plain environment reads, documented overrides that change nothing
 but the look (the screenshot directory is used only by the gate walk).

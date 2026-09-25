@@ -981,3 +981,25 @@ after captures in both schemes.
 - **Open.** The replay's disabled state explains nothing until the web has
   a string for it (#64). Two labels inherit web wording that suits the web
   better (#65). Replay entry is slow and not diagnosed (#67).
+
+### Round 2 — Windows, KDE and HarmonyOS guidance
+
+Rules the Apple and GNOME guidelines did not cover, from Microsoft's
+Windows and Fluent guidance (WinUI as reference), the KDE HIG and
+HarmonyOS's width breakpoints, each checked against the code first. A
+stack of five PRs merged bottom-up (spec, "Round 2"):
+
+1. `ui/focus-ring-high-contrast`: the focus ring is two-tone like Windows'
+   focus visual (a 1 px band in the window colour right outside the
+   control, a 2 px band in the accent outside that), through the one
+   `FocusRing`. Under the OS contrast preference every colour role comes
+   from the system palette's pairs, as Windows' contrast themes require,
+   instead of our strengthened ramps; metric colours stay only where they
+   reach 4.5:1, and surfaces that turn the same colour get 2 px outlines.
+   - Checked natively on macOS (Apple M5): twelve real controls given Tab
+     focus by a scratch probe, in light, dark and forced high contrast in
+     both; the ring's pixel runs read the two bands. macOS's palette has
+     alpha text roles and a selection highlight at 1.64:1 on the window,
+     so the prominent button and an on switch keep their outline there.
+   - Not measured: macOS under "Increase contrast" (a system setting, for
+     the owner; #66) and Windows' contrast themes (#81).

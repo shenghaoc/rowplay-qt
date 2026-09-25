@@ -1035,6 +1035,24 @@ O(value size).
     and Windows rows come from the sources only (tracked in #66).
     `ROWPLAY_FORCE_CONTRAST=high` exercises the high-contrast variant on any
     platform.
+  - **Probed on macOS** (2026-09-25, Apple M5, macOS 27, Qt 6.11.2, cocoa,
+    "Increase contrast" off): `contrastPreference` 0 (`NoPreference`).
+    The palette's text roles carry alpha, so contrast must be measured on
+    the composited colour (`Theme.over`):
+    - light: window and button `#ffffff`, window and button text
+      `#d8000000` (black at 85 %, `#272727` on white, 14.93:1), placeholder
+      `#7f000000` (3.94:1 on white, under AA), highlight `#a5cdff` with text
+      `#d8000000`, and the Disabled group's text `#3f000000`;
+    - dark: window and button `#1e1e1e`, text `#d8ffffff` (12.27:1),
+      placeholder `#8cffffff`, highlight `#314f78` with text `#d8ffffff`;
+    - `highlight` is the selected-text background, not the accent (that is
+      `palette.accent`, `#0a60ff`), and it sits close to the window colour:
+      1.64:1 in light and 2.00:1 in dark;
+    - setting `Qt.styleHints.colorScheme` switches the palette between the
+      two at run time, so the app's scheme request reaches the palette.
+
+    What the palette reports under "Increase contrast" is not measured: it
+    is a system setting, for the owner to switch (#66).
 - **`QKeySequence.StandardKey` per platform** (UI design system, shortcuts;
   qtbase `v6.11.2` `qplatformtheme.cpp` key-binding table). Priority rows
   come first, and the first entry is what `QKeySequence(StandardKey)` and a

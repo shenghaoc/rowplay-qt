@@ -55,7 +55,9 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
 - **Icons.** Monochrome symbols drawn from original path data in `Icon.qml`.
 - **Accessibility.** Nothing is conveyed by colour alone: deltas and the race
   verdict carry a sign, word or glyph. Nothing is reachable only by hover.
-  Focus rings are visible. Text is in sentence case, never all caps.
+  Focus rings are visible on any background: two-tone, like Windows' focus
+  visual, with an outer band in the accent and an inner band in the window
+  colour (round 2). Text is in sentence case, never all caps.
 - **Replay.** The playback controls float over the replay scene, on an
   opaque surface, and hide while playing until the pointer moves.
 - **Colour.** The PM5 "Erg Display" palette and the Metric Mapping Rule from
@@ -97,9 +99,14 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   white or near-black, whichever contrasts more. That passes AA on the brand
   blues and on the macOS system blue, but not on every accent: for an accent
   of luminance about 0.183–0.198 both stay under 4.5:1 (tracked in #76).
-- **Contrast.** The OS contrast preference (`QAccessibilityHints`) switches
-  to a high-contrast variant: opaque surfaces, stronger separators and
-  outlines, and full-contrast secondary text.
+- **Contrast.** Under the OS contrast preference (`QAccessibilityHints`)
+  every colour comes from the system palette's pairs, as Windows' contrast
+  themes require: window and window text for surfaces and text, highlight
+  and highlighted text for selection and the accent's roles, button and
+  button text for controls, and the disabled group's text for disabled
+  labels only. A metric colour stays only where it reaches 4.5:1 on the
+  window. Surfaces that become the same colour get 2 px outlines. Round 2
+  replaced the first version, which strengthened our own ramps instead.
 - **Shortcuts.** `QKeySequence.StandardKey` wherever one exists
   (Preferences, Quit, Close, Find, Refresh, Back). The replay keys stay. A
   sidebar toggle uses F9 on Linux and Windows and Ctrl+Cmd+S on macOS, and

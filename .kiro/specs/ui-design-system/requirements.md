@@ -50,9 +50,19 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   selection, focus rings, switch-on and prominent buttons. The brand blue is
   the fallback when the platform reports none.
 - R1.6 The OS contrast preference (`Qt.styleHints.accessibility`, Qt 6.10+)
-  switches to a high-contrast variant: opaque surfaces, stronger separators
-  and outlines, and full-contrast secondary text (`ROWPLAY_FORCE_CONTRAST`
-  pins it).
+  maps every colour role to the system palette's pairs, as Windows'
+  contrast themes require (round 2): surfaces and text from window /
+  windowText, selection and the accent's roles from highlight /
+  highlightedText, controls from button / buttonText, placeholders from
+  placeholderText (where it reaches 4.5:1) and disabled text from the
+  Disabled group. Nothing of the tonal ramps stays. A metric or status
+  colour stays only where it reaches 4.5:1 on the window, else it is the
+  window text. Where two surfaces become the same colour, a 2 px outline
+  keeps them apart (sidebar and toolbar edges, cards, grouped forms,
+  popups, the replay HUD). The palette's window colour decides light or
+  dark. `ROWPLAY_FORCE_CONTRAST` pins the preference, and
+  `ROWPLAY_FORCE_COLOR_SCHEME` also asks Qt for its scheme, so the macOS
+  and Windows palettes follow it.
 
 ## R2 — Controls on the Basic style
 
@@ -72,7 +82,11 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   control.
 - R2.4 Every focusable control draws a visible focus ring on keyboard focus,
   and text fields draw it while focused. A click on a toolbar button does not
-  take focus.
+  take focus. The ring is two-tone, through the one `FocusRing` component
+  (round 2): a 2 px outer band in the accent (the text colour under high
+  contrast, or where the accent falls below 3:1 on the window) and a 1 px
+  inner band in the window colour right outside the control, so one of
+  the two contrasts with any control or surface.
 - R2.5 Icons are monochrome original path data in `Icon.qml`. Outside the
   toolbar a button shows an icon or a label, never both. At most one
   prominent or destructive button per view.
