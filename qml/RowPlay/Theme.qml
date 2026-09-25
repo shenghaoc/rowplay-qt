@@ -3,8 +3,7 @@
 //
 // Standard controls are each platform's own Qt Quick Controls style; these
 // tokens serve our own content (charts, metric colours, tiles, the replay
-// and its HUD) and, until the native-style stack replaces them, the shared
-// controls pinned to Basic. Relative to the system:
+// and its HUD). Relative to the system:
 // - surfaces, text and lines derive from the system palette (the window
 //   and window-text colours and tonal steps between them), fitted to WCAG
 //   AA for text and 3:1 for non-text marks on the surfaces they are drawn
@@ -70,11 +69,24 @@ QtObject {
         return Math.max(1, Math.round(reference * scale))
     }
 
-    /// Whether interface motion is reduced (the app's reduce-motion
-    /// preference stills the shell's own animations too).
+    // MARK: - Motion (round 3's 2e: M3's duration and easing tokens)
+
+    /// Whether interface motion is reduced: the app's reduce-motion
+    /// preference (Qt 6.11 surfaces no OS one). Every duration below is 0
+    /// under it, so all of our own motion is instant; the controls the
+    /// style draws animate as the style does.
     readonly property bool reduceMotion: Settings.reduceReplayMotion
-    /// Standard duration of a control transition (0 under reduce motion).
-    readonly property int motionDuration: reduceMotion ? 0 : 140
+    /// A small element's change of state: the scrubber's knob appearing.
+    readonly property int durationShort: reduceMotion ? 0 : 150
+    /// A panel appearing or leaving: the replay HUD's fade, the drawer.
+    readonly property int durationMedium: reduceMotion ? 0 : 250
+    /// A change of the whole view. No animation of ours is one today.
+    readonly property int durationLong: reduceMotion ? 0 : 400
+    /// M3's standard curve, for an element that stays on screen or leaves
+    /// it, and its emphasized-decelerate curve, for one that enters: the
+    /// control points of an `Easing.BezierSpline`.
+    readonly property var easingStandard: [0.2, 0.0, 0.0, 1.0, 1.0, 1.0]
+    readonly property var easingEmphasized: [0.05, 0.7, 0.1, 1.0, 1.0, 1.0]
 
     // MARK: - Contrast helpers (WCAG relative luminance)
 
@@ -189,15 +201,8 @@ QtObject {
     readonly property color hcButton: over(systemPalette.button, hcWindow)
     readonly property color hcButtonText: over(systemPalette.buttonText, hcButton)
     readonly property color hcHighlight: over(systemPalette.highlight, hcWindow)
-    readonly property color hcHighlightedText: over(systemPalette.highlightedText, hcHighlight)
     /// Disabled text only (GrayText on Windows).
     readonly property color hcGrayText: over(systemPaletteDisabled.windowText, hcWindow)
-    /// Placeholders, where they reach 4.5:1 in a field; the window text
-    /// otherwise.
-    readonly property color hcPlaceholder: {
-        const placeholder = over(systemPalette.placeholderText, hcButton)
-        return contrastRatio(placeholder, hcButton) >= 4.5 ? placeholder : hcButtonText
-    }
 
     // MARK: - Accent (system accent, brand blue fallback)
 
@@ -217,10 +222,6 @@ QtObject {
     readonly property color accentColor: highContrast ? hcHighlight
                                          : (systemAccentAvailable ? systemPalette.accent
                                                                   : brandBlue)
-    /// Text and glyphs on an accent fill: white or near-black, whichever
-    /// contrasts more with the accent in use (AA for the brand blues); the
-    /// system's highlighted text under high contrast.
-    readonly property color onAccent: highContrast ? hcHighlightedText : textOn(accentColor)
 
     // MARK: - Colour palette (DESIGN.md "The PM5 Palette"; under high
     // contrast each colour stays only where it reaches 4.5:1, see hcFit)
@@ -233,15 +234,8 @@ QtObject {
     readonly property color energeticGreen: paletteColour(dark ? "#30D158" : "#137333")
     /// Alert red — negative deltas, heart rate, finish markers.
     readonly property color alertRed: paletteColour(dark ? "#FF453A" : "#B3261E")
-    /// Destructive button labels: the alert red, lifted in dark mode, where
-    /// the PM5 red measures 4.46:1 on the control fill (AA needs 4.5).
-    readonly property color destructiveText: paletteColour(dark ? "#FF6B61" : "#B3261E",
-                                                            highContrast ? hcButton : controlBackground,
-                                                            hcButtonText)
     /// Soft purple — elevation, descent, cadence accents.
     readonly property color softPurple: paletteColour(dark ? "#BF5AF2" : "#7B2CBF")
-    /// Warm yellow — caution states, active indicators.
-    readonly property color warmYellow: paletteColour(dark ? "#FFD60A" : "#7A5A00")
 
     // MARK: - Semantic metric colours (the Metric Mapping Rule: one colour
     // per metric domain, never cross-assigned, never the accent)
@@ -251,11 +245,9 @@ QtObject {
     /// Slightly lighter blue than distance in dark mode, so pace and distance
     /// stay distinguishable (DesignTokens MetricColor.pace).
     readonly property color metricPace: paletteColour(dark ? "#409CFF" : "#0066CC")
-    readonly property color metricSpeed: comparisonOrange
     readonly property color metricWatts: comparisonOrange
     readonly property color metricHeartRate: alertRed
     readonly property color metricCadence: softPurple
-    readonly property color metricSplit: comparisonOrange
 
     /// Maps a `ColorRole` index (rowplay-viewmodel) to its palette colour
     /// (the Metric Mapping Rule: one colour per metric domain).
@@ -293,7 +285,6 @@ QtObject {
 
     /// The content canvas and the toolbar above it.
     readonly property color windowBackground: highContrast ? hcWindow : sysWindow
-    readonly property color toolbarBackground: windowBackground
     /// The sidebar column.
     readonly property color sidebarBackground: highContrast ? hcWindow
                                                : mix(sysWindow, sysText, 0.04)
@@ -304,16 +295,9 @@ QtObject {
     readonly property var textSurfaces: [windowBackground, sidebarBackground, groupBackground]
     readonly property color panelBackground: groupBackground
     readonly property color cardBackground: groupBackground
-    /// A selected card (tonal accent wash; the highlight in high contrast).
-    readonly property color activeCardBackground: highContrast
-                                                  ? hcHighlight
-                                                  : Qt.rgba(accentColor.r, accentColor.g,
-                                                            accentColor.b, 0.12)
     /// Text fields, push buttons, pop-up buttons: the system's base colour.
     readonly property color controlBackground: highContrast ? hcButton
                                                : over(systemPalette.base, sysWindow)
-    /// Menus, pop-up lists, tooltips, dialogs.
-    readonly property color popupBackground: highContrast ? hcWindow : sysWindow
     /// Floating controls over the replay scene: opaque, on the grouped
     /// surface. Translucent (0.88–0.90 alpha), the metric colours and the
     /// tertiary text fell below AA over dark parts of the scene.
@@ -326,19 +310,11 @@ QtObject {
     readonly property color textSecondary: highContrast ? hcWindowText
                                            : fitContrast(mix(sysWindow, sysText, 0.62),
                                                          textSurfaces, 5.5)
-    /// Placeholders and decoration only; still ≥ 4.5:1. Under high
-    /// contrast the system's placeholder colour where it reaches 4.5:1.
-    readonly property color textTertiary: highContrast ? hcPlaceholder
-                                          : fitContrast(mix(sysWindow, sysText, 0.5),
-                                                        textSurfaces, 4.5)
     /// Text and glyphs on a control's own fill (`controlBackground`,
     /// `segmentTrack`): the primary text, or under high contrast the
     /// system's button text, which a contrast theme may set apart from its
     /// window text.
     readonly property color controlText: highContrast ? hcButtonText : textPrimary
-    /// Secondary glyphs on a control's fill (a field's icon, a chevron).
-    readonly property color controlTextSecondary: highContrast ? hcButtonText
-                                                  : textSecondary
     /// Disabled labels (exempt from contrast requirements): the system's
     /// disabled text.
     readonly property color textDisabled: highContrast ? hcGrayText
@@ -353,33 +329,10 @@ QtObject {
                                            : fitContrast(mix(sysWindow, sysText, 0.3),
                                                          [windowBackground, groupBackground,
                                                           controlBackground], 3)
-    readonly property color hoverFill: highContrast ? Qt.alpha(hcWindowText, 0.12)
-                                       : Qt.alpha(sysText, 0.06)
-    readonly property color pressedFill: highContrast ? Qt.alpha(hcWindowText, 0.24)
-                                         : Qt.alpha(sysText, 0.11)
-    /// Selection with keyboard focus: the accent, its text onAccent.
-    readonly property color selectionFill: accentColor
-    readonly property color selectionText: onAccent
-    /// Selection without focus: a neutral wash, primary text. Under high
-    /// contrast the window fill with a 2 px outline in the highlight
-    /// (selectionOutline), so it still differs from the focused selection.
-    readonly property color selectionFillInactive: highContrast
-                                                   ? hcWindow : Qt.alpha(sysText, 0.09)
-    readonly property color selectionOutline: highContrast ? hcHighlight : "transparent"
     readonly property color segmentTrack: highContrast ? hcButton
                                           : mix(sysWindow, sysText, 0.08)
-    /// The selected segment's thumb and label: the highlight pair under
-    /// high contrast.
-    readonly property color segmentThumb: highContrast ? hcHighlight
-                                          : (dark ? mix(sysWindow, sysText, 0.2)
-                                                  : controlBackground)
-    readonly property color segmentThumbText: highContrast ? hcHighlightedText : textPrimary
-    readonly property color switchTrackOff: highContrast ? hcButton
-                                            : mix(sysWindow, sysText, 0.2)
-    /// The knob on an off switch and on the slider; switchKnobOn on an on
-    /// switch's accent track.
+    /// The replay scrubber's knob (AppSlider).
     readonly property color switchKnob: highContrast ? hcButtonText : "#FFFFFF"
-    readonly property color switchKnobOn: highContrast ? hcHighlightedText : "#FFFFFF"
     /// Keyboard focus ring on our own focusables, two-tone (FocusRing.qml):
     /// the outer band in the accent, moved toward the text colour only as
     /// far as it takes to reach 3:1 on every surface (macOS's blue measures
@@ -465,14 +418,11 @@ QtObject {
     readonly property int radiusSmall: px(6)   // controls, badges, tags
     readonly property int radiusMedium: px(8)  // cards, panels
     readonly property int radiusLarge: px(12)  // grouped forms, overlays
-    readonly property int radiusXLarge: px(16) // hero cards
 
     // MARK: - Control metrics (about 32 px controls at the 13 px reference)
 
     readonly property int controlHeight: px(32)
     readonly property int toolbarHeight: px(52)
-    readonly property int sidebarRowHeight: px(48)
-    readonly property int formRowHeight: px(44)
     readonly property int iconSize: px(16)
     readonly property int hairline: 1
 
@@ -552,11 +502,6 @@ QtObject {
                                           features: { "tnum": 1 } })
     /// Section headline — panel titles (15 px semibold).
     readonly property font sectionHeadline: ({ pixelSize: fontPx(15), weight: Font.DemiBold })
-    /// Grouped-form section title (13 px bold).
-    readonly property font groupTitle: ({ pixelSize: fontPx(13), weight: Font.Bold })
-    /// Metric value — data values in badges and cards (13 px semibold).
-    readonly property font metricValue: ({ pixelSize: fontPx(13), weight: Font.DemiBold,
-                                           features: { "tnum": 1 } })
     /// Card metric — the value on a personal-best card (16 px semibold).
     readonly property font cardMetric: ({ pixelSize: fontPx(16), weight: Font.DemiBold,
                                           features: { "tnum": 1 } })

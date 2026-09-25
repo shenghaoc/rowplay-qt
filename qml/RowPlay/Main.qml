@@ -566,13 +566,21 @@ ApplicationWindow {
         // popup neither on Escape nor on a click outside
         // (docs/qt-bridges-notes.md).
         dragMargin: 0
-        // It slides in, and appears at once under the reduce-motion
-        // preference.
+        // It slides in and out on the motion tokens, so it appears and
+        // leaves at once under the reduce-motion preference.
         enter: Transition {
-            NumberAnimation { duration: Theme.reduceMotion ? 0 : 200; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: Theme.durationMedium
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.easingEmphasized
+            }
         }
         exit: Transition {
-            NumberAnimation { duration: Theme.reduceMotion ? 0 : 200; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: Theme.durationMedium
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.easingStandard
+            }
         }
         modal: !root.compactLayout
         focus: true

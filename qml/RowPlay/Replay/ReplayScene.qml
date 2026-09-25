@@ -469,8 +469,11 @@ Item {
         border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
 
         Behavior on opacity {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { duration: 200 }
+            NumberAnimation {
+                duration: Theme.durationMedium
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.easingStandard
+            }
         }
 
         // The verdict: parts[0] is win / lose / tie (locale ids from the web).
