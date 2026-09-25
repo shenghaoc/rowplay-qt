@@ -43,7 +43,12 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   (`Qt.application.font`) as a ratio of a 13 px reference, with no
   hardcoded pixel sizes beyond the window's own size and hairline or 2 px
   strokes. Controls are about 32 px tall at the reference.
-  Nothing clips at 125 % and 150 % text.
+  Nothing clips at 125 % and 150 % text. No text is smaller than the text
+  floor (round 2): 12 px on Windows and Linux, 11 px on macOS, and 12 px
+  everywhere in Chinese and Japanese, at default settings; a caption the
+  floor lifts to the body's size stays subordinate by weight and colour.
+  Nothing is clipped or overlaps in Chinese or Japanese at the default size
+  or at KDE's 14 pt test font.
 - R1.4 The colour scheme follows `Qt.styleHints.colorScheme`
   (`ROWPLAY_FORCE_COLOR_SCHEME` pins it).
 - R1.5 The accent follows the system accent (`palette.accent`) for

@@ -941,6 +941,24 @@ converted string), or allow an associated function as a slot.
   with a transparent axis `color` so no tick marks sit under long labels.
   The automatic `tickInterval` also aims at about ten ticks regardless of
   the plot height (refs #49).
+- **Qt Graphs' X axis labels every tick and never thins them** (round 2).
+  Labels centred on neighbouring ticks simply overlap when they are wider
+  than the tick spacing, and a label centred on the last tick runs past the
+  plot's right edge. What works on an index axis: a `tickInterval` of
+  ceil((widest label + gap) / tick spacing), with the plot's width from
+  `GraphsView.plotArea` (a `QRectF`, revision 6.9), a `tickAnchor` on the
+  newest point, and a `marginRight` of half the widest label
+  (`ChartUtils.labelStep`, `widestLabel`). The default margins are 20 px
+  (`qgraphsview_p.h`). At KDE's 14 pt test font the bar chart's category
+  labels also overflow the 15 px boxes Qt Graphs gives them (17 px of
+  text), but the boxes do not clip, so they draw whole.
+- **`QT_FONT_DPI` does nothing on cocoa** (round 2, Qt 6.11.2): the system
+  font stays 13 px, so a larger system font cannot be emulated for the
+  native platform. The offscreen platform takes it (`QT_ENABLE_HIGHDPI_SCALING=0
+  QT_FONT_DPI=96` gives its 9 pt "Sans Serif" 12 px, `149` gives 18 px, KDE's
+  14 pt at 96 dpi), and it renders Chinese and Japanese, which is how the
+  text floor was checked on a Mac. `Qt.platform.os` stays `osx` there, so
+  the macOS floor applies.
 - **A `Repeater` cannot create chart series** (UI fixes, refs #52). The
   stroke charts' split-boundary `LineSeries` were a `Repeater` delegate
   inside the `GraphsView` since Phase 4: a series is not an `Item`, nothing

@@ -92,6 +92,9 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   the system font (`Qt.application.font`) to a 13 px design reference, with
   no hardcoded pixel sizes. Controls are about 32 px tall at the reference,
   and a larger system font scales the whole UI instead of clipping it.
+  The one fixed size is the text floor (round 2): no text below 12 px on
+  Windows and Linux (Windows' minimum for body text), 11 px on macOS
+  (11 pt), or 12 px in Chinese and Japanese.
 - **Colour scheme** follows `Qt.styleHints.colorScheme`.
 - **Accent.** The system accent (`palette.accent`) colours selection, focus
   rings, switch-on and prominent buttons, with the brand blue as the
