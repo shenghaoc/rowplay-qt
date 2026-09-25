@@ -42,3 +42,15 @@
   camera frames the pair, and a new aspect places the camera afresh
   (both from the Codex review). Measured on an Apple M5: a paused replay
   dropped from 120 frames/s and 12–14 % CPU to none and under 1.1 %.
+- [x] T12 (#97) The ghost runs on the player's clock. Its `ReplayState` was
+  built at load and never played, so the ghost stayed on its start line
+  and the race gap grew by the player's whole distance. Each pipeline pass
+  now seeks it to the player's time (Studio's `ReplayRaceGap.ghostFrame`),
+  so play, pause, seek and speed move both, and a shorter rival holds its
+  last stroke. The chase camera places the ghost at that same instant: it
+  read the previous pass's packed position, which a paused seek left
+  stale, and `load_ghost` needs one pass again. The verdict now waits for
+  the finish (the web's `raceFinished`, `hud::race_finished`): it had
+  shown whenever playback was paused, on the start line too. Three backend
+  tests fail without the change; the native gate's captures with a ghost
+  now frame the pair at its real gap.
