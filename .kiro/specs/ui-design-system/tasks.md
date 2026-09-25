@@ -404,12 +404,19 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     which `AppDrawer` had turned off to stop edge drags. It stays
     interactive now, with `dragMargin: 0`.
   - [x] T10.8 Large unchanged: the native gate walks (light, phase shots
-    and close-ups) before and after compare every shared capture at
-    1200 × 800 within run-to-run noise, at most 618 px (2D) and 165 px
-    (3D), all at a channel delta of 1. The first comparison caught the
-    race gap 1 px lower in every capture with a ghost: the HUD's chips
-    had moved into a nested layout, which rounds its own centring. The
-    chips' row now takes the speed control's height beside it.
+    and close-ups) before and after differ in every shared capture at
+    1200 × 800 only at a channel delta of 1: at most 618 px on a 2D screen
+    and 165 px on a 3D capture, and no pixel by more. The repository's
+    noise bounds (AGENTS.md, "Capture noise") are measured on Linux and do
+    not apply to these macOS walks. The reference here is one pair of
+    walks of an unchanged `main` on the same Mac, which differed by up to
+    664 px (2D) and 144 px (3D), also at delta 1: a single pair, not a
+    bound. A delta of 1 on an 8-bit channel is below any visible change,
+    so the large layout is read as unchanged. The first comparison caught
+    the race gap 1 px lower in every capture with a ghost (delta 223):
+    the HUD's chips had moved into a nested layout, which rounds its own
+    centring. The chips' row now takes the speed control's height beside
+    it.
   - [x] T10.9 The drawer button, the sidebar toggle and the in-drawer
     shortcuts follow the drawer's target state (`AppDrawer.shown`, set as
     a transition starts). Bound to `visible`, the button stayed checked
