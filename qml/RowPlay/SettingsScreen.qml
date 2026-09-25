@@ -56,6 +56,11 @@ Pane {
         return ""
     }
 
+    // Whether the status line reports a failure (demo mode shows its own
+    // line instead): it turns red and offers the retry.
+    readonly property bool syncFailed: !(Settings.demoModeEnabled && !Settings.hasToken)
+                                       && Sync.statusId === "sync.failed"
+
     // The token section's status line (red detail text on its row).
     readonly property string tokenStatusText: Settings.statusTextId.length > 0
                                               ? Tr.t(Settings.statusTextId) : ""
@@ -290,12 +295,26 @@ Pane {
                         }
                     }
 
-                    // Last result / status line.
+                    // The last result: a status line, never a dialog. A
+                    // failure names itself ("Sync failed", the row's label)
+                    // above the error it met (sync.errorHint is the error
+                    // alone) and offers its retry right here, in the mode
+                    // that failed.
                     FormRow {
                         visible: !Sync.isRunning && screen.syncStatusText.length > 0
-                        detail: screen.syncStatusText
-                        detailColor: Sync.statusId === "sync.failed"
-                                     ? Theme.alertRed : Theme.textSecondary
+                        label: screen.syncFailed ? Tr.t("sync.failed") : ""
+                        detail: !screen.syncFailed ? screen.syncStatusText
+                                : Sync.statusMessage.length > 0
+                                  ? Tr.t("sync.errorHint", { message: Sync.statusMessage })
+                                  : ""
+                        detailColor: screen.syncFailed ? Theme.alertRed : Theme.textSecondary
+
+                        PushButton {
+                            visible: screen.syncFailed
+                            text: Tr.t("sync.retry")
+                            enabled: Sync.canSync
+                            onClicked: Sync.retry()
+                        }
                     }
                 }
 

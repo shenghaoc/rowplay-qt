@@ -133,10 +133,17 @@ Pane {
             onTriggered: Library.setSearchText(searchField.text)
         }
 
-        // Date-range filter (web workoutList.dateFrom/dateTo).
-        RowLayout {
+        // Date-range filter (web workoutList.dateFrom/dateTo). A date the
+        // range refuses marks its own field, and the message sits right
+        // under that field: "Please try again." and the form the field
+        // takes, today's date as an example. The web has no string for an
+        // invalid date (its inputs are native date pickers), so none says
+        // it in words (docs/source-map.md).
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingSmall
+            columns: 2
+            columnSpacing: Theme.spacingSmall
+            rowSpacing: Theme.spacingXSmall
 
             InputField {
                 id: dateFromField
@@ -144,7 +151,9 @@ Pane {
                 Layout.preferredWidth: 1
                 leadingIcon: "calendar"
                 placeholderText: Tr.t("workoutList.dateFrom")
+                invalid: panel.dateFromInvalid
                 Accessible.name: Tr.t("workoutList.dateFrom")
+                Accessible.description: invalid ? panel.dateErrorText : ""
                 onEditingFinished: panel.applyDateRange()
             }
 
@@ -154,20 +163,42 @@ Pane {
                 Layout.preferredWidth: 1
                 leadingIcon: "calendar"
                 placeholderText: Tr.t("workoutList.dateTo")
+                invalid: panel.dateToInvalid
                 Accessible.name: Tr.t("workoutList.dateTo")
+                Accessible.description: invalid ? panel.dateErrorText : ""
                 onEditingFinished: panel.applyDateRange()
             }
-        }
 
-        Label {
-            id: dateRangeError
-            Layout.fillWidth: true
-            visible: false
-            text: Tr.t("common.tryAgain")
-            font: Theme.subheadline
-            color: Theme.alertRed
-            wrapMode: Text.WordWrap
-            Accessible.name: text
+            Repeater {
+                model: 2
+
+                ColumnLayout {
+                    required property int index
+                    Layout.row: 1
+                    Layout.column: index
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 1
+                    visible: index === 0 ? panel.dateFromInvalid : panel.dateToInvalid
+                    spacing: 0
+                    // The field carries the message for screen readers.
+                    Accessible.ignored: true
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: Tr.t("common.tryAgain")
+                        font: Theme.subheadline
+                        color: Theme.alertRed
+                        wrapMode: Text.WordWrap
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        text: Library.dayKeyExample
+                        font: Theme.subheadline
+                        color: Theme.textSecondary
+                        elide: Text.ElideRight
+                    }
+                }
+            }
         }
 
         // Match count: small secondary text in sentence case (not a header).
@@ -466,8 +497,17 @@ Pane {
         }
     }
 
+    // Each date field on its own: which one the range refused.
+    property bool dateFromInvalid: false
+    property bool dateToInvalid: false
+    readonly property string dateErrorText: Tr.t("common.tryAgain") + " "
+                                            + Library.dayKeyExample
+
     function applyDateRange() {
-        var accepted = Library.setDateRange(dateFromField.text, dateToField.text)
-        dateRangeError.visible = !accepted
+        dateFromInvalid = !Library.isDayKey(dateFromField.text)
+        dateToInvalid = !Library.isDayKey(dateToField.text)
+        if (!dateFromInvalid && !dateToInvalid) {
+            Library.setDateRange(dateFromField.text, dateToField.text)
+        }
     }
 }

@@ -86,6 +86,9 @@ pub struct LibraryBackend {
     search_text: String,
     date_from: String,
     date_to: String,
+    /// Today in the home timezone as a day key: the date fields' example of
+    /// the form they accept.
+    day_key_example: String,
     sort_field_index: i32,
     sort_ascending: bool,
     sort_field_ids: Vec<String>,
@@ -139,6 +142,7 @@ impl Default for LibraryBackend {
             search_text: String::new(),
             date_from: String::new(),
             date_to: String::new(),
+            day_key_example: String::new(),
             sort_field_index: 0,
             sort_ascending: false,
             sort_field_ids,
@@ -216,6 +220,11 @@ impl LibraryBackend {
     qproperty!("searchText", Member = search_text, Notify = library_changed);
     qproperty!("dateFrom", Member = date_from, Notify = library_changed);
     qproperty!("dateTo", Member = date_to, Notify = library_changed);
+    qproperty!(
+        "dayKeyExample",
+        Member = day_key_example,
+        Notify = library_changed
+    );
     qproperty!(
         "sortFieldIndex",
         Member = sort_field_index,
@@ -362,6 +371,15 @@ impl LibraryBackend {
         self.library_changed();
     }
 
+    /// Whether a date field's text is a date the range accepts (empty is:
+    /// no bound). The sidebar marks each refused field on its own.
+    // A slot is a method, and qtbridge hands it its arguments owned.
+    #[allow(clippy::unused_self, clippy::needless_pass_by_value)]
+    #[qslot]
+    fn is_day_key(&self, text: String) -> bool {
+        normalize_day_key(&text).is_some()
+    }
+
     /// Date-range filter; empty strings clear a bound. Returns false when a
     /// non-empty value is not a `YYYY-MM-DD` key (the field marks itself
     /// invalid; the bound keeps its previous value).
@@ -487,6 +505,7 @@ impl LibraryBackend {
         let language = state.language();
         let unit = prefs.preferred_distance_unit;
         let tz = prefs.home_timezone.as_deref();
+        self.day_key_example = rowplay_core::datetime::today_key_for_tz(tz);
 
         let rendered = sidebar_rows(
             &self.summaries,
