@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Slider (ADR 0013): a thin rounded track in the segment-track tone with the
-// accent fill up to a white knob that carries a hairline outline, and the
-// focus ring on keyboard focus. The track thickens under the pointer, and
-// takes an outline under high contrast. Horizontal only (the replay
-// scrubber). Sizes scale with the system font.
+// The replay HUD's scrubber (ADR 0013; content under ADR 0015, which keeps
+// the HUD's own drawing): a thin rounded track in the segment-track tone
+// with the accent fill up to a white knob that carries a hairline outline,
+// and the focus ring on keyboard focus. The track thickens under the
+// pointer, and takes an outline under high contrast. Sizes scale with the
+// system font.
 import QtQuick
 import QtQuick.Controls.Basic
 import RowPlay
@@ -54,8 +55,11 @@ Slider {
         opacity: control.emphasised ? 1 : 0
 
         Behavior on opacity {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { duration: Theme.motionDuration }
+            NumberAnimation {
+                duration: Theme.durationShort
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.easingStandard
+            }
         }
 
         FocusRing {
