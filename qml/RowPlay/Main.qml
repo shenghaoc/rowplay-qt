@@ -1250,9 +1250,16 @@ ApplicationWindow {
                 }
                 break
             case 44: Library.toggleSort(3); break        // pace ascending
-            case 45: Library.setDateRange("2024-01-01", "2024-12-31"); break
-            case 46: Library.setDateRange("nope", ""); break   // rejected
-            case 47: Library.setDateRange("", ""); break       // cleared
+            // The date range through the sidebar's fields: a range, a
+            // refused From (marked on that field alone), then cleared.
+            case 45: sidebarColumn.enterDateRange("2024-01-01", "2024-12-31"); break
+            case 46:
+                sidebarColumn.enterDateRange("nope", "")
+                console.log("gate date range: from",
+                            sidebarColumn.dateFromInvalid ? "refused" : "accepted",
+                            "to", sidebarColumn.dateToInvalid ? "refused" : "accepted")
+                break
+            case 47: sidebarColumn.enterDateRange("", ""); break
             case 48: Library.toggleSort(0); Library.selectWorkout(9001); break
             case 49: root.grabScreen("detail-nostrokes"); break
             case 50: Library.selectWorkout(1005); break
@@ -1445,6 +1452,14 @@ ApplicationWindow {
                             "sidebar", sidebarColumn.parent === drawerHost ? "in the drawer"
                                                                              : "beside the content")
                 break
+            // Settings: the timezone list filtered as typed.
+            case 230:
+                root.showSettings()
+                console.log("gate timezone filter: york keeps",
+                            detailColumn.children[2].filterTimezones("york"),
+                            "of", Settings.timezoneLabels.length + 1)
+                break
+            case 231: detailColumn.children[2].filterTimezones(""); root.screenIndex = 0; break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

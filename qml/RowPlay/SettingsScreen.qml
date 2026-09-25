@@ -442,6 +442,19 @@ Pane {
         onAccepted: Settings.clearToken()
     }
 
+    /// The runtime-error gate filters the timezone list once: it opens the
+    /// pop-up list with `text` typed ("" closes it) and returns how many
+    /// entries the filter keeps.
+    function filterTimezones(text) {
+        if (text.length === 0) {
+            timezoneCombo.popup.close()
+            return 0
+        }
+        timezoneCombo.popup.open()
+        timezoneCombo.typeFilter(text)
+        return timezoneCombo.filterIndices.length
+    }
+
     /// The runtime-error gate opens the logout dialog once (demo mode never
     /// shows the button that opens it).
     function showLogoutDialog(open) {
