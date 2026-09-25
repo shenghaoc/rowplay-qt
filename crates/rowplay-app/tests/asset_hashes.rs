@@ -412,6 +412,53 @@ fn assets_dir() -> PathBuf {
         .join("replay")
 }
 
+const AUTHORED: &[&str] = &[
+    "authored/MANIFEST.json",
+    "authored/blue-hour.hdr",
+    "authored/blue-hour.ktx",
+    "authored/buoy.glb",
+    "authored/course.json",
+    "authored/overcast.hdr",
+    "authored/overcast.ktx",
+    "authored/water-normal.png",
+];
+
+#[test]
+fn authored_assets_match_manifest_and_budgets() {
+    let dir = assets_dir().join("authored");
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(dir.join("MANIFEST.json")).expect("authored manifest"),
+    )
+    .expect("manifest JSON");
+    let files = manifest["files"].as_object().expect("file pins");
+    assert_eq!(files.len(), AUTHORED.len() - 1);
+    let mut total = 0;
+    for (name, pin) in files {
+        assert!(AUTHORED.contains(&format!("authored/{name}").as_str()));
+        let bytes = std::fs::read(dir.join(name)).expect("authored asset");
+        assert_eq!(bytes.len() as u64, pin["bytes"].as_u64().unwrap(), "{name}");
+        assert_eq!(
+            sha256_hex(&bytes),
+            pin["sha256"].as_str().unwrap(),
+            "{name}"
+        );
+        total += bytes.len();
+    }
+    assert!(total <= 4 * 1024 * 1024, "authored pack exceeds 4 MiB");
+    assert!(manifest["buoyTriangles"].as_u64().unwrap() <= 5000);
+    assert!(manifest["textureMax"].as_u64().unwrap() <= 1024);
+    let course: Vec<serde_json::Value> =
+        serde_json::from_slice(&std::fs::read(dir.join("course.json")).unwrap()).unwrap();
+    assert_eq!(course.len(), 256);
+    for entry in course {
+        let p = entry["position"].as_array().unwrap();
+        assert_eq!(p.len(), 3);
+        assert_eq!(p[1].as_f64(), Some(0.0));
+        let radius = p[0].as_f64().unwrap().hypot(p[2].as_f64().unwrap());
+        assert!((radius - 23.1).abs() < 1e-5 || (radius - 33.3).abs() < 1e-5);
+    }
+}
+
 fn walk(dir: &Path, prefix: &str, out: &mut Vec<String>) {
     for entry in std::fs::read_dir(dir).expect("read assets/replay") {
         let path = entry.expect("dir entry").path();
@@ -457,6 +504,7 @@ fn no_unpinned_file_under_assets_replay() {
         .filter(|rel| {
             !EXPECTED.iter().any(|&(known, _, _)| known == rel.as_str())
                 && !UNPINNED_DOCS.contains(&rel.as_str())
+                && !AUTHORED.contains(&rel.as_str())
         })
         .collect();
     unknown.sort();
@@ -467,7 +515,7 @@ fn no_unpinned_file_under_assets_replay() {
     );
     assert_eq!(
         present.len(),
-        EXPECTED.len() + UNPINNED_DOCS.len(),
+        EXPECTED.len() + UNPINNED_DOCS.len() + AUTHORED.len(),
         "asset inventory drift"
     );
     // ADR 0009 set a 50 MB tripwire when the next asset family's size was
@@ -478,6 +526,9 @@ fn no_unpinned_file_under_assets_replay() {
     // decision point.
     const LFS_TRIPWIRE_BYTES: u64 = 100 * 1024 * 1024;
     let mut total = 0;
+    for rel in AUTHORED {
+        total += std::fs::metadata(assets_dir().join(rel)).unwrap().len();
+    }
     for (rel, size, _) in EXPECTED {
         total += size;
         assert!(

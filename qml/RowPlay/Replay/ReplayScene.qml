@@ -154,6 +154,14 @@ Item {
             tonemapMode: SceneEnvironment.TonemapModeFilmic
             exposure: 1.0
             lightProbe: Texture { id: skyProbe }
+            fog: Fog {
+                enabled: Replay.sportIndex === 0
+                depthEnabled: true
+                depthNear: 45
+                depthFar: 180
+                density: 0.35
+                color: RowingStyle.fog
+            }
         }
 
         Component {
@@ -167,10 +175,20 @@ Item {
         readonly property string skyKey: Replay.skyZenith + Replay.skyHorizon
                                          + Replay.skyGround + Replay.skySun
                                          + Replay.sunElevation + Replay.sunAzimuth
+                                         + Replay.sportIndex + Replay.schemeDark
         onSkyKeyChanged: rebuildSky()
         function rebuildSky() {
             if (scene.builtSkyKey === scene.skyKey) return
             scene.builtSkyKey = scene.skyKey
+            if (Replay.sportIndex === 0) {
+                skyProbe.textureData = null
+                skyProbe.source = "qrc:/qt/qml/RowPlay/Environments/authored/"
+                        + (Replay.schemeDark ? "blue-hour.ktx" : "overcast.ktx")
+                if (scene.skyData !== null) scene.skyData.destroy()
+                scene.skyData = null
+                return
+            }
+            skyProbe.source = ""
             var next = skyDataFactory.createObject(skyProbe, {
                 skyTopColor: Replay.skyZenith,
                 skyHorizonColor: Replay.skyHorizon,
@@ -195,7 +213,8 @@ Item {
             target: sunTarget
             DirectionalLight {
                 id: keyLight
-                color: Replay.skySun; brightness: 1.2
+                color: Replay.sportIndex === 0 ? RowingStyle.key : Replay.skySun
+                brightness: Replay.sportIndex === 0 ? RowingStyle.keyBrightness : 1.2
                 castsShadow: !replayRoot.shadowsSuppressed
                              && (scene.ts ? scene.ts.shadows : true)
                 // The tier's map size (TierSettings.shadow_map_size, the
@@ -218,9 +237,39 @@ Item {
 
         // Ground plane (venue palette tint, ADR 0005).
         Model {
+            visible: Replay.sportIndex !== 0
             source: "#Rectangle"; y: 0; scale: Qt.vector3d(60, 60, 1)
             eulerRotation.x: -90; receivesShadows: true; castsShadows: false
             materials: PrincipledMaterial { baseColor: Replay.groundColor; roughness: 0.9 }
+        }
+
+        RowingWater { visible: Replay.sportIndex === 0; tier: Replay.effectiveQuality }
+        RowingCourse { visible: Replay.sportIndex === 0 && Replay.loadState !== "error" }
+        PrincipledMaterial {
+            id: rowingPaint
+            baseColor: RowingStyle.hull
+            roughness: 0.3
+            clearcoatAmount: Replay.effectiveQuality === 0 ? 0.3 : 0.7
+            clearcoatRoughnessAmount: 0.18
+        }
+        PrincipledMaterial {
+            id: rowingCarbon
+            baseColor: RowingStyle.carbon
+            roughness: 0.4
+            clearcoatAmount: 0.35
+            clearcoatRoughnessAmount: 0.25
+        }
+        PrincipledMaterial {
+            id: rowingMetal
+            baseColor: RowingStyle.metal
+            metalness: 0.9
+            roughness: 0.32
+        }
+        PrincipledMaterial {
+            id: rowingBlade
+            baseColor: RowingStyle.blade
+            roughness: 0.34
+            clearcoatAmount: 0.4
         }
 
         // ---- Venue (Phase 6b): the twelve baked venue variants ----
@@ -1360,8 +1409,9 @@ Item {
         return "#" + channel(r * tint[0]) + channel(g * tint[1]) + channel(b * tint[2])
     }
 
-    function venueBaseColor(spec, tint) {
+    function venueBaseColor(spec, tint, name) {
         var hex = Replay.schemeDark ? spec.colorDark : spec.colorLight
+        hex = RowingStyle.venueColor(name, hex)
         return tint ? tintedHex(hex, tint) : hex
     }
 
@@ -1382,7 +1432,7 @@ Item {
         }
         var properties = {
             objectName: key,
-            baseColor: Qt.color(venueBaseColor(spec, tint)),
+            baseColor: Qt.color(venueBaseColor(spec, tint, name)),
             metalness: spec.metalness,
             roughness: spec.roughness
         }
@@ -1401,7 +1451,7 @@ Item {
             "import QtQuick3D; PrincipledMaterial {}", venueRoot, "venueMaterial")
         for (var property in properties) material[property] = properties[property]
         var bindings = bindVenueTextures(material, spec)
-        venueMaterials[key] = { material: material, spec: spec, tint: tint || null }
+        venueMaterials[key] = { material: material, spec: spec, name: name, tint: tint || null }
         return { material: material, bindings: bindings }
     }
 
@@ -1484,6 +1534,11 @@ Item {
         var applied = 0
         for (var i = 0; children && i < children.length; ++i) {
             var child = children[i]
+            // The continuous water surface replaces the old painted overlays.
+            if (child.visible !== undefined && child.objectName
+                    && child.objectName.indexOf("environment:rower:") === 0
+                    && /:(apron|ripple|reflection|sun-glint|mist-band)/.test(child.objectName))
+                child.visible = false
             if (child.instancing !== undefined && child.source !== undefined) {
                 // The web's shadow flags, before an instance group copies
                 // them onto its bucket Models (#96).
@@ -1530,7 +1585,7 @@ Item {
     function retintVenue() {
         for (var key in venueMaterials) {
             var entry = venueMaterials[key]
-            entry.material.baseColor = Qt.color(venueBaseColor(entry.spec, entry.tint))
+            entry.material.baseColor = Qt.color(venueBaseColor(entry.spec, entry.tint, entry.name))
         }
     }
 
@@ -1545,6 +1600,12 @@ Item {
         if (meta !== undefined) {
             if (node.materials !== undefined && matMap[meta.role] !== undefined) {
                 node.materials = [matMap[meta.role]]
+                if (!materialMap && node.objectName.indexOf("equipment:row:") === 0) {
+                    var rowing = { "equipment-painted": rowingPaint,
+                        "equipment-dark": rowingCarbon, "equipment-metal": rowingMetal,
+                        "equipment-light": rowingBlade }
+                    if (rowing[meta.role] !== undefined) node.materials = [rowing[meta.role]]
+                }
                 materialsApplied += 1
             }
             if (meta.slot !== null && meta.slot !== undefined) {

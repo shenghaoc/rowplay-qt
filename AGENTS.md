@@ -354,7 +354,8 @@ sent upstream.
 Recorded as ADRs in `docs/decisions/`; do not relitigate them: Rust + qtbridge +
 Qt Quick 3D + Qt Graphs on Qt 6.11 with no C++ (0001); GPL-3.0-or-later with
 SPDX headers and asset provenance (0002); `.glb` only, Blender authoring, no
-USDZ (0003); procedural-sky IBL, no HDRI files (0004); bake venues rather than
+USDZ (0003); procedural-sky IBL, no external HDRIs, with script-generated baked
+skies allowed (0004, 0016); bake venues rather than
 port `renderer3dEnvironment.ts` (0005); Rust core first (0006).
 
 ## Parity is the test oracle

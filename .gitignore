@@ -24,6 +24,7 @@ aqtinstall.log
 
 # Venue bake scratch output (tools/bake-venues/bake.sh writes here)
 /build/
+/tools/blender/__pycache__/
 
 # Packaging output (tools/package/*.sh / .ps1 write here; release.yml uploads it)
 /dist/

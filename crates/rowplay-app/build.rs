@@ -304,7 +304,8 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
     // The venues' stems match `venue_runtime::component_name` ("skierg"
     // trims to "ski"), so the scene can compute component URLs from the
     // sport and tier alone.
-    const PACKS: [(&str, &str, &str, &str); 14] = [
+    const PACKS: [(&str, &str, &str, &str); 15] = [
+        ("authored/buoy.glb", "Buoy.qml", "buoy", "CourseBuoy"),
         ("rowplay-rigs-v3.glb", "Rowplay_rigs_v3.qml", "rigs", "Rigs"),
         (
             "rowplay-athlete-v4.glb",
@@ -441,6 +442,37 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
             }
         }
     }
+    let course_path = assets.join("authored/course.json");
+    println!("cargo::rerun-if-changed={}", course_path.display());
+    let course: Vec<serde_json::Value> =
+        serde_json::from_slice(&std::fs::read(&course_path).expect("read authored course"))
+            .expect("parse authored course");
+    let mut instances = String::from(
+        "// SPDX-License-Identifier: GPL-3.0-or-later\n// Generated from authored/course.json\nimport QtQuick3D\nInstanceList { instances: [\n",
+    );
+    for entry in course {
+        let p = entry["position"].as_array().expect("course position");
+        assert_eq!(p.len(), 3);
+        let color = entry["color"].as_str().expect("course color");
+        assert!(
+            color.len() == 7
+                && color.starts_with('#')
+                && color[1..].bytes().all(|c| c.is_ascii_hexdigit())
+        );
+        writeln!(
+            instances,
+            "InstanceListEntry {{ position: Qt.vector3d({}, {}, {}); color: \"{color}\" }},",
+            p[0].as_f64().expect("x"),
+            p[1].as_f64().expect("y"),
+            p[2].as_f64().expect("z")
+        )
+        .expect("format instance");
+    }
+    instances.push_str("] }\n");
+    std::fs::write(module_root.join("CourseInstances.qml"), instances)
+        .expect("write course instances");
+    qmldir.push_str("CourseInstances 1.0 CourseInstances.qml\n");
+    qrc_entries.push("        <file alias=\"RowPlay/ReplayAssets/CourseInstances.qml\">replay-balsam/CourseInstances.qml</file>".to_owned());
     std::fs::write(module_root.join("qmldir"), qmldir).expect("write ReplayAssets qmldir");
     qrc_entries.insert(
         0,
@@ -519,6 +551,7 @@ fn build_environments_resource(manifest_dir: &Path, rcc: &Path, out_dir: &Path) 
     for (dir, alias_prefix) in [
         (replay.join("environments"), "environments"),
         (replay.join("venues").join("procedural"), "procedural"),
+        (replay.join("authored"), "authored"),
     ] {
         // The directory too, for files another branch adds (see i18n).
         // Cargo compares the newest mtime found anywhere under a directory,
@@ -530,6 +563,14 @@ fn build_environments_resource(manifest_dir: &Path, rcc: &Path, out_dir: &Path) 
             .collect();
         paths.sort();
         for path in paths {
+            if alias_prefix == "authored"
+                && !matches!(
+                    path.extension().and_then(|s| s.to_str()),
+                    Some("ktx" | "png")
+                )
+            {
+                continue;
+            }
             if path.is_dir() {
                 let name = path.file_name().expect("dir name").to_string_lossy();
                 let mut sub: Vec<PathBuf> = std::fs::read_dir(&path)

@@ -1,0 +1,37 @@
+{
+  "blender": "5.2.1 LTS",
+  "seed": 20260926,
+  "buoyTriangles": 224,
+  "buoyInstances": 256,
+  "textureMax": 512,
+  "files": {
+    "blue-hour.hdr": {
+      "bytes": 32846,
+      "sha256": "aae924d9c04a4474022c5f5e7f14526ea7971e5c3966ea5a7d4aeb428b77b321"
+    },
+    "blue-hour.ktx": {
+      "bytes": 1048436,
+      "sha256": "792db436856e8fb1319bba9fedfc16ea0dfa8873507f6c7f0c92f0288f987ea6"
+    },
+    "buoy.glb": {
+      "bytes": 7404,
+      "sha256": "529a4257bed0bf7726c423d3f2c6b6508d24e15a9a7fcfd1dba1045217f9a1a8"
+    },
+    "course.json": {
+      "bytes": 25361,
+      "sha256": "205b9a20ec1961347c1f25d30ebbe580d65ed096894391d0c9dfd2b026140875"
+    },
+    "overcast.hdr": {
+      "bytes": 30984,
+      "sha256": "468cb1ff0a79b43fbb7e8c92b9ef1dab7adac299693324a6665e88e34cbe0d63"
+    },
+    "overcast.ktx": {
+      "bytes": 1048436,
+      "sha256": "5548083b00cd6963b66243bf66174d749985a308cdceb8c96d12efbce9996d88"
+    },
+    "water-normal.png": {
+      "bytes": 129901,
+      "sha256": "bd620dbb1857decd46352295a1e73aa7fcf855d2f3560e4c3dd7c291548bd601"
+    }
+  }
+}
