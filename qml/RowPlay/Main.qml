@@ -93,35 +93,10 @@ ApplicationWindow {
         placeSidebar()
     }
 
-    // The Basic style (qtquickcontrols2.conf), with every palette role set
-    // from Theme.qml (ADR 0013). The app's own controls draw themselves from
-    // the tokens; the palette is the safety net for any stock Basic control,
-    // mapped by how Basic uses each role: `button` fills buttons and combo
-    // boxes, `mid` outlines fields and draws scroll bars, `midlight` is the
-    // off track of switches and progress bars, and `dark` is Basic's "on"
-    // colour (checked buttons, switch-on, progress, busy) with `brightText`
-    // on it. The text size is the system font's (Qt.application.font; Theme
-    // derives its whole scale from it), so no font is set here.
-    palette.window: Theme.windowBackground
-    palette.windowText: Theme.textPrimary
-    palette.base: Theme.controlBackground
-    palette.alternateBase: Theme.groupBackground
-    palette.text: Theme.controlText
-    palette.button: Theme.segmentTrack
-    palette.buttonText: Theme.controlText
-    palette.brightText: Theme.windowBackground
-    palette.highlight: Theme.accentColor
-    palette.highlightedText: Theme.onAccent
-    palette.accent: Theme.accentColor
-    palette.link: Theme.accentColor
-    palette.placeholderText: Theme.textTertiary
-    palette.toolTipBase: Theme.popupBackground
-    palette.toolTipText: Theme.textPrimary
-    palette.light: Theme.controlBackground
-    palette.midlight: Theme.switchTrackOff
-    palette.mid: Theme.controlBorder
-    palette.dark: Theme.textSecondary
-    palette.shadow: Theme.dark ? "#000000" : "#15181d"
+    // Each platform's own Qt Quick Controls style and system palette (ADR
+    // 0015): no style is forced and no palette role is set, so stock
+    // controls draw as the platform draws them. The text size is the
+    // system font's (Qt.application.font; Theme derives its scale from it).
 
     // Leaving the replay route by another path closes the replay first, so
     // the Library's presentation flag never outlives the route: settings

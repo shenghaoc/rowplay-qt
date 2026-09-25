@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Menu separator (ADR 0013): an inset hairline in Theme.separator.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 MenuSeparator {

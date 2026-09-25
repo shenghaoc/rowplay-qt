@@ -10,7 +10,7 @@
 // row toggles the switch, while keyboard focus stays on the switch itself,
 // never the row.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Templates as T
 import RowPlay

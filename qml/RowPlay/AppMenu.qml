@@ -4,7 +4,7 @@
 // AppMenuSeparator. Used for in-window menus (the sidebar's sort menu, the
 // Windows / Linux application menu button); macOS gets the native menu bar.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Menu {

@@ -4,7 +4,7 @@
 // when there is something to scroll. Set explicitly on every ScrollView and
 // ListView (`ScrollBar.vertical: AppScrollBar {}`), replacing Basic's.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 ScrollBar {

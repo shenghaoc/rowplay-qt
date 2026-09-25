@@ -13,7 +13,7 @@
 // readers. What matches is the caller's (view-model) decision: it maps
 // `filterText` to `filterIndices`.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RowPlay
 

@@ -5,7 +5,7 @@
 // toggles the switch (FormRow), so the caller sets `Accessible.name` to that
 // label. Sizes scale with the system font.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Switch {

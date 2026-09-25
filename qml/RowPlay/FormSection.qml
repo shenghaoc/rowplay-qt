@@ -5,7 +5,7 @@
 // the inset hairline above itself unless it is the first visible row, so
 // rows can come and go.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RowPlay
 

@@ -3,7 +3,7 @@
 // colour that turns while running — held still under the reduce-motion
 // preference (the ring alone still says "working").
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Shapes
 import RowPlay
 
