@@ -58,7 +58,7 @@ const SINGLETONS: [&str; 5] = ["Library", "Detail", "Settings", "Sync", "Replay"
 const MESSAGE_PATTERN: &str = "%{time process} %{if-category}%{category}: %{endif}%{message}";
 
 /// The gate steps that open each phase of the walk (`Main.qml`'s gate timer).
-const PHASES: [(u32, &str); 12] = [
+const PHASES: [(u32, &str); 13] = [
     (1, "shell, languages, filters"),
     (24, "mock syncs"),
     (44, "sorting, dates, detail captures"),
@@ -71,6 +71,7 @@ const PHASES: [(u32, &str); 12] = [
     (85, "bench (ROWPLAY_REPLAY_BENCH only)"),
     (200, "menus, settings over a replay, dialogs"),
     (213, "width classes"),
+    (230, "timezone filter"),
 ];
 
 /// Replay entry, request to first presented frame, under llvmpipe: measured
@@ -539,6 +540,19 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "Replay must open again after settings closed it\n\napp log:\n{}",
         common::gate_log_lines(&combined)
     );
+
+    // A date the range refuses marks its own field, and the timezone
+    // picker's filter keeps New York alone for "york".
+    for expected in [
+        "gate date range: from refused to accepted",
+        "gate timezone filter: york keeps 1 of 48",
+    ] {
+        assert!(
+            combined.contains(expected),
+            "missing \"{expected}\"\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+    }
 
     // The width classes: in a medium window the sidebar is a drawer, which
     // a chosen workout closes on its way to the workout; a compact window
