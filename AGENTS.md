@@ -459,12 +459,16 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `Icon.qml`, never image files. Text is in sentence case (no
   `toUpperCase()`), nothing is conveyed by colour alone, and nothing is
   reachable only by hover.
-- Round 2 of the design system (spec T8–T12) added four rules. Keyboard
-  focus shows through `FocusRing` alone. Type goes through
-  `Theme.fontPx`, never under `Theme.textFloor`. Colours come from
-  `Theme`'s tokens, which draw in the system palette's pairs under the
-  OS contrast preference. A layout that depends on the window's width
-  reads `Theme.widthClass` (compact, medium, large).
+- Round 2 of the design system (spec T8–T12) added four rules. Focus
+  rings are drawn by `FocusRing`, never by hand; other focus feedback,
+  such as the sidebar's selected row or the slider's knob, stays. Type
+  goes through `Theme.fontPx`, never under `Theme.textFloor`. Text,
+  fills, strokes and focus take their colours from `Theme`'s tokens,
+  which draw in the system palette's pairs under the OS contrast
+  preference. The only literal colours are black, white or near-black
+  washes: the modal scrims, `palette.shadow` and a button's press and
+  hover washes. A layout that depends on the window's width reads
+  `Theme.widthClass` (compact, medium, large).
 
 ## Internationalisation
 
@@ -560,7 +564,10 @@ push costs a CI round of about ten minutes.
   says why. With the quality governor running, a 3D capture can also land
   on another tier (4–5 % of pixels, delta ~200): that is content, not
   noise. The bounds hold for Xvfb + llvmpipe; macOS and Windows have none
-  yet, since their CI legs take no captures.
+  yet, since their CI legs take no captures. The one macOS reference is a
+  single pair of native walks on the same `main` (cocoa + Metal, spec
+  T10.8): at most 664 px on a 2D screen and 144 px on a 3D capture, every
+  difference at delta 1. That is one pair, not a bound.
 - **Recapture only the screens a change touches.** A change to one screen
   needs that screen's captures compared against the base
   (`tools/capture-diff.py <base> <branch> settings`), not the whole set. CI
