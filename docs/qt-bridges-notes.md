@@ -1132,13 +1132,19 @@ converted string), or allow an associated function as a slot.
   - **Accent on Windows:** the UISettings accent, or the DWM `AccentColor`
     registry value (`qwindowstheme.cpp`, `qt_accentColor`): AccentDark1 in
     light mode, AccentLight2 in dark mode.
-  - **Accent on Linux: none.** No Linux platform theme sets
+  - **Accent on Linux: none from qtbase.** No platform theme in qtbase sets
     `QPalette::Accent`: not the generic theme, the desktop portal,
     GNOME / gtk3 or KDE. The portal's `accent-color` is not read up to
     qtbase `dev` of 2026-09-23. The palette therefore keeps
     `qt_fusionPalette()`'s `#308cc6` (`qplatformtheme.cpp`), and so does
     `offscreen`. `Theme.qml` reads `#308cc6` as "no system accent" and uses
-    the brand blue.
+    the brand blue. **Plasma is the exception** (round 2, read from the
+    sources, not run): a Plasma session loads KDE's own platform theme
+    (plasma-integration, not qtbase), which builds the palette with
+    `KColorScheme::createApplicationPalette`, and that sets
+    `QPalette::Accent` to the colour scheme's selection colour
+    (kcolorscheme, master `b44cfeac`). So under Plasma the app follows the
+    user's accent.
   - **Contrast:** `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10)
     is `HighContrast`:
     - on macOS under "Increase contrast"
@@ -1148,7 +1154,11 @@ converted string), or allow an associated function as a slot.
     - on Linux from the portal's `contrast` key or GNOME's
       `org.gnome.desktop.a11y.interface high-contrast`.
 
-    The generic, KDE and `offscreen` themes always report `NoPreference`.
+    The generic, KDE and `offscreen` themes always report `NoPreference`,
+    and so does KDE's own plasma-integration theme, which implements
+    `colorScheme()` but not `contrastPreference()` (master `276324f5`): a
+    high-contrast Plasma colour scheme reaches the app as palette colours
+    only, and the app keeps its own ramps there.
   - **Probed here:** under `xcb` on Xvfb with no desktop, and under
     `offscreen`, the probe reads accent `#308cc6`, `NoPreference`, colour
     scheme `Unknown` and a 9 pt (12 px) "Sans Serif" system font. The macOS

@@ -453,11 +453,18 @@ Concept2 token. Cache failures never silently fall back to demo data.
 - Screens use the shared controls in `qml/RowPlay/`: `PushButton`,
   `ToolbarButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
   `PopupButton`, `FormSection` / `FormRow`, `AppSlider`, and the `App*`
-  menus, tool tips, dialogs, scroll bars and indicators. Never a raw
-  `Button`, `ComboBox`, `Switch`, `TextField`, `Slider`, `Menu`, `ToolTip`
-  or `Dialog`. New symbols are original path data in `Icon.qml`, never
-  image files. Text is in sentence case (no `toUpperCase()`), nothing is
-  conveyed by colour alone, and nothing is reachable only by hover.
+  menus, tool tips, dialogs, drawers, scroll bars and indicators. Never a
+  raw `Button`, `ComboBox`, `Switch`, `TextField`, `Slider`, `Menu`,
+  `ToolTip`, `Dialog` or `Drawer`. New symbols are original path data in
+  `Icon.qml`, never image files. Text is in sentence case (no
+  `toUpperCase()`), nothing is conveyed by colour alone, and nothing is
+  reachable only by hover.
+- Round 2 of the design system (spec T8–T12) added four rules. Keyboard
+  focus shows through `FocusRing` alone. Type goes through
+  `Theme.fontPx`, never under `Theme.textFloor`. Colours come from
+  `Theme`'s tokens, which draw in the system palette's pairs under the
+  OS contrast preference. A layout that depends on the window's width
+  reads `Theme.widthClass` (compact, medium, large).
 
 ## Internationalisation
 

@@ -308,9 +308,10 @@ that delivers it.
 Rules the Apple and GNOME guidelines did not cover, from Microsoft's
 Windows and Fluent guidance (WinUI as the reference implementation), the
 KDE HIG and HarmonyOS's layout breakpoints, each checked against the code
-first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
-`ui/min-text-cjk`, `ui/breakpoints-min-window`,
-`ui/shortcut-tooltips-timezone-errors` and `docs/design-system-round-2`.
+first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`
+(#100), `ui/min-text-cjk` (#101), `ui/breakpoints-min-window` (#103),
+`ui/shortcut-tooltips-timezone-errors` (#105) and
+`docs/design-system-round-2`.
 
 - [x] T8 (`ui/focus-ring-high-contrast`) The two-tone focus ring and high
   contrast from the system palette (R1.6, R2.4).
@@ -463,5 +464,23 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     string is a web key and the web has no `&`; the letters would need a
     desktop supplement per language, a uniqueness test and a mnemonic mode
     in three shared controls.
-- [ ] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the
+- [x] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the
   AGENTS.md style line and the documentation pass.
+  - [x] T12.1 ADR 0013's "Round 2 notes": what the round adopted, and what
+    it did not, with the reasons. Not adopted: Mica and acrylic, Kirigami
+    and qqc2-desktop-style, and HarmonyOS Sans with the Huawei visual
+    language. For Plasma it records what the sources say: the accent
+    follows the colour scheme, but no KDE theme reports a contrast
+    preference. It lists what was checked where.
+  - [x] T12.2 AGENTS.md: the shared-controls line names drawers
+    (`AppDrawer`; never a raw `Drawer`), and a new line gives round 2's
+    rules: `FocusRing`, `Theme.fontPx` and the floor, colours from the
+    tokens, `Theme.widthClass`.
+  - [x] T12.3 The bridge notes' per-OS entry: Plasma sets the accent
+    through KDE's own platform theme (qtbase's themes do not), and neither
+    KDE theme reports a contrast preference.
+  - [x] T12.4 Not tried on a Plasma desktop (none here, and the Linux CI
+    leg has no desktop). Linux rendering was looked at in the CI captures
+    of #100, #101 and #103 (Xvfb + llvmpipe, a 12 px system font). The CI
+    run times stayed usual (the Ubuntu App job 5.4 min on #103's run), so
+    no slow-run issue was filed.
