@@ -81,7 +81,17 @@ pull request that delivers it.
   - [x] T4.5 The live-mode panel is a `GroupBox` of the same rows. Its
     spinner stays ours: the macOS style's needs the WebP plugin, which no
     Qt install of the project carries (design.md, "The spinner").
-- [ ] T5 Detail and dashboard (R2.1).
+- [x] T5 (`ui/native-detail`) Detail and dashboard (R2.1).
+  - [x] T5.1 The detail's Replay is the style's `Button`, `highlighted`:
+    on macOS the default button, drawn in the accent only while the window
+    is active (`CE_PushButtonBevel` in Qt's macOS style), like every macOS
+    default button.
+  - [x] T5.2 The detail's and the dashboard's margins are inside their
+    scroll views, as the settings page's are; the Replay button needs no
+    room for our focus ring or the scroll bar any more.
+  - [x] T5.3 The dashboard has no control, and the charts none of their
+    own: nothing else to replace (design.md's "chart controls" did not
+    exist).
 - [ ] T6 Replay HUD (R2.1, R7.4).
 - [ ] T7 Theme cleanup and motion tokens (R2.3, R7.2).
 - [ ] T8 Large and extra-large layouts (R7.1).
