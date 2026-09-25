@@ -294,10 +294,25 @@ Pane {
                                                               paceTickMetrics)
                         theme: ChartTheme {}
 
+                        // Every point had a date label, and they ran into
+                        // each other once dates were long or the text large
+                        // (Chinese and Japanese dates at the default size
+                        // already overlapped). Label every step-th point,
+                        // anchored on the newest, so the labels keep a gap,
+                        // and keep half a label of room on the right for the
+                        // newest one, which is centred on the last point.
+                        readonly property real widestDate: ChartUtils.widestLabel(
+                            Library.paceDateTexts, paceTickMetrics)
+                        readonly property int dateLabelStep: ChartUtils.labelStep(
+                            Library.paceDateTexts.length, widestDate, plotArea.width,
+                            Theme.spacingMedium)
+                        marginRight: Math.max(20, Math.ceil(widestDate / 2))
+
                         axisX: ValueAxis {
                             min: -0.5
                             max: Math.max(0.5, Library.paceDateTexts.length - 0.5)
-                            tickInterval: 1
+                            tickAnchor: Math.max(0, Library.paceDateTexts.length - 1)
+                            tickInterval: paceChart.dateLabelStep
                             subTickCount: 0
                             gridVisible: false
                             // Chronological index axis; the locale date per
