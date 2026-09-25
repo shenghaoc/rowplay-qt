@@ -772,6 +772,12 @@ impl ReplayBackend {
         self.has_ghost = true;
         self.dirty = true;
         self.notify_playback();
+        // The chase camera frames the pair from the ghost's packed course
+        // position, which the ghost pipeline writes after the camera runs:
+        // a first pass places the ghost, a second frames the pair. Playing,
+        // the next tick would; paused, no other frame comes.
+        self.advance(0.0);
+        self.dirty = true;
         if self.advance(0.0) {
             self.notify_frame();
         }
@@ -937,6 +943,12 @@ impl ReplayBackend {
         }
         self.aspect = aspect;
         if !self.playing {
+            // Paused, nothing converges on the new target afterwards, and
+            // the chase keeps a position under 3 m from it unless the
+            // narrow threshold is crossed: place the camera afresh, as a
+            // first frame does. A ghost pair's pullback changes with every
+            // aspect.
+            self.camera.initialised = false;
             self.dirty = true;
             if self.advance(0.0) {
                 self.notify_frame();
@@ -1712,6 +1724,58 @@ mod tests {
             replay.emit_count, playing,
             "playing, the next tick re-frames"
         );
+    }
+
+    /// A ghost loaded while paused is framed with the live athlete at once:
+    /// the camera frames the pair from the ghost's packed position, which
+    /// the pipeline writes after the camera runs, and no later paused tick
+    /// would re-frame.
+    #[test]
+    fn a_ghost_loaded_while_paused_is_framed_with_the_athlete() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.set_viewport(1600.0, 900.0);
+        replay.load_ghost(1002);
+        assert!(!replay.playing);
+        assert_ne!(
+            replay.camera.layout_mode & 0b100,
+            0,
+            "the camera's layout includes the ghost"
+        );
+        // One more paused frame changes nothing: the pair is framed already.
+        let framed = replay.camera.position;
+        replay.dirty = true;
+        replay.advance(0.0);
+        assert_eq!(replay.camera.position, framed);
+    }
+
+    /// Paused, any new aspect places the camera on its new target, not only
+    /// one that crosses the narrow threshold: a ghost pair's pullback
+    /// changes continuously with the aspect.
+    #[test]
+    fn a_small_aspect_change_reframes_a_paused_ghost_pair() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.set_viewport(1500.0, 1000.0);
+        replay.load_ghost(1002);
+        let at_1_5 = replay.camera.position;
+        // 1.5 to 1.3: both wide (the threshold is 1.25).
+        replay.set_viewport(1300.0, 1000.0);
+        let at_1_3 = replay.camera.position;
+        assert_ne!(at_1_5, at_1_3, "the camera moved for the new aspect");
+        // It sits where a camera placed afresh at 1.3 sits.
+        let mut fresh = ReplayBackend::default();
+        fresh.load_workout(1001);
+        fresh.set_viewport(1300.0, 1000.0);
+        fresh.load_ghost(1002);
+        for (axis, (placed, resized)) in fresh.camera.position.iter().zip(at_1_3).enumerate() {
+            assert!(
+                (placed - resized).abs() < 1e-9,
+                "axis {axis}: {placed} vs {resized}"
+            );
+        }
     }
 
     /// The developer strip's diagnostics refresh on every 15th render-time
