@@ -27,7 +27,7 @@ use rowplay_core::replay::stroke_model::{
 use rowplay_viewmodel::replay::athlete::V4Athlete;
 use rowplay_viewmodel::replay::camera::{CameraInput, CameraState, chase};
 use rowplay_viewmodel::replay::course::{
-    AccentCues, LIVE_LOOP_RADIUS, Placement, accents, advance_anim_phase, place,
+    AccentCues, GHOST_LOOP_RADIUS, LIVE_LOOP_RADIUS, Placement, accents, advance_anim_phase, place,
 };
 use rowplay_viewmodel::replay::equipment::{
     PoleLeafFit, blade_position, blade_roll_degrees, crank_rotation,
@@ -784,12 +784,8 @@ impl ReplayBackend {
         self.has_ghost = true;
         self.dirty = true;
         self.notify_playback();
-        // The chase camera frames the pair from the ghost's packed course
-        // position, which the ghost pipeline writes after the camera runs:
-        // a first pass places the ghost, a second frames the pair. Playing,
-        // the next tick would; paused, no other frame comes.
-        self.advance(0.0);
-        self.dirty = true;
+        // One pass places the ghost and frames the pair: the camera places
+        // the ghost itself, before the ghost pipeline packs it.
         if self.advance(0.0) {
             self.notify_frame();
         }
@@ -1233,28 +1229,26 @@ impl ReplayBackend {
         // Chase camera.
         let advanced = distance - self.last_distance;
         self.last_distance = distance;
-        // Ghost placement for the chase camera's midpoint framing +
-        // comparison pullback: use the ghost's current course position (its
-        // packed `COURSE_X/Z`) if the ghost pipeline has run at least once
-        // this session (i.e. the frame carries non-default values). The
-        // ghost pipeline runs after this camera call, so on the first
-        // ghost-enabled frame the pack is still at its default zero; that
-        // still trips the `is_finite && != 0` filter below cleanly on the
-        // next tick, and the frame-to-frame position lag is invisible in
-        // the damped chase. The web samples `this.ghostPlacement` set by
-        // its own ghost render pass; both apps have the same one-tick
-        // lag on the first activation.
-        let ghost_placement = if self.ghost_playback.is_some() {
-            let gx = f64::from(self.ghost_frame[frame::COURSE_X]);
-            let gz = f64::from(self.ghost_frame[frame::COURSE_Z]);
-            if gx.is_finite() && gz.is_finite() && (gx != 0.0 || gz != 0.0) {
-                Some((gx, gz))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        // The ghost runs on the player's clock: the web samples it at the
+        // player's frame time, Studio at the player's elapsed time
+        // (`ReplayRaceGap.ghostFrame`). Its state is only ever sought, never
+        // played, so a play, pause, seek or speed change moves both at once,
+        // and past the end of a shorter rival the ghost holds its last
+        // stroke (#97). It is sought here, before the camera, which frames
+        // the pair from the ghost's course position at this same instant.
+        // The web reads the placement its previous ghost render pass left,
+        // and its continuous loop corrects that a frame later; a paused
+        // replay renders no later pass, so reading last pass's packed
+        // position framed a sought pair around where the ghost had been.
+        let ghost_placement = self.ghost_playback.as_mut().and_then(|ghost| {
+            ghost.state.seek(time);
+            let at = place(
+                ghost.sport,
+                ghost.state.current_frame().d,
+                GHOST_LOOP_RADIUS,
+            );
+            (at.x.is_finite() && at.z.is_finite()).then_some((at.x, at.z))
+        });
         self.camera = chase(
             sport,
             CameraInput {
@@ -1399,13 +1393,7 @@ impl ReplayBackend {
 
         // Ghost pipeline: same pose/course/equipment but into ghost_frame.
         if let Some(ghost) = self.ghost_playback.as_mut() {
-            // The ghost runs on the player's clock: the web samples it at
-            // the player's frame time, Studio at the player's elapsed time
-            // (`ReplayRaceGap.ghostFrame`). Its state is only ever sought,
-            // never played, so a play, pause, seek or speed change moves
-            // both at once, and past the end of a shorter rival the ghost
-            // holds its last stroke (#97).
-            ghost.state.seek(time);
+            // Sought to the player's time before the camera, above.
             let g_time = ghost.state.time();
             let g_sampled = ghost.state.current_frame();
             let mut g_stroke = stroke_pose_at(&ghost.timeline, g_time);
@@ -1443,8 +1431,7 @@ impl ReplayBackend {
                 solver.pack(&posed, &mut self.ghost_frame);
             }
 
-            // Ghost course placement.
-            use rowplay_viewmodel::replay::course::GHOST_LOOP_RADIUS;
+            // Ghost course placement (the camera computed the same one).
             let g_placement = place(g_sport, g_distance, GHOST_LOOP_RADIUS);
             let g_cues = match sample_motion_graph(g_sport, &g_stroke) {
                 ReplayMotionGraph::Rower(g) => AccentCues {
@@ -2123,6 +2110,41 @@ mod tests {
         for fraction in [0.5, 0.1, 1.0] {
             replay.seek(fraction);
             assert_on_one_clock(&replay, &rival);
+        }
+    }
+
+    /// #97: a paused seek frames the pair around where the ghost is now.
+    /// The camera read the ghost's course position as the previous pass had
+    /// packed it, a lag only a moving ghost shows: after a seek the pair
+    /// was framed around where the ghost had been, and a paused replay
+    /// renders no further pass to correct it. The seek's camera must equal
+    /// one placed afresh at the same instant.
+    #[test]
+    fn a_paused_seek_frames_the_ghost_where_it_is_now() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.load_ghost(1002);
+        for fraction in [0.5, 0.25, 0.75, 0.0] {
+            replay.seek(fraction);
+            let after_seek = replay.camera;
+            replay.camera.initialised = false;
+            replay.dirty = true;
+            replay.advance(0.0);
+            for (axis, (placed, sought)) in replay
+                .camera
+                .position
+                .iter()
+                .chain(&replay.camera.aim)
+                .zip(after_seek.position.iter().chain(&after_seek.aim))
+                .enumerate()
+            {
+                assert!(
+                    (placed - sought).abs() < 1e-9,
+                    "seek to {fraction}, camera component {axis}: {sought} after the seek, \
+                     {placed} placed afresh"
+                );
+            }
         }
     }
 
