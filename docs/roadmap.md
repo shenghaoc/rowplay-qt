@@ -840,7 +840,12 @@ two candidate causes, separated by a render-cadence measurement
   play. Why a frame applied before that first resize draws wrong was not
   isolated. Playback that reaches the end now tells the transport, which
   kept showing pause. A paused scene no longer feeds the governor on any
-  platform.
+  platform. The Codex review found two paused framing gaps, both fixed
+  with a test each. A ghost loaded while paused was framed without the
+  ghost: the camera reads the ghost's position before the pipeline writes
+  it, so the load now runs two passes. A small aspect change stayed under
+  the camera's 3 m snap distance and left a ghost pair too close, so a
+  paused resize now places the camera afresh.
 
 Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after

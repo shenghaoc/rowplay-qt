@@ -31,3 +31,14 @@
   (R6.1); `tests/bridge_crossings.rs` (R6.2).
 - [ ] T10 Docs: source map rows, roadmap status, qtbridge notes (joints,
   animation sampling), PR validation record.
+
+## Follow-ups
+
+- [x] T11 (#93) A paused replay renders on demand. The tick animation runs
+  only while the route is shown and playing, plus a six-frame settle after
+  a change made while paused; `tick()` tells the transport when playback
+  stops itself. A ghost loaded or dismissed and a new viewport aspect push
+  their own frame while paused. The ghost takes two pipeline passes, so the
+  camera frames the pair, and a new aspect places the camera afresh
+  (both from the Codex review). Measured on an Apple M5: a paused replay
+  dropped from 120 frames/s and 12–14 % CPU to none and under 1.1 %.
