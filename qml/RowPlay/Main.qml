@@ -1490,7 +1490,7 @@ ApplicationWindow {
                 root.screenIndex = 0
                 if (!Settings.gateQuick) Library.selectWorkout(1004)
                 break
-            // The localized gap must fit beside all four gauges at the
+            // The localized gap must fit together with all four gauges at the
             // compact width. Check every locale after live retranslation.
             case 232:
                 if (Settings.gateQuick) { gateTimer.running = false; Qt.exit(0); break }

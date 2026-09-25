@@ -332,8 +332,9 @@ Wayland (`cargo run -p rowplay-app`).
   `replay.raceVerdictWinSession`/`LoseSession`). *(The gap only since
   2026-09-25: until then it was English built in Rust, in every language;
   see the source map's "Race gap" divergence.)* Compact windows put the localized
-  gap on its own wrapping row so longer translations cannot crowd out the
-  four metric chips; the native gate checks all six locales at 480 px.
+  gap on its own wrapping row below two columns of metric chips, so longer
+  translations and platform fonts cannot crowd them out; the native gate
+  checks all six locales at 480 px.
 - Reduce-motion toggle in Settings via a desktop-supplement locale key
   (`settings.reduceMotion`); the pipeline zeroes accents, snaps the camera
   and returns neutral poses.

@@ -32,7 +32,10 @@
   lower row only, "1 m (0:00 behind)" becoming "▼ behind by 1m (0.1s)".
 
 - [x] T9 Compact localized gaps: at the compact width class the gap has
-  its own full-width wrapping row below the metric chips. The full runtime
-  gate visits a 480 px ghost replay in all six locales, asserts the visible
+  its own full-width wrapping row below a two-column grid of metric chips.
+  The full runtime gate visits a 480 px ghost replay in all six locales, asserts the visible
   gap and all four chips stay inside the HUD without overlap, and captures
   each locale. This covers the longer Spanish wording found in PR review.
+  The compact two-column grid also accommodates Windows font metrics;
+  the first fix kept all four chips in one row and failed the Spanish
+  bounds assertion on Windows CI.
