@@ -1472,12 +1472,18 @@ ApplicationWindow {
                             "screen", root.screenIndex)
                 Library.closeReplay()
                 Library.clearSelection()
-                // Large, scaled like the breakpoints, so every platform's
-                // text size reaches the same class.
+                // Full width, scaled like the breakpoints: large where the
+                // screen allows (step 229 checks expanded or wider).
                 root.width = Theme.px(1200)
                 break
+            // Expanded or wider, not "large": a real window cannot always
+            // reach the large class (the Windows runner's desktop is about
+            // 1024 px wide), and the sidebar sits beside the content from
+            // expanded up.
             case 229:
-                console.log("gate width classes: large", root.widthClass,
+                console.log("gate width classes: full",
+                            root.widthClass >= Theme.widthExpanded ? "expanded or wider"
+                                                                   : root.widthClass,
                             "sidebar", sidebarColumn.parent === drawerHost ? "in the drawer"
                                                                              : "beside the content")
                 break

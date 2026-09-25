@@ -138,8 +138,11 @@ pull request that delivers it.
   - [x] T8.1 `Theme.widthClass` has M3's five classes, scaled with the
     text: compact, medium, expanded (the old "large", ≥ 840), large
     (≥ 1200) and extra-large (≥ 1600). The sidebar's drawer rule reads
-    "below expanded"; the gate's full-width step sets `Theme.px(1200)` and
-    expects class 3 on every platform.
+    "below expanded". The gate's full-width step asks for
+    `Theme.px(1200)` and checks expanded or wider: a real window on a small
+    desktop cannot reach large (the Windows runner's is about 1024 px wide,
+    where the first version, which expected large, failed CI's real-window
+    walks).
   - [x] T8.2 The detail's supporting pane: in a large window whose detail
     column fits two panes of `paneMinWidth`, the stroke charts sit beside
     the summary, the splits and the targets. One set of sections, two

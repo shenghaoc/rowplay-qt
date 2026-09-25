@@ -574,7 +574,7 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     for expected in [
         "gate width classes: medium 1 drawer closed screen 1",
         "gate width classes: compact 0 drawer closed screen 3",
-        "gate width classes: large 3 sidebar beside the content",
+        "gate width classes: full expanded or wider sidebar beside the content",
     ] {
         assert!(
             combined.contains(expected),
