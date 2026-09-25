@@ -244,6 +244,8 @@ jobs:
             artifacts/replay-row-high.png
             artifacts/replay-row-high-unshadowed.png
             artifacts/phase-*.png
+            artifacts/*-medium.png
+            artifacts/*-compact.png
           if-no-files-found: error
 
   # The SkiErg wrap windows (steps 529 / 1377) and the guard conversion that

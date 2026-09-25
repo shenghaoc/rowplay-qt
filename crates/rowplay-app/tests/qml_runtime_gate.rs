@@ -58,7 +58,7 @@ const SINGLETONS: [&str; 5] = ["Library", "Detail", "Settings", "Sync", "Replay"
 const MESSAGE_PATTERN: &str = "%{time process} %{if-category}%{category}: %{endif}%{message}";
 
 /// The gate steps that open each phase of the walk (`Main.qml`'s gate timer).
-const PHASES: [(u32, &str); 11] = [
+const PHASES: [(u32, &str); 12] = [
     (1, "shell, languages, filters"),
     (24, "mock syncs"),
     (44, "sorting, dates, detail captures"),
@@ -70,6 +70,7 @@ const PHASES: [(u32, &str); 11] = [
     (84, "teardown"),
     (85, "bench (ROWPLAY_REPLAY_BENCH only)"),
     (200, "menus, settings over a replay, dialogs"),
+    (213, "width classes"),
 ];
 
 /// Replay entry, request to first presented frame, under llvmpipe: measured
@@ -538,6 +539,22 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         "Replay must open again after settings closed it\n\napp log:\n{}",
         common::gate_log_lines(&combined)
     );
+
+    // The width classes: in a medium window the sidebar is a drawer, which
+    // a chosen workout closes on its way to the workout; a compact window
+    // reaches the replay; back at full width the sidebar is beside the
+    // content again.
+    for expected in [
+        "gate width classes: medium 1 drawer closed screen 1",
+        "gate width classes: compact 0 drawer closed screen 3",
+        "gate width classes: large 2 sidebar beside the content",
+    ] {
+        assert!(
+            combined.contains(expected),
+            "missing \"{expected}\"\n\napp log:\n{}",
+            common::gate_log_lines(&combined)
+        );
+    }
 
     // Phase 5b: structural equipment inventory check. The scene logs
     // "replay equipment: N of M" after each applySceneRules. The expected
