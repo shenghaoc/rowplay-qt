@@ -553,6 +553,37 @@ O(value size).
   azimuth convention with the chase camera in frame: `atan2(-x, -z)` from the
   web's SUN_OFFSETS produces a Qt sun direction matching the web's normalised
   offset to three decimal places for all three sports.
+- Qt Quick Controls 6.11.2 blocks every `Qt.WindowShortcut` whose item lies
+  outside an open popup that is modal **or** closes on Escape
+  (`isBlockedByPopup` in `qquickshortcutcontext.cpp`: the first such popup
+  in stacking order decides, tooltips aside); `Qt.ApplicationShortcut` is
+  not blocked. Checked with QtTest key clicks: an F5 `Shortcut` outside a
+  `Drawer` fires while the drawer is closed, and while it is open,
+  non-modal and `NoAutoClose`; it does not fire while the drawer is open
+  and modal (any close policy) or non-modal with `CloseOnEscape`. A
+  `Shortcut` inside the modal drawer's content fires. Repro: an `Item`
+  with `Shortcut { sequence: "F5"; onActivated: console.log("F5") }` and
+  `Drawer { id: d; modal: false; closePolicy: Popup.CloseOnEscape }`, and
+  a `TestCase` that calls `d.open()`, then `keyClick(Qt.Key_F5)`. The
+  compact width class's sidebar page is therefore non-modal and
+  `NoAutoClose`, closed by the shell's own Escape shortcut, and the modal
+  medium drawer carries its own sidebar-toggle and Find shortcuts
+  (`Main.qml`).
+- A popup's `interactive` governs more than dragging. `Drawer.interactive`
+  is documented as "a non-interactive drawer does not react to swipes",
+  but in 6.11.2 `QQuickPopupPrivate::tryClose` returns early while it is
+  false, and `QQuickPopup::keyPressEvent` accepts Escape without closing
+  (`qquickpopup.cpp`): a non-interactive drawer ignores its `closePolicy`
+  altogether. Found by pressing Escape and clicking the dimmed strip in
+  the running app. To stop a drawer opening on an edge drag, set
+  `dragMargin: 0` instead (`AppDrawer.qml`).
+- QtTest's `TestEvent` (`import QtTest`) sends real key and mouse events
+  in the running app, so a scratch probe can press shortcuts and click
+  through popups (on the offscreen platform, where the window is always
+  active; window shortcuts match only in the active window). Its
+  `mouseWheel` takes `(item, x, y, buttons, modifiers, xDelta, yDelta,
+  delay)`, not `TestCase.mouseWheel`'s order, and a wrong order aborts
+  on an assert in `quicktestevent.cpp`.
 - `createObject` of a Quick 3D object with a 2D parent (the `View3D`) logs
   "QML ProceduralSkyTextureData: Created graphical object was not placed in
   the graphics scene" and the object never reaches the scene graph; parent

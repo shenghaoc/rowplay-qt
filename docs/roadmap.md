@@ -1015,3 +1015,23 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
    - Found on the way, older than the floor: the trend chart labelled
      every point, and its dates overlapped in Japanese at the default size
      and in English at 18 px. It labels every n-th point now.
+3. `ui/breakpoints-min-window`: HarmonyOS's width breakpoints, scaled with
+   the text: compact below 600 px, medium below 840 px, large from there.
+   Large keeps the layout as it was. Below it the one sidebar moves into
+   a drawer, modal over the content at medium, the list's own page under
+   the toolbar at compact. A leading toolbar button named "Workouts" (an
+   existing web key) opens it, as do the sidebar toggle and Find, and the
+   sport filter takes its compact form. Grids, the detail's rate and
+   heart-rate charts and the replay HUD's controls stack where they do
+   not fit. The minimum window drops from 1000 × 680 to 480 × 480.
+   - A scratch probe walked five screens at the three widths in English,
+     Spanish and Japanese, light and dark, natively and at 150 % text:
+     nothing elided or past the window's edge beyond T9's known chart
+     labels. A second one pressed real keys and clicks through QtTest's
+     `TestEvent`. The gate now walks medium and compact.
+   - Two Qt 6.11 behaviours shaped the drawer (docs/qt-bridges-notes.md):
+     every window shortcut outside a modal popup, or one that Escape
+     closes, is blocked, so the compact page is neither and the toolbar
+     and the shortcuts stay live there; and a non-interactive popup
+     ignores Escape and the click outside, so the drawer stays
+     interactive and turns edge drags off with `dragMargin: 0`.
