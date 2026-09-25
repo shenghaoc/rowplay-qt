@@ -96,6 +96,16 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
     by 2 px; under the macOS style the rows already were.
   - A probe sampled every control's `contains()` and found no two hit
     areas overlapping, under the macOS style and under Fusion.
+  - The mask alone did not work for real input. Qt 6.11 leaves an item
+    out of pointer delivery when the point lies outside its rectangle
+    grown by its pointer handlers' largest margin, and it does this before
+    asking the mask.
+    - So each control also carries a passive `HitMargin`, a `HoverHandler`
+      whose margin reaches as far as its mask.
+    - Real clicks through QtTest's `TestEvent` show it working under both
+      styles. A click 7 px above the 22 px scrubber seeks, and 4 px beyond
+      the mask nothing happens. A click 4 px below Fusion's 30 px play
+      button plays.
 - **Stacking:** the speed and the chips stack when the HUD's column is
   too narrow for both. Before, that was tested against the row's own
   width, which never drops below its two columns' minimum. The old
