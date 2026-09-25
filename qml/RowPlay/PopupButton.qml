@@ -125,7 +125,7 @@ ComboBox {
         background: Rectangle {
             color: Theme.popupBackground
             radius: Theme.radiusMedium
-            border.width: Theme.hairline
+            border.width: Theme.outlineWidth
             border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
         }
     }

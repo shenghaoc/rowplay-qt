@@ -46,7 +46,10 @@ Button {
         implicitWidth: Theme.px(72)
         radius: Theme.radiusSmall
         color: control.accentFill ? Theme.accentColor : Theme.controlBackground
-        border.width: control.accentFill ? 0 : Theme.hairline
+        // Under high contrast the accent is the system highlight, which can
+        // sit close to the window colour (1.64:1 in macOS's light palette),
+        // so the prominent button keeps its outline there.
+        border.width: control.accentFill && !Theme.highContrast ? 0 : Theme.hairline
         border.color: control.enabled ? Theme.controlBorder : Theme.separator
 
         // Hover / press wash over either fill.

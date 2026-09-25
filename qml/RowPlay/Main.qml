@@ -29,7 +29,7 @@ ApplicationWindow {
     // Studio's 1000 px, or more where very large text needs it: the
     // sidebar's minimum beside the toolbar's (a text size far past 150 %).
     minimumWidth: Math.max(1000, sidebarColumn.SplitView.minimumWidth
-                                 + Theme.hairline + toolbarMinimumWidth)
+                                 + Theme.ruleWidth + toolbarMinimumWidth)
     minimumHeight: 680
     title: "rowplay"
 
@@ -63,6 +63,15 @@ ApplicationWindow {
     // it — assign imperatively at startup and on every settings change.
     Component.onCompleted: {
         Qt.uiLanguage = Settings.languageCode
+        // The scheme pin (ROWPLAY_FORCE_COLOR_SCHEME) also asks Qt for that
+        // scheme, so the system palette, which high contrast draws in,
+        // follows it where the platform honours the request (macOS,
+        // Windows).
+        if (Settings.colorSchemeOverride === "dark") {
+            Qt.styleHints.colorScheme = Qt.Dark
+        } else if (Settings.colorSchemeOverride === "light") {
+            Qt.styleHints.colorScheme = Qt.Light
+        }
         // The demo library starts with its default workout selected (Studio's
         // SceneStorage initial value); route to the detail screen if so. The
         // Library made that selection while it was constructed, before the
@@ -177,8 +186,8 @@ ApplicationWindow {
             // changing its look.
             handle: Rectangle {
                 id: splitHandle
-                implicitWidth: Theme.hairline
-                implicitHeight: Theme.hairline
+                implicitWidth: Theme.ruleWidth
+                implicitHeight: Theme.ruleWidth
                 color: Theme.separator
                 containmentMask: Item {
                     x: (splitHandle.width - width) / 2
@@ -341,10 +350,10 @@ ApplicationWindow {
                     }
                 }
 
-                // The toolbar's bottom hairline.
+                // The toolbar's bottom rule (2 px under high contrast).
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.hairline
+                    Layout.preferredHeight: Theme.ruleWidth
                     color: Theme.separator
                 }
 

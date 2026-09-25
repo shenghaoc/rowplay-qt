@@ -113,6 +113,8 @@ Pane {
                             background: Rectangle {
                                 color: Theme.cardBackground
                                 radius: Theme.radiusMedium
+                                border.width: Theme.cardBorderWidth
+                                border.color: Theme.separator
                             }
 
                             ColumnLayout {
@@ -176,6 +178,8 @@ Pane {
                                         + 3 * Theme.spacingXLarge
                 color: Theme.panelBackground
                 radius: Theme.radiusLarge
+                border.width: Theme.cardBorderWidth
+                border.color: Theme.separator
                 Accessible.name: Tr.t("dashboard.bySport")
 
                 ColumnLayout {
@@ -248,6 +252,8 @@ Pane {
                                         + 4 * Theme.spacingXLarge
                 color: Theme.panelBackground
                 radius: Theme.radiusLarge
+                border.width: Theme.cardBorderWidth
+                border.color: Theme.separator
                 Accessible.name: Tr.t("dashboard.trendTitle")
 
                 ColumnLayout {
