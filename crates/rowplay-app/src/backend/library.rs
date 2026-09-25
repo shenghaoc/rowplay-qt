@@ -58,7 +58,7 @@ pub struct SidebarRowItem {
     pub is_pb: bool,
     /// `YYYY-MM-DD` day key.
     pub section: String,
-    /// Locale day header.
+    /// Locale day header, populated on every row for QML grouping.
     pub section_text: String,
     /// First row of its day section.
     pub is_section_start: bool,

@@ -9,9 +9,9 @@
 // search row shares the content toolbar's band; the fields, the sort menu
 // and the rows are the style's own (the rows carry the workout's data);
 // day headers are the list's sections, small, bold and in sentence case;
-// each row carries its sport glyph; the selection shows in the system's
-// active highlight while the list has keyboard focus and in its inactive
-// one otherwise. Below the large width class the shell shows the panel in
+// each row carries its sport glyph; the selection uses the style's highlight
+// while the list has keyboard focus and a neutral content wash otherwise.
+// Below the large width class the shell shows the panel in
 // a drawer, which a chosen workout closes.
 import QtQuick
 import QtQuick.Controls
@@ -102,10 +102,12 @@ Pane {
                 display: AbstractButton.IconOnly
                 icon.name: Glyphs.iconName("arrow.up.arrow.down")
                 icon.source: Glyphs.iconSource("arrow.up.arrow.down")
+                icon.color: enabled ? Theme.textPrimary : Theme.textDisabled
                 icon.width: Theme.iconSize
                 icon.height: Theme.iconSize
                 text: Tr.t("workoutList.sortGroup")
                 focusPolicy: Qt.TabFocus
+                hoverEnabled: true
                 Accessible.name: text
                 ToolTip.visible: hovered && !sortMenu.visible
                 ToolTip.delay: 600
@@ -290,8 +292,8 @@ Pane {
                         }
                     }
 
-                    // Day sections: the list's own section headers, small, bold
-                    // and in sentence case.
+                    // Day sections: section_text is populated on every row of
+                    // a day, so adjacent workouts cannot create a blank group.
                     section.property: "section_text"
                     section.delegate: Label {
                         required property string section
@@ -309,10 +311,9 @@ Pane {
                     // A row is the style's item delegate: its background,
                     // selection and hover are the style's, and it carries the
                     // workout's data as its content (ADR 0015's list-delegate
-                    // exception). The selection shows in the system's active
-                    // highlight while the list holds keyboard focus and in its
-                    // inactive one otherwise, as a macOS list does: that is
-                    // how the list shows it has the keyboard.
+                    // exception). The native highlight is used while the list
+                    // has focus. The inactive row keeps a neutral wash in its
+                    // content, without overriding the control's palette.
                     delegate: ItemDelegate {
                         id: rowItem
 
@@ -330,17 +331,12 @@ Pane {
                         required property string accessible_text
 
                         width: ListView.view.width
-                        highlighted: selected
+                        highlighted: selected && listView.activeFocus
                         focusPolicy: Qt.NoFocus
                         Accessible.name: accessible_text
                         Accessible.role: Accessible.ListItem
 
                         readonly property bool selected: Library.selectedWorkoutId === workout_id
-                        palette.highlight: listView.activeFocus ? panel.activePalette.highlight
-                                                                : panel.inactivePalette.highlight
-                        palette.highlightedText: listView.activeFocus
-                                                 ? panel.activePalette.highlightedText
-                                                 : panel.inactivePalette.highlightedText
                         readonly property color primaryText: highlighted ? palette.highlightedText
                                                                          : Theme.textPrimary
                         readonly property color secondaryText: highlighted ? palette.highlightedText
@@ -353,103 +349,120 @@ Pane {
                             panel.choose(rowItem.workout_id)
                         }
 
-                        contentItem: RowLayout {
-                            spacing: Theme.spacingMedium
+                        contentItem: Item {
+                            implicitWidth: rowContent.implicitWidth
+                            implicitHeight: rowContent.implicitHeight
 
-                            // Sport badge: the sport glyph on a neutral rounded
-                            // square (sports carry no metric colour).
                             Rectangle {
-                                Layout.preferredWidth: Theme.px(28)
-                                Layout.preferredHeight: Theme.px(28)
-                                radius: Theme.radiusSmall + 1
-                                color: Qt.alpha(rowItem.primaryText, 0.08)
+                                anchors.fill: parent
+                                visible: rowItem.selected && !listView.activeFocus
+                                color: Theme.selectionFillInactive
+                                radius: Theme.radiusSmall
+                                border.width: Theme.highContrast ? Theme.px(2) : 0
+                                border.color: Theme.selectionOutline
                                 Accessible.ignored: true
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    name: "sport." + rowItem.sport_key
-                                    size: Theme.iconSize
-                                    color: rowItem.secondaryText
-                                }
                             }
 
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: Theme.px(1)
+                            RowLayout {
+                                id: rowContent
+                                anchors.fill: parent
+                                spacing: Theme.spacingMedium
 
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: Theme.spacingSmall
+                                // Sport badge: the sport glyph on a neutral rounded
+                                // square (sports carry no metric colour).
+                                Rectangle {
+                                    Layout.preferredWidth: Theme.px(28)
+                                    Layout.preferredHeight: Theme.px(28)
+                                    radius: Theme.radiusSmall + 1
+                                    color: Qt.alpha(rowItem.primaryText, 0.08)
+                                    Accessible.ignored: true
 
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: rowItem.title
-                                        font: Theme.bodyEmphasized
-                                        color: rowItem.primaryText
-                                        elide: Text.ElideRight
-                                        Accessible.ignored: true
-                                    }
-
-                                    // PB capsule: the comparison orange with
-                                    // text picked for AA on it.
-                                    Rectangle {
-                                        visible: rowItem.is_pb
-                                        Layout.preferredHeight: pbLabel.implicitHeight + Theme.px(2)
-                                        Layout.preferredWidth: pbLabel.implicitWidth
-                                                               + 2 * Theme.spacingSmall
-                                        radius: height / 2
-                                        color: Theme.comparisonOrange
-                                        Accessible.ignored: true
-
-                                        Label {
-                                            id: pbLabel
-                                            anchors.centerIn: parent
-                                            text: Tr.t("dashboard.pbTag")
-                                            font: Theme.compactLabel
-                                            color: Theme.textOn(Theme.comparisonOrange)
-                                        }
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        name: "sport." + rowItem.sport_key
+                                        size: Theme.iconSize
+                                        color: rowItem.secondaryText
                                     }
                                 }
 
-                                RowLayout {
+                                ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: Theme.spacingSmall
+                                    spacing: Theme.px(1)
 
-                                    // The date, then the distance, which moves
-                                    // under the date when the two do not fit
-                                    // beside the pace: Chinese and Japanese
-                                    // dates at the 12 px floor elided it.
-                                    // Whole-pixel widths, so the Flow places the
-                                    // second on the pixel grid.
-                                    Flow {
-                                        id: metaFlow
+                                    RowLayout {
                                         Layout.fillWidth: true
                                         spacing: Theme.spacingSmall
 
                                         Label {
-                                            width: Math.min(Math.ceil(implicitWidth), metaFlow.width)
-                                            text: rowItem.date_text
-                                            font: Theme.metricLabel
-                                            color: rowItem.secondaryText
+                                            Layout.fillWidth: true
+                                            text: rowItem.title
+                                            font: Theme.bodyEmphasized
+                                            color: rowItem.primaryText
                                             elide: Text.ElideRight
                                             Accessible.ignored: true
                                         }
-                                        Label {
-                                            width: Math.min(Math.ceil(implicitWidth), metaFlow.width)
-                                            text: rowItem.distance_text
-                                            font: Theme.metricLabel
-                                            color: rowItem.secondaryText
-                                            elide: Text.ElideRight
+
+                                        // PB capsule: the comparison orange with
+                                        // text picked for AA on it.
+                                        Rectangle {
+                                            visible: rowItem.is_pb
+                                            Layout.preferredHeight: pbLabel.implicitHeight + Theme.px(2)
+                                            Layout.preferredWidth: pbLabel.implicitWidth
+                                                                   + 2 * Theme.spacingSmall
+                                            radius: height / 2
+                                            color: Theme.comparisonOrange
                                             Accessible.ignored: true
+
+                                            Label {
+                                                id: pbLabel
+                                                anchors.centerIn: parent
+                                                text: Tr.t("dashboard.pbTag")
+                                                font: Theme.compactLabel
+                                                color: Theme.textOn(Theme.comparisonOrange)
+                                            }
                                         }
                                     }
 
-                                    Label {
-                                        text: rowItem.pace_text
-                                        font: Theme.tabularBody
-                                        color: rowItem.primaryText
-                                        Layout.alignment: Qt.AlignRight | Qt.AlignTop
-                                        Accessible.ignored: true
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Theme.spacingSmall
+
+                                        // The date, then the distance, which moves
+                                        // under the date when the two do not fit
+                                        // beside the pace: Chinese and Japanese
+                                        // dates at the 12 px floor elided it.
+                                        // Whole-pixel widths, so the Flow places the
+                                        // second on the pixel grid.
+                                        Flow {
+                                            id: metaFlow
+                                            Layout.fillWidth: true
+                                            spacing: Theme.spacingSmall
+
+                                            Label {
+                                                width: Math.min(Math.ceil(implicitWidth), metaFlow.width)
+                                                text: rowItem.date_text
+                                                font: Theme.metricLabel
+                                                color: rowItem.secondaryText
+                                                elide: Text.ElideRight
+                                                Accessible.ignored: true
+                                            }
+                                            Label {
+                                                width: Math.min(Math.ceil(implicitWidth), metaFlow.width)
+                                                text: rowItem.distance_text
+                                                font: Theme.metricLabel
+                                                color: rowItem.secondaryText
+                                                elide: Text.ElideRight
+                                                Accessible.ignored: true
+                                            }
+                                        }
+
+                                        Label {
+                                            text: rowItem.pace_text
+                                            font: Theme.tabularBody
+                                            color: rowItem.primaryText
+                                            Layout.alignment: Qt.AlignRight | Qt.AlignTop
+                                            Accessible.ignored: true
+                                        }
                                     }
                                 }
                             }
@@ -488,15 +501,6 @@ Pane {
                 anchors.bottomMargin: Theme.px(2)
             }
         }
-    }
-
-    // The system's selection colours, active and inactive: the rows show
-    // the active pair while the list has keyboard focus.
-    readonly property SystemPalette activePalette: SystemPalette {
-        colorGroup: SystemPalette.Active
-    }
-    readonly property SystemPalette inactivePalette: SystemPalette {
-        colorGroup: SystemPalette.Inactive
     }
 
     // Each date field on its own: which one the range refused.

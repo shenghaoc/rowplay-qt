@@ -55,11 +55,13 @@ pull request that delivers it.
     message and accessible description under the field.
   - [x] T3.2 The sort button is a tool button with the platform's icon and
     the sort menu the style's `Menu`, the active field checked with its
-    direction after the label.
+    direction after the label. Its icon uses a theme text colour for dark
+    Fusion and its tooltip explicitly tracks hover.
   - [x] T3.3 The rows are the style's `ItemDelegate`s with the workout's
-    data as content; the day headers are the list's own sections; the
-    selection shows the system's active highlight while the list has
-    keyboard focus and its inactive one otherwise.
+    data as content; the day headers are the list's own sections with a
+    populated grouping role on every workout. The selection uses the
+    style's highlight while the list has keyboard focus and a neutral
+    wash in the row content otherwise, without palette overrides.
 - [ ] T4 Settings (R2.1).
 - [ ] T5 Detail and dashboard (R2.1).
 - [ ] T6 Replay HUD (R2.1, R7.4).
