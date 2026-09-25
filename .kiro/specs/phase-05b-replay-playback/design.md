@@ -27,10 +27,11 @@ the handler is the only consumer. `FrameAnimation { onTriggered:
 Replay.tick(dt) }` is the only clock. It runs while the replay plays (and
 for a short settle after a change made while paused, #93): a still
 replay renders on demand. A change made while paused pushes its own frame
-from the slot that made it. A ghost takes two pipeline passes, because the
-camera reads the ghost's packed position before the ghost pipeline writes
-it; a new aspect places the camera afresh, because nothing converges on
-the new target while paused.
+from the slot that made it. One pipeline pass frames a ghost with the
+athlete, because the camera places the ghost at the instant it is sampled
+(#97; reading its packed position from the previous pass took two); a new
+aspect places the camera afresh, because nothing converges on the new
+target while paused.
 
 ## Athlete posing (R2)
 
