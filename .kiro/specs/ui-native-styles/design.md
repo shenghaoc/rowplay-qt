@@ -40,6 +40,32 @@ would conflict with them at merge time.
   It is changed during playback, and one click with every speed in view
   matters there, as the web's row of speed buttons does.
 
+## Settings rows
+
+- **A row is a label beside its control.** The page is the style's
+  `GroupBox`es laid out by `GridLayout`s: a row's label and detail lead,
+  its control trails, in two columns while the form is at least 460 px
+  (scaled) wide and one below.
+- **A switch sits beside its label, always.** The styles elide a switch's
+  own text and never wrap it: in Spanish at the minimum width the live-mode
+  switch's text was cut off. So a switch carries no text; its label and
+  detail wrap beside it (`SwitchRow`) and name it for accessibility, and a
+  click on them toggles it, as a click on its text would. That is also the
+  layout of the platforms' own settings pages.
+- **The page's margin is inside the scroll view.** Outside it, the style's
+  scroll bar stood inset by the margin and the groups ran up to it.
+
+## The spinner
+
+The macOS style's `BusyIndicator` is an animated WebP image, and Qt reads
+WebP only through Qt Image Formats' plugin, which none of the project's Qt
+installs carries (the local one, CI's or the release workflow's): the
+style's spinner drew nothing and logged an image error. The live-mode
+panel keeps its own (`AppBusyIndicator`) until the plugin is installed and
+packaged, which touches the release workflow and is the owner's call. The
+Windows style falls back to Fusion's drawn spinner, and FluentWinUI3 draws
+its own.
+
 ## Icons
 
 `Glyphs` (a singleton) holds the glyph paths `Icon.qml` draws. macOS and

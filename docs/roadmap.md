@@ -1198,3 +1198,11 @@ requests on the round-2 stack's composed top:
    overriding palette roles. The date fields lose round 2's alert outline:
    the style's field has no error state, and the message under it marks
    it.
+4. `ui/native-settings`: the settings page is the style's group boxes,
+   switches, pop-up buttons, fields, buttons, progress bar and dialog. A
+   switch carries no text of its own: the styles elide it (Spanish at the
+   minimum width lost the end of the live-mode switch's), so the label
+   wraps beside the switch and toggles it. The timezone picker keeps its
+   filter, as a field above the pop-up of matches. The live-mode spinner
+   stays ours: the macOS style's is a WebP animation, and no Qt install of
+   the project carries the WebP plugin (proposed to the owner).
