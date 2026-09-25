@@ -448,25 +448,49 @@ QtObject {
 
     // MARK: - Width classes
     //
-    // HarmonyOS's breakpoints, scaled with the system font like every other
-    // length, so larger text reaches the narrower layouts in a wider
-    // window. Large (lg) is the full layout, the sidebar beside the
-    // content. Below it the sidebar becomes a drawer over the content and
-    // the toolbar's sport filter a pop-up button: medium (md). Below
-    // medium, compact (sm): the content is one column, the replay HUD
-    // stacks its rows.
+    // M3's window size classes (compact < 600, medium 600–839, expanded
+    // 840–1199, large 1200–1599, extra-large ≥ 1600), scaled with the
+    // system font like every other length, so larger text reaches the
+    // narrower layouts in a wider window.
+    // - Expanded and up: the full layout, the sidebar beside the content.
+    // - Medium: the sidebar becomes a drawer over the content, and the
+    //   toolbar's sport filter a pop-up button.
+    // - Compact: the content is one column, and the replay HUD stacks its
+    //   rows.
+    // - Large and extra-large (round 3's 2d): the content's own layouts
+    //   widen. The detail opens a supporting pane and the dashboard its
+    //   feed, each where its own column is wide enough, since the sidebar
+    //   takes part of the window. Text and forms stay at a readable width.
 
     readonly property int breakpointMedium: px(600)
-    readonly property int breakpointLarge: px(840)
+    readonly property int breakpointExpanded: px(840)
+    readonly property int breakpointLarge: px(1200)
+    readonly property int breakpointExtraLarge: px(1600)
     readonly property int widthCompact: 0
     readonly property int widthMedium: 1
-    readonly property int widthLarge: 2
+    readonly property int widthExpanded: 2
+    readonly property int widthLarge: 3
+    readonly property int widthExtraLarge: 4
 
     /// The width class of a window `width` pixels wide.
     function widthClass(width) {
         return width < breakpointMedium ? widthCompact
-             : width < breakpointLarge ? widthMedium : widthLarge
+             : width < breakpointExpanded ? widthMedium
+             : width < breakpointLarge ? widthExpanded
+             : width < breakpointExtraLarge ? widthLarge : widthExtraLarge
     }
+
+    /// The widest a column of running text or a form grows: some 90
+    /// characters of body text, and the settings page's width.
+    readonly property int readableWidth: px(640)
+    /// The widest the dashboard's and the detail's content grows; wider,
+    /// it stays centred (extra-large windows).
+    readonly property int contentMaxWidth: px(1440)
+    /// The least width of each of two side-by-side panes on the detail
+    /// and of each dashboard chart side by side, and the widest a tile or
+    /// a personal-best card grows.
+    readonly property int paneMinWidth: px(460)
+    readonly property int tileMaxWidth: px(320)
 
     // MARK: - Chart sizing
 

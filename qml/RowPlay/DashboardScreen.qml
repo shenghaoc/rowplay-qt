@@ -26,6 +26,16 @@ Pane {
     padding: 0
     readonly property real pageMargin: Theme.spacingXxxLarge
 
+    // M3's feed (round 3's 2d): in a large or extra-large window, where the
+    // dashboard's own column fits two panes, the two charts sit side by
+    // side; the tile and card grids gain columns as they widen and stop at
+    // a sensible tile width. The column's width is read from the pane, so a
+    // scroll bar coming or going cannot flip the layout.
+    readonly property bool chartsSideBySide:
+        Theme.widthClass(Window.width) >= Theme.widthLarge
+        && Math.min(width - 2 * pageMargin, Theme.contentMaxWidth)
+           >= 2 * Theme.paneMinWidth + Theme.spacingXxLarge
+
     ScrollView {
         id: scroll
         anchors.fill: parent
@@ -37,11 +47,13 @@ Pane {
         contentHeight: content.implicitHeight + 2 * screen.pageMargin
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
+        // At most contentMaxWidth wide, centred.
         ColumnLayout {
             id: content
-            x: screen.pageMargin
+            width: Math.min(scroll.availableWidth - 2 * screen.pageMargin,
+                            Theme.contentMaxWidth)
+            x: (scroll.availableWidth - width) / 2
             y: screen.pageMargin
-            width: scroll.availableWidth - 2 * screen.pageMargin
             spacing: Theme.spacingXxLarge
 
             Label {
@@ -52,9 +64,13 @@ Pane {
             }
 
             // Metric tiles (Studio's adaptive grid): equal-width columns,
-            // balanced so no tile is left alone on a row.
+            // balanced so no tile is left alone on a row. Once every tile
+            // sits in one row, none grows past tileMaxWidth.
             GridLayout {
                 Layout.fillWidth: true
+                Layout.maximumWidth: columns < Library.tilesJson.length
+                                     ? Number.POSITIVE_INFINITY
+                                     : columns * Theme.tileMaxWidth + (columns - 1) * columnSpacing
                 columns: Theme.balancedColumns(Library.tilesJson.length, content.width,
                                                Theme.px(180), columnSpacing)
                 uniformCellWidths: true
@@ -88,8 +104,13 @@ Pane {
                     Accessible.name: text
                 }
 
+                // As the tiles: one row at most tileMaxWidth per card.
                 GridLayout {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: columns < Library.pbCardsJson.length
+                                         ? Number.POSITIVE_INFINITY
+                                         : columns * Theme.tileMaxWidth
+                                           + (columns - 1) * columnSpacing
                     columns: Theme.balancedColumns(Library.pbCardsJson.length, content.width,
                                                    Theme.px(150), columnSpacing)
                     uniformCellWidths: true
@@ -172,212 +193,224 @@ Pane {
                 }
             }
 
-            // Distance by sport (Studio's bar chart panel).
-            Rectangle {
+            // The two charts, one under the other, or side by side (the
+            // feed), each then as tall as the taller.
+            GridLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.chartHeight + sportTitle.implicitHeight
-                                        + 3 * Theme.spacingXLarge
-                color: Theme.panelBackground
-                radius: Theme.radiusLarge
-                border.width: Theme.cardBorderWidth
-                border.color: Theme.separator
-                Accessible.name: Tr.t("dashboard.bySport")
+                columns: screen.chartsSideBySide ? 2 : 1
+                uniformCellWidths: true
+                columnSpacing: Theme.spacingXxLarge
+                rowSpacing: Theme.spacingXxLarge
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingXLarge
-                    spacing: Theme.spacingLarge
+                // Distance by sport (Studio's bar chart panel).
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: Theme.chartHeight + sportTitle.implicitHeight
+                                            + 3 * Theme.spacingXLarge
+                    color: Theme.panelBackground
+                    radius: Theme.radiusLarge
+                    border.width: Theme.cardBorderWidth
+                    border.color: Theme.separator
+                    Accessible.name: Tr.t("dashboard.bySport")
 
-                    Label {
-                        id: sportTitle
-                        text: Tr.t("dashboard.bySport")
-                        font: Theme.sectionHeadline
-                        color: Theme.textPrimary
-                        Accessible.ignored: true
-                    }
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spacingXLarge
+                        spacing: Theme.spacingLarge
 
-                    GraphsView {
-                        id: sportChart
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        theme: ChartTheme {}
-
-                        axisX: BarCategoryAxis {
-                            categories: Library.sportBarLabels
-                            gridVisible: false
-                            subGridVisible: false
-                            labelsVisible: true
-                        }
-                        axisY: ValueAxis {
-                            min: 0
-                            max: sportChart.barMax
-                            titleText: Library.distanceAxis
-                            titleFont.pixelSize: Theme.chartLabel.pixelSize
-                            titleVisible: true
-                            labelDecimals: 0
-                            subTickCount: 0
-                            lineVisible: false
-                            tickInterval: ChartUtils.niceInterval(sportChart.barMax, 4)
+                        Label {
+                            id: sportTitle
+                            text: Tr.t("dashboard.bySport")
+                            font: Theme.sectionHeadline
+                            color: Theme.textPrimary
+                            Accessible.ignored: true
                         }
 
-                        // Headroom so labels/bars never clip (a display
-                        // constant, not a formatted metric).
-                        readonly property real barMax: {
-                            var max = 0
-                            for (var i = 0; i < Library.sportBarValues.length; i++) {
-                                max = Math.max(max, Library.sportBarValues[i])
+                        GraphsView {
+                            id: sportChart
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            theme: ChartTheme {}
+
+                            axisX: BarCategoryAxis {
+                                categories: Library.sportBarLabels
+                                gridVisible: false
+                                subGridVisible: false
+                                labelsVisible: true
                             }
-                            return max > 0 ? max * 1.15 : 1
-                        }
+                            axisY: ValueAxis {
+                                min: 0
+                                max: sportChart.barMax
+                                titleText: Library.distanceAxis
+                                titleFont.pixelSize: Theme.chartLabel.pixelSize
+                                titleVisible: true
+                                labelDecimals: 0
+                                subTickCount: 0
+                                lineVisible: false
+                                tickInterval: ChartUtils.niceInterval(sportChart.barMax, 4)
+                            }
 
-                        BarSeries {
-                            id: sportBars
-                            barWidth: 0.5
-                            labelsVisible: false
-                            BarSet {
-                                id: sportBarSet
-                                color: Theme.metricDistance
-                                borderWidth: 0
+                            // Headroom so labels/bars never clip (a display
+                            // constant, not a formatted metric).
+                            readonly property real barMax: {
+                                var max = 0
+                                for (var i = 0; i < Library.sportBarValues.length; i++) {
+                                    max = Math.max(max, Library.sportBarValues[i])
+                                }
+                                return max > 0 ? max * 1.15 : 1
+                            }
+
+                            BarSeries {
+                                id: sportBars
+                                barWidth: 0.5
+                                labelsVisible: false
+                                BarSet {
+                                    id: sportBarSet
+                                    color: Theme.metricDistance
+                                    borderWidth: 0
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // Recent pace (Studio's line chart panel; negated pace axis so
-            // faster is up, ticks pre-rendered in Rust).
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Theme.chartHeight + trendTitle.implicitHeight
-                                        + trendSubtitle.implicitHeight
-                                        + 4 * Theme.spacingXLarge
-                color: Theme.panelBackground
-                radius: Theme.radiusLarge
-                border.width: Theme.cardBorderWidth
-                border.color: Theme.separator
-                Accessible.name: Tr.t("dashboard.trendTitle")
+                // Recent pace (Studio's line chart panel; negated pace axis so
+                // faster is up, ticks pre-rendered in Rust).
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: Theme.chartHeight + trendTitle.implicitHeight
+                                            + trendSubtitle.implicitHeight
+                                            + 4 * Theme.spacingXLarge
+                    color: Theme.panelBackground
+                    radius: Theme.radiusLarge
+                    border.width: Theme.cardBorderWidth
+                    border.color: Theme.separator
+                    Accessible.name: Tr.t("dashboard.trendTitle")
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingXLarge
-                    spacing: Theme.spacingSmall
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spacingXLarge
+                        spacing: Theme.spacingSmall
 
-                    Label {
-                        id: trendTitle
-                        text: Tr.t("dashboard.trendTitle")
-                        font: Theme.sectionHeadline
-                        color: Theme.textPrimary
-                        Accessible.ignored: true
-                    }
-                    Label {
-                        id: trendSubtitle
-                        Layout.bottomMargin: Theme.spacingMedium
-                        text: Tr.t("dashboard.likeForLike",
-                                   { sport: Library.paceSportName })
-                        font: Theme.subheadline
-                        color: Theme.textSecondary
-                        Accessible.ignored: true
-                    }
+                        Label {
+                            id: trendTitle
+                            text: Tr.t("dashboard.trendTitle")
+                            font: Theme.sectionHeadline
+                            color: Theme.textPrimary
+                            Accessible.ignored: true
+                        }
+                        Label {
+                            id: trendSubtitle
+                            Layout.bottomMargin: Theme.spacingMedium
+                            text: Tr.t("dashboard.likeForLike",
+                                       { sport: Library.paceSportName })
+                            font: Theme.subheadline
+                            color: Theme.textSecondary
+                            Accessible.ignored: true
+                        }
 
-                    // Qt Graphs gives Y labels a fixed 40 px column; the Rust
-                    // pace strings are wider, so the chart reserves the
-                    // overflow on the left (ChartUtils.yLabelOverflow).
-                    FontMetrics {
-                        id: paceTickMetrics
-                        font: Theme.chartLabel
-                    }
+                        // Qt Graphs gives Y labels a fixed 40 px column; the Rust
+                        // pace strings are wider, so the chart reserves the
+                        // overflow on the left (ChartUtils.yLabelOverflow).
+                        FontMetrics {
+                            id: paceTickMetrics
+                            font: Theme.chartLabel
+                        }
 
-                    GraphsView {
-                        id: paceChart
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        marginLeft: ChartUtils.yLabelOverflow(Library.paceAxisLabels,
-                                                              paceTickMetrics)
-                        theme: ChartTheme {}
+                        GraphsView {
+                            id: paceChart
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            marginLeft: ChartUtils.yLabelOverflow(Library.paceAxisLabels,
+                                                                  paceTickMetrics)
+                            theme: ChartTheme {}
 
-                        // Every point had a date label, and they ran into
-                        // each other once dates were long or the text large
-                        // (Chinese and Japanese dates at the default size
-                        // already overlapped). Label every step-th point,
-                        // anchored on the newest, so the labels keep a gap,
-                        // and keep half a label of room on the right for the
-                        // newest one, which is centred on the last point.
-                        readonly property real widestDate: ChartUtils.widestLabel(
-                            Library.paceDateTexts, paceTickMetrics)
-                        readonly property int dateLabelStep: ChartUtils.labelStep(
-                            Library.paceDateTexts.length, widestDate, plotArea.width,
-                            Theme.spacingMedium)
-                        marginRight: Math.max(20, Math.ceil(widestDate / 2))
+                            // Every point had a date label, and they ran into
+                            // each other once dates were long or the text large
+                            // (Chinese and Japanese dates at the default size
+                            // already overlapped). Label every step-th point,
+                            // anchored on the newest, so the labels keep a gap,
+                            // and keep half a label of room on the right for the
+                            // newest one, which is centred on the last point.
+                            readonly property real widestDate: ChartUtils.widestLabel(
+                                Library.paceDateTexts, paceTickMetrics)
+                            readonly property int dateLabelStep: ChartUtils.labelStep(
+                                Library.paceDateTexts.length, widestDate, plotArea.width,
+                                Theme.spacingMedium)
+                            marginRight: Math.max(20, Math.ceil(widestDate / 2))
 
-                        axisX: ValueAxis {
-                            min: -0.5
-                            max: Math.max(0.5, Library.paceDateTexts.length - 0.5)
-                            tickAnchor: Math.max(0, Library.paceDateTexts.length - 1)
-                            tickInterval: paceChart.dateLabelStep
-                            subTickCount: 0
-                            gridVisible: false
-                            // Chronological index axis; the locale date per
-                            // point comes pre-rendered from Rust.
-                            labelDelegate: Item {
-                                property string text
-                                implicitWidth: dateLabel.implicitWidth
-                                implicitHeight: dateLabel.implicitHeight
-                                Text {
-                                    id: dateLabel
-                                    text: {
-                                        var idx = Math.round(parseFloat(parent.text))
-                                        if (isNaN(idx)) {
-                                            return ""
+                            axisX: ValueAxis {
+                                min: -0.5
+                                max: Math.max(0.5, Library.paceDateTexts.length - 0.5)
+                                tickAnchor: Math.max(0, Library.paceDateTexts.length - 1)
+                                tickInterval: paceChart.dateLabelStep
+                                subTickCount: 0
+                                gridVisible: false
+                                // Chronological index axis; the locale date per
+                                // point comes pre-rendered from Rust.
+                                labelDelegate: Item {
+                                    property string text
+                                    implicitWidth: dateLabel.implicitWidth
+                                    implicitHeight: dateLabel.implicitHeight
+                                    Text {
+                                        id: dateLabel
+                                        text: {
+                                            var idx = Math.round(parseFloat(parent.text))
+                                            if (isNaN(idx)) {
+                                                return ""
+                                            }
+                                            var dates = Library.paceDateTexts
+                                            return idx >= 0 && idx < dates.length
+                                                   ? dates[idx] : ""
                                         }
-                                        var dates = Library.paceDateTexts
-                                        return idx >= 0 && idx < dates.length
-                                               ? dates[idx] : ""
+                                        font: Theme.chartLabel
+                                        color: Theme.textSecondary
                                     }
-                                    font: Theme.chartLabel
-                                    color: Theme.textSecondary
                                 }
                             }
-                        }
-                        axisY: ValueAxis {
-                            id: paceAxis
-                            min: Library.paceDomainLow
-                            max: Library.paceDomainHigh
-                            tickAnchor: Library.paceDomainLow
-                            tickInterval: ChartUtils.spanInterval(Library.paceDomainLow,
-                                                                  Library.paceDomainHigh,
-                                                                  Library.paceAxisValues.length)
-                            subTickCount: 0
-                            // No axis line or tick marks under the long
-                            // labels, and no rotated title: it was drawn on
-                            // top of the labels, and every tick already
-                            // reads "/500m".
-                            color: "transparent"
-                            titleVisible: false
-                            // Pace ticks display the Rust-formatted labels,
-                            // right-anchored on the tick (the delegate is
-                            // sized to the fixed 40 px column).
-                            labelDelegate: Item {
-                                property string text
-                                implicitWidth: paceLabel.implicitWidth
-                                implicitHeight: paceLabel.implicitHeight
-                                Text {
-                                    id: paceLabel
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: ChartUtils.nearestLabel(
-                                              Library.paceAxisValues,
-                                              Library.paceAxisLabels,
-                                              parent.text)
-                                    font: Theme.chartLabel
-                                    color: Theme.textSecondary
+                            axisY: ValueAxis {
+                                id: paceAxis
+                                min: Library.paceDomainLow
+                                max: Library.paceDomainHigh
+                                tickAnchor: Library.paceDomainLow
+                                tickInterval: ChartUtils.spanInterval(Library.paceDomainLow,
+                                                                      Library.paceDomainHigh,
+                                                                      Library.paceAxisValues.length)
+                                subTickCount: 0
+                                // No axis line or tick marks under the long
+                                // labels, and no rotated title: it was drawn on
+                                // top of the labels, and every tick already
+                                // reads "/500m".
+                                color: "transparent"
+                                titleVisible: false
+                                // Pace ticks display the Rust-formatted labels,
+                                // right-anchored on the tick (the delegate is
+                                // sized to the fixed 40 px column).
+                                labelDelegate: Item {
+                                    property string text
+                                    implicitWidth: paceLabel.implicitWidth
+                                    implicitHeight: paceLabel.implicitHeight
+                                    Text {
+                                        id: paceLabel
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: ChartUtils.nearestLabel(
+                                                  Library.paceAxisValues,
+                                                  Library.paceAxisLabels,
+                                                  parent.text)
+                                        font: Theme.chartLabel
+                                        color: Theme.textSecondary
+                                    }
                                 }
                             }
-                        }
 
-                        LineSeries {
-                            id: paceLine
-                            color: Theme.metricPace
-                            width: 2
+                            LineSeries {
+                                id: paceLine
+                                color: Theme.metricPace
+                                width: 2
+                            }
                         }
                     }
                 }

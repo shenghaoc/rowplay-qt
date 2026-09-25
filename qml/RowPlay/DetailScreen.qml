@@ -23,6 +23,15 @@ Pane {
     padding: 0
     readonly property real pageMargin: Theme.spacingXxxLarge
 
+    // M3's supporting pane (round 3's 2d): in a large or extra-large window,
+    // where the detail's own column fits two panes, the stroke charts sit
+    // beside the summary and the splits instead of below them. The column's
+    // width is read from the pane, not the scroll view, so a scroll bar
+    // coming or going cannot flip the layout.
+    readonly property bool supporting: Theme.widthClass(Window.width) >= Theme.widthLarge
+                                       && Math.min(width - 2 * pageMargin, Theme.contentMaxWidth)
+                                          >= 2 * Theme.paneMinWidth + Theme.spacingXxLarge
+
     ScrollView {
         id: scroll
         anchors.fill: parent
@@ -31,19 +40,32 @@ Pane {
         // Flickable content item, i.e. its own implicit width, and stopped a
         // quarter to a third short of the pane.
         contentWidth: availableWidth
-        contentHeight: content.implicitHeight + 2 * screen.pageMargin
+        contentHeight: content.height + 2 * screen.pageMargin
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-        ColumnLayout {
+        // The sections, placed by whichever of the two layouts below is
+        // shown (LayoutItemProxy): one column, or the supporting pane. At
+        // most contentMaxWidth wide, centred. A proxy that takes control of
+        // a section shows it, so a section that is sometimes absent says so
+        // on its proxies (`has`), not on itself.
+        Item {
             id: content
-            x: screen.pageMargin
+
+            readonly property bool hasComments: Detail.hasComments
+            readonly property bool hasStrip: Detail.stripJson.length > 0
+            readonly property bool hasSplits: Detail.splitsJson.length > 0
+            readonly property bool hasTargets: Detail.targetsJson.length > 0
+            width: Math.min(scroll.availableWidth - 2 * screen.pageMargin,
+                            Theme.contentMaxWidth)
+            x: (scroll.availableWidth - width) / 2
             y: screen.pageMargin
-            width: scroll.availableWidth - 2 * screen.pageMargin
-            spacing: Theme.spacingXxLarge
+            height: screen.supporting ? paneLayout.implicitHeight
+                                      : columnLayout.implicitHeight
 
             // Header (Studio: title + sport, date/time/source/intervals,
             // comments).
             RowLayout {
+                id: header
                 Layout.fillWidth: true
                 spacing: Theme.spacingLarge
 
@@ -122,8 +144,10 @@ Pane {
             }
 
             Label {
+                id: comments
                 Layout.fillWidth: true
-                visible: Detail.hasComments
+                // Running text stays at a readable width.
+                Layout.maximumWidth: Theme.readableWidth
                 text: Detail.comments
                 font: Theme.body
                 color: Theme.textSecondary
@@ -136,8 +160,8 @@ Pane {
             // colour — the caption names the metric, so colour is never the
             // only cue.
             Rectangle {
+                id: stripCard
                 Layout.fillWidth: true
-                visible: Detail.stripJson.length > 0
                 implicitHeight: stripGrid.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
@@ -194,6 +218,7 @@ Pane {
             }
 
             StrokeAnalysisPanel {
+                id: strokePanel
                 Layout.fillWidth: true
             }
 
@@ -207,7 +232,6 @@ Pane {
             Rectangle {
                 id: splitsCard
                 Layout.fillWidth: true
-                visible: Detail.splitsJson.length > 0
                 implicitHeight: splitsColumn.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
@@ -399,8 +423,8 @@ Pane {
 
             // Targets read-out (web replay.mTarget* keys).
             Rectangle {
+                id: targetsCard
                 Layout.fillWidth: true
-                visible: Detail.targetsJson.length > 0
                 implicitHeight: targetsColumn.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
@@ -447,6 +471,59 @@ Pane {
                                                  + modelData.valueText
                             }
                         }
+                    }
+                }
+            }
+
+            // One column: every section in the order above.
+            ColumnLayout {
+                id: columnLayout
+                visible: !screen.supporting
+                width: parent.width
+                spacing: Theme.spacingXxLarge
+
+                LayoutItemProxy { target: header }
+                LayoutItemProxy { target: comments; visible: content.hasComments }
+                LayoutItemProxy { target: stripCard; visible: content.hasStrip }
+                LayoutItemProxy { target: strokePanel }
+                LayoutItemProxy { target: splitsCard; visible: content.hasSplits }
+                LayoutItemProxy { target: targetsCard; visible: content.hasTargets }
+            }
+
+            // The supporting pane: the header and the comments across, then
+            // the summary, the splits and the targets beside the charts.
+            ColumnLayout {
+                id: paneLayout
+                visible: screen.supporting
+                width: parent.width
+                spacing: Theme.spacingXxLarge
+
+                LayoutItemProxy { target: header }
+                LayoutItemProxy { target: comments; visible: content.hasComments }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spacingXxLarge
+
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignTop
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.horizontalStretchFactor: 1
+                        spacing: Theme.spacingXxLarge
+
+                        LayoutItemProxy { target: stripCard; visible: content.hasStrip }
+                        LayoutItemProxy { target: splitsCard; visible: content.hasSplits }
+                        LayoutItemProxy { target: targetsCard; visible: content.hasTargets }
+                    }
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignTop
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.horizontalStretchFactor: 1
+                        spacing: Theme.spacingXxLarge
+
+                        LayoutItemProxy { target: strokePanel }
                     }
                 }
             }
