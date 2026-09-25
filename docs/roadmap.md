@@ -1045,3 +1045,15 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
    "intervals". The errors and statuses were audited path by path, and
    the application menu holds no Quit or window items (it never did).
    Access keys are assessed in #104, not implemented.
+5. `docs/design-system-round-2`: ADR 0013's round-2 notes (what was not
+   adopted, and why: Mica and acrylic, Kirigami and qqc2-desktop-style,
+   HarmonyOS Sans and the Huawei visual language), the AGENTS.md style
+   lines, and the documentation pass.
+   - Plasma, from the sources: the accent follows the colour scheme,
+     because KDE's platform theme sets `QPalette::Accent`, but no KDE
+     theme reports a contrast preference, so a high-contrast Plasma
+     scheme does not engage the app's high-contrast variant. Not tried on
+     a Plasma desktop.
+   - Still open: macOS under "Increase contrast" (the owner's switch),
+     and Windows' contrast themes, focus ring, Snap layouts and text
+     sizes (#81, where the round's checklist additions are posted).
