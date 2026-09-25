@@ -442,15 +442,38 @@ QtObject {
     /// Columns for a grid of `count` equal-width cells at least `minWidth`
     /// wide: as many as fit, then spread over the rows so they stay balanced
     /// (four tiles make one row of four or two rows of two, never 3 + 1).
-    /// Layout arithmetic only.
+    /// One column where not even two fit (a wide sidebar beside a narrow
+    /// window). Layout arithmetic only.
     function balancedColumns(count, width, minWidth, gap) {
         if (!(count > 0)) {
             return 1
         }
         var fit = Math.floor((width + gap) / (minWidth + gap))
-        fit = Math.min(count, Math.max(2, fit))
+        fit = Math.min(count, Math.max(1, fit))
         var rows = Math.ceil(count / fit)
         return Math.ceil(count / rows)
+    }
+
+    // MARK: - Width classes
+    //
+    // HarmonyOS's breakpoints, scaled with the system font like every other
+    // length, so larger text reaches the narrower layouts in a wider
+    // window. Large (lg) is the full layout, the sidebar beside the
+    // content. Below it the sidebar becomes a drawer over the content and
+    // the toolbar's sport filter a pop-up button: medium (md). Below
+    // medium, compact (sm): the content is one column, the replay HUD
+    // stacks its rows.
+
+    readonly property int breakpointMedium: px(600)
+    readonly property int breakpointLarge: px(840)
+    readonly property int widthCompact: 0
+    readonly property int widthMedium: 1
+    readonly property int widthLarge: 2
+
+    /// The width class of a window `width` pixels wide.
+    function widthClass(width) {
+        return width < breakpointMedium ? widthCompact
+             : width < breakpointLarge ? widthMedium : widthLarge
     }
 
     // MARK: - Chart sizing
