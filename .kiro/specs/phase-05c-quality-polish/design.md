@@ -35,7 +35,9 @@ built.
 A second athlete/equipment node group shares the loaded meshes (Model
 instances), material = ghost variant from 5a's resolver, driven by
 `ghost_frame(player_state, rival_trace, t)`; the gap overlay is two Labels
-bound to `Replay.gapText` / `Replay.verdictText`.
+bound to `Replay.gapText` / `Replay.verdictText` — structured Rust data
+(`hud.gapLabel`, `hud.verdictParts`) that QML words with the web's locale
+ids, so neither overlay ships English.
 
 ## Measurements
 

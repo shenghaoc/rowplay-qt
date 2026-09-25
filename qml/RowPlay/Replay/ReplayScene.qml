@@ -394,6 +394,19 @@ Item {
 
         // The verdict: parts[0] is win / lose / tie (locale ids from the web).
         readonly property var verdictParts: Replay.verdictText.split("|")
+        // The race gap as the web words it: parts[0] is ahead / behind, the
+        // metres fill the locale's {m} and the seconds, formatted in Rust
+        // with their unit, follow in brackets. Empty without a ghost.
+        readonly property string gapLabel: {
+            var parts = Replay.gapText.split("|")
+            if (parts.length !== 3)
+                return ""
+            if (parts[0] === "ahead")
+                return Tr.t("replay.ahead", { m: parts[1] }) + " (" + parts[2] + ")"
+            if (parts[0] === "behind")
+                return Tr.t("replay.behind", { m: parts[1] }) + " (" + parts[2] + ")"
+            return ""
+        }
 
         ColumnLayout {
             id: hudColumn
@@ -564,8 +577,8 @@ Item {
                     // Race gap: the web's words and ▲ / ▼ glyph (visible
                     // when a ghost is loaded).
                     Label {
-                        visible: Replay.hasGhost && Replay.gapText.length > 0
-                        text: Replay.gapText
+                        visible: Replay.hasGhost && hud.gapLabel.length > 0
+                        text: hud.gapLabel
                         font: Theme.tabularBody
                         color: Theme.textPrimary
                         Accessible.name: text
