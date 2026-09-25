@@ -166,3 +166,69 @@ Explicit wrappers fail loudly at load, where the runtime gate catches them.
   per-OS behaviour found on the way is recorded in `docs/qt-bridges-notes.md`,
   and every divergence from the web and Studio is recorded in
   `docs/source-map.md`.
+
+## Round 2 notes (2026-09-25)
+
+A second pass took rules the Apple and GNOME guidelines had not covered
+from Microsoft's Windows and Fluent guidance (WinUI as the reference), the
+KDE HIG and HarmonyOS's width breakpoints, each checked against the code
+first. The decisions above gained the round's rules where they belong;
+the spec's "Round 2" tasks (T8–T12) record how each was checked.
+
+**Adopted:** a two-tone focus ring; high contrast drawn in the system
+palette's colour pairs; a text floor (12 px on Windows and Linux, 11 px on
+macOS, 12 px in Chinese and Japanese); HarmonyOS's width breakpoints, with
+the sidebar as a drawer below the large one and a 480 × 480 minimum
+window; shortcuts in toolbar tooltips; a filterable timezone picker;
+errors stated where they happen, with their retry; screen-reader names
+that lead with what tells an item apart. Access keys (mnemonics) were
+assessed but not implemented (#104).
+
+**Not adopted:**
+
+- **Mica and acrylic** (Windows 11's translucent, wallpaper-tinted
+  backdrops). They are one platform's look, where this system is the same
+  on every OS. Qt Quick has no API for them, so they would need native
+  window attributes set from C++. And translucency is what dropped the
+  replay HUD's text below AA before it became opaque.
+- **Kirigami and qqc2-desktop-style.** Kirigami is KDE's component
+  framework, with its own navigation and look; qqc2-desktop-style draws Qt
+  Quick Controls as the KDE desktop does, a platform look and only on
+  KDE. Either would be a new dependency and a second visual system. What
+  the app takes from Plasma instead is its palette:
+  - **The accent follows Plasma's.** KDE's platform theme builds the
+    palette with `KColorScheme::createApplicationPalette`, which sets
+    `QPalette::Accent` to the colour scheme's selection colour
+    (kcolorscheme, master `b44cfeac`). `Theme` reads `palette.accent`, so
+    the selection, the focus ring and the prominent button take the
+    user's accent.
+  - **A high-contrast Plasma scheme is not reported as one.** KDE's
+    platform theme implements `colorScheme()` but not
+    `contrastPreference()` (plasma-integration, master `276324f5`), and
+    qtbase's own KDE theme always answers `NoPreference`. So under Plasma
+    the app keeps its own ramps, and high contrast engages only when Qt
+    reports the preference. Guessing it from the palette's colours would
+    also catch ordinary black-on-white palettes, so the app does not try.
+  - Not tried on a Plasma desktop: there is none here, and the Linux CI
+    leg runs without a desktop. Both points come from the sources above.
+- **HarmonyOS Sans and the Huawei visual language.** A brand typeface and
+  a platform's look. The type stays the system font on every OS; of
+  HarmonyOS only the width breakpoints were taken, because they are
+  about layout, not appearance.
+
+**What was checked where (round 2):**
+
+- **macOS, natively** (Apple M5, macOS 27):
+  - the focus ring on twelve controls;
+  - forced high contrast in light and dark;
+  - the text floor in four languages;
+  - the width classes in three languages, light and dark;
+  - real key and mouse events through QtTest's `TestEvent`;
+  - the full gate walk, visual assertions included.
+- **Offscreen:** 12 px and 18 px (150 %) text.
+- **Linux:** each PR's CI captures, looked at (Xvfb + llvmpipe, a 12 px
+  system font).
+- **Still open:**
+  - macOS under "Increase contrast", which only the owner can switch;
+  - Windows' four contrast themes, the focus ring's visibility, Snap
+    layouts and text sizes (#81).

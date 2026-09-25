@@ -193,6 +193,10 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   controls. The README shows a single current set of screenshots in place of
   the stale `docs/screenshots/phase-04-*`, keeping repository growth small
   (ADR 0009 / 0011).
+- R8.3 ADR 0013 records what round 2 did not adopt and why (Mica and
+  acrylic, Kirigami and qqc2-desktop-style, HarmonyOS Sans and the Huawei
+  visual language), and where each platform was checked; AGENTS.md's
+  style lines give round 2's rules.
 
 ## R9 — Validation (every PR in the stack)
 
