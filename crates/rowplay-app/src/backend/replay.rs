@@ -782,6 +782,11 @@ impl ReplayBackend {
         self.ghost_camera = CameraState::new(sport);
         self.ghost_anim_phase = 0.0;
         self.ghost_last_distance = 0.0;
+        // The verdict belongs to the rival being raced. A rival swapped in
+        // at the finish must re-derive it from the new rival's strokes, not
+        // keep showing the departed one's margin (the web's `raceFinished`
+        // formats against the active ghost).
+        self.verdict_text.clear();
         self.has_ghost = true;
         self.dirty = true;
         self.notify_playback();
@@ -2200,5 +2205,35 @@ mod tests {
         }
         assert!(!replay.playing, "playback stopped at the end");
         assert!(!replay.verdict_text.is_empty(), "the finish has a verdict");
+    }
+
+    /// Swapping the rival at the finish re-derives the verdict from the new
+    /// rival's strokes: it belongs to the race being run, not to whatever
+    /// ghost was raced when the line was crossed (the web formats
+    /// `raceFinished` against the active ghost).
+    #[test]
+    fn swapping_the_rival_at_the_finish_replaces_the_verdict() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.load_ghost(1002);
+        replay.seek(1.0);
+        let first = replay.verdict_text.clone();
+        assert!(!first.is_empty(), "the finish has a verdict to replace");
+
+        replay.load_ghost(1003);
+        let mut fresh = ReplayBackend::default();
+        fresh.load_workout(1001);
+        fresh.load_ghost(1003);
+        fresh.seek(1.0);
+        assert_ne!(
+            first, fresh.verdict_text,
+            "the two demo rivals must give different verdicts, or the test \
+             cannot tell a re-derived verdict from a stale one"
+        );
+        assert_eq!(
+            replay.verdict_text, fresh.verdict_text,
+            "the swapped rival's verdict reads as if it had been raced from the start"
+        );
     }
 }
