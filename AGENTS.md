@@ -28,7 +28,7 @@ packaging/                 # Phase 9 manifests: macOS Info.plist, Linux .desktop
 i18n/                      # generated ID-based Qt .ts catalogues (never hand-edited; see "Internationalisation")
 tools/                     # asset / locale / fixture pipeline scripts (Python, Node, Blender); tools/package/ builds the installers
 tests/fixtures/            # golden parity JSON from rowplay-studio + manifest.json + PROVENANCE.md
-docs/                      # roadmap.md, source-map.md, qt-bridges-notes.md, decisions/ (ADRs)
+docs/                      # roadmap.md, source-map.md, qt-bridges-notes.md, design-system.md, decisions/ (ADRs)
 .kiro/specs/               # per-phase requirements / design / tasks
 reference/                 # git-ignored checkouts of rowplay and rowplay-studio (never committed)
 ```
@@ -41,9 +41,10 @@ add vendor-specific guides unless a tool cannot read `AGENTS.md`.
 
 Before coding read `docs/roadmap.md`, `docs/source-map.md`,
 `docs/qt-bridges-notes.md`, the ADRs in `docs/decisions/` and the phase spec
-under `.kiro/specs/`. At session start check out the reference repositories at
-current `main` into `reference/` and record both SHAs in `docs/source-map.md`;
-copy only what you need, with provenance (source repo, path, commit, SHA-256).
+under `.kiro/specs/`, and before any UI work `docs/design-system.md`. At
+session start check out the reference repositories at current `main` into
+`reference/` and record both SHAs in `docs/source-map.md`; copy only what you
+need, with provenance (source repo, path, commit, SHA-256).
 
 ## Build, test and development commands
 

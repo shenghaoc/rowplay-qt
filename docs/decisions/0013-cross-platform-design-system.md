@@ -241,3 +241,35 @@ assessed but not implemented (#104).
   - macOS under "Increase contrast", which only the owner can switch;
   - Windows' four contrast themes, the focus ring's visibility, Snap
     layouts and text sizes (#81).
+
+## Round 3 notes (2026-09-25)
+
+Round 3 started as "adopt what fits from Material 3". Midway the owner
+moved standard controls to Qt's native styles (ADR 0015), which re-scoped
+the M3 items:
+
+- **2a, colour roles (narrowed to content):** the metric, chart, tile and
+  HUD colours derive from the system palette and are fitted to their
+  floors (`fitContrast`, `paletteColour`); no accent tones for controls.
+- **2b, state layers (dropped):** the styles draw their own states.
+- **2c, 3:1 non-text contrast (narrowed to content):** the chart axes and
+  our components' outlines (`chartAxis`, `controlBorder`) are fitted to
+  3:1 on their surfaces.
+  - The replay speed's checked state, drawn by Basic's tool button,
+    measured 1.05:1 in dark, so its label turns bold. That way the choice
+    is not conveyed by colour alone.
+- **2d, large and extra-large layouts (kept):** the width classes are
+  M3's five.
+  - The detail opens M3's supporting pane and the dashboard its feed.
+  - Content stops at 1440 px and running text at 640 px, scaled.
+- **2e, motion tokens (kept, for content):** three durations and M3's
+  standard and emphasized-decelerate curves, all 0 under reduce motion.
+- **2f, target sizes (narrowed to the replay HUD):** every HUD control
+  answers within 40 px through a containment mask, with no two hit areas
+  overlapping under the macOS style or Fusion.
+
+Not adopted, as the round planned: ripples, Roboto, elevation, M3
+Expressive and the Material style.
+
+The details and the per-PR record are in `.kiro/specs/ui-native-styles/`
+and `docs/design-system.md`.

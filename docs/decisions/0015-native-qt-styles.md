@@ -150,3 +150,38 @@ What Qt 6.11.2 does, read from its sources at the tag:
 - The native macOS `ScrollView` reserves room for a scroll bar that is not
   transient, so a replaced (Basic) scroll bar made `contentWidth:
   availableWidth` a binding loop; the style's own scroll bars are used.
+
+## What was checked where (2026-09-25)
+
+The page that applies this ADR is
+[`docs/design-system.md`](../design-system.md): the six principles, platform
+behaviour mapped to Qt API, and what stays ours.
+
+- **macOS, natively** (Apple M5, macOS 27, cocoa and Metal):
+  - **Gate walks:** the full walk in light, phase shots and close-ups
+    included, at the stack's top. In dark, the quick walk captures every
+    screen; its old shadow check then trips at 4.9 % on this base, as
+    AGENTS.md records.
+  - **Text fit:** five screens × English, Spanish and Japanese × three
+    widths, native light and dark, and 150 % text light and dark (180 runs).
+    - Nothing is flagged natively.
+    - At 150 % only Qt Graphs' own axis labels are flagged, as on the base.
+  - **Large windows:** 1200, 1440, 1600 and 1920 px, English and Japanese,
+    light and dark (32 runs), none flagged.
+  - **Real input** through QtTest's `TestEvent`:
+    - a switch row's label toggles its switch, and Replay opens;
+    - the replay HUD's hit areas answer beyond their controls;
+    - the speed choices take the arrows without seeking;
+    - Space on a speed choice leaves play alone.
+  - **Not checked here:** a non-blue accent, Increase Contrast and the
+    native menu bar's roles. They need the owner at the Mac: the agent
+    changes no System Settings, and a background process cannot bring the
+    app's window forward.
+- **Windows:** CI's captures in a real window (D3D11), both styles, light
+  and dark.
+  - The Windows style draws its controls light under the dark scheme, so the
+    dark scheme's light text on them is unreadable: the sidebar's rows, the
+    pop-up buttons, the fields and the buttons.
+  - FluentWinUI3 draws both schemes.
+- **Linux:** CI under Xvfb (Fusion, light). Dark was checked through Fusion
+  on macOS, because Xvfb has no platform theme to report dark.
