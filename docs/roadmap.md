@@ -295,6 +295,24 @@ Wayland (`cargo run -p rowplay-app`).
     scene's shadow is the stronger one. The same diff showed that at High
     the shadow darkens most of the SkiErg and BikeErg ground and none shows
     on the rowing water (#96).
+  - **High and Ultra shadows, FIXED 2026-09-25 (#96).** Every venue mesh
+    cast and received the key light's shadow: a Qt Quick 3D Model does both
+    by default, three.js meshes neither, and the GLB bake carries no flags.
+    So the BikeErg roof shell shadowed the whole track, the snow field
+    shadowed itself into stripes, and the tower and pontoons shaded
+    themselves while the rowing water showed no boat. The venue now takes
+    the web's flags by mesh name (`venue_runtime::venue_shadow_flags`,
+    checked against `tests/fixtures/replay-venue-shadow-parity.json`, which
+    records the web's own objects), the ghost casts and receives nothing,
+    and the live equipment only casts. Ultra's map is 2048 as the web's
+    (both tiers drew 1024), and a 0.05 m bias with 32-bit depth and 16-sample
+    PCF clears the speckle left on the athlete, the one object that still
+    casts and receives. Share of the frame the shadow darkens, Apple M5,
+    light, High, each sport's demo workout at 0:00: RowErg 8.91 → 1.34 %,
+    SkiErg 51.84 → 0.62 %, BikeErg 61.74 → 1.26 %. The gate's rower check
+    reads 1.62 % in light and 1.49 % in dark, over its 1 % floor; a 0.1 m
+    bias also cleared the speckle but took the rower to 0.96 %. Low and
+    Medium cast no shadow and did not change.
 
 ### Phase 5c — Quality tiers and polish ✓
 

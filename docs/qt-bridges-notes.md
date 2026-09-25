@@ -789,7 +789,9 @@ converted string), or allow an associated function as a slot.
   delta, and take more than 5 % of the luminance where it falls, measured
   against the same pixels unshadowed (Apple M5: 9.24 % of the capture by
   10.99 % in light, 8.99 % by 19.08 % in dark; CI's llvmpipe: 9.85 % by
-  10.51 %).
+  10.51 %). Those figures counted the acne of a venue that shadowed itself
+  (#96). With the web's shadow flags the rower's own shadow is what remains:
+  Apple M5 1.62 % by 11.36 % in light, 1.49 % by 20.51 % in dark.
 - **`renderStats.frameTime` vs wall-clock frame deltas** (Phase 5c). With
   `QSG_NO_VSYNC=1`, `renderStats.frameTime` reports the Qt Quick 3D render
   pass cost (sync + prepare + render), while `FrameAnimation.frameTime`
