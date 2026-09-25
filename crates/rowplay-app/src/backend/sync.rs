@@ -174,6 +174,14 @@ impl SyncBackend {
         self.start_internal(true);
     }
 
+    /// Runs the last sync again, in the mode it was started in: the
+    /// settings page's "Retry sync" on a failure.
+    #[qslot]
+    fn retry(&mut self) {
+        let full = self.full_mode;
+        self.start_internal(full);
+    }
+
     #[qslot]
     fn start_internal(&mut self, full: bool) {
         self.refresh_can_sync();
