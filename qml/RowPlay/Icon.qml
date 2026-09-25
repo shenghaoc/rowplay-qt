@@ -8,6 +8,7 @@
 // focused selection, the disabled text colour when disabled).
 import QtQuick
 import QtQuick.Shapes
+import RowPlay
 
 Item {
     id: icon
@@ -16,7 +17,7 @@ Item {
     property string name: ""
     /// Rendered edge length in pixels; the 16-unit grid scales to it.
     property real size: 16
-    property color color: "black"
+    property color color: Theme.textPrimary
 
     implicitWidth: size
     implicitHeight: size

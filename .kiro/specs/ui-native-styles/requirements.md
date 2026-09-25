@@ -27,7 +27,9 @@ control layer. It is delivered as a stack of pull requests (`tasks.md`).
 - R1.2 Linux: Fusion with the system palette, from the platform theme.
 - R1.3 FluentWinUI3 is evaluated on Windows from CI captures of both
   styles, light and dark, before any per-version choice.
-- R1.4 No `import QtQuick.Controls.Basic` survives the stack.
+- R1.4 Only the two bounded content imports of `QtQuick.Controls.Basic`
+  survive: `AppSlider` for the replay scrubber and `AppBusyIndicator` until
+  the native macOS spinner's WebP dependency is packaged (ADR 0015).
 
 ## R2 — Standard controls
 
@@ -41,8 +43,10 @@ control layer. It is delivered as a stack of pull requests (`tasks.md`).
   GridLayout; sidebar rows → ItemDelegate; `AppDrawer` → Drawer; dialogs →
   Dialog with `standardButtons`; menus → the native MenuBar on macOS, a
   ToolButton and Menu elsewhere.
-- R2.2 No `background` or `contentItem` is replaced on a standard control,
-  except a list delegate's row data (ADR 0015).
+- R2.2 No `background` or `contentItem` is replaced on a platform-drawn
+  standard control, except a list delegate's row data. The Basic-fallback
+  Drawer uses a structural `contentItem` host to reparent the sidebar and
+  hold its in-drawer shortcuts (ADR 0015).
 - R2.3 The shared controls are deleted once unused, with their `qmldir` and
   qrc entries, and `Theme.qml` keeps only content tokens.
 

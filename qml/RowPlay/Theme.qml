@@ -329,6 +329,11 @@ QtObject {
                                            : fitContrast(mix(sysWindow, sysText, 0.3),
                                                          [windowBackground, groupBackground,
                                                           controlBackground], 3)
+    /// A selected sidebar row while its list lacks focus; the active row
+    /// uses the style's own highlight and text roles.
+    readonly property color selectionFillInactive: highContrast
+                                                   ? hcWindow : Qt.alpha(sysText, 0.09)
+    readonly property color selectionOutline: highContrast ? hcHighlight : "transparent"
     readonly property color segmentTrack: highContrast ? hcButton
                                           : mix(sysWindow, sysText, 0.08)
     /// The replay scrubber's knob (AppSlider).

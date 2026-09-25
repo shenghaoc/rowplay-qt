@@ -123,9 +123,10 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
   - The curves are M3's standard curve (0.2, 0, 0, 1) and its
     emphasized-decelerate one (0.05, 0.7, 0.1, 1), as
     `Easing.BezierSpline` control points.
-- **Reduce motion:** every duration is 0 under the app's reduce-motion
-  preference, so all of our motion is instant. Qt 6.11 surfaces no OS
-  motion preference.
+- **Reduce motion:** every app-owned duration is 0 under the app's
+  reduce-motion preference, so our transitions are instant. Animations
+  inside platform-drawn controls remain owned by Qt's style. Qt 6.11
+  surfaces no OS motion preference.
 - **Uses:**
   - the scrubber's knob fades in short and standard;
   - the HUD fades medium and standard;
@@ -133,7 +134,9 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
     standard.
   - The spinner's 900 ms turn is a period, not a transition; under reduce
     motion the ring holds still.
-- **No new animation.** The old values were 140 ms and 200 ms `OutCubic`.
+- **No new animation.** The old scrubber fade was 140 ms with the default
+  linear easing, the HUD fade 200 ms with the default linear easing, and
+  only the drawer's 200 ms slide used `OutCubic`.
 
 ## The spinner
 
