@@ -77,6 +77,24 @@ const PHASES: [(u32, &str); 11] = [
 /// not fail: shared CI runners have produced walks 4x and 30x slower.
 const ENTRY_BUDGET_SECONDS: f64 = 30.0;
 
+/// Deletes the captures the assertions below read (the replay's and the
+/// phase shots' `.ppm` twins) before a walk. A reused directory would
+/// otherwise hand them a previous run's files whenever this run's grab was
+/// skipped, timed out or failed to save, none of which fails the walk.
+fn remove_stale_captures(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name.ends_with(".ppm") && (name.starts_with("replay-") || name.starts_with("phase-")) {
+            std::fs::remove_file(entry.path())
+                .unwrap_or_else(|error| panic!("remove the stale capture {name}: {error}"));
+        }
+    }
+}
+
 /// The walk's profile, `ROWPLAY_GATE_PROFILE`: `full` (the default and what
 /// CI runs) or `quick` (the shell, all six languages, the member check, the
 /// mock syncs and the first replay load). AGENTS.md, "Gate profiles".
@@ -370,6 +388,7 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     // one must too, or the capture assertions below are unrunnable.
     if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
         std::fs::create_dir_all(&dir).expect("create screenshot directory");
+        remove_stale_captures(Path::new(&dir));
     }
     let quick = gate_profile_is_quick();
     let mut command = Command::new(env!("CARGO_BIN_EXE_rowplay-app"));
@@ -840,6 +859,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
                 "the shadow check's twins differ in size"
             );
             common::assert_rendered(width, height, with, "replay-row-high");
+            // A black shadowed viewport beside a normal twin would read as
+            // a strong shadow everywhere: both viewports must render first.
+            common::assert_viewport_rendered(width, height, with, "replay-row-high");
+            common::assert_viewport_rendered(width, height, without, "replay-row-high-unshadowed");
             common::assert_shadows(width, height, with, without, "replay-row-high");
         }
     }
