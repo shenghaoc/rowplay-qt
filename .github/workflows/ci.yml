@@ -216,6 +216,44 @@ jobs:
         # Phase 9). Running the tests without the variable is what keeps
         # that fix honest.
         run: cargo test -p rowplay-app
+      # How the native Windows style looks (ADR 0015): nobody on the project
+      # runs Windows (#81), so CI takes the captures. The required walk above
+      # runs offscreen, which draws no Quick 3D; these quick walks run in a
+      # real window on the runner's desktop, the replay on D3D11, for the
+      # default Windows style and for FluentWinUI3, light and dark. They are
+      # informational: a walk the runner cannot show is a finding, not a
+      # blocked pull request.
+      - name: Windows captures in a real window (informational)
+        if: env.RUN_APP == 'true' && runner.os == 'Windows'
+        continue-on-error: true
+        shell: bash
+        env:
+          ROWPLAY_GATE_PROFILE: quick
+          QT_QPA_PLATFORM: windows
+          QSG_RHI_BACKEND: d3d11
+        run: |
+          status=0
+          for style in Windows FluentWinUI3; do
+            for scheme in light dark; do
+              dir="$GITHUB_WORKSPACE/artifacts-windows/$style-$scheme"
+              echo "::group::$style, $scheme"
+              QT_QUICK_CONTROLS_STYLE=$style ROWPLAY_FORCE_COLOR_SCHEME=$scheme \
+                ROWPLAY_SMOKE_ARTIFACT_DIR="$dir" ROWPLAY_SMOKE_SCREENSHOT_DIR="$dir" \
+                cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture \
+                || { echo "::warning title=Windows capture walk::$style, $scheme failed"; status=1; }
+              echo "::endgroup::"
+            done
+          done
+          exit $status
+      - name: Upload the Windows captures
+        if: always() && env.RUN_APP == 'true' && runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-windows
+          path: |
+            artifacts-windows/*/*.png
+            artifacts-windows/*/gate-log.txt
+          if-no-files-found: warn
       # The gate's timestamped app log (gate-log.txt), kept on failure too:
       # a slow or failing walk is only diagnosable from it.
       - name: Upload the gate log
