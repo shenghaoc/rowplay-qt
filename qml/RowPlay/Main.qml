@@ -48,8 +48,40 @@ ApplicationWindow {
     // sidebar stops there instead of squeezing the filter to nothing.
     readonly property real toolbarMinimumWidth: 4 * Theme.spacingLarge
                                                 + drawerButton.implicitWidth
-                                                + sportFilter.compactWidth
+                                                + sportFilter.implicitWidth
                                                 + trailingButtons.implicitWidth
+
+    // A toolbar command (ADR 0015): the style's own tool button, showing
+    // the platform's icon for a glyph (Glyphs.qml) and named by its label,
+    // with the label and the command's shortcut, in the platform's
+    // notation, in its tooltip. A press dismisses the tooltip for the rest
+    // of the hover (it stayed up over the menu a click opened), and while
+    // the button has focus Space presses it, not the replay's play / pause.
+    component CommandButton: ToolButton {
+        /// Glyph key (Glyphs.paths / Glyphs.platformNames).
+        property string glyph: ""
+        /// The command's shortcut (a `Shortcut`'s `nativeText`); "" for none.
+        property string shortcutText: ""
+        property bool tipDismissed: false
+
+        display: AbstractButton.IconOnly
+        icon.name: Glyphs.iconName(glyph)
+        icon.source: Glyphs.iconSource(glyph)
+        icon.width: Theme.iconSize
+        icon.height: Theme.iconSize
+        focusPolicy: Qt.TabFocus
+        Accessible.name: text
+        ToolTip.visible: hovered && !tipDismissed && text.length > 0
+        ToolTip.delay: 600
+        ToolTip.text: shortcutText.length > 0 ? text + " (" + shortcutText + ")" : text
+        onPressed: tipDismissed = true
+        onHoveredChanged: tipDismissed = false
+        Keys.onShortcutOverride: function(event) {
+            if (event.key === Qt.Key_Space && event.modifiers === Qt.NoModifier) {
+                event.accepted = true
+            }
+        }
+    }
 
     // Detail column routing: 0 = dashboard, 1 = workout detail, 2 = settings,
     // 3 = the replay route.
@@ -255,25 +287,24 @@ ApplicationWindow {
                 SplitView.minimumWidth: root.toolbarMinimumWidth
                 spacing: 0
 
-                Rectangle {
+                ToolBar {
                     id: toolbar
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.toolbarHeight
-                    color: Theme.toolbarBackground
 
                     readonly property bool replayShown: root.screenIndex === 3
 
                     // Leading, below the large width class: the drawer with
                     // the workout list (named like the web's workouts
                     // section). Checked while the list shows.
-                    ToolbarButton {
+                    CommandButton {
                         id: drawerButton
                         visible: root.sidebarInDrawer && !toolbar.replayShown
                         anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacingLarge
+                        anchors.leftMargin: Theme.spacingMedium
                         anchors.verticalCenter: parent.verticalCenter
-                        iconName: "sidebar.left"
-                        label: Tr.t("dashboard.sectionWorkoutsEyebrow")
+                        glyph: "sidebar.left"
+                        text: Tr.t("dashboard.sectionWorkoutsEyebrow")
                         shortcutText: sidebarShortcut.nativeText
                         checkable: true
                         checked: sidebarDrawer.shown
@@ -285,8 +316,8 @@ ApplicationWindow {
                     RowLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.leftMargin: Theme.spacingLarge
-                        anchors.rightMargin: Theme.spacingLarge
+                        anchors.leftMargin: Theme.spacingMedium
+                        anchors.rightMargin: Theme.spacingMedium
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.spacingSmall
                         visible: toolbar.replayShown
@@ -294,9 +325,9 @@ ApplicationWindow {
                         // Named "Close" (the web's `replay.closePanel`): it
                         // returns to the workout, where the web's
                         // "Back to dashboard" would name the wrong place.
-                        ToolbarButton {
-                            iconName: "chevron.left"
-                            label: Tr.t("replay.closePanel")
+                        CommandButton {
+                            glyph: "chevron.left"
+                            text: Tr.t("replay.closePanel")
                             shortcutText: escapeShortcut.nativeText
                             onClicked: Library.closeReplay()
                         }
@@ -315,36 +346,31 @@ ApplicationWindow {
                         }
                     }
 
-                    // Principal: the sport filter (Studio's segmented picker),
-                    // bound to the Library so a filter set from anywhere —
-                    // including the gate walk — shows here. It is centred but
-                    // never under the leading or trailing buttons. Below the
-                    // large width class, and wherever the room is too small
-                    // (large text in a narrow window), it takes its compact
-                    // pop-up form, never below that form's width
-                    // (toolbarMinimumWidth keeps the room for it).
-                    SegmentedControl {
+                    // Principal: the sport filter, a pop-up button (ADR 0015:
+                    // a filter changed now and then, one tab stop, the
+                    // platform's own pop-up), bound to the Library so a
+                    // filter set from anywhere, the gate walk included, shows
+                    // here. Centred, but never under the leading or trailing
+                    // buttons; as wide as its widest sport, so choosing one
+                    // does not move it.
+                    ComboBox {
                         id: sportFilter
                         readonly property real leadingEdge: drawerButton.visible
                                                             ? drawerButton.x + drawerButton.width
                                                               + Theme.spacingLarge
                                                             : Theme.spacingLarge
-                        readonly property real room: trailingButtons.x - Theme.spacingLarge
-                                                     - leadingEdge
                         visible: !toolbar.replayShown
                         anchors.verticalCenter: parent.verticalCenter
-                        width: root.sidebarInDrawer
-                               ? compactWidth
-                               : Math.max(compactWidth, Math.min(implicitWidth, room))
+                        implicitContentWidthPolicy: ComboBox.WidestText
                         x: Math.max(leadingEdge,
                                     Math.min(Math.round((parent.width - width) / 2),
                                              trailingButtons.x - Theme.spacingLarge - width))
                         model: [Tr.t("dashboard.all")].concat(Library.sportNames)
                         currentIndex: Library.sportFilterIndex
-                        label: Tr.t("workoutList.filtersTitle")
                         onActivated: function(index) {
                             Library.setSportFilter(index)
                         }
+                        Accessible.name: Tr.t("workoutList.filtersTitle")
                     }
 
                     // Trailing: reload, the settings toggle and, on Windows
@@ -353,21 +379,21 @@ ApplicationWindow {
                         id: trailingButtons
                         visible: !toolbar.replayShown
                         anchors.right: parent.right
-                        anchors.rightMargin: Theme.spacingLarge
+                        anchors.rightMargin: Theme.spacingMedium
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.spacingXSmall
 
-                        ToolbarButton {
-                            iconName: "arrow.clockwise"
-                            label: Tr.t("pwa.reload")
+                        CommandButton {
+                            glyph: "arrow.clockwise"
+                            text: Tr.t("pwa.reload")
                             shortcutText: refreshShortcut.nativeText
                             enabled: !Sync.isRunning
                             onClicked: Library.reload()
                         }
 
-                        ToolbarButton {
-                            iconName: "sliders"
-                            label: Tr.t("settings.title")
+                        CommandButton {
+                            glyph: "sliders"
+                            text: Tr.t("settings.title")
                             shortcutText: preferencesShortcut.nativeText.length > 0
                                           ? preferencesShortcut.nativeText
                                           : preferencesFallback.nativeText
@@ -376,44 +402,43 @@ ApplicationWindow {
                             onClicked: root.toggleSettings()
                         }
 
-                        ToolbarButton {
+                        CommandButton {
                             id: menuButton
                             visible: !root.isMac
-                            iconName: "line.3.horizontal"
-                            label: Tr.t("nav.menuOpen")
+                            glyph: "line.3.horizontal"
+                            text: Tr.t("nav.menuOpen")
                             onClicked: appMenu.open()
 
                             // The Windows / Linux application menu: the
-                            // shell's commands with their platform shortcuts
-                            // (macOS gets the native menu bar instead).
-                            AppMenu {
+                            // shell's commands (macOS gets the native menu
+                            // bar instead). The style's menu items show no
+                            // shortcut; the toolbar's tooltips name them.
+                            Menu {
                                 id: appMenu
                                 x: menuButton.width - width
                                 y: menuButton.height + Theme.spacingXSmall
 
-                                AppMenuItem {
+                                MenuItem {
                                     text: Tr.t("nav.dashboard")
-                                    shortcutText: dashboardShortcut.nativeText
+                                    Accessible.name: text
                                     onTriggered: root.showDashboard()
                                 }
-                                AppMenuItem {
+                                MenuItem {
                                     text: Tr.t("workoutList.search")
-                                    shortcutText: findShortcut.nativeText
+                                    Accessible.name: text
                                     enabled: findShortcut.enabled
                                     onTriggered: root.focusSearch()
                                 }
-                                AppMenuItem {
+                                MenuItem {
                                     text: Tr.t("pwa.reload")
-                                    shortcutText: refreshShortcut.nativeText
+                                    Accessible.name: text
                                     enabled: !Sync.isRunning
                                     onTriggered: Library.reload()
                                 }
-                                AppMenuSeparator {}
-                                AppMenuItem {
+                                MenuSeparator {}
+                                MenuItem {
                                     text: Tr.t("settings.title")
-                                    shortcutText: preferencesShortcut.nativeText.length > 0
-                                                  ? preferencesShortcut.nativeText
-                                                  : preferencesFallback.nativeText
+                                    Accessible.name: text
                                     onTriggered: root.showSettings()
                                 }
                             }
@@ -421,7 +446,8 @@ ApplicationWindow {
                     }
                 }
 
-                // The toolbar's bottom rule (2 px under high contrast).
+                // The rule between the toolbar and the content (2 px under
+                // high contrast): layout, drawn beside the style's toolbar.
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.ruleWidth
@@ -520,15 +546,17 @@ ApplicationWindow {
                                 spacing: Theme.spacingMedium
 
                                 // The view's one prominent action.
-                                PushButton {
+                                Button {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: Tr.t("landing.exploreDemo")
-                                    prominent: true
+                                    highlighted: true
+                                    Accessible.name: text
                                     onClicked: Settings.setDemoModeEnabled(true)
                                 }
-                                PushButton {
+                                Button {
                                     Layout.alignment: Qt.AlignHCenter
                                     text: Tr.t("landing.connect")
+                                    Accessible.name: text
                                     onClicked: root.showSettings()
                                 }
                             }
@@ -548,14 +576,36 @@ ApplicationWindow {
     // toolbar and the shell's shortcuts stay live, the drawer button and
     // the sidebar toggle close the page, and so do Escape (the shortcut
     // below), settings and the menu's commands on their way.
-    AppDrawer {
+    Drawer {
         id: sidebarDrawer
+        /// Where the drawer is going: set as it starts to open, cleared as
+        /// it starts to close. `visible` stays true through the closing
+        /// slide, so a toggle button bound to it showed a closing drawer as
+        /// open.
+        property bool shown: false
+        onAboutToShow: shown = true
+        onAboutToHide: shown = false
+
+        edge: Qt.LeftEdge
         y: root.compactLayout ? Theme.toolbarHeight + Theme.ruleWidth : 0
         width: root.compactLayout ? root.width
                                   : Math.min(sidebarColumn.SplitView.preferredWidth,
                                              root.width - Theme.px(56))
         height: root.height - y
-        edgeRule: !root.compactLayout
+        // Never opened by a drag from the window's edge: on a desktop a drag
+        // there is aimed at the window frame. The drawer stays interactive
+        // (a swipe can close it), because Qt 6.11 closes a non-interactive
+        // popup neither on Escape nor on a click outside
+        // (docs/qt-bridges-notes.md).
+        dragMargin: 0
+        // It slides in, and appears at once under the reduce-motion
+        // preference.
+        enter: Transition {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : 200; easing.type: Easing.OutCubic }
+        }
+        exit: Transition {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : 200; easing.type: Easing.OutCubic }
+        }
         modal: !root.compactLayout
         focus: true
         closePolicy: root.compactLayout ? Popup.NoAutoClose
@@ -599,11 +649,15 @@ ApplicationWindow {
     // macOS About (the native application menu's About item): the product
     // name, tagline, version and the not-affiliated note, all existing
     // strings. Windows and Linux show the version on the settings page.
-    AppDialog {
+    Dialog {
         id: aboutDialog
         anchors.centerIn: parent
         width: Math.min(root.width - 2 * Theme.spacingXxxLarge, Theme.px(400))
         title: root.title
+        modal: true
+        // The platform's button, named with the web's word ("Dismiss").
+        standardButtons: Dialog.Ok
+        onAboutToShow: standardButton(Dialog.Ok).text = Tr.t("common.dismiss")
 
         ColumnLayout {
             width: parent.width
@@ -631,13 +685,6 @@ ApplicationWindow {
                 color: Theme.textSecondary
                 wrapMode: Text.WordWrap
                 Accessible.name: text
-            }
-        }
-
-        footer: AppDialogButtonBox {
-            PushButton {
-                text: Tr.t("common.dismiss")
-                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
             }
         }
     }
