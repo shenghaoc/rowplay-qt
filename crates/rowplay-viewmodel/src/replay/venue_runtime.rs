@@ -323,3 +323,112 @@ pub fn venue_plan(sport: &str, quality: &str, contract: &Value) -> Result<VenueP
         instance_groups,
     })
 }
+
+/// [`venue_shadow_flags`]: the mesh casts the key light's shadow.
+pub const SHADOW_CASTS: u8 = 1;
+/// [`venue_shadow_flags`]: the mesh receives the key light's shadow.
+pub const SHADOW_RECEIVES: u8 = 2;
+
+/// The venue meshes the web lets cast the key light's shadow, by name, `#`
+/// standing for an index. `renderer3dEnvironment.ts`: `addOverheadSpan`
+/// flags the legs and the deck, `addTrackEdgePosts` the posts (not their
+/// boards), `addRowerFinishTower` every part of the tower.
+const SHADOW_CASTERS: &[&str] = &[
+    "environment:bike:finish-gantry-deck",
+    "environment:bike:finish-gantry-leg-#",
+    "environment:bike:rail-posts",
+    "environment:rower:course-bridge-deck",
+    "environment:rower:course-bridge-leg-#",
+    "environment:rower:distance-posts",
+    "environment:rower:finish-tower-cabin",
+    "environment:rower:finish-tower-glazing",
+    "environment:rower:finish-tower-mast",
+    "environment:rower:finish-tower-shaft",
+    "environment:rower:finish-tower-wing",
+    "environment:rower:wetland-boardwalk-posts",
+    "environment:skierg:piste-poles",
+    "environment:skierg:timing-arch-deck",
+    "environment:skierg:timing-arch-leg-#",
+];
+
+/// The venue meshes the web lets receive the key light's shadow, by name,
+/// `#` standing for an index: every arc the builder makes
+/// (`makeHorizontalArc` in `renderer3dEnvironment.ts`, `makeVerticalArc` in
+/// `renderer3d.ts`), the renderer's infield and apron, and the few surfaces
+/// the builder flags itself (the island, the ski stadium field, start pad
+/// and snowbank, the bike's infield floor).
+const SHADOW_RECEIVERS: &[&str] = &[
+    "environment:bike:ad-band",
+    "environment:bike:apron",
+    "environment:bike:arena-wall-bay-#",
+    "environment:bike:infield",
+    "environment:bike:infield-floor",
+    "environment:bike:stands-tier-#-sector-#",
+    "environment:bike:track-boards-inner",
+    "environment:bike:track-boards-outer",
+    "environment:rower:apron",
+    "environment:rower:bank-terrace-#",
+    "environment:rower:campus-path",
+    "environment:rower:earth-bank-#",
+    "environment:rower:grass-bank-#",
+    "environment:rower:island-core",
+    "environment:rower:island-lawn",
+    "environment:rower:mist-band-#",
+    "environment:rower:reflection-band-#",
+    "environment:rower:vista-shingle",
+    "environment:rower:vista-wet-edge",
+    "environment:rower:water-ripple-#",
+    "environment:rower:waterline-#",
+    "environment:rower:wet-edge-#",
+    "environment:rower:wetland-boardwalk-deck",
+    "environment:skierg:apron",
+    "environment:skierg:snowbank",
+    "environment:skierg:stadium-field",
+    "environment:skierg:start-chute",
+    "environment:skierg:start-pad",
+    "environment:skierg:terrace-step-#",
+    "environment:skierg:valley-shadow-#",
+    "environment:skierg:valley-sun-#",
+    "environment:skierg:wind-lip-#",
+    // The generic infields of the RowErg and SkiErg are hidden, so only the
+    // bike's reaches a GLB; the rule still names what the renderer flags.
+    "environment:rower:infield",
+    "environment:skierg:infield",
+];
+
+/// The name with every index replaced by `#`: a run of digits after a `-`
+/// that ends the name or another `-`.
+fn venue_mesh_family(name: &str) -> String {
+    let mut family = String::with_capacity(name.len());
+    for (i, part) in name.split('-').enumerate() {
+        if i > 0 {
+            family.push('-');
+        }
+        if i > 0 && !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit()) {
+            family.push('#');
+        } else {
+            family.push_str(part);
+        }
+    }
+    family
+}
+
+/// Whether a baked venue mesh casts and receives the key light's shadow, as
+/// a mask of [`SHADOW_CASTS`] and [`SHADOW_RECEIVES`]: the web's flags,
+/// which the GLB bake does not carry (`tests/fixtures/
+/// replay-venue-shadow-parity.json` records them). three.js meshes cast and
+/// receive nothing unless flagged, a Qt Quick 3D `Model` both by default:
+/// unflagged, the BikeErg roof shell shadowed the whole track and the snow
+/// field shadowed itself (#96). Only High and Ultra cast a shadow at all.
+#[must_use]
+pub fn venue_shadow_flags(name: &str) -> u8 {
+    let family = venue_mesh_family(name);
+    let mut flags = 0;
+    if SHADOW_CASTERS.contains(&family.as_str()) {
+        flags |= SHADOW_CASTS;
+    }
+    if SHADOW_RECEIVERS.contains(&family.as_str()) {
+        flags |= SHADOW_RECEIVES;
+    }
+    flags
+}

@@ -41,7 +41,7 @@ use rowplay_viewmodel::replay::grip::{
 use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings};
 use rowplay_viewmodel::replay::pose::{PoseSolver, clip_fraction, rig_targets};
 use rowplay_viewmodel::replay::tier::tier_settings_json;
-use rowplay_viewmodel::replay::{anchors, glb, materials, palette};
+use rowplay_viewmodel::replay::{anchors, glb, materials, palette, venue_runtime};
 
 use crate::backend::AppState;
 use crate::replay::assets;
@@ -690,6 +690,19 @@ impl ReplayBackend {
         self.scheme_dark = dark;
         self.refresh_palette();
         self.notify_replay();
+    }
+
+    /// The key light's shadow roles of one baked venue mesh, by its node
+    /// name: a mask of 1 (casts) and 2 (receives), the web's flags (#96,
+    /// `venue_runtime::venue_shadow_flags`). The scene asks once per mesh
+    /// while it walks a venue variant, never per frame.
+    // A slot is a method taking an owned String (qtbridge implements
+    // `QMetaCallArg` for `String`, not `&str`), so this pure lookup keeps a
+    // receiver it does not read (qt-bridges-notes #20).
+    #[allow(clippy::unused_self, clippy::needless_pass_by_value)]
+    #[qslot]
+    fn venue_shadow_flags(&self, name: String) -> i64 {
+        i64::from(venue_runtime::venue_shadow_flags(&name))
     }
 
     /// The scene reports that both components instantiated and the scene

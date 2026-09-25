@@ -4,7 +4,10 @@
 //! contract produces a plan the scene can build — texture sources resolve to
 //! vendored files, component names match the build's `PACKS` rows.
 
-use rowplay_viewmodel::replay::venue_runtime::{INSTANCE_BUCKETS, bucket_instances, venue_plan};
+use rowplay_viewmodel::replay::venue_runtime::{
+    INSTANCE_BUCKETS, SHADOW_CASTS, SHADOW_RECEIVES, bucket_instances, venue_plan,
+    venue_shadow_flags,
+};
 use serde_json::{Value, json};
 
 use std::path::PathBuf;
@@ -189,4 +192,76 @@ fn malformed_instances_name_the_group() {
         error.to_string().contains("environment:rower:broken"),
         "error must name the group: {error}"
     );
+}
+
+/// The mesh node names of a vendored venue GLB (its JSON chunk).
+fn glb_mesh_names(sport: &str, tier: &str) -> std::collections::BTreeSet<String> {
+    let path = venue_dir().join(format!("rowplay-venue-{sport}-{tier}.glb"));
+    let bytes =
+        std::fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
+    assert_eq!(&bytes[..4], b"glTF", "{}", path.display());
+    let length = u32::from_le_bytes(bytes[12..16].try_into().expect("chunk length")) as usize;
+    let document: Value = serde_json::from_slice(&bytes[20..20 + length]).expect("GLB JSON chunk");
+    document["nodes"]
+        .as_array()
+        .expect("nodes")
+        .iter()
+        .filter(|node| node.get("mesh").is_some())
+        .map(|node| node["name"].as_str().expect("named node").to_owned())
+        .collect()
+}
+
+/// #96: every venue mesh casts and receives the key light's shadow as the
+/// web's own object does. The fixture records the flags of the web's
+/// environment objects (and the renderer's own infield, apron and vertical
+/// arcs) at the two tiers that cast a shadow, under the GLBs' names
+/// (`tools/gen-venue-shadow-parity.mjs`).
+#[test]
+fn venue_shadow_flags_match_the_webs_objects() {
+    let fixture = rowplay_fixtures::load_value("replay-venue-shadow-parity.json")
+        .expect("the shadow parity fixture");
+    let variants = fixture["variants"].as_object().expect("variants");
+    assert_eq!(variants.len(), SPORTS.len() * 2, "High and Ultra per sport");
+    let (mut meshes, mut casters, mut receivers) = (0, 0, 0);
+    for (variant, recorded) in variants {
+        for (name, web) in recorded.as_object().expect("meshes") {
+            let cast = web["cast"].as_bool().expect("cast");
+            let receive = web["receive"].as_bool().expect("receive");
+            let expected =
+                if cast { SHADOW_CASTS } else { 0 } | if receive { SHADOW_RECEIVES } else { 0 };
+            assert_eq!(
+                venue_shadow_flags(name),
+                expected,
+                "{variant} {name}: the web casts {cast}, receives {receive} ({})",
+                web["source"]
+            );
+            meshes += 1;
+            casters += usize::from(cast);
+            receivers += usize::from(receive);
+        }
+    }
+    // Recorded at the pin: 464 meshes, 35 casting and 154 receiving. None
+    // does both, so no venue mesh can shadow itself.
+    assert_eq!((meshes, casters, receivers), (464, 35, 154));
+}
+
+/// The recording covers exactly the mesh nodes of the vendored High and
+/// Ultra GLBs, so a re-bake that renames or adds a mesh fails here rather
+/// than taking the default flags unnoticed.
+#[test]
+fn the_shadow_recording_names_every_vendored_mesh() {
+    let fixture = rowplay_fixtures::load_value("replay-venue-shadow-parity.json")
+        .expect("the shadow parity fixture");
+    for sport in SPORTS {
+        for tier in ["high", "ultra"] {
+            let recorded: std::collections::BTreeSet<String> = fixture["variants"]
+                [format!("{sport}:{tier}")]
+            .as_object()
+            .unwrap_or_else(|| panic!("{sport}:{tier} recorded"))
+            .keys()
+            .cloned()
+            .collect();
+            assert_eq!(recorded, glb_mesh_names(sport, tier), "{sport}:{tier}");
+        }
+    }
 }

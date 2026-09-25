@@ -146,8 +146,21 @@ Item {
                 color: Replay.skySun; brightness: 1.2
                 castsShadow: !replayRoot.shadowsSuppressed
                              && (scene.ts ? scene.ts.shadows : true)
-                shadowMapQuality: Light.ShadowMapQualityHigh; shadowFactor: 80
-                shadowBias: 0.02; pcfFactor: 0.03; shadowMapFar: 60; csmNumSplits: 2
+                // The tier's map size (TierSettings.shadow_map_size, the
+                // web's shadow.mapSize): 1024 at High, 2048 at Ultra (#96).
+                shadowMapQuality: scene.ts && scene.ts.shadowMapSize >= 2048
+                                  ? Light.ShadowMapQualityVeryHigh
+                                  : Light.ShadowMapQualityHigh
+                shadowFactor: 80
+                // With the venue flagged as the web flags it, only the live
+                // athlete both casts and receives, and the acne left was a
+                // speckle on the body at 0.02 m of bias and 4-sample PCF.
+                // 0.05 m with a 32-bit depth map and 16 samples over 5 cm
+                // clears it; 0.1 m cleared it too, but thinned the rower's
+                // own shadow in the gate's check capture to 0.96 % (#96).
+                shadowBias: 0.05; use32BitShadowmap: true
+                softShadowQuality: Light.PCF16; pcfFactor: 0.05
+                shadowMapFar: 60; csmNumSplits: 2
             }
         }
 
@@ -753,9 +766,30 @@ Item {
         ghostJointNodes = gjn
         if (!validateMaterials()) return
         applySceneRules()
+        // The key light's shadow roles, as the web flags its objects: the
+        // live athlete casts and receives, the live equipment only casts,
+        // the ghost does neither (renderer3d.ts, `finalizeAvatar`). A Qt
+        // Quick 3D Model casts and receives by default, three.js meshes
+        // neither; the venue's roles come with its walk (#96).
+        setShadowRoles(athlete, true, true)
+        setShadowRoles(rigs, true, false)
+        setShadowRoles(rigsMirror, true, false)
+        setShadowRoles(ghostAthlete, false, false)
+        setShadowRoles(ghostRigs, false, false)
+        setShadowRoles(ghostRigsMirror, false, false)
         venueSchemeCached = Replay.schemeDark
         syncVenue()
         Replay.reportReady()
+    }
+
+    function setShadowRoles(node, casts, receives) {
+        if (!node) return
+        if (node.castsShadows !== undefined) {
+            node.castsShadows = casts
+            node.receivesShadows = receives
+        }
+        var ch = node.children
+        for (var i = 0; ch && i < ch.length; ++i) setShadowRoles(ch[i], casts, receives)
     }
 
     function walkForJoints(node, list) {
@@ -1129,6 +1163,11 @@ Item {
         for (var i = 0; children && i < children.length; ++i) {
             var child = children[i]
             if (child.instancing !== undefined && child.source !== undefined) {
+                // The web's shadow flags, before an instance group copies
+                // them onto its bucket Models (#96).
+                var shadowFlags = Replay.venueShadowFlags(child.objectName)
+                child.castsShadows = (shadowFlags & 1) !== 0
+                child.receivesShadows = (shadowFlags & 2) !== 0
                 var groupPlan = instanceGroups[child.objectName]
                 if (groupPlan !== undefined) {
                     applied += applyInstanceGroup(plan, variantKey, child, groupPlan)
