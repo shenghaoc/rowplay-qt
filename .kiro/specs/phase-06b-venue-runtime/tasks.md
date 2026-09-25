@@ -25,8 +25,9 @@
 ## Follow-ups
 
 - [x] T9 (#96) The venue casts and receives the key light's shadow as the
-  web flags it. `tools/gen-venue-shadow-parity.mjs` records the web's flags
-  for every mesh of the High and Ultra variants under the GLBs' names;
+  web flags it. `tools/gen-venue-shadow-parity.mjs` reads the web's flags
+  off the scene its production renderer builds, for every mesh of the High
+  and Ultra variants, under the GLBs' names;
   `venue_runtime::venue_shadow_flags` is checked against it, and the scene
   applies it in the venue walk. The athlete, the equipment and the ghost
   take the web's roles, Ultra's map is 2048, and the bias, depth and PCF

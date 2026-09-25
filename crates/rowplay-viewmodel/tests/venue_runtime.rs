@@ -212,9 +212,9 @@ fn glb_mesh_names(sport: &str, tier: &str) -> std::collections::BTreeSet<String>
 }
 
 /// #96: every venue mesh casts and receives the key light's shadow as the
-/// web's own object does. The fixture records the flags of the web's
-/// environment objects (and the renderer's own infield, apron and vertical
-/// arcs) at the two tiers that cast a shadow, under the GLBs' names
+/// web's own object does. The fixture reads the flags off the scene the
+/// web's production renderer builds (`CourseRenderer3D`, headless) at the
+/// two tiers that cast a shadow, under the GLBs' names
 /// (`tools/gen-venue-shadow-parity.mjs`).
 #[test]
 fn venue_shadow_flags_match_the_webs_objects() {
@@ -232,8 +232,8 @@ fn venue_shadow_flags_match_the_webs_objects() {
             assert_eq!(
                 venue_shadow_flags(name),
                 expected,
-                "{variant} {name}: the web casts {cast}, receives {receive} ({})",
-                web["source"]
+                "{variant} {name} (under {}): the web casts {cast}, receives {receive}",
+                web["parent"]
             );
             meshes += 1;
             casters += usize::from(cast);
