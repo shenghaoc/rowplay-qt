@@ -146,13 +146,16 @@ ColumnLayout {
             }
 
             // Stroke rate and heart rate (the Phase 4 brief extends Studio's
-            // two charts with the rate/HR series). The HR chart draws the
-            // first gap-free segment; belt dropouts split the data and the
-            // later segments are not drawn (4b limitation, recorded in the
-            // source map).
-            RowLayout {
+            // two charts with the rate/HR series), side by side while each
+            // keeps 240 px (scaled), one above the other in a narrower card.
+            // The HR chart draws the first gap-free segment; belt dropouts
+            // split the data and the later segments are not drawn (4b
+            // limitation, recorded in the source map).
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingXLarge
+                columns: width >= 2 * Theme.px(240) + columnSpacing ? 2 : 1
+                columnSpacing: Theme.spacingXLarge
+                rowSpacing: Theme.spacingLarge
 
                 StrokeChart {
                     Layout.fillWidth: true

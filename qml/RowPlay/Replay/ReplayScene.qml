@@ -330,7 +330,9 @@ Item {
     // ---- Transport HUD (ADR 0013) ----
     // Floating controls over the scene: play / pause, elapsed time, the
     // scrubber, total time and distance; then the speed, the metric chips
-    // and the race gap; the verdict gets its own line when a ghost finishes.
+    // and the race gap, which move under the speed where the two do not fit
+    // side by side (a compact window); the verdict gets its own line when a
+    // ghost finishes.
     // Back navigation is the toolbar's leading button (Main.qml). The HUD is
     // opaque, on the grouped surface: translucent, text on it fell below AA
     // over dark parts of the scene. All text is pre-rendered in Rust
@@ -381,7 +383,10 @@ Item {
                     onClicked: Replay.toggle()
                 }
 
+                // The times and the distance keep their width; the
+                // scrubber gives way in a narrow window.
                 Label {
+                    Layout.minimumWidth: implicitWidth
                     text: replayRoot.clockText
                     font: Theme.tabularBody
                     color: Theme.textPrimary
@@ -391,6 +396,7 @@ Item {
                 AppSlider {
                     id: seekSlider
                     Layout.fillWidth: true
+                    Layout.minimumWidth: Theme.px(64)
                     from: 0
                     to: 1
                     value: Replay.progress
@@ -399,6 +405,7 @@ Item {
                 }
 
                 Label {
+                    Layout.minimumWidth: implicitWidth
                     text: replayRoot.totalText
                     font: Theme.tabularBody
                     color: Theme.textSecondary
@@ -406,6 +413,7 @@ Item {
                 }
                 Label {
                     Layout.leftMargin: Theme.spacingSmall
+                    Layout.minimumWidth: implicitWidth
                     text: replayRoot.distanceText
                     font: Theme.tabularBody
                     color: Theme.metricDistance
@@ -413,11 +421,41 @@ Item {
                 }
             }
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.spacingXLarge
+            // The speed beside the chips, or above them where the two need
+            // more than the HUD's width. The switch back waits for some
+            // spare room, so a value that widens during playback cannot
+            // flip the layout back and forth.
+            GridLayout {
+                id: hudLower
 
+                property bool stacked: false
+                readonly property real needed: speedControl.implicitWidth + columnSpacing
+                                               + chipRow.implicitWidth
+
+                function restack() {
+                    if (width <= 0) {
+                        return
+                    }
+                    if (!stacked && needed > width) {
+                        stacked = true
+                    } else if (stacked && needed + Theme.px(24) < width) {
+                        stacked = false
+                    }
+                }
+                onWidthChanged: restack()
+                onNeededChanged: restack()
+
+                Layout.fillWidth: true
+                columns: stacked ? 1 : 2
+                columnSpacing: Theme.spacingXLarge
+                rowSpacing: Theme.spacingMedium
+
+                // Takes its pop-up form only where even a line of its own
+                // is too narrow for its segments.
                 SegmentedControl {
+                    id: speedControl
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth
                     model: Replay.speedLabels
                     currentIndex: Replay.speedIndex
                     label: Tr.t("replay.playbackSpeed")
@@ -426,59 +464,82 @@ Item {
                     }
                 }
 
-                Item { Layout.fillWidth: true }
+                // Beside the speed as tall as it, so its items centre in the
+                // row exactly as they did in one RowLayout. At its own
+                // height (a layout's maximum comes from its items, so
+                // fillHeight cannot stretch it) the grid centred it at a
+                // rounded 2 px, and the race gap sat 1 px lower.
+                RowLayout {
+                    id: chipRow
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: hudLower.stacked ? 0 : speedControl.implicitHeight
+                    spacing: Theme.spacingXLarge
 
-                // Metric chips: the web gauge caption above the tabular value
-                // in its Metric Mapping Rule colour (the caption names the
-                // metric, so the colour is never the only cue). The model is
-                // constant and each chip reads its value by index, so a new
-                // frame updates two labels in place; a model built from the
-                // values would rebuild the chips whenever one changed.
-                Repeater {
-                    model: [
-                        { id: "replay.gPace", role: 3 },
-                        { id: "replay.gRate", role: 6 },
-                        { id: "replay.gPower", role: 4 },
-                        { id: "replay.gHeart", role: 5 }
-                    ]
+                    // Beside the speed the chips sit at the trailing edge,
+                    // under it at the leading edge.
+                    Item {
+                        Layout.fillWidth: true
+                        visible: !hudLower.stacked
+                    }
 
-                    ColumnLayout {
-                        id: chip
+                    // Metric chips: the web gauge caption above the tabular
+                    // value in its Metric Mapping Rule colour (the caption
+                    // names the metric, so the colour is never the only cue).
+                    // The model is constant and each chip reads its value by
+                    // index, so a new frame updates two labels in place; a
+                    // model built from the values would rebuild the chips
+                    // whenever one changed.
+                    Repeater {
+                        model: [
+                            { id: "replay.gPace", role: 3 },
+                            { id: "replay.gRate", role: 6 },
+                            { id: "replay.gPower", role: 4 },
+                            { id: "replay.gHeart", role: 5 }
+                        ]
 
-                        required property var modelData
-                        required property int index
-                        readonly property string value: index === 0 ? replayRoot.paceText
-                                                      : index === 1 ? replayRoot.rateText
-                                                      : index === 2 ? replayRoot.wattsText
-                                                      : replayRoot.heartText
+                        ColumnLayout {
+                            id: chip
 
-                        visible: value.length > 0
-                        spacing: 0
-                        Accessible.name: Tr.t(modelData.id) + " " + value
+                            required property var modelData
+                            required property int index
+                            readonly property string value: index === 0 ? replayRoot.paceText
+                                                          : index === 1 ? replayRoot.rateText
+                                                          : index === 2 ? replayRoot.wattsText
+                                                          : replayRoot.heartText
 
-                        Label {
-                            text: Tr.t(chip.modelData.id)
-                            font: Theme.compactLabel
-                            color: Theme.textSecondary
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            text: chip.value
-                            font: Theme.tabularBody
-                            color: Theme.metricColor(chip.modelData.role)
-                            Accessible.ignored: true
+                            visible: value.length > 0
+                            spacing: 0
+                            Accessible.name: Tr.t(modelData.id) + " " + value
+
+                            Label {
+                                text: Tr.t(chip.modelData.id)
+                                font: Theme.compactLabel
+                                color: Theme.textSecondary
+                                Accessible.ignored: true
+                            }
+                            Label {
+                                text: chip.value
+                                font: Theme.tabularBody
+                                color: Theme.metricColor(chip.modelData.role)
+                                Accessible.ignored: true
+                            }
                         }
                     }
-                }
 
-                // Race gap: the web's words and ▲ / ▼ glyph (visible when a
-                // ghost is loaded).
-                Label {
-                    visible: Replay.hasGhost && Replay.gapText.length > 0
-                    text: Replay.gapText
-                    font: Theme.tabularBody
-                    color: Theme.textPrimary
-                    Accessible.name: text
+                    // Race gap: the web's words and ▲ / ▼ glyph (visible
+                    // when a ghost is loaded).
+                    Label {
+                        visible: Replay.hasGhost && Replay.gapText.length > 0
+                        text: Replay.gapText
+                        font: Theme.tabularBody
+                        color: Theme.textPrimary
+                        Accessible.name: text
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        visible: hudLower.stacked
+                    }
                 }
             }
 
