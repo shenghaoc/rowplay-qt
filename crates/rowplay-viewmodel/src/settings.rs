@@ -196,6 +196,48 @@ pub fn is_curated_timezone(zone: &str) -> bool {
         .any(|option| option.value == zone)
 }
 
+/// The longest filter text [`timezone_matches`] reads. Longer than any
+/// label or zone name, so a longer query can match nothing (the text comes
+/// from a field, so it is bounded before any scan).
+pub const TIMEZONE_QUERY_MAX_CHARS: usize = 64;
+
+/// The home-timezone picker entries a typed filter keeps, as positions in
+/// the picker: 0 is its "UTC (default)" entry, whose translated label the
+/// caller passes, and the curated zones follow at 1… in
+/// [`timezone_options`] order. A query matches an entry's label or its IANA
+/// zone name, ignoring case and the spaces around it, with `_` matching a
+/// space and `-` the labels' `−`, so "new york", "-05" and "america" all
+/// find their zones. An empty query keeps every entry.
+#[must_use]
+pub fn timezone_matches(query: &str, default_label: &str) -> Vec<usize> {
+    let query = query.trim();
+    if query.chars().count() > TIMEZONE_QUERY_MAX_CHARS {
+        return Vec::new();
+    }
+    let needle = fold_for_matching(query);
+    let keeps = |text: &str| needle.is_empty() || fold_for_matching(text).contains(&needle);
+    let mut matches = Vec::new();
+    if keeps(default_label) {
+        matches.push(0);
+    }
+    let zones = timezone_options()
+        .into_iter()
+        .flat_map(|group| group.options);
+    for (index, option) in zones.enumerate() {
+        if keeps(option.label) || keeps(option.value) {
+            matches.push(index + 1);
+        }
+    }
+    matches
+}
+
+/// Lower case, the Unicode minus as `-` and `_` as a space.
+fn fold_for_matching(text: &str) -> String {
+    text.to_lowercase()
+        .replace('\u{2212}', "-")
+        .replace('_', " ")
+}
+
 /// The unit picker entries: index in the segmented control → preference.
 /// The QML labels are the unit symbols `km` / `mi` (untranslated by design,
 /// like the web's chart axis labels — see `docs/source-map.md`).
@@ -287,6 +329,61 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// The picker position of a curated zone (1-based: 0 is the default).
+    fn picker_position(zone: &str) -> usize {
+        timezone_options()
+            .into_iter()
+            .flat_map(|group| group.options)
+            .position(|option| option.value == zone)
+            .expect("a curated zone")
+            + 1
+    }
+
+    #[test]
+    fn an_empty_timezone_filter_keeps_every_entry() {
+        let all = timezone_matches("", "UTC (default)");
+        assert_eq!(all, (0..=47).collect::<Vec<_>>());
+        assert_eq!(timezone_matches("   ", "UTC (default)"), all);
+    }
+
+    #[test]
+    fn a_timezone_filter_matches_labels_and_zone_names() {
+        let new_york = picker_position("America/New_York");
+        assert_eq!(timezone_matches("york", "UTC (default)"), [new_york]);
+        assert_eq!(timezone_matches("NEW YORK", "UTC (default)"), [new_york]);
+        // The zone name, with `_` read as a space either way.
+        assert_eq!(timezone_matches("new_york", "UTC (default)"), [new_york]);
+        let americas: Vec<usize> = timezone_matches("america/", "UTC (default)");
+        assert!(americas.contains(&new_york));
+        assert!(!americas.contains(&picker_position("Europe/Berlin")));
+        assert!(!americas.contains(&0));
+    }
+
+    #[test]
+    fn a_typed_hyphen_matches_the_labels_minus_sign() {
+        let hyphen = timezone_matches("-05:00", "UTC (default)");
+        assert_eq!(hyphen, timezone_matches("\u{2212}05:00", "UTC (default)"));
+        assert!(hyphen.contains(&picker_position("America/New_York")));
+        assert!(hyphen.contains(&picker_position("America/Toronto")));
+        assert!(!hyphen.contains(&picker_position("Europe/London")));
+    }
+
+    #[test]
+    fn the_translated_default_entry_matches_its_own_label() {
+        // Every curated label reads "(UTC…)", so "utc" keeps them all.
+        assert_eq!(timezone_matches("utc", "UTC (default)").len(), 48);
+        assert_eq!(timezone_matches("既定", "UTC（既定）"), [0]);
+        assert!(timezone_matches("既定", "UTC (default)").is_empty());
+    }
+
+    #[test]
+    fn an_overlong_timezone_filter_matches_nothing() {
+        let long = "a".repeat(TIMEZONE_QUERY_MAX_CHARS + 1);
+        assert!(timezone_matches(&long, &long).is_empty());
+        let at_bound = "a".repeat(TIMEZONE_QUERY_MAX_CHARS);
+        assert_eq!(timezone_matches(&at_bound, &at_bound), [0]);
     }
 
     #[test]
