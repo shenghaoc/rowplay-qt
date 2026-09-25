@@ -21,7 +21,9 @@ would conflict with them at merge time.
    menu.
 4. Settings: GroupBox and GridLayout, Switch, ComboBox (quality,
    distance unit, timezone with its filter), buttons, progress.
-5. Detail and dashboard: buttons, the chart controls.
+5. Detail and dashboard: the Replay button (the only control either page
+   has; the charts have none) and the pages' margins inside their scroll
+   views.
 6. Replay HUD: the transport's buttons and slider, the speed buttons, the
    target sizes (R7.4).
 7. Theme cleanup: the shared controls and their tokens deleted; content

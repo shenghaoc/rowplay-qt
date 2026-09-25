@@ -1206,3 +1206,8 @@ requests on the round-2 stack's composed top:
    filter, as a field above the pop-up of matches. The live-mode spinner
    stays ours: the macOS style's is a WebP animation, and no Qt install of
    the project carries the WebP plugin (proposed to the owner).
+5. `ui/native-detail`: the detail's Replay is the style's highlighted
+   button, macOS's default button (the accent only in an active window, as
+   every default button there). The detail and the dashboard keep their
+   margins inside their scroll views, like settings, so the style's scroll
+   bar sits at the pane's edge. Neither page has another control.
