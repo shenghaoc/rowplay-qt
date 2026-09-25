@@ -410,6 +410,12 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     race gap 1 px lower in every capture with a ghost: the HUD's chips
     had moved into a nested layout, which rounds its own centring. The
     chips' row now takes the speed control's height beside it.
+  - [x] T10.9 The drawer button, the sidebar toggle and the in-drawer
+    shortcuts follow the drawer's target state (`AppDrawer.shown`, set as
+    a transition starts). Bound to `visible`, the button stayed checked
+    through the 200 ms closing slide, so a capture taken then showed it
+    checked, and a click during the slide did nothing (found comparing
+    the next PR's native walk with this one's).
 - [ ] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,
   the timezone filter, and the menu, error and accessible-name audit.
 - [ ] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the

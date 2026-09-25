@@ -176,7 +176,7 @@ ApplicationWindow {
         }
         if (!sidebarInDrawer) {
             sidebarShown = !sidebarShown
-        } else if (sidebarDrawer.visible) {
+        } else if (sidebarDrawer.shown) {
             sidebarDrawer.close()
         } else {
             sidebarDrawer.open()
@@ -300,7 +300,7 @@ ApplicationWindow {
                         iconName: "sidebar.left"
                         label: Tr.t("dashboard.sectionWorkoutsEyebrow")
                         checkable: true
-                        checked: sidebarDrawer.visible
+                        checked: sidebarDrawer.shown
                         onClicked: root.toggleSidebar(visualFocus)
                     }
 
@@ -588,12 +588,12 @@ ApplicationWindow {
             // and Find focuses its search field.
             Shortcut {
                 sequence: root.isMac ? "Meta+Ctrl+S" : "F9"
-                enabled: sidebarDrawer.modal && sidebarDrawer.visible
+                enabled: sidebarDrawer.modal && sidebarDrawer.shown
                 onActivated: sidebarDrawer.close()
             }
             Shortcut {
                 sequences: [StandardKey.Find]
-                enabled: sidebarDrawer.modal && sidebarDrawer.visible
+                enabled: sidebarDrawer.modal && sidebarDrawer.shown
                 onActivated: sidebarColumn.focusSearch()
             }
         }

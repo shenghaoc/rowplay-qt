@@ -13,6 +13,13 @@ Drawer {
     /// The rule on the trailing edge (off where the drawer spans the
     /// window).
     property bool edgeRule: true
+    /// Where the drawer is going: set as it starts to open, cleared as it
+    /// starts to close. `visible` stays true through the closing slide, so
+    /// a toggle button bound to it showed a closing drawer as open.
+    property bool shown: false
+
+    onAboutToShow: shown = true
+    onAboutToHide: shown = false
 
     edge: Qt.LeftEdge
     // The Basic style pads one edge by a pixel for its own line; the rule
