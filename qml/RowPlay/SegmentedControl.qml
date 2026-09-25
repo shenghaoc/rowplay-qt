@@ -198,7 +198,7 @@ Control {
                     font.pixelSize: control.font.pixelSize
                     font.weight: segment.selected ? Font.DemiBold : Font.Normal
                     color: !control.enabled ? Theme.textDisabled
-                         : segment.selected ? Theme.segmentThumbText : Theme.textPrimary
+                         : segment.selected ? Theme.segmentThumbText : Theme.controlText
                     elide: Text.ElideRight
                     horizontalAlignment: Text.AlignHCenter
                     Accessible.ignored: true

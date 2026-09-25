@@ -21,7 +21,7 @@ Button {
     readonly property bool accentFill: prominent && enabled
     readonly property color labelColor: !enabled ? Theme.textDisabled
                                         : accentFill ? Theme.onAccent
-                                        : (destructive ? Theme.destructiveText : Theme.textPrimary)
+                                        : (destructive ? Theme.destructiveText : Theme.controlText)
 
     implicitHeight: Theme.controlHeight
     leftPadding: Theme.spacingLarge

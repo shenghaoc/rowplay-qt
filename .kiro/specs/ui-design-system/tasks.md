@@ -323,7 +323,9 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     colours, and keeps a metric or status colour only where it reaches
     4.5:1 on the window. The scheme follows the palette. The prominent
     button and an on switch keep their outline, an unfocused sidebar
-    selection takes a 2 px highlight outline.
+    selection takes a 2 px highlight outline. Content on a control's own
+    fill takes the button text (`Theme.controlText`), since a contrast
+    theme may set it apart from the window text (Codex review).
   - [x] T8.3 2 px outlines under high contrast only: the sidebar's edge,
     the toolbar's rule, cards and chart panels, grouped forms, popups,
     dialogs, tooltips and the replay HUD.

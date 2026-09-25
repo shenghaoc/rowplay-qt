@@ -23,7 +23,7 @@ ComboBox {
     contentItem: Label {
         text: control.displayText
         font: control.font
-        color: control.enabled ? Theme.textPrimary : Theme.textDisabled
+        color: control.enabled ? Theme.controlText : Theme.textDisabled
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
         Accessible.ignored: true
@@ -34,7 +34,7 @@ ComboBox {
         y: Math.round((control.height - height) / 2)
         name: "chevron.down"
         size: Theme.iconSize
-        color: control.enabled ? Theme.textSecondary : Theme.textDisabled
+        color: control.enabled ? Theme.controlTextSecondary : Theme.textDisabled
     }
 
     background: Rectangle {
