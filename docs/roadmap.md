@@ -1106,3 +1106,13 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
      and the shortcuts stay live there; and a non-interactive popup
      ignores Escape and the click outside, so the drawer stays
      interactive and turns edge drags off with `dragMargin: 0`.
+4. `ui/shortcut-tooltips-timezone-errors`: toolbar tooltips name their
+   shortcut in the platform's notation ("Reload (⌘R)"); the timezone
+   picker filters as you type, in the view-model; a failed sync is
+   labelled "Sync failed" with "Retry sync" in its row; a refused date
+   marks its own field, with the form it takes under it; screen-reader
+   names lead with what tells an item apart (a sidebar row's title, a
+   split's number), and the detail header's name lost an English
+   "intervals". The errors and statuses were audited path by path, and
+   the application menu holds no Quit or window items (it never did).
+   Access keys are assessed in #104, not implemented.

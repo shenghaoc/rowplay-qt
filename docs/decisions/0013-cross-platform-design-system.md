@@ -46,7 +46,8 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
   modal one over the content down to 600 px, the list's own page below
   that, so a narrow window shows one column at a time (round 2).
 - **Toolbar.** Icon-only toolbar buttons, each with a tooltip and an
-  accessible name.
+  accessible name. The tooltip names the command's shortcut in the
+  platform's notation (round 2).
 - **Choices.** A segmented control for exclusive choices that apply
   immediately.
 - **Settings.** Grouped rows: the label on the leading edge and one control
@@ -56,8 +57,13 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
 - **Buttons.** At most one prominent or destructive button per view. Outside
   the toolbar a button shows an icon or a label, never both.
 - **Icons.** Monochrome symbols drawn from original path data in `Icon.qml`.
+- **Errors.** An error says what went wrong where it happened, with its
+  retry right there when one exists; a success is a status line, never a
+  dialog (round 2).
 - **Accessibility.** Nothing is conveyed by colour alone: deltas and the race
   verdict carry a sign, word or glyph. Nothing is reachable only by hover.
+  A screen-reader name leads with the part that tells the item apart
+  (round 2).
   Focus rings are visible on any background: two-tone, like Windows' focus
   visual, with an outer band in the accent and an inner band in the window
   colour (round 2). Text is in sentence case, never all caps.
