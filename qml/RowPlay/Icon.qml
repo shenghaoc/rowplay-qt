@@ -78,6 +78,12 @@ Item {
         "checkmark": { stroke: "M3.5 8.5 L6.5 11.5 L12.5 4.5", fill: "" },
         // Three rules: the application menu button (Windows / Linux).
         "line.3.horizontal": { stroke: "M3 4.5 H13 M3 8 H13 M3 11.5 H13", fill: "" },
+        // A window with its leading pane ruled off: the sidebar drawer.
+        "sidebar.left": {
+            stroke: "M4 3 H12 A2 2 0 0 1 14 5 V11 A2 2 0 0 1 12 13 H4 A2 2 0 0 1 2 11 V5"
+                  + " A2 2 0 0 1 4 3 Z M6.5 3 V13",
+            fill: ""
+        },
         "ellipsis": {
             stroke: "",
             fill: "M3.1 8 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z M6.9 8 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z M10.7 8 a1.1 1.1 0 1 0 2.2 0 a1.1 1.1 0 1 0 -2.2 0 Z"
