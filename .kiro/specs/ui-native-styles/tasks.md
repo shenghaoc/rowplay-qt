@@ -182,3 +182,12 @@ pull request that delivers it.
     proposed in its own pull request.
   - [x] T9.6 R8.3 Linux: CI's Xvfb captures (Fusion, light) looked at;
     dark through Fusion on macOS.
+- [x] T10 (`ui/windows-fluent`) Windows: FluentWinUI3 (R1.1 amended).
+  - [x] T10.1 `qml/qtquickcontrols2.conf`, which names no style, and
+    `qml/+windows/qtquickcontrols2.conf`, which names FluentWinUI3, both in
+    the qrc; Qt's `QFileSelector` picks the variant on Windows.
+  - [x] T10.2 Checked on macOS with `QT_FILE_SELECTORS=windows`
+    (FluentWinUI3) and without it (macOS). CI's captures still cover both
+    Windows styles.
+  - [x] T10.3 ADR 0015's decision 1 amended; the design-system page,
+    AGENTS.md, the README and the source map follow.

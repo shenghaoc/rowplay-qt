@@ -30,6 +30,8 @@ would conflict with them at merge time.
    tokens only; motion tokens for content (R7.2).
 8. Large and extra-large layouts (R7.1).
 9. Documentation (R9).
+10. Windows: FluentWinUI3, named by a file-selected
+    `qml/+windows/qtquickcontrols2.conf` ("Windows style" below).
 
 ## SegmentedControl, per use
 
@@ -170,6 +172,28 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
 - **No new animation.** The old scrubber fade was 140 ms with the default
   linear easing, the HUD fade 200 ms with the default linear easing, and
   only the drawer's 200 ms slide used `OutCubic`.
+
+## Windows style
+
+- **What CI's captures showed:** the Windows style draws its controls
+  light under the dark scheme, so the scheme's light text on them is
+  unreadable. The sidebar's rows turn white with near-white text, the
+  pop-up buttons show nothing (the sport filter's "All" is gone), and
+  the fields and buttons are pale boxes.
+- **FluentWinUI3** draws both schemes.
+- **How it is selected:** Qt reads `:/qtquickcontrols2.conf` through a
+  `QFileSelector`, and `QFileSelector` adds `windows` on Windows.
+  - `qml/+windows/qtquickcontrols2.conf` names FluentWinUI3.
+  - The base `qml/qtquickcontrols2.conf` names no style. It must exist:
+    Qt reads the variant only when the base file does.
+  - No Rust, no `unsafe`, and no packaging change: `windeployqt` already
+    deploys FluentWinUI3.
+- **How it is checked:**
+  - On macOS, `QT_FILE_SELECTORS=windows` makes the style resolve to
+    FluentWinUI3; without it, to macOS.
+  - CI's Windows App job runs its gate under FluentWinUI3 now, and the
+    capture step still covers both styles through
+    `QT_QUICK_CONTROLS_STYLE`, which overrides the file.
 
 ## The spinner
 

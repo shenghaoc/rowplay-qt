@@ -90,8 +90,8 @@ See [`docs/roadmap.md`](docs/roadmap.md) for every phase.
 ![Phase 0 smoke scene](docs/screenshots/phase-00-smoke.png)
 
 The current UI on macOS, with demo data. Standard controls are each
-platform's own: the macOS style here, the Windows style on Windows and Fusion
-on Linux. The content (charts, metric colours, tiles, the replay) is the same
+platform's own: the macOS style here, FluentWinUI3 on Windows and Fusion on
+Linux. The content (charts, metric colours, tiles, the replay) is the same
 everywhere ([ADR 0015](docs/decisions/0015-native-qt-styles.md),
 [design system](docs/design-system.md)). It follows the system's light or dark
 scheme (pinned here with `ROWPLAY_FORCE_COLOR_SCHEME`).

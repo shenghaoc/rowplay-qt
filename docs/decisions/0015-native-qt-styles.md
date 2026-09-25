@@ -66,18 +66,33 @@ What Qt 6.11.2 does, read from its sources at the tag:
   Windows style, `QtQuick.NativeStyle`, FluentWinUI3, Fusion and Qt Svg
   with its image-format and icon-engine plugins; the AppImage carries every
   Controls style Linux can use, Fusion included, and one platform theme
-  (the desktop portal's), but no image-format or icon-engine plugin.
+  (the desktop portal's), but at that inspection no image-format or
+  icon-engine plugin. The #110 layer now stages Qt Svg and its image-format
+  plugin for the Linux command icons (decision 6).
 
 ## Decision
 
-1. **No style is forced.** `qml/qtquickcontrols2.conf` is removed, so each
-   OS gets Qt's default: macOS, Windows, Fusion. FluentWinUI3 is not
-   selected: Qt does not default to it, choosing it per OS version would
-   need a runtime `QQuickStyle` call that qtbridge does not expose or an
-   environment variable set before the application starts (unsafe in Rust
-   2024, and the crates forbid `unsafe`), and nobody on the project can
-   look at Windows (#81). CI captures both styles on Windows so the choice
-   can be revisited on evidence.
+1. **No style is forced, except FluentWinUI3 on Windows** (amended
+   2026-09-25). macOS and Linux get Qt's defaults, macOS and Fusion.
+   - At first Windows got Qt's default too, the Windows style, and
+     FluentWinUI3 was not selected. Qt does not default to it, and choosing
+     it seemed to need either a runtime `QQuickStyle` call, which qtbridge
+     does not expose, or an environment variable set before the
+     application starts, which is unsafe in Rust 2024, and the crates
+     forbid `unsafe`. CI captured both styles, so the choice could be
+     revisited on evidence.
+   - The evidence came: the Windows style draws its controls light under
+     the dark scheme, so the scheme's light text on them was unreadable,
+     and FluentWinUI3 draws both schemes (see "What was checked where").
+   - A way came too. Qt reads `:/qtquickcontrols2.conf` through a
+     `QFileSelector` (`QQuickStylePrivate::settings`), so
+     `qml/+windows/qtquickcontrols2.conf` names FluentWinUI3 for Windows
+     alone. The base file beside it names no style and exists because Qt
+     reads the variant only when the base exists.
+   - Checked on macOS with `QT_FILE_SELECTORS=windows`: the style resolves
+     to FluentWinUI3, and without the selector to macOS.
+     `QT_QUICK_CONTROLS_STYLE` still overrides the file, as CI's captures
+     of both styles use.
 2. **Standard controls are Qt Quick Controls used as they are.** No
    `background` or `contentItem` is replaced on a control the platform
    draws. Four bounded exceptions: a list delegate (an `ItemDelegate`
@@ -127,12 +142,14 @@ What Qt 6.11.2 does, read from its sources at the tag:
 
 ## Consequences
 
-- The app looks like each platform's app: macOS controls on macOS, the
-  Windows style on Windows, Fusion on Linux. Screens differ per OS by
+- The app looks like each platform's app: macOS controls on macOS,
+  FluentWinUI3 on Windows, Fusion on Linux. Screens differ per OS by
   design; the content does not.
-- Where the macOS and Windows styles have no control of their own (the
-  toolbar and its tool buttons, tool tips, the drawer, the replay's speed
-  buttons), Qt's Basic style draws it, flat, in the system palette. A
+- Where the macOS style has no control of its own (the toolbar and its
+  tool buttons, tool tips, the drawer, the replay's speed buttons), Qt's
+  Basic style draws it, flat, in the system palette. FluentWinUI3 draws
+  the tool bar, tool buttons, tool tips, menus and dialogs itself; only
+  the drawer, panes, labels and the split view fall back there. A
   `FallbackStyle` in a configuration file would give Fusion's bevelled
   ones instead, as the styles declare; that is a style choice left to the
   owner, and none is made.
@@ -178,6 +195,7 @@ behaviour mapped to Qt API, and what stays ours.
   - The Windows style draws its controls light under the dark scheme, so the
     dark scheme's light text on them is unreadable: the sidebar's rows, the
     pop-up buttons, the fields and the buttons.
-  - FluentWinUI3 draws both schemes.
+  - FluentWinUI3 draws both schemes, so decision 1 now selects it on
+    Windows.
 - **Linux:** CI under Xvfb (Fusion, light). Dark was checked through Fusion
   on macOS, because Xvfb has no platform theme to report dark.
