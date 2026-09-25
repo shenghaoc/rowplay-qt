@@ -22,7 +22,7 @@ crates/rowplay-platform/   # services behind traits with mocks: token store, cac
 crates/rowplay-viewmodel/  # Qt-free UI logic: navigation state, locale date display, settings options, screen view models
 crates/rowplay-app/        # the binary: qtbridge backend objects, QML shell, Qt Quick 3D (build.rs runs rcc + lrelease)
 crates/rowplay-fixtures/   # dev-only loader for tests/fixtures
-qml/                       # QML modules (RowPlay/qmldir, Main.qml, Theme/Tr singletons, screens) + rowplay.qrc + qtquickcontrols2.conf
+qml/                       # QML modules (RowPlay/qmldir, Main.qml, Theme/Tr singletons, screens) + rowplay.qrc
 assets/                    # vendored .glb / textures / icon with provenance (ASSET_PROVENANCE.md)
 packaging/                 # Phase 9 manifests: macOS Info.plist, Linux .desktop + AppStream, Windows Inno Setup script
 i18n/                      # generated ID-based Qt .ts catalogues (never hand-edited; see "Internationalisation")
@@ -285,6 +285,10 @@ requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV 1.87
 - The Linux App job and the step-529 job upload the gate's timestamped
   app log (`gate-log`, `gate-log-step529`) whenever the walk writes one,
   also when it fails.
+- The Windows App job also runs four quick walks in a real window (the
+  Windows style and FluentWinUI3, light and dark, the replay on D3D11) and
+  uploads their captures as `screenshots-windows`. They are informational
+  (`continue-on-error`): the required walk is the offscreen one before it.
 
 ## Architecture boundaries
 
@@ -445,30 +449,31 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `SPDX-License-Identifier: GPL-3.0-or-later`.
 - QML: one module per directory with a `qmldir`; strings through
   `Tr.t("dotted.web.key", { vars })` (never `qsTr` with inline English, never
-  hardcoded user-visible text); the Basic style, drawn from the tokens in
-  `Theme.qml` (ADR 0013: one design system on every OS, lengths and type
-  scaled from the system font, the system accent and contrast preference);
+  hardcoded user-visible text); each platform's own Qt Quick Controls
+  style, with no style forced and no palette role set (ADR 0015: macOS,
+  Windows, Fusion); `Theme.qml`'s tokens, derived from the system palette,
+  for our own content; lengths and type scaled from the system font;
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
-- Screens use the shared controls in `qml/RowPlay/`: `PushButton`,
-  `ToolbarButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
-  `PopupButton`, `FormSection` / `FormRow`, `AppSlider`, and the `App*`
-  menus, tool tips, dialogs, drawers, scroll bars and indicators. Never a
-  raw `Button`, `ComboBox`, `Switch`, `TextField`, `Slider`, `Menu`,
-  `ToolTip`, `Dialog` or `Drawer`. New symbols are original path data in
-  `Icon.qml`, never image files. Text is in sentence case (no
-  `toUpperCase()`), nothing is conveyed by colour alone, and nothing is
-  reachable only by hover.
+- Standard controls are Qt Quick Controls as they are. The shared controls
+  in `qml/RowPlay/` (`PushButton`, `ToolbarButton`, `SegmentedControl`,
+  `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`,
+  `AppSlider` and the `App*` popups) are pinned to Basic while the
+  native-style stack replaces them area by area (spec `ui-native-styles`):
+  add no new uses. New symbols are original path data in `Icon.qml`, never
+  image files. Text is in sentence case (no `toUpperCase()`), nothing is
+  conveyed by colour alone, and nothing is reachable only by hover.
 - Round 2 of the design system (spec T8–T12) added four rules. Focus
   rings are drawn by `FocusRing`, never by hand; other focus feedback,
   such as the sidebar's selected row or the slider's knob, stays. Type
   goes through `Theme.fontPx`, never under `Theme.textFloor`. Text,
-  fills, strokes and focus take their colours from `Theme`'s tokens,
-  which draw in the system palette's pairs under the OS contrast
-  preference. The only literal colours are black, white or near-black
-  washes: the modal scrims, `palette.shadow` and a button's press and
-  hover washes. A layout that depends on the window's width reads
-  `Theme.widthClass` (compact, medium, large).
+  fills, strokes and focus in our own content take their colours from
+  `Theme`'s tokens, which derive from the system palette (ADR 0015) and
+  are fitted to the contrast floors. The only literal colours outside
+  `Theme` are black or white washes in the pinned shared controls (the
+  modal scrims, a button's press and hover washes). A layout that depends
+  on the window's width reads `Theme.widthClass` (compact, medium,
+  large).
 
 ## Internationalisation
 

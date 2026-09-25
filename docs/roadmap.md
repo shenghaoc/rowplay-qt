@@ -1155,3 +1155,28 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
    - Still open: macOS under "Increase contrast" (the owner's switch),
      and Windows' contrast themes, focus ring, Snap layouts and text
      sizes (#81, where the round's checklist additions are posted).
+
+## Native Qt styles (ADR 0015)
+
+The owner redirected the design system on 2026-09-25: standard controls
+become Qt's own, per platform, and the product's identity lives in its
+content (the charts, metric colours, tiles and personal-best cards, the
+splits table, the replay and its HUD). ADR 0015 supersedes ADR 0013's
+control layer; the spec is `.kiro/specs/ui-native-styles/`. A stack of pull
+requests on the round-2 stack's composed top:
+
+1. `ui/native-style-switch`: no style is forced any more, so Qt 6.11.2
+   picks macOS, Windows or Fusion (confirmed in `qquickstyle.cpp`;
+   FluentWinUI3 is opt-in only), and `Main.qml` sets no palette role. The
+   shared controls are pinned to Basic until their area is replaced.
+   `Theme`'s surfaces, text and lines now come from the system palette,
+   fitted to the contrast floors, and the metric colours are fitted on
+   their surfaces: the PM5 blue measured 4.1:1 on the macOS dark window's
+   cards. The macOS `ScrollView` reserves room for a scroll bar that is not
+   transient, so the replaced Basic scroll bars looped `contentWidth`; the
+   screens use the style's own. CI gains informational Windows walks in a
+   real window for the Windows style and FluentWinUI3.
+   - Packaging, read from the release workflow's logs: the macOS bundle
+     and the Windows package carry their native styles; the AppImage
+     carries Fusion but no Qt Svg plugin and only the desktop portal's
+     platform theme. The change is proposed to the owner, not made.
