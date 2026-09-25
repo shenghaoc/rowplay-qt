@@ -16,6 +16,7 @@ StrokeAnalysisPanel 1.0 StrokeAnalysisPanel.qml
 StrokeChart 1.0 StrokeChart.qml
 SmokeScene 1.0 SmokeScene.qml
 Icon 1.0 Icon.qml
+CommandButton 1.0 CommandButton.qml
 FocusRing 1.0 FocusRing.qml
 ToolbarButton 1.0 ToolbarButton.qml
 PushButton 1.0 PushButton.qml
