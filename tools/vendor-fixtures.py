@@ -60,6 +60,7 @@ GENERATED_FIXTURES = {
     "replay-rig-phase-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
     "replay-stroke-model-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
     "replay-v4-hand-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+    "replay-venue-shadow-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
 }
 
 

@@ -183,6 +183,16 @@
       }
     },
     {
+      "path": "replay-venue-shadow-parity.json",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay",
+        "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+        "path": "tests/fixtures/replay-venue-shadow-parity.json"
+      },
+      "bytes": 76414,
+      "sha256": "2dff20437874f59ce80225bf7e68ab61d943b6cfc94be20da3142622b96bd4d5"
+    },
+    {
       "path": "stroke-pose-parity.json",
       "bytes": 2385,
       "sha256": "b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae",
