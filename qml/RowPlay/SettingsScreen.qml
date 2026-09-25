@@ -71,12 +71,6 @@ Pane {
         clip: true
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-        ScrollBar.vertical: AppScrollBar {
-            parent: scroll
-            x: scroll.mirrored ? 0 : scroll.width - width
-            y: scroll.topPadding
-            height: scroll.availableHeight
-        }
 
         Item {
             width: scroll.availableWidth
