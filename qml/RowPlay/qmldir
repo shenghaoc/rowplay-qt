@@ -3,6 +3,7 @@ prefer :/qt/qml/RowPlay/
 singleton Theme 1.0 Theme.qml
 singleton Tr 1.0 Tr.qml
 singleton ChartUtils 1.0 ChartUtils.qml
+singleton Glyphs 1.0 Glyphs.qml
 Main 1.0 Main.qml
 SmokeMain 1.0 SmokeMain.qml
 SettingsScreen 1.0 SettingsScreen.qml

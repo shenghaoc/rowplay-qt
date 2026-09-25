@@ -23,6 +23,7 @@
         <file>RowPlay/Theme.qml</file>
         <file>RowPlay/Tr.qml</file>
         <file>RowPlay/Icon.qml</file>
+        <file>RowPlay/Glyphs.qml</file>
         <file>RowPlay/FocusRing.qml</file>
         <file>RowPlay/ToolbarButton.qml</file>
         <file>RowPlay/PushButton.qml</file>
