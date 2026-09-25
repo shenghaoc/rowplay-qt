@@ -46,6 +46,14 @@ Pane {
         workoutChosen()
     }
 
+    /// The runtime-error gate enters a date range through the fields, as
+    /// typing and leaving them does.
+    function enterDateRange(from, to) {
+        dateFromField.text = from
+        dateToField.text = to
+        applyDateRange()
+    }
+
     /// The runtime-error gate opens the sort menu once.
     function showSortMenu(open) {
         if (open) {
