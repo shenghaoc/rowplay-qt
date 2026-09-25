@@ -38,7 +38,7 @@ use rowplay_viewmodel::replay::frame;
 use rowplay_viewmodel::replay::grip::{
     closure_options, collect_hand_chains, grip_frames, solve_grip_table, warped_cycle,
 };
-use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings};
+use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings, race_finished};
 use rowplay_viewmodel::replay::pose::{PoseSolver, clip_fraction, rig_targets};
 use rowplay_viewmodel::replay::tier::tier_settings_json;
 use rowplay_viewmodel::replay::{anchors, glb, materials, palette, venue_runtime};
@@ -744,8 +744,9 @@ impl ReplayBackend {
     }
 
     /// Loads a rival workout as the ghost. The ghost uses the same sport's
-    /// clips and poses, driven by its own `ReplayState` over the rival's
-    /// strokes. Pass −1 to dismiss the ghost. A paused replay emits no
+    /// clips and poses, sampled from its own `ReplayState` over the rival's
+    /// strokes at the player's time on every frame. Pass −1 to dismiss the
+    /// ghost. A paused replay emits no
     /// frames, so either way the change pushes one the way a seek does: the
     /// ghost appears (or leaves) and the chase camera re-frames for it.
     #[qslot]
@@ -771,10 +772,8 @@ impl ReplayBackend {
         let sport = detail.workout.sport;
         let timeline =
             build_stroke_timeline(&detail.strokes, sport, detail.workout.has_stroke_data);
-        let mut replay = ReplayState::new(detail.strokes.clone());
-        replay.set_speed(SPEEDS[self.speed_index as usize].factor());
         self.ghost_playback = Some(Playback {
-            state: replay,
+            state: ReplayState::new(detail.strokes.clone()),
             timeline,
             sport,
         });
@@ -1400,7 +1399,13 @@ impl ReplayBackend {
 
         // Ghost pipeline: same pose/course/equipment but into ghost_frame.
         if let Some(ghost) = self.ghost_playback.as_mut() {
-            ghost.state.tick(dt);
+            // The ghost runs on the player's clock: the web samples it at
+            // the player's frame time, Studio at the player's elapsed time
+            // (`ReplayRaceGap.ghostFrame`). Its state is only ever sought,
+            // never played, so a play, pause, seek or speed change moves
+            // both at once, and past the end of a shorter rival the ghost
+            // holds its last stroke (#97).
+            ghost.state.seek(time);
             let g_time = ghost.state.time();
             let g_sampled = ghost.state.current_frame();
             let mut g_stroke = stroke_pose_at(&ghost.timeline, g_time);
@@ -1556,13 +1561,17 @@ impl ReplayBackend {
             }
 
             // Race result at finish: computed by race_result from the
-            // player and rival strokes, shown as a verdict string. The
-            // overlay reads the result rather than deciding the winner.
-            // Race result at finish: pass structured data so QML can
-            // format with the web's locale ids (replay.raceVerdictWin/
-            // LoseSession). Format: "win|<seconds>|<metres>" or
-            // "lose|<seconds>|<metres>" or "tie".
-            if !playing && self.verdict_text.is_empty() {
+            // player and rival strokes and passed as structured data, so
+            // QML formats it with the web's locale ids (replay.raceVerdict
+            // Win/LoseSession) rather than deciding the winner. Format:
+            // "win|<seconds>|<metres>", "lose|<seconds>|<metres>" or "tie".
+            // It belongs to the finish line (the web's `raceFinished`): it
+            // appears when the player's clock reaches the end and leaves
+            // when a seek goes back. It used to appear whenever playback
+            // was paused, on the start line too (#97).
+            if !race_finished(time, duration) {
+                self.verdict_text.clear();
+            } else if self.verdict_text.is_empty() {
                 use rowplay_core::replay::race_result::{RaceOutcome, race_result};
                 let ghost_strokes = ghost.state.strokes().to_vec();
                 if let (Some(playback), Some(workout)) =
@@ -2039,5 +2048,118 @@ mod tests {
         replay.load_ghost(-1);
         assert!(!replay.has_ghost);
         assert!(replay.ghost_frame.is_empty());
+    }
+
+    /// #97: the ghost runs on the player's clock, as the web samples it at
+    /// the player's frame time (`sampleAt(ghostStrokes, f.t)`; Studio's
+    /// `ReplayRaceGap.ghostFrame`). Its own state was built and never
+    /// played, so it stayed on its start line and the gap grew by all the
+    /// ground the player covered.
+    #[test]
+    fn the_ghost_runs_on_the_players_clock() {
+        use rowplay_core::replay::race_gap::{ghost_frame, race_gap_metres};
+
+        fn assert_on_one_clock(replay: &ReplayBackend, rival: &[rowplay_core::models::Stroke]) {
+            let player = replay
+                .playback
+                .as_ref()
+                .expect("a workout is loaded")
+                .state
+                .current_frame();
+            let ghost = replay
+                .ghost_playback
+                .as_ref()
+                .expect("a ghost is loaded")
+                .state
+                .current_frame();
+            let expected = ghost_frame(player.t, rival).d;
+            assert!(
+                (ghost.d - expected).abs() < 1e-9,
+                "at {:.2} s the ghost is at {:.1} m, its strokes say {expected:.1} m",
+                player.t,
+                ghost.d
+            );
+            let gap = race_gap_metres(player.d, ghost.d);
+            let metres = format!("{:.0} m", gap.abs());
+            assert!(
+                gap.abs() < 0.5 || replay.gap_text.starts_with(&metres),
+                "the gap reads {:?}, the two distances give {gap:.1} m",
+                replay.gap_text
+            );
+        }
+
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.load_ghost(1002);
+        let rival = replay
+            .ghost_playback
+            .as_ref()
+            .map(|ghost| ghost.state.strokes().to_vec())
+            .unwrap_or_default();
+        let start = [
+            replay.ghost_frame[frame::COURSE_X],
+            replay.ghost_frame[frame::COURSE_Z],
+        ];
+
+        replay.play();
+        for _ in 0..600 {
+            replay.tick(1.0 / 60.0);
+        }
+        assert!(replay.frame[frame::HUD_ELAPSED] > 9.9, "ten seconds played");
+        assert_on_one_clock(&replay, &rival);
+        let moved = [
+            replay.ghost_frame[frame::COURSE_X],
+            replay.ghost_frame[frame::COURSE_Z],
+        ];
+        assert!(
+            (moved[0] - start[0]).hypot(moved[1] - start[1]) > 1.0,
+            "the ghost left its start line: {start:?} → {moved:?}"
+        );
+
+        // A seek moves both, paused as well as playing, and past the end of
+        // a shorter rival the ghost holds its last stroke.
+        replay.pause();
+        for fraction in [0.5, 0.1, 1.0] {
+            replay.seek(fraction);
+            assert_on_one_clock(&replay, &rival);
+        }
+    }
+
+    /// #97: the verdict belongs to the finish line, as the web's
+    /// `raceFinished` (the player's clock within 0.05 s of the end). It
+    /// used to appear whenever the replay was paused, on the start line
+    /// included, and a seek back left it standing.
+    #[test]
+    fn the_verdict_waits_for_the_finish() {
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.load_ghost(1002);
+        assert!(
+            replay.verdict_text.is_empty(),
+            "no verdict on the start line: {:?}",
+            replay.verdict_text
+        );
+        replay.seek(0.5);
+        assert!(replay.verdict_text.is_empty(), "no verdict halfway");
+        replay.seek(1.0);
+        assert!(!replay.verdict_text.is_empty(), "the finish has a verdict");
+        replay.seek(0.25);
+        assert!(
+            replay.verdict_text.is_empty(),
+            "a seek back takes the verdict away"
+        );
+
+        // Playing across the line gives it too.
+        replay.seek(0.999);
+        replay.play();
+        let mut ticks = 0;
+        while replay.playing && ticks < 1000 {
+            replay.tick(MAX_DT_SECONDS);
+            ticks += 1;
+        }
+        assert!(!replay.playing, "playback stopped at the end");
+        assert!(!replay.verdict_text.is_empty(), "the finish has a verdict");
     }
 }
