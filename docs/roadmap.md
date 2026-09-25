@@ -327,8 +327,11 @@ Wayland (`cargo run -p rowplay-app`).
   bottoming out on structural spikes that don't respond to tier changes.
 - Ghost athlete + equipment on the ghost loop (26 m) with the ghost material
   variant (45% equipment opacity, athlete opaque). Race gap from
-  `race_gap_metres`/`race_gap_seconds`, verdict from `race_result` using the
-  web's locale ids (`replay.raceVerdictWinSession`/`LoseSession`).
+  `race_gap_metres`/`race_gap_seconds` and verdict from `race_result`, both
+  worded with the web's locale ids (`replay.ahead`/`replay.behind`,
+  `replay.raceVerdictWinSession`/`LoseSession`). *(The gap only since
+  2026-09-25: until then it was English built in Rust, in every language;
+  see the source map's "Race gap" divergence.)*
 - Reduce-motion toggle in Settings via a desktop-supplement locale key
   (`settings.reduceMotion`); the pipeline zeroes accents, snaps the camera
   and returns neutral poses.

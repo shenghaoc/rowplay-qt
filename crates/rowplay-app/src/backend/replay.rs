@@ -1543,21 +1543,13 @@ impl ReplayBackend {
                 }
             }
 
-            // Race gap: positive = player ahead, negative = behind.
-            // The text uses absolute values with a sign label so QML shows
-            // e.g. "+20 m (0:04 ahead)" or "15 m (0:03 behind)".
-            use rowplay_core::formatting::fmt_time;
-            use rowplay_core::replay::race_gap::{race_gap_metres, race_gap_seconds};
-            let gap_m = race_gap_metres(sampled.d, g_sampled.d);
-            let gap_s = race_gap_seconds(gap_m, sampled.pace);
-            if gap_m.abs() < 0.5 {
-                "—".clone_into(&mut self.gap_text);
-            } else {
-                let abs_m = gap_m.abs();
-                let abs_s = gap_s.abs();
-                let label = if gap_m > 0.0 { "ahead" } else { "behind" };
-                self.gap_text = format!("{:.0} m ({} {label})", abs_m, fmt_time(abs_s, false));
-            }
+            // Race gap: passed as structured data, so QML words it with the
+            // web's locale ids (replay.ahead / replay.behind) and Rust only
+            // formats the numbers. Format: "ahead|<metres>|<seconds>" or
+            // "behind|<metres>|<seconds>"; a level race is ahead, as on the
+            // web.
+            use rowplay_viewmodel::replay::hud::race_gap_bundle;
+            self.gap_text = race_gap_bundle(&sampled, &g_sampled);
 
             // Race result at finish: computed by race_result from the
             // player and rival strokes and passed as structured data, so
@@ -2021,6 +2013,55 @@ mod tests {
         }
     }
 
+    /// The race gap crosses the bridge as data (`hud::race_gap_bundle` over
+    /// the player's and the ghost's frames), and QML words it with the web's
+    /// `replay.ahead` / `replay.behind`. It used to be English composed here
+    /// ("20 m (0:04 ahead)") in every language, with a "—" under half a
+    /// metre that the web does not show.
+    #[test]
+    fn the_race_gap_crosses_the_bridge_as_data() {
+        use rowplay_core::replay::engine::Frame;
+        use rowplay_viewmodel::replay::hud::race_gap_bundle;
+
+        fn frames(replay: &ReplayBackend) -> (Frame, Frame) {
+            let player = replay.playback.as_ref().expect("a workout is loaded");
+            let ghost = replay.ghost_playback.as_ref().expect("a ghost is loaded");
+            (player.state.current_frame(), ghost.state.current_frame())
+        }
+
+        seed_demo_library();
+        let mut replay = ReplayBackend::default();
+        replay.load_workout(1001);
+        replay.load_ghost(1002);
+        // The two first samples are about a metre apart, so a swapped pair
+        // shows the other side already on the start line.
+        let (player, ghost) = frames(&replay);
+        assert_eq!(
+            replay.gap_text,
+            race_gap_bundle(&player, &ghost),
+            "the player's frame first, the ghost's second"
+        );
+
+        replay.play();
+        for _ in 0..600 {
+            replay.tick(1.0 / 60.0);
+        }
+        let (player, ghost) = frames(&replay);
+        assert_eq!(replay.gap_text, race_gap_bundle(&player, &ghost));
+        let (side, _) = replay.gap_text.split_once('|').unwrap_or_default();
+        let ahead = player.d >= ghost.d;
+        assert_eq!(
+            side,
+            if ahead { "ahead" } else { "behind" },
+            "player at {} m, ghost at {} m",
+            player.d,
+            ghost.d
+        );
+
+        replay.load_ghost(-1);
+        assert!(replay.gap_text.is_empty(), "no ghost, no gap");
+    }
+
     /// Ghost rendering: loading a rival workout produces a ghost frame
     /// that advances in parallel with the player.
     #[test]
@@ -2059,7 +2100,7 @@ mod tests {
     #[test]
     fn the_ghost_runs_on_the_players_clock() {
         use rowplay_core::replay::engine::sample_at;
-        use rowplay_core::replay::race_gap::race_gap_metres;
+        use rowplay_viewmodel::replay::hud::race_gap_bundle;
 
         fn assert_on_one_clock(replay: &ReplayBackend, rival: &[rowplay_core::models::Stroke]) {
             let playback = replay.playback.as_ref().expect("a workout is loaded");
@@ -2078,12 +2119,14 @@ mod tests {
                 player.t,
                 ghost.d
             );
-            let gap = race_gap_metres(player.d, ghost.d);
-            let metres = format!("{:.0} m", gap.abs());
-            assert!(
-                gap.abs() < 0.5 || replay.gap_text.starts_with(&metres),
-                "the gap reads {:?}, the two distances give {gap:.1} m",
-                replay.gap_text
+            // The gap the bridge carries is the one these two frames give, at
+            // this instant — so it is built from the ghost on the player's
+            // clock, not from a stale frame (`hud::race_gap_bundle` is itself
+            // pinned to the web's own output in the view-model test).
+            assert_eq!(
+                replay.gap_text,
+                race_gap_bundle(&player, &ghost),
+                "the gap does not come from the pair as sampled"
             );
         }
 

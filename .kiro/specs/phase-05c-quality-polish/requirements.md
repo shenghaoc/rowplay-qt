@@ -55,8 +55,9 @@ frame-time measurements.
   `replay.constantPace`, `replay.uploadedFile`).
 - R3.3 The race gap overlay (ahead/behind metres, `replay.ahead` /
   `replay.behind`) and the finish verdict (`replay::race_result`,
-  `raceVerdict*` ids) render from Rust strings; the result panel appears at
-  the finish like the web.
+  `raceVerdict*` ids) speak the web's locale ids: Rust passes structured
+  data and QML words it, so neither overlay ships English in every
+  language. The result panel appears at the finish like the web.
 - R3.4 Rival file import (CSV/TCX/FIT) rides the Phase 2 parsers through a
   file dialog; bounds and normalisation unchanged.
 

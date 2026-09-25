@@ -6,11 +6,15 @@
 //! `fmtTime(frame.t, true) / fmtTime(detail.time)`, `fmtDistance(frame.d)`
 //! and gauges labelled `replay.gPace` (`fmtPace` without its `/500m`),
 //! `replay.gRate`, `replay.gPower` and `replay.gHeart` (when the workout has
-//! heart rate). Locale ids stay the web's; only the values are built here.
+//! heart rate), and beside a ghost the race gap (`replay.ahead` /
+//! `replay.behind`). Locale ids stay the web's; only the values are built
+//! here.
 
 use rowplay_core::formatting::{fmt_distance_in, fmt_pace_bare, fmt_time};
 use rowplay_core::models::DistanceUnit;
+use rowplay_core::num::{js_round, js_to_fixed};
 use rowplay_core::replay::engine::Frame;
+use rowplay_core::replay::race_gap::{race_gap_metres, race_gap_seconds};
 
 /// The pre-formatted HUD values for one frame.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -90,6 +94,29 @@ pub fn hud_numbers(frame: &Frame, total_seconds: f64) -> [f32; 8] {
     ]
 }
 
+/// The race gap between the player and the ghost, joined for the bridge as
+/// `ahead|<metres>|<seconds>` or `behind|<metres>|<seconds>`. QML puts the
+/// metres into the web's `replay.ahead` / `replay.behind` ("▲ ahead by
+/// {m}m") and the seconds after them in brackets, so no word is built here.
+///
+/// The web page takes `gapMeters = raceGapMetres(frame.d, ghostFrame.d)`
+/// and `gapSeconds = raceGapSeconds(gapMeters, frame.pace)`, counts a level
+/// race as ahead (`gapMeters >= 0`), and shows
+/// `Math.abs(Math.round(gapMeters))` and
+/// `({Math.abs(gapSeconds).toFixed(1)}s)`. Both numbers are rounded here as
+/// JavaScript rounds them, and the seconds carry their `s`.
+#[must_use]
+pub fn race_gap_bundle(player: &Frame, ghost: &Frame) -> String {
+    let metres = race_gap_metres(player.d, ghost.d);
+    let seconds = race_gap_seconds(metres, player.pace);
+    let side = if metres >= 0.0 { "ahead" } else { "behind" };
+    format!(
+        "{side}|{}|{}s",
+        js_round(metres).abs(),
+        js_to_fixed(seconds.abs(), 1)
+    )
+}
+
 /// A non-negative whole number, `0` for anything non-finite or negative.
 fn whole(value: f64) -> String {
     if value.is_finite() && value > 0.0 {
@@ -167,6 +194,41 @@ mod tests {
         assert!((numbers[4] - 500.0 / frame().pace as f32).abs() < 1e-4);
         assert!(numbers[5].is_nan(), "no ghost in Phase 5b");
         assert!((numbers[6] - (1200.0 - frame().t) as f32).abs() < 1e-3);
+    }
+
+    /// The web page's gap line, evaluated under Node at the pinned commit
+    /// with its own `raceGapMetres` / `raceGapSeconds` and the page's
+    /// expressions: `gapMeters >= 0` picks `replay.ahead`, then
+    /// `Math.abs(Math.round(gapMeters))` and
+    /// `Math.abs(gapSeconds).toFixed(1)`. Exact strings, no tolerance.
+    #[test]
+    fn the_race_gap_follows_the_webs_side_and_rounding() {
+        let at = |d: f64, pace: f64| Frame { d, pace, ..frame() };
+        for (player, ghost, expected) in [
+            (at(520.4, 120.0), at(500.0, 120.0), "ahead|20|4.9s"),
+            (at(485.0, 120.0), at(500.0, 120.0), "behind|15|3.6s"),
+            // A level race counts as ahead, the start line included.
+            (at(0.0, 120.0), at(0.0, 120.0), "ahead|0|0.0s"),
+            // Under half a metre the gap keeps its side.
+            (at(499.7, 120.0), at(500.0, 120.0), "behind|0|0.1s"),
+            // `Math.round` takes a half up: -2.5 m is 2 m behind.
+            (at(502.5, 120.0), at(500.0, 120.0), "ahead|3|0.6s"),
+            (at(497.5, 120.0), at(500.0, 120.0), "behind|2|0.6s"),
+            (at(100.0, 110.0), at(1350.5, 110.0), "behind|1250|275.1s"),
+            // `toFixed` takes an exact tie away from zero: 0.25 s is 0.3.
+            (at(501.25, 100.0), at(500.0, 100.0), "ahead|1|0.3s"),
+            // The seconds come from the player's pace; none, no seconds.
+            (at(510.0, 0.0), at(500.0, 120.0), "ahead|10|0.0s"),
+            (at(2000.0, 105.2), at(1987.95, 105.2), "ahead|12|2.5s"),
+        ] {
+            assert_eq!(
+                race_gap_bundle(&player, &ghost),
+                expected,
+                "player at {} m, ghost at {} m",
+                player.d,
+                ghost.d
+            );
+        }
     }
 
     #[test]
