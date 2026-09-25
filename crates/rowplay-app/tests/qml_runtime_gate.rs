@@ -478,6 +478,10 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate i18n zh:") && !combined.contains("gate i18n zh: nav.dashboard"),
         "live language switch to zh did not retranslate\noutput:\n{combined}"
     );
+    assert!(
+        combined.contains("gate speed focus: true"),
+        "the checked playback speed did not take keyboard focus\noutput:\n{combined}"
+    );
     if !quick {
         for locale in ["en", "zh", "de", "es", "fr", "ja"] {
             let expected = format!("gate compact gap: {locale} fits true");

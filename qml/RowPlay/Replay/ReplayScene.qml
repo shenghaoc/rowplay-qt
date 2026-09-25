@@ -120,6 +120,20 @@ Item {
         return metricChips.count === 4
     }
 
+    function gateSpeedFocusTracksSelection() {
+        var original = Replay.speedIndex
+        var next = original === 0 ? 1 : 0
+        var oldChoice = speedRepeater.itemAt(original)
+        var nextChoice = speedRepeater.itemAt(next)
+        if (!oldChoice || !nextChoice)
+            return false
+        oldChoice.forceActiveFocus(Qt.TabFocusReason)
+        Replay.setSpeedIndex(next)
+        var followsShortcut = nextChoice.activeFocus && nextChoice.checked
+        Replay.setSpeedIndex(original)
+        return followsShortcut && oldChoice.activeFocus && oldChoice.checked
+    }
+
     // ---- 3D scene ----
     View3D {
         id: scene
@@ -604,6 +618,7 @@ Item {
                 // nor Space reach the window's seek and play shortcuts then.
                 RowLayout {
                     id: speedControl
+                    property int focusedIndex: -1
 
                     // Every choice is as wide as the widest label in bold,
                     // the checked choice's weight, so a change of speed moves
@@ -640,6 +655,20 @@ Item {
                         speedRepeater.itemAt(index).forceActiveFocus(Qt.TabFocusReason)
                     }
 
+                    // A global speed shortcut can change the checked choice
+                    // while a different choice owns keyboard focus.
+                    Connections {
+                        target: Replay
+                        function onPlaybackChanged() {
+                            if (speedControl.focusedIndex < 0
+                                    || speedControl.focusedIndex === Replay.speedIndex)
+                                return
+                            var choice = speedRepeater.itemAt(Replay.speedIndex)
+                            if (choice)
+                                choice.forceActiveFocus(Qt.OtherFocusReason)
+                        }
+                    }
+
                     // A nested layout fills by default; the choices keep
                     // their own width.
                     Layout.fillWidth: false
@@ -668,6 +697,12 @@ Item {
                             checked: index === Replay.speedIndex
                             ButtonGroup.group: speedGroup
                             focusPolicy: checked ? Qt.TabFocus : Qt.NoFocus
+                            onActiveFocusChanged: {
+                                if (activeFocus)
+                                    speedControl.focusedIndex = index
+                                else if (speedControl.focusedIndex === index)
+                                    speedControl.focusedIndex = -1
+                            }
                             // Up and down only: the choices are a few pixels
                             // apart.
                             containmentMask: HitArea {
