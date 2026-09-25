@@ -463,8 +463,26 @@ QtObject {
     // `tnum` feature, Qt 6.11 has no Font.TabularNumbers)
     // The One Hero Rule: heroMetric appears at most once per card.
 
+    readonly property bool isMac: Qt.platform.os === "osx" || Qt.platform.os === "macos"
+    /// Chinese and Japanese glyphs need more pixels than Latin ones to stay
+    /// legible.
+    readonly property bool cjk: Settings.languageCode.indexOf("zh") === 0
+                                || Settings.languageCode.indexOf("ja") === 0
+    /// The smallest text the app draws, in logical pixels: 12 px on Windows
+    /// and Linux (Windows' minimum for body text; KDE's is the same at its
+    /// default font), 11 px on macOS (11 pt, Apple's smallest legible
+    /// size), and 12 px everywhere for Chinese and Japanese. The scale's
+    /// small steps (captions, chart labels) fall below it on a 12 px system
+    /// font, so they stop here and stay subordinate by weight and colour.
+    readonly property int textFloor: cjk || !isMac ? 12 : 11
+
     function fontPx(reference) {
-        return Math.max(8, Math.round(reference * scale))
+        return Math.max(textFloor, Math.round(reference * scale))
+    }
+    /// Whether the floor lifted a reference size: such text is as large as
+    /// the body, so a caption keeps its place by weight and colour instead.
+    function floored(reference) {
+        return Math.round(reference * scale) < textFloor
     }
 
     /// Page title — main view headings (26 px semibold at the reference).
@@ -485,10 +503,13 @@ QtObject {
     /// Strip metric — inline values in detail/replay strips (20 px semibold).
     readonly property font stripMetric: ({ pixelSize: fontPx(20), weight: Font.DemiBold,
                                            features: { "tnum": 1 } })
-    /// Metric label — labels beneath values (11 px medium).
-    readonly property font metricLabel: ({ pixelSize: fontPx(11), weight: Font.Medium })
-    /// Compact label — dense UI labels (10 px medium).
-    readonly property font compactLabel: ({ pixelSize: fontPx(10), weight: Font.Medium })
+    /// Metric label — labels beneath values (11 px medium; regular where
+    /// the floor lifts it to the body's size, so it stays below the value).
+    readonly property font metricLabel: ({ pixelSize: fontPx(11),
+                                           weight: floored(11) ? Font.Normal : Font.Medium })
+    /// Compact label — dense UI labels (10 px medium; regular where lifted).
+    readonly property font compactLabel: ({ pixelSize: fontPx(10),
+                                            weight: floored(10) ? Font.Normal : Font.Medium })
     /// Sidebar day headers (11 px bold, sentence case).
     readonly property font sidebarSection: ({ pixelSize: fontPx(11), weight: Font.Bold })
     /// Body text (13 px regular at the reference: the system font size).
