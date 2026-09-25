@@ -135,6 +135,10 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R4.5 Settings stay an in-app page with no dismiss button. On macOS the
   application menu's Preferences… item (⌘,) reaches it. Back navigation,
   Escape and the toolbar toggle close it.
+- R4.6 A toolbar button's tooltip names its command's shortcut in the
+  platform's notation, "Reload (⌘R)" or "Reload (F5)" (round 2), from the
+  `Shortcut`'s `nativeText`: no new strings. The application menu holds
+  no Quit or window-management items.
 
 ## R5 — Dashboard and detail
 
@@ -143,6 +147,10 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R5.2 No `toUpperCase()` anywhere in `qml/`, and sentence case throughout.
 - R5.3 Nothing is conveyed by colour alone. Deltas and the race verdict
   carry a sign, word or glyph.
+- R5.4 Screen-reader names lead with the part that tells an item from its
+  neighbours (round 2): a sidebar row with its title, a split row with
+  its number. Names built from data come from Rust, and every word in
+  them is translated.
 
 ## R6 — Settings
 
@@ -153,6 +161,14 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
   (#63).
 - R6.3 The logout dialog uses `AppDialog` with PushButtons in the platform
   order.
+- R6.4 The timezone picker filters as you type (round 2), named and
+  placed with the existing `workoutList.search`, by city, UTC offset or
+  zone name, and stays operable from the keyboard alone. The language
+  picker stays a plain pop-up button.
+- R6.5 An error says what went wrong where it happened, with its retry
+  there when one exists (round 2): a failed sync is labelled "Sync
+  failed" above its error, with "Retry sync" in the row; a refused date
+  marks its own field. Success is a status line, never a dialog.
 
 ## R7 — Replay
 

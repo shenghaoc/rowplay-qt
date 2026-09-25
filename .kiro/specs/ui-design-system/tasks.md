@@ -423,7 +423,45 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     through the 200 ms closing slide, so a capture taken then showed it
     checked, and a click during the slide did nothing (found comparing
     the next PR's native walk with this one's).
-- [ ] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,
-  the timezone filter, and the menu, error and accessible-name audit.
+- [x] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,
+  the timezone filter, and the menu, error and accessible-name audit
+  (R4.6, R5.4, R6.4, R6.5).
+  - [x] T11.1 `ToolbarButton.shortcutText`: the tooltip names the
+    shortcut in the platform's notation, from each `Shortcut`'s
+    `nativeText` (Reload, Account & data, the drawer, the replay's Close
+    and Play). Read natively on macOS: "Reload (⌘R)", "Workouts (⌃⌘S)",
+    "Close (⎋)"; the offscreen platform, with no macOS key scheme, gives
+    "Reload (F5)".
+  - [x] T11.2 The timezone picker filters as you type (`PopupButton`
+    `filterable`, the view-model's `timezone_matches` with unit tests), its
+    field named with `workoutList.search`. The language picker stays
+    plain.
+  - [x] T11.3 Errors and status, audited path by path: the cache error
+    (the list, Reload retries), the token errors (the token row), a
+    failed sync (now "Sync failed" above its error, with "Retry sync" in
+    the row), the live-mode errors (their panel, with automatic retry and
+    Check now), a refused date (now its own field, with the form it takes
+    under it), a replay that fails to load (the scene's overlay, with
+    Close). No success opens a dialog; the Replay button's disabled state
+    still explains nothing (#64, no web string).
+  - [x] T11.4 The application menu holds Dashboard, Search, Reload and
+    Account & data: no Quit or window-management items (checked, no
+    change).
+  - [x] T11.5 Accessible names: a sidebar row leads with its title (Studio
+    led with the sport, which many rows share), a split row with its
+    number, the table's title as its description. The detail header's
+    name said "intervals" in English in every language; the tag is
+    translated now.
+  - [x] T11.6 A scratch probe pressed keys and clicked through QtTest's
+    `TestEvent`, natively and offscreen: the tooltip on hover, "nope" typed
+    into From (refused alone, the message under it), the filter opened by
+    typing on the closed picker, Escape, Space, "-05" and Enter choosing
+    Toronto, the focus back on the picker, the failure row with its
+    retry, and every name above. The gate walks the date range through
+    the fields and the timezone filter.
+  - [x] T11.7 Access keys (mnemonics): assessed only, in #104. Every
+    string is a web key and the web has no `&`; the letters would need a
+    desktop supplement per language, a uniqueness test and a mnemonic mode
+    in three shared controls.
 - [ ] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the
   AGENTS.md style line and the documentation pass.
