@@ -201,6 +201,12 @@ pub fn is_curated_timezone(zone: &str) -> bool {
 /// from a field, so it is bounded before any scan).
 pub const TIMEZONE_QUERY_MAX_CHARS: usize = 64;
 
+/// The longest raw filter text read at all, in bytes: the character cap in
+/// four-byte UTF-8 plus room for spaces around it. A longer text (a large
+/// paste) is refused before anything scans it; the byte length is known
+/// without a scan.
+pub const TIMEZONE_QUERY_MAX_BYTES: usize = 4 * TIMEZONE_QUERY_MAX_CHARS + 64;
+
 /// The home-timezone picker entries a typed filter keeps, as positions in
 /// the picker: 0 is its "UTC (default)" entry, whose translated label the
 /// caller passes, and the curated zones follow at 1… in
@@ -210,8 +216,11 @@ pub const TIMEZONE_QUERY_MAX_CHARS: usize = 64;
 /// find their zones. An empty query keeps every entry.
 #[must_use]
 pub fn timezone_matches(query: &str, default_label: &str) -> Vec<usize> {
+    if query.len() > TIMEZONE_QUERY_MAX_BYTES {
+        return Vec::new();
+    }
     let query = query.trim();
-    if query.chars().count() > TIMEZONE_QUERY_MAX_CHARS {
+    if query.chars().take(TIMEZONE_QUERY_MAX_CHARS + 1).count() > TIMEZONE_QUERY_MAX_CHARS {
         return Vec::new();
     }
     let needle = fold_for_matching(query);
@@ -376,6 +385,19 @@ mod tests {
         assert_eq!(timezone_matches("utc", "UTC (default)").len(), 48);
         assert_eq!(timezone_matches("既定", "UTC（既定）"), [0]);
         assert!(timezone_matches("既定", "UTC (default)").is_empty());
+    }
+
+    #[test]
+    fn an_oversized_paste_is_refused_before_any_scan() {
+        // Over the byte bound: refused whatever it holds.
+        let paste = format!("york{}", " ".repeat(TIMEZONE_QUERY_MAX_BYTES));
+        assert!(timezone_matches(&paste, "UTC (default)").is_empty());
+        // Spaces around a query stay allowed within the bound.
+        let padded = format!("{}york{}", " ".repeat(20), " ".repeat(20));
+        assert_eq!(
+            timezone_matches(&padded, "UTC (default)"),
+            timezone_matches("york", "UTC (default)")
+        );
     }
 
     #[test]

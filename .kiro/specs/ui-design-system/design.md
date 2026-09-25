@@ -203,8 +203,9 @@ a wider window (at 150 % text, 900 and 1260 px).
   caller maps
   `filterText` to `filterIndices` in the view-model
   (`settings::timezone_matches`: label or zone name, case-insensitive,
-  `-` for the labels' `−`, the query bounded at 64 characters), and the
-  list draws those rows like the plain ones. The ComboBox keeps its own
+  `-` for the labels' `−`, a raw text over 320 bytes refused before any
+  scan, then at most 64 characters read; the field itself takes at most
+  64), and the list draws those rows like the plain ones. The ComboBox keeps its own
   keyboard behaviour while closed, and gets the focus back on close.
 - `InputField.invalid` (round 2) draws the outline 2 px in the alert
   colour: the field itself says it was refused, and the caller puts the
