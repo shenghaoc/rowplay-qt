@@ -83,10 +83,11 @@ shared controls in `qml/RowPlay/` replace every stock visual:
   `AppSlider` and `ChartTheme`;
 - Basic's own popups and indicators: `AppToolTip`, `AppMenu` /
   `AppMenuItem` / `AppMenuSeparator`, `AppScrollBar`, `AppProgressBar`,
-  `AppBusyIndicator`, `AppDialog` and `AppDialogButtonBox`.
+  `AppBusyIndicator`, `AppDialog`, `AppDialogButtonBox` and, since
+  round 2, `AppDrawer`.
 
 Screens use these, never raw `Button`, `ComboBox`, `Switch`, `TextField`,
-`Slider`, `Menu`, `ToolTip` or `Dialog`. `Main.qml` sets every palette role from
+`Slider`, `Menu`, `ToolTip`, `Dialog` or `Drawer`. `Main.qml` sets every palette role from
 `Theme.qml`, mapped by how Basic uses each role, as the safety net for any
 stock control.
 
@@ -196,12 +197,16 @@ assessed but not implemented (#104).
   Quick Controls as the KDE desktop does, a platform look and only on
   KDE. Either would be a new dependency and a second visual system. What
   the app takes from Plasma instead is its palette:
-  - **The accent follows Plasma's.** KDE's platform theme builds the
-    palette with `KColorScheme::createApplicationPalette`, which sets
+  - **The accent follows Plasma's, with two fallbacks.** KDE's platform
+    theme builds the palette with
+    `KColorScheme::createApplicationPalette`, which sets
     `QPalette::Accent` to the colour scheme's selection colour
     (kcolorscheme, master `b44cfeac`). `Theme` reads `palette.accent`, so
-    the selection, the focus ring and the prominent button take the
-    user's accent.
+    the selection and the prominent button take the user's accent. Two
+    cases fall back. A scheme whose selection colour is exactly Qt's
+    Fusion default `#308cc6` reads as "no accent" and gets the brand
+    blue. An accent under 3:1 against the window keeps the selection and
+    the button but draws the focus ring in the primary text colour.
   - **A high-contrast Plasma scheme is not reported as one.** KDE's
     platform theme implements `colorScheme()` but not
     `contrastPreference()` (plasma-integration, master `276324f5`), and
@@ -226,8 +231,9 @@ assessed but not implemented (#104).
   - real key and mouse events through QtTest's `TestEvent`;
   - the full gate walk, visual assertions included.
 - **Offscreen:** 12 px and 18 px (150 %) text.
-- **Linux:** each PR's CI captures, looked at (Xvfb + llvmpipe, a 12 px
-  system font).
+- **Linux:** the CI captures of #100, #101, #103 and #105, looked at
+  (Xvfb + llvmpipe, a 12 px system font). This documentation PR changes
+  no pixels.
 - **Still open:**
   - macOS under "Increase contrast", which only the owner can switch;
   - Windows' four contrast themes, the focus ring's visibility, Snap

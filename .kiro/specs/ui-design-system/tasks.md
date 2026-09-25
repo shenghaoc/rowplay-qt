@@ -481,6 +481,6 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`
     KDE theme reports a contrast preference.
   - [x] T12.4 Not tried on a Plasma desktop (none here, and the Linux CI
     leg has no desktop). Linux rendering was looked at in the CI captures
-    of #100, #101 and #103 (Xvfb + llvmpipe, a 12 px system font). The CI
-    run times stayed usual (the Ubuntu App job 5.4 min on #103's run), so
-    no slow-run issue was filed.
+    of #100, #101, #103 and #105 (Xvfb + llvmpipe, a 12 px system font).
+    The CI run times stayed usual (the Ubuntu App job 5.4 min on #103's
+    run), so no slow-run issue was filed.
