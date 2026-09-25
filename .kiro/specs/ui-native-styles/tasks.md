@@ -112,6 +112,27 @@ pull request that delivers it.
   - [x] T6.6 The replay's Close button is the style's `Button`.
   - [x] T6.7 ADR 0015 corrected: the native styles' missing controls come
     from Basic, not Fusion (measured).
-- [ ] T7 Theme cleanup and motion tokens (R2.3, R7.2).
+- [x] T7 (`ui/native-theme-cleanup`) Theme cleanup and motion tokens (R2.3,
+  R7.2).
+  - [x] T7.1 The seventeen shared controls nothing uses any more are
+    deleted with their `qmldir` and qrc entries: `PushButton`,
+    `ToolbarButton`, `SegmentedControl`, `ToggleSwitch`, `InputField`,
+    `PopupButton`, `FormSection`, `FormRow` and the `App*` tool tip, menu,
+    menu item, menu separator, scroll bar, progress bar, dialog, drawer and
+    dialog button box.
+  - [x] T7.2 `Theme` keeps content tokens only: the 27 members only those
+    controls read are gone (hover, press, selection, segment and switch
+    washes, the control and destructive text, the popup and toolbar
+    surfaces, unused sizes and fonts, and the palette pairs nothing reads
+    any more), and `motionDuration` gave way to the motion tokens.
+    `deltaColor` stays, a documented port of Studio's.
+  - [x] T7.3 Motion tokens (round 3's 2e): `durationShort` / `Medium` /
+    `Long` (150 / 250 / 400 ms, 0 under reduce motion) and M3's standard
+    and emphasized-decelerate curves. The HUD's fade, the drawer's slide
+    and the scrubber's knob use them; no literal duration is left but the
+    spinner's period.
+  - [x] T7.4 Two Basic imports stay: `AppSlider` (the HUD's scrubber,
+    content) and `AppBusyIndicator` (the WebP exception). AGENTS.md's QML
+    rules now say "use native Qt Quick Controls as-is".
 - [ ] T8 Large and extra-large layouts (R7.1).
 - [ ] T9 Documentation and the full verification matrix (R8, R9).

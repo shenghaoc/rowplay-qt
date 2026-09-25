@@ -455,25 +455,39 @@ Concept2 token. Cache failures never silently fall back to demo data.
   for our own content; lengths and type scaled from the system font;
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
-- Standard controls are Qt Quick Controls as they are. The shared controls
-  in `qml/RowPlay/` (`PushButton`, `ToolbarButton`, `SegmentedControl`,
-  `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`,
-  `AppSlider` and the `App*` popups) are pinned to Basic while the
-  native-style stack replaces them area by area (spec `ui-native-styles`):
-  add no new uses. New symbols are original path data in `Glyphs.qml`, never
-  image files. Text is in sentence case (no `toUpperCase()`), nothing is
-  conveyed by colour alone, and nothing is reachable only by hover.
-- Round 2 of the design system (spec T8–T12) added four rules. Focus
-  rings are drawn by `FocusRing`, never by hand; other focus feedback,
-  such as the sidebar's selected row or the slider's knob, stays. Type
-  goes through `Theme.fontPx`, never under `Theme.textFloor`. Text,
-  fills, strokes and focus in our own content take their colours from
-  `Theme`'s tokens, which derive from the system palette (ADR 0015) and
-  are fitted to the contrast floors. The only literal colours outside
-  `Theme` are black or white washes in the pinned shared controls (the
-  modal scrims, a button's press and hover washes). A layout that depends
-  on the window's width reads `Theme.widthClass` (compact, medium,
-  large).
+- Use native Qt Quick Controls as-is; never override `background`/`contentItem`
+  on standard controls; custom components only for content (ADR 0015).
+  - The bounded exceptions are ADR 0015's: a list delegate's content, the
+    sidebar's split handle, the Drawer's structural content host, and the
+    live-mode spinner until the WebP plugin ships.
+  - Our own components are content: `AppSlider` (the replay HUD's
+    scrubber), `FocusRing`, `Icon`, `MetricTile` and the charts.
+    `CommandButton` is a stock tool button configured once: the platform's
+    icon, and a tooltip with the shortcut.
+  - The macOS and Windows styles lack some controls (tool buttons, tool
+    tips, the drawer), and Qt draws those with Basic.
+  - Every control in the replay HUD answers within at least 40 px
+    (`HitArea`), without moving and with no two hit areas overlapping.
+  - New symbols are original path data in `Glyphs.qml`, never image files.
+  - Text is in sentence case (no `toUpperCase()`), nothing is conveyed by
+    colour alone, and nothing is reachable only by hover.
+- Round 2 of the design system (spec T8–T12) added four rules, since
+  adjusted to ADR 0015:
+  - Focus rings on our own focusables are drawn by `FocusRing`, never by
+    hand. The style draws its controls' focus.
+  - Type goes through `Theme.fontPx`, never under `Theme.textFloor`.
+  - Text, fills, strokes and focus in our own content take their colours
+    from `Theme`'s tokens, which derive from the system palette (ADR 0015)
+    and are fitted to the contrast floors. The only literal colours outside
+    `Theme` are `transparent`, alpha washes of its tokens, and the smoke
+    test's own.
+  - A layout that depends on the window's width reads `Theme.widthClass`
+    (compact, medium, large).
+- Animations of ours use `Theme`'s motion tokens: `durationShort`,
+  `durationMedium` and `durationLong`, with `easingStandard` or
+  `easingEmphasized` as an `Easing.BezierSpline`. Reduce motion makes
+  these app-owned durations 0; platform-style animations remain under Qt's
+  control. No literal duration, except a spinner's period (round 3's 2e).
 
 ## Internationalisation
 
