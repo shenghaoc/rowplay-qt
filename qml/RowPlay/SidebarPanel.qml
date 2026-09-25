@@ -353,21 +353,43 @@ Pane {
                                         Layout.fillWidth: true
                                         spacing: Theme.spacingSmall
 
-                                        Label {
+                                        // The date, then the distance, which
+                                        // moves under the date when the two do
+                                        // not fit beside the pace: Chinese and
+                                        // Japanese dates at the 12 px floor
+                                        // elided it. Whole-pixel widths, so
+                                        // the Flow places the second on the
+                                        // pixel grid.
+                                        Flow {
+                                            id: metaFlow
                                             Layout.fillWidth: true
-                                            text: rowItem.date_text + "  "
-                                                  + rowItem.distance_text
-                                            font: Theme.metricLabel
-                                            color: rowItem.secondaryText
-                                            elide: Text.ElideRight
-                                            Accessible.ignored: true
+                                            spacing: Theme.spacingSmall
+
+                                            Label {
+                                                width: Math.min(Math.ceil(implicitWidth),
+                                                                metaFlow.width)
+                                                text: rowItem.date_text
+                                                font: Theme.metricLabel
+                                                color: rowItem.secondaryText
+                                                elide: Text.ElideRight
+                                                Accessible.ignored: true
+                                            }
+                                            Label {
+                                                width: Math.min(Math.ceil(implicitWidth),
+                                                                metaFlow.width)
+                                                text: rowItem.distance_text
+                                                font: Theme.metricLabel
+                                                color: rowItem.secondaryText
+                                                elide: Text.ElideRight
+                                                Accessible.ignored: true
+                                            }
                                         }
 
                                         Label {
                                             text: rowItem.pace_text
                                             font: Theme.tabularBody
                                             color: rowItem.primaryText
-                                            Layout.alignment: Qt.AlignRight
+                                            Layout.alignment: Qt.AlignRight | Qt.AlignTop
                                             Accessible.ignored: true
                                         }
                                     }
