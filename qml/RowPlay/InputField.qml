@@ -3,7 +3,9 @@
 // surface, the focus ring while the field has keyboard focus (clicked or
 // tabbed — the caret is where typing goes), selection in the accent. An
 // optional leading glyph (`leadingIcon`, e.g. the search magnifier) sits
-// inside the bezel. Sizes scale with the system font.
+// inside the bezel. A refused entry (`invalid`) draws a 2 px outline in the
+// alert colour, so the field itself shows which one is wrong; the caller
+// puts the message beside it. Sizes scale with the system font.
 import QtQuick
 import QtQuick.Controls
 import RowPlay
@@ -13,6 +15,8 @@ TextField {
 
     /// Optional leading Icon.qml glyph.
     property string leadingIcon: ""
+    /// The entry was refused (the caller shows why, next to the field).
+    property bool invalid: false
 
     implicitHeight: Theme.controlHeight
     leftPadding: leadingIcon.length > 0 ? Theme.iconSize + 2 * Theme.spacingMedium
@@ -32,8 +36,9 @@ TextField {
         implicitWidth: Theme.px(120)
         radius: Theme.radiusSmall
         color: control.enabled ? Theme.controlBackground : Theme.groupBackground
-        border.width: Theme.hairline
-        border.color: control.enabled ? Theme.controlBorder : Theme.separator
+        border.width: control.invalid ? 2 : Theme.hairline
+        border.color: control.invalid ? Theme.alertRed
+                    : (control.enabled ? Theme.controlBorder : Theme.separator)
 
         Icon {
             x: Theme.spacingMedium
