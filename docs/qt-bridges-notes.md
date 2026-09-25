@@ -546,6 +546,18 @@ converted string), or allow an associated function as a slot.
     (Fusion 26), and a `ToolButton`'s background is 40 (Fusion 20).
   - `QT_QUICK_CONTROLS_FALLBACK_STYLE=Fusion` gives Fusion's values.
   - Worth reporting to Qt; ADR 0015 records what it means here.
+- **A `containmentMask` larger than its item does not widen its hit area
+  on its own** (Qt 6.9+).
+  - `QQuickDeliveryAgentPrivate::eventTargets` skips an item, and its
+    children, when the point is outside `eventHandlingBounds()` (the
+    item's rectangle grown by the largest `margin` of its own pointer
+    handlers), and it does this before calling `contains()`.
+  - A mask reaching past the item therefore answers only
+    `item.contains()` calls, never a real click.
+  - Workaround: give the item a passive `HoverHandler` whose `margin`
+    reaches as far as the mask. The replay HUD's `HitMargin` does this.
+  - Found by real clicks through QtTest's `TestEvent`, after a probe that
+    sampled `contains()` had reported the hit areas as working.
 - `GridLayout.uniformCellWidths` gives every cell the mean of the items'
   preferred widths, not the widest: five tool buttons of 50.4, 40, 47.3,
   40 and 40 px got 44 each, and the two widest elided (Qt 6.11.2). Size

@@ -405,7 +405,16 @@ Item {
     // control's edges, so its compact visual and its place in the layout
     // stay as they are; `reachX` caps the sideways reach where another
     // control or the times sit beside it, so no two hit areas overlap.
+    // The mask alone is not enough: Qt 6.11 leaves an item out of pointer
+    // delivery when the point is outside its rectangle grown by its pointer
+    // handlers' largest margin, before it asks the mask
+    // (QQuickDeliveryAgentPrivate::eventTargets). So each control also
+    // carries a passive `HitMargin` whose margin reaches as far as its mask.
     readonly property real minimumTarget: 40
+    component HitMargin: HoverHandler {
+        required property real minimum
+        margin: Math.max(0, (minimum - Math.min(parent.width, parent.height)) / 2)
+    }
     component HitArea: QtObject {
         required property Item target
         required property real minimum
@@ -495,6 +504,9 @@ Item {
                         target: playButton
                         minimum: replayRoot.minimumTarget
                     }
+                    HitMargin {
+                        minimum: replayRoot.minimumTarget
+                    }
                     onClicked: Replay.toggle()
                 }
 
@@ -524,6 +536,9 @@ Item {
                         target: seekSlider
                         minimum: replayRoot.minimumTarget
                         reachX: 0
+                    }
+                    HitMargin {
+                        minimum: replayRoot.minimumTarget
                     }
                     onMoved: Replay.seek(value)
                     Accessible.name: Tr.t("replay.seekSlider")
@@ -659,6 +674,9 @@ Item {
                                 target: speedButton
                                 minimum: replayRoot.minimumTarget
                                 reachX: 0
+                            }
+                            HitMargin {
+                                minimum: replayRoot.minimumTarget
                             }
                             // The checked choice's label is bold as well as on the
                             // style's checked wash: Basic's wash differs from the
