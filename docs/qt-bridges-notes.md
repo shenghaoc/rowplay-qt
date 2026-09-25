@@ -408,9 +408,10 @@ during playback: a ~115 ms GUI-thread stall every 15 frames. Because the walk
 re-assigns materials, it also made a paused replay redraw itself continuously
 (70 frames/s, 160 % CPU on llvmpipe). With `diagnosticsChanged` as its own
 signal, a paused replay idles at 0.6 % CPU under llvmpipe (roadmap, UI
-follow-ups). On macOS it still renders at the display rate for a separate
-reason: the replay's tick animation runs while paused (#93). On an Apple M5
-the paused replay costs 11 % CPU, down from 44 % before this change.
+follow-ups). On macOS it kept rendering at the display rate for a separate
+reason: the replay's tick animation ran while paused (#93). On an Apple M5
+the paused replay cost 11 % CPU, down from 44 % before this change, and
+0.2–1.1 % once #93 stopped the animation while nothing moves.
 
 Repro: expose a ~70-entry `serde_json::Value` map as a `Constant` property and
 read `Obj.map[key]` 1,000 times in a QML loop, against `var m = Obj.map` once
@@ -714,10 +715,19 @@ converted string), or allow an associated function as a slot.
   bound. The hold now calls the window's `update()` on every trigger and on
   every gate tick while it lasts (2026-09-24). **macOS differs:** on cocoa
   with Metal, a running `FrameAnimation` keeps the window rendering at the
-  display rate. The replay's tick animation runs while paused, so a paused
-  replay renders 120 frames/s on a 120 Hz display (Apple M5, measured with
+  display rate. The replay's tick animation ran while paused, so a paused
+  replay rendered 120 frames/s on a 120 Hz display (Apple M5, measured with
   `QSG_RENDER_TIMING=1`; #93). The explicit `update()` calls are harmless
-  there.
+  there. Since #93 the tick animation runs only while playing, or for a
+  few frames after a change made while paused, so both platforms render a
+  still replay on demand. **A window `update()` does not re-render a
+  `View3D` that is not dirty:** in the default `Offscreen` render mode the
+  3D scene renders only when the item's `updatePaintNode` calls
+  `scheduleRender()` on its framebuffer node (`qquick3dviewport.cpp` and
+  `qquick3dscenerenderer.cpp`, Qt 6.11.2); otherwise the node keeps its
+  last texture. So the replay's
+  settle frames call the `View3D`'s own `update()`. The gate's hold counts
+  window frames, which the window's `update()` is enough for.
 - `grabToImage`'s `saveToFile` returns `false` with no Qt warning when the
   target directory does not exist. The gate logged `FAILED` and walked on,
   so every 2D capture in CI (dashboard, settings, detail) had silently never

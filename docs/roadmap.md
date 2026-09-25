@@ -823,14 +823,15 @@ two candidate causes, separated by a render-cadence measurement
   - paused before: the scene redrew itself at 66 frames/s for 161 % CPU;
   - paused after: 0 frames, 0.7 % CPU.
   - on macOS (Apple M5, cocoa on Metal, 120 Hz display, debug build, 10 × 1 s
-    with `top`), paused went from 44 % to 11 % CPU. The remaining 11 % is
-    120 frames/s from the replay's tick animation, which runs while paused
-    (#93).
+    with `top`), paused went from 44 % to 11 % CPU. The remaining 11 % was
+    120 frames/s from the replay's tick animation, which ran while paused
+    (#93, fixed below).
 
   Two side effects went with it. A paused replay no longer feeds the
   governor, so an idle scene cannot be stepped down any more (it could
-  before, and did at 32 s on llvmpipe). That holds under llvmpipe: on macOS
-  the paused scene still renders and still feeds the governor (#93). The gate's hold had relied on that
+  before, and did at 32 s on llvmpipe). That held under llvmpipe only until
+  #93's fix: on macOS the paused scene kept rendering and feeding the
+  governor. The gate's hold had relied on that
   redraw loop for its frames (qt-bridges-notes, the `grabToImage` entry):
   without it every settle ran out its tick bound and the walk took
   947.7 s; with the hold requesting its own frames it takes 327.8 s
@@ -839,6 +840,44 @@ two candidate causes, separated by a render-cadence measurement
   1228 ms (median of 5, debug). The 5c/6b stall band (42–55 per 720
   frames) matches the old cadence (720 / 15 = 48): re-measure it on the
   UHD 630 before attributing what remains to the ghost geometry.
+- **A paused replay rendered at the display rate on macOS: FIXED
+  2026-09-25 (#93).** The replay's tick `FrameAnimation` ran whenever a
+  workout was loaded, and on cocoa with Metal a running `FrameAnimation`
+  keeps the window rendering at the display rate. Closing the replay
+  neither paused nor unloaded it, so after the first replay every screen
+  kept rendering too. The animation now runs only while the route is shown
+  and playing, plus a six-frame settle after a change made while paused;
+  each settle frame asks the View3D for a render (qt-bridges-notes, the
+  `grabToImage` entry). Leaving the route pauses the replay, which reloads
+  from the start anyway. Measured on an Apple M5 (macOS 27, 120 Hz display,
+  debug build, rower 1001, 10 s windows; CPU from the process's CPU time
+  under `top`, frames from `frameSwapped`):
+  - paused: 120 frames/s and 12.1–14.4 % CPU before (n = 3), 0 frames and
+    0.2–1.1 % after (n = 3);
+  - the detail screen after closing the replay: 120 frames/s and
+    18.6–19.0 % before (n = 2), 0–1 frames and 0.1–1.1 % after (n = 3);
+  - a seek while paused: 7 frames (the change and the settle), then none;
+  - playback: 118.9–120.0 frames/s, p95 inter-frame gap 9 ms and no gap
+    over 80 ms, before (n = 3) and after (n = 6). The longest single gap was
+    15–26 ms before and 14–55 ms after; the two over 26 ms (35 and 55 ms)
+    did not recur in the three runs that logged where each gap fell, whose
+    longest were 14–25 ms (the 25 ms one at the third frame after play).
+
+  The fix also made three paused-state changes push their own frame, as a
+  seek does: a ghost loaded or dismissed, and a new viewport aspect. The
+  last one mends the first replay entry, which drew the frame computed
+  while the scene still had the sidebar's width (879 px, the narrow
+  framing) and never re-applied it after the scene widened: on macOS that
+  first view showed the hull filling the screen until the first seek or
+  play. Why a frame applied before that first resize draws wrong was not
+  isolated. Playback that reaches the end now tells the transport, which
+  kept showing pause. A paused scene no longer feeds the governor on any
+  platform. The Codex review found two paused framing gaps, both fixed
+  with a test each. A ghost loaded while paused was framed without the
+  ghost: the camera reads the ghost's position before the pipeline writes
+  it, so the load now runs two passes. A small aspect change stayed under
+  the camera's 3 m snap distance and left a ghost pair too close, so a
+  paused resize now places the camera afresh.
 
 Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after
