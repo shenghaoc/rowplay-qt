@@ -60,9 +60,10 @@ What Qt 6.11.2 does, read from its sources at the tag:
    can be revisited on evidence.
 2. **Standard controls are Qt Quick Controls used as they are.** No
    `background` or `contentItem` is replaced on a control the platform
-   draws. The one bounded exception is a list delegate: an `ItemDelegate`
+   draws. Two bounded exceptions: a list delegate (an `ItemDelegate`
    carries its row's data as its `contentItem`, and keeps the style's
-   background, selection and hover.
+   background, selection and hover), and the sidebar's split handle, a
+   hairline with a 9 px hit area where Fusion's handle is a 2 px target.
 3. **Our identity lives in the content.** The charts, the metric colours,
    the tiles and personal-best cards, the splits table and the 3D replay
    with its HUD keep their own drawing.
@@ -79,8 +80,10 @@ What Qt 6.11.2 does, read from its sources at the tag:
    contrast), with a distribution's own Qt the GTK or KDE theme's.
 6. **Icons by name, per platform, with a fallback of our own.** Tool
    buttons name an SF Symbol on macOS, a Segoe glyph on Windows and a
-   freedesktop icon on Linux, and fall back to an SVG built from the glyph
-   paths in `Icon.qml`, so no image file is added.
+   freedesktop icon on Linux (`Glyphs.qml`), so no image file is added. On
+   Linux an SVG built from the glyph paths is the fallback for a theme
+   without the icon; Qt asks the platform's icon engine only while an icon
+   has no `source`, so macOS and Windows get none.
 7. **One step at a time.** The switch comes first, with the shared
    controls pinned to Basic by an explicit import so nothing is drawn half
    native; each area's pull request then replaces its controls with stock

@@ -1180,3 +1180,11 @@ requests on the round-2 stack's composed top:
      and the Windows package carry their native styles; the AppImage
      carries Fusion but no Qt Svg plugin and only the desktop portal's
      platform theme. The change is proposed to the owner, not made.
+2. `ui/native-shell`: the shell's controls are the style's. The toolbar's
+   buttons show the platform's own symbols by name (SF Symbols through
+   Qt's Apple icon engine, Segoe glyphs through its Windows one, the
+   desktop's freedesktop theme on Linux with an SVG of our glyph as the
+   fallback); the sport filter is a `ComboBox`, the Windows / Linux menu a
+   `Menu`, the sidebar's drawer a `Drawer` and About a `Dialog`. Qt asks
+   the platform icon engine only while an icon has no source, so a first
+   version with both showed our SVGs on macOS; the fallback is Linux-only.
