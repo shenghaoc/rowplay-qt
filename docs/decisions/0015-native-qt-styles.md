@@ -1,0 +1,104 @@
+# ADR 0015 — Native Qt styles for standard controls; our identity in the content
+
+Status: accepted (2026-09-25). Supersedes ADR 0013's control layer (its
+decisions on the Basic style and the shared controls). ADR 0013's type scale,
+lengths from the system font, width classes, focus ring on our own
+focusables, contrast floors and platform-behaviour layer stay.
+
+## Context
+
+ADR 0013 gave rowplay-qt one visual system of its own on Qt Quick Controls
+Basic: a set of shared controls (`PushButton`, `SegmentedControl`,
+`ToggleSwitch`, `InputField`, `PopupButton` and the `App*` popups) drew every
+button, field and menu the same way on Linux, macOS and Windows. On
+2026-09-25 the owner redirected it: standard controls should be the
+platform's own, and the product's identity should live in its content — the
+charts, the metric colours, the tiles and personal-best cards, the splits
+table, the 3D replay and its HUD.
+
+What Qt 6.11.2 does, read from its sources at the tag:
+
+- **The default style** (`qquickstyle.cpp`, `QQuickStyleSpec::resolve`):
+  with no style requested it is **macOS** on macOS, **Windows** on Windows
+  and **Fusion** on Linux, Basic elsewhere. The style is resolved from, in
+  order, `QQuickStyle::setStyle`, the `-style` argument,
+  `QT_QUICK_CONTROLS_STYLE`, the `Style` key of `:/qtquickcontrols2.conf`,
+  then that default. **FluentWinUI3 is never chosen automatically**, on
+  Windows 11 either; it is opt-in.
+- **The native styles are not customisable.** The macOS and Windows styles
+  draw Button, CheckBox, ComboBox, TextField, SearchField, Slider, SpinBox,
+  Switch, ScrollBar, ProgressBar, GroupBox, Frame and a few more through
+  `QtQuick.NativeStyle`, and warn when a `background` or `contentItem` is
+  replaced. Controls they do not implement (ToolBar, ToolButton, TabBar,
+  ToolTip, Drawer, Pane, Label) come from their fallback style, Fusion. The
+  macOS `ItemDelegate` is plain QML over the template, drawn from the
+  palette.
+- **The platform icon engines** (Qt 6.7+): on macOS `QAppleIconEngine`
+  maps freedesktop names to SF Symbols and passes any other name to
+  `imageWithSystemSymbolName`, so an SF Symbol name works as it is; on
+  Windows `QWindowsIconEngine` maps freedesktop names to Segoe Fluent Icons
+  (Windows 11) or Segoe MDL2 Assets glyphs, and a one-character name is
+  drawn as that glyph; on Linux the desktop's freedesktop icon theme
+  answers.
+- **What the packages carry** (the release workflow's logs, 2026-09-24):
+  `macdeployqt` copies the whole QtQuick QML tree, so the macOS style and
+  `QtQuick.NativeStyle` are in the bundle; `windeployqt` deploys the
+  Windows style, `QtQuick.NativeStyle`, FluentWinUI3, Fusion and Qt Svg
+  with its image-format and icon-engine plugins; the AppImage carries every
+  Controls style Linux can use, Fusion included, and one platform theme
+  (the desktop portal's), but no image-format or icon-engine plugin.
+
+## Decision
+
+1. **No style is forced.** `qml/qtquickcontrols2.conf` is removed, so each
+   OS gets Qt's default: macOS, Windows, Fusion. FluentWinUI3 is not
+   selected: Qt does not default to it, choosing it per OS version would
+   need a runtime `QQuickStyle` call that qtbridge does not expose or an
+   environment variable set before the application starts (unsafe in Rust
+   2024, and the crates forbid `unsafe`), and nobody on the project can
+   look at Windows (#81). CI captures both styles on Windows so the choice
+   can be revisited on evidence.
+2. **Standard controls are Qt Quick Controls used as they are.** No
+   `background` or `contentItem` is replaced on a control the platform
+   draws. The one bounded exception is a list delegate: an `ItemDelegate`
+   carries its row's data as its `contentItem`, and keeps the style's
+   background, selection and hover.
+3. **Our identity lives in the content.** The charts, the metric colours,
+   the tiles and personal-best cards, the splits table and the 3D replay
+   with its HUD keep their own drawing.
+4. **Relative to the system.** Surfaces, text and lines derive from the
+   system palette (the window and window-text colours, the base colour, and
+   tonal steps between them), fitted to the floors ADR 0013 set: 4.5:1 for
+   text, 3:1 for non-text marks. The PM5 metric colours stay the product's
+   and are fitted to 4.5:1 on the surfaces they are drawn on. The accent is
+   the system's, with the brand blue where a platform reports none.
+   `Theme.dark` follows the palette in use, so the tokens always match the
+   colours the native controls draw with.
+5. **Linux: Fusion with the system palette.** The platform theme supplies
+   the palette: in the AppImage the desktop portal's (colour scheme and
+   contrast), with a distribution's own Qt the GTK or KDE theme's.
+6. **Icons by name, per platform, with a fallback of our own.** Tool
+   buttons name an SF Symbol on macOS, a Segoe glyph on Windows and a
+   freedesktop icon on Linux, and fall back to an SVG built from the glyph
+   paths in `Icon.qml`, so no image file is added.
+7. **One step at a time.** The switch comes first, with the shared
+   controls pinned to Basic by an explicit import so nothing is drawn half
+   native; each area's pull request then replaces its controls with stock
+   ones, and the last one deletes the shared controls and the tokens only
+   they used. No `import QtQuick.Controls.Basic` survives the stack.
+
+## Consequences
+
+- The app looks like each platform's app: macOS controls on macOS, the
+  Windows style on Windows, Fusion on Linux. Screens differ per OS by
+  design; the content does not.
+- Screen readers get the platform's own control roles from the styles.
+- The AppImage cannot draw SVG icons or read GNOME's palette until it
+  carries Qt Svg and the GTK 3 platform theme. That is a `tools/package`
+  change for the owner to approve (it runs the release workflow); until
+  then the freedesktop icons and the SVG fallback do not render in the
+  AppImage.
+- Windows is verified by CI captures only (#81).
+- The native macOS `ScrollView` reserves room for a scroll bar that is not
+  transient, so a replaced (Basic) scroll bar made `contentWidth:
+  availableWidth` a binding loop; the style's own scroll bars are used.

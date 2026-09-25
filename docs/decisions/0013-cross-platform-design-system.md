@@ -1,6 +1,9 @@
 # ADR 0013 — One cross-platform design system on Qt Quick Controls Basic, plus a thin platform-behaviour layer
 
-Status: accepted (2026-09-23)
+Status: superseded in part by ADR 0015 (2026-09-25) — the control layer
+(the Basic style and the shared controls) gives way to Qt's native styles;
+the type scale, lengths, width classes, focus ring, contrast floors and
+platform-behaviour layer stay. Accepted 2026-09-23.
 
 ## Context
 
