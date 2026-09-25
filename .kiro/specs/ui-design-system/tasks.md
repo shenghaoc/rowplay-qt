@@ -340,7 +340,30 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     the palette Qt reports. macOS's "Increase contrast" itself is for the
     owner to switch (the probe cannot), and Windows' four contrast themes
     are on #81's checklist.
-- [ ] T9 (`ui/min-text-cjk`) Minimum text sizes and CJK.
+- [x] T9 (`ui/min-text-cjk`) Minimum text sizes and CJK (R1.3).
+  - [x] T9.1 `Theme.textFloor` under `fontPx`: 12 px on Windows and Linux,
+    11 px on macOS, 12 px in Chinese and Japanese. Captions it lifts to the
+    body's size take regular weight (`Theme.floored`).
+  - [x] T9.2 A scratch probe walked every visible text item on the
+    dashboard, detail, settings and replay screens in English, Chinese,
+    Japanese and Spanish, and listed the elided ones and the ones whose
+    text overflows their box. Three configurations: macOS natively (13 px
+    base), and the offscreen platform at 12 px and at KDE's 14 pt test
+    font (18 px) through `QT_FONT_DPI`, which cocoa ignores.
+    - Before the floor: nothing flagged natively and at 12 px; the smallest
+      text was 10 px natively and 9 px at 12 px.
+    - With the floor alone, Chinese and Japanese sidebar rows elided their
+      distance at 12 px. The date and the distance now sit in a `Flow`,
+      and the distance moves under the date where the two do not fit.
+    - Found at every size, the floor aside: the dashboard's trend chart
+      labelled every point: English dates touched at the default size and
+      overlapped at 18 px, Japanese ones overlapped at the default size
+      already. It labels every n-th
+      point now, anchored on the newest, with half a label of margin so
+      the newest one stays whole.
+    - Still flagged at 18 px, and not a defect: the bar chart's category
+      labels overflow the 15 px boxes Qt Graphs gives them, which do not
+      clip (checked in the capture).
 - [ ] T10 (`ui/breakpoints-min-window`) Width breakpoints and a smaller
   minimum window.
 - [ ] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,

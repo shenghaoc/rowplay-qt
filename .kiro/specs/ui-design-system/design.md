@@ -28,7 +28,13 @@ the sidebar toggle). No screen branches on the OS.
 `pixelSize`, or its `pointSize` converted through the primary screen's
 logical DPI. `Theme.scale = basePx / 13`. `Theme.px(ref)` rounds a
 design-reference length to whole pixels, and `Theme.fontPx(ref)` does the
-same for type (minimum 8 px). Every spacing, radius, control metric and font
+same for type, never below `Theme.textFloor` (round 2): 12 px on Windows and
+Linux, where the system font is 12 px and Windows' minimum for body text is
+12 px, 11 px (11 pt) on macOS, and 12 px in Chinese and Japanese on every
+platform. On a 12 px system font the captions, chart labels and the
+segmented control's text stop at the floor, the body's size, so a caption
+the floor lifts (`Theme.floored`) drops from medium to regular weight and
+keeps the secondary colour. Every spacing, radius, control metric and font
 token goes through them. At the reference, controls are 32 px, toolbars
 52 px, sidebar rows 48 px and form rows 44 px.
 
