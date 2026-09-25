@@ -597,7 +597,8 @@ converted string), or allow an associated function as a slot.
   7–7.5 m from the rigs, so their equipment and athlete vanished) and erased
   every shadow (a 10 m depth offset, a 2 m blur and one map stretched over
   the 6 km ground plane). `ReplayScene.qml` sets `clipNear: 0.1`,
-  `shadowBias: 0.02`, `pcfFactor: 0.03`, `shadowMapFar: 60`,
+  `shadowBias: 0.05` with a 32-bit map and `PCF16` over `pcfFactor: 0.05`
+  (0.02 and 0.03 with four samples until #96), `shadowMapFar: 60`,
   `csmNumSplits: 2` and `castsShadows: false` on the ground.
 - `LookAtNode` (`QtQuick3D.Helpers`) points its forward (-Z) axis at
   `target`: `updateLookAt` (`lookatnode.cpp`) is the camera `lookAt` maths —
@@ -801,7 +802,8 @@ converted string), or allow an associated function as a slot.
   10.99 % in light, 8.99 % by 19.08 % in dark; CI's llvmpipe: 9.85 % by
   10.51 %). Those figures counted the acne of a venue that shadowed itself
   (#96). With the web's shadow flags the rower's own shadow is what remains:
-  Apple M5 1.62 % by 11.36 % in light, 1.49 % by 20.51 % in dark.
+  Apple M5 1.62 % by 11.36 % in light, 1.49 % by 20.51 % in dark; CI's
+  llvmpipe 1.67 % (16,074 px) by 11.38 %.
 - **`renderStats.frameTime` vs wall-clock frame deltas** (Phase 5c). With
   `QSG_NO_VSYNC=1`, `renderStats.frameTime` reports the Qt Quick 3D render
   pass cost (sync + prepare + render), while `FrameAnimation.frameTime`
