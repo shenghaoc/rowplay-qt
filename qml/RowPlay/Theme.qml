@@ -127,14 +127,16 @@ QtObject {
 
     /// A colour of our own palette (a metric or a status colour) kept under
     /// high contrast only where it reaches 4.5:1 on `surface` (the window by
-    /// default); otherwise the window text. The label beside a metric names
-    /// it, so no meaning is lost.
-    function hcFit(colour, surface) {
+    /// default); otherwise that surface's text colour (`fallback`, the
+    /// window text by default). The label beside a metric names it, so no
+    /// meaning is lost.
+    function hcFit(colour, surface, fallback) {
         if (!highContrast) {
             return colour
         }
         const base = surface === undefined ? hcWindow : surface
-        return contrastRatio(colour, base) >= 4.5 ? colour : hcWindowText
+        const text = fallback === undefined ? hcWindowText : fallback
+        return contrastRatio(colour, base) >= 4.5 ? colour : text
     }
 
     // MARK: - System palette (high contrast)
@@ -199,7 +201,8 @@ QtObject {
     readonly property color alertRed: hcFit(dark ? "#FF453A" : "#B3261E")
     /// Destructive button labels: the alert red, lifted in dark mode, where
     /// the PM5 red measures 4.46:1 on the control fill (AA needs 4.5).
-    readonly property color destructiveText: hcFit(dark ? "#FF6B61" : "#B3261E", hcButton)
+    readonly property color destructiveText: hcFit(dark ? "#FF6B61" : "#B3261E", hcButton,
+                                                   hcButtonText)
     /// Soft purple — elevation, descent, cadence accents.
     readonly property color softPurple: hcFit(dark ? "#BF5AF2" : "#7B2CBF")
     /// Warm yellow — caution states, active indicators.
@@ -292,6 +295,14 @@ QtObject {
     /// contrast the system's placeholder colour where it reaches 4.5:1.
     readonly property color textTertiary: highContrast ? hcPlaceholder
                                           : (dark ? "#8E959F" : "#666D78")
+    /// Text and glyphs on a control's own fill (`controlBackground`,
+    /// `segmentTrack`): the primary text, or under high contrast the
+    /// system's button text, which a contrast theme may set apart from its
+    /// window text.
+    readonly property color controlText: highContrast ? hcButtonText : textPrimary
+    /// Secondary glyphs on a control's fill (a field's icon, a chevron).
+    readonly property color controlTextSecondary: highContrast ? hcButtonText
+                                                  : textSecondary
     /// Disabled labels (exempt from contrast requirements; still legible);
     /// the system's disabled text under high contrast.
     readonly property color textDisabled: highContrast ? hcGrayText

@@ -58,6 +58,11 @@ Two different things scale a Qt UI, and the design handles both:
     are `window`; controls, segment tracks and off switches `button`;
   - primary and secondary text, `separator` and chart axes `windowText`;
     control outlines and the slider or off-switch knob `buttonText`;
+  - content on a control's own fill (a button's or a field's text, an
+    unselected segment, the pop-up button's value and chevron, the sport
+    capsule, the palette's `text` and `buttonText`) `buttonText`
+    (`Theme.controlText`), because a contrast theme may set ButtonText
+    apart from WindowText; a destructive label falls back to it too;
   - the accent's roles (selection, the selected segment, switch-on, the
     prominent button, the slider fill) `highlight` with `highlightedText`;
     a prominent button and an on switch keep their outline, because the
