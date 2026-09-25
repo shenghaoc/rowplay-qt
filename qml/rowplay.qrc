@@ -42,6 +42,7 @@
         <file>RowPlay/AppProgressBar.qml</file>
         <file>RowPlay/AppBusyIndicator.qml</file>
         <file>RowPlay/AppDialog.qml</file>
+        <file>RowPlay/AppDrawer.qml</file>
         <file>RowPlay/AppDialogButtonBox.qml</file>
         <file>RowPlay/Replay/qmldir</file>
         <file>RowPlay/Replay/ReplayScene.qml</file>

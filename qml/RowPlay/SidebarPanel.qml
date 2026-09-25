@@ -9,7 +9,8 @@
 // and its search row shares the content toolbar's band; day headers are
 // small, bold and in sentence case; each row carries its sport glyph; the
 // selection takes the accent with onAccent content while the list has
-// keyboard focus and a neutral wash otherwise.
+// keyboard focus and a neutral wash otherwise. Below the large width class
+// the shell shows the panel in a drawer, which a chosen workout closes.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -18,10 +19,31 @@ import RowPlay
 Pane {
     id: panel
 
+    /// Set while the panel is the shell's drawer (below the large width
+    /// class): Escape in the list then closes the drawer instead of
+    /// clearing the selection.
+    property bool inDrawer: false
+
+    /// A workout was chosen by a click, Enter or Space. Moving through the
+    /// list with the arrows selects too (Studio's selection follows focus)
+    /// but is not a choice: the drawer closes on this signal only.
+    signal workoutChosen()
+
     /// StandardKey.Find from the shell: focus the search field, text selected.
     function focusSearch() {
         searchField.forceActiveFocus(Qt.ShortcutFocusReason)
         searchField.selectAll()
+    }
+
+    /// The drawer opened: the list takes the keyboard, so the arrows work
+    /// at once.
+    function focusList() {
+        listView.forceActiveFocus(Qt.OtherFocusReason)
+    }
+
+    function choose(workoutId) {
+        Library.selectWorkout(workoutId)
+        workoutChosen()
     }
 
     /// The runtime-error gate opens the sort menu once.
@@ -212,7 +234,7 @@ Pane {
                 ScrollBar.vertical: AppScrollBar {}
 
                 Keys.onPressed: function(event) {
-                    if (event.key === Qt.Key_Escape) {
+                    if (event.key === Qt.Key_Escape && !panel.inDrawer) {
                         Library.clearSelection()
                         event.accepted = true
                     }
@@ -404,7 +426,7 @@ Pane {
                                     // A click focuses the list, so the
                                     // selection shows in the accent.
                                     listView.forceActiveFocus(Qt.MouseFocusReason)
-                                    Library.selectWorkout(rowItem.workout_id)
+                                    panel.choose(rowItem.workout_id)
                                 }
                             }
                         }
@@ -412,9 +434,9 @@ Pane {
 
                     // Keyboard activation: ListView's arrow keys move
                     // currentIndex; Enter/Space select the focused row.
-                    Keys.onReturnPressed: Library.selectWorkout(rowItem.workout_id)
-                    Keys.onEnterPressed: Library.selectWorkout(rowItem.workout_id)
-                    Keys.onSpacePressed: Library.selectWorkout(rowItem.workout_id)
+                    Keys.onReturnPressed: panel.choose(rowItem.workout_id)
+                    Keys.onEnterPressed: panel.choose(rowItem.workout_id)
+                    Keys.onSpacePressed: panel.choose(rowItem.workout_id)
                 }
 
                 // Arrow navigation selects, matching Studio's sidebar list.

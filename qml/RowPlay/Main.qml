@@ -2,14 +2,15 @@
 // The application shell — a port of rowplay-studio's ContentView:
 // a split view (sidebar column min 260 / ideal 320, detail area), the sport
 // filter and reload toolbar, the dashboard/detail navigation state and the
-// "Ready When You Are" empty state. The window title and 1000x680 minimum
-// come from Studio's app scene.
+// "Ready When You Are" empty state. The window title comes from Studio's app
+// scene; its 1000x680 minimum gave way to the width classes below.
 //
 // Design system (ADR 0013): the sidebar runs the full window height and can
-// be hidden (it always is during the immersive replay); the toolbar sits
-// over the content column with icon-only buttons and the sport filter as a
-// segmented control, and shows only the way back and the workout's title
-// during the replay; the empty state replaces only the content area. The platform layer lives here too:
+// be hidden (it always is during the immersive replay), and below the large
+// width class it becomes a drawer; the toolbar sits over the content column
+// with icon-only buttons and the sport filter as a segmented control, and
+// shows only the way back and the workout's title during the replay; the
+// empty state replaces only the content area. The platform layer lives here too:
 // StandardKey shortcuts, the native macOS menu bar (menu-item roles, so Qt
 // writes the titles) or the toolbar's menu button on Windows and Linux,
 // and the sidebar toggle.
@@ -26,18 +27,27 @@ ApplicationWindow {
     visible: true
     width: 1200
     height: 800
-    // Studio's 1000 px, or more where very large text needs it: the
-    // sidebar's minimum beside the toolbar's (a text size far past 150 %).
-    minimumWidth: Math.max(1000, sidebarColumn.SplitView.minimumWidth
-                                 + Theme.ruleWidth + toolbarMinimumWidth)
-    minimumHeight: 680
+    // The compact layout, checked down to 480 px (scaled with the text,
+    // like the breakpoints), or more where the toolbar needs it (very large
+    // text). The height leaves the replay scene room above its HUD.
+    minimumWidth: Math.max(Theme.px(480), toolbarMinimumWidth)
+    minimumHeight: 480
     title: "rowplay"
 
-    // The narrowest toolbar that keeps everything reachable: its three
-    // gaps, the sport filter in its compact form and the trailing buttons.
-    // The content column never gets less, so a dragged sidebar stops there
-    // instead of squeezing the filter to nothing.
-    readonly property real toolbarMinimumWidth: 3 * Theme.spacingLarge
+    // The width class (Theme.widthClass). Large keeps the sidebar beside
+    // the content. Below it the sidebar moves into a drawer: at medium a
+    // modal one over the content, at compact the list's own page under the
+    // toolbar, so the window shows one column at a time.
+    readonly property int widthClass: Theme.widthClass(width)
+    readonly property bool sidebarInDrawer: widthClass !== Theme.widthLarge
+    readonly property bool compactLayout: widthClass === Theme.widthCompact
+
+    // The narrowest toolbar that keeps everything reachable: its four gaps,
+    // the drawer button, the sport filter in its compact form and the
+    // trailing buttons. The content column never gets less, so a dragged
+    // sidebar stops there instead of squeezing the filter to nothing.
+    readonly property real toolbarMinimumWidth: 4 * Theme.spacingLarge
+                                                + drawerButton.implicitWidth
                                                 + sportFilter.compactWidth
                                                 + trailingButtons.implicitWidth
 
@@ -47,8 +57,9 @@ ApplicationWindow {
     // The platform layer's only branch: macOS has the native menu bar and
     // its own sidebar-toggle chord.
     readonly property bool isMac: Qt.platform.os === "osx" || Qt.platform.os === "macos"
-    // The sidebar toggle (F9 / Ctrl+Cmd+S); SplitView keeps the column's
-    // width while it is hidden.
+    // The sidebar toggle (F9 / Ctrl+Cmd+S) at the large width class;
+    // SplitView keeps the column's width while it is hidden. Below it the
+    // toggle opens and closes the drawer instead.
     property bool sidebarShown: true
     // The runtime-error gate walks every screen and exercises the language
     // switch (driven from Rust by ROWPLAY_SMOKE_GATE=1).
@@ -79,6 +90,7 @@ ApplicationWindow {
         // otherwise the first launch showed an empty detail pane.
         Detail.selectWorkout(Library.selectedWorkoutId)
         screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
+        placeSidebar()
     }
 
     // The Basic style (qtquickcontrols2.conf), with every palette role set
@@ -121,6 +133,7 @@ ApplicationWindow {
         }
         Library.clearSelection()
         screenIndex = 0
+        sidebarDrawer.close()
     }
 
     function showSettings() {
@@ -128,11 +141,13 @@ ApplicationWindow {
             Library.closeReplay()
         }
         screenIndex = 2
+        sidebarDrawer.close()
     }
 
     function toggleSettings() {
         if (screenIndex === 2) {
             screenIndex = Library.selectedWorkoutId === -1 ? 0 : 1
+            sidebarDrawer.close()
         } else {
             showSettings()
         }
@@ -151,18 +166,55 @@ ApplicationWindow {
         }
     }
 
-    function toggleSidebar() {
-        if (screenIndex !== 3) {
+    // `fromKeyboard`: the list takes the keyboard as the drawer opens (the
+    // sidebar toggle, or the drawer button pressed from the keyboard). A
+    // click leaves the focus with the drawer itself, so it paints no focus
+    // ring on the list.
+    function toggleSidebar(fromKeyboard) {
+        if (screenIndex === 3) {
+            return
+        }
+        if (!sidebarInDrawer) {
             sidebarShown = !sidebarShown
+        } else if (sidebarDrawer.visible) {
+            sidebarDrawer.close()
+        } else {
+            sidebarDrawer.open()
+            if (fromKeyboard) {
+                sidebarColumn.focusList()
+            }
         }
     }
 
-    // StandardKey.Find: bring the sidebar back if it was hidden and focus
-    // its search field.
+    // StandardKey.Find: bring the sidebar back if it was hidden (or open
+    // its drawer) and focus its search field.
     function focusSearch() {
-        sidebarShown = true
+        if (sidebarInDrawer) {
+            sidebarDrawer.open()
+        } else {
+            sidebarShown = true
+        }
         sidebarColumn.focusSearch()
     }
+
+    // The one sidebar moves between the split view (large) and the drawer,
+    // so its search text, date range and scroll position go with it. The
+    // drawer closes first when the window widens past the breakpoint.
+    function placeSidebar() {
+        if (sidebarInDrawer) {
+            if (sidebarColumn.parent !== drawerHost) {
+                splitView.takeItem(0)
+                sidebarColumn.parent = drawerHost
+            }
+        } else if (sidebarColumn.parent === drawerHost) {
+            sidebarDrawer.close()
+            splitView.insertItem(0, sidebarColumn)
+        }
+    }
+    onSidebarInDrawerChanged: placeSidebar()
+    // Between medium and compact the drawer changes its form (a modal
+    // overlay or the list's page); an open one closes rather than morph.
+    onCompactLayoutChanged: sidebarDrawer.close()
 
     // Everything lives inside one QML-created item: ApplicationWindow's
     // C++ contentItem cannot grabToImage ("item has no QML engine"), and the
@@ -198,12 +250,28 @@ ApplicationWindow {
 
             // Sidebar column (Studio: min 260, ideal 320), full height;
             // hidden during the replay, and SplitView restores its width.
+            // Below the large width class it lives in the drawer
+            // (placeSidebar) and shows whenever the drawer does.
             SidebarPanel {
                 id: sidebarColumn
-                visible: root.sidebarShown && root.screenIndex !== 3
+                visible: root.sidebarInDrawer
+                         || (root.sidebarShown && root.screenIndex !== 3)
+                inDrawer: root.sidebarInDrawer
                 SplitView.preferredWidth: Theme.px(320)
                 SplitView.minimumWidth: Theme.px(260)
                 SplitView.maximumWidth: Theme.px(480)
+                // A workout chosen in the drawer is shown: the drawer
+                // closes, and the workout replaces settings too, which the
+                // drawer covered (beside the sidebar, settings stays).
+                onWorkoutChosen: {
+                    if (!root.sidebarInDrawer) {
+                        return
+                    }
+                    sidebarDrawer.close()
+                    if (root.screenIndex === 2 && Library.selectedWorkoutId !== -1) {
+                        root.screenIndex = 1
+                    }
+                }
             }
 
             // Content column: the toolbar over the routed screens.
@@ -219,6 +287,22 @@ ApplicationWindow {
                     color: Theme.toolbarBackground
 
                     readonly property bool replayShown: root.screenIndex === 3
+
+                    // Leading, below the large width class: the drawer with
+                    // the workout list (named like the web's workouts
+                    // section). Checked while the list shows.
+                    ToolbarButton {
+                        id: drawerButton
+                        visible: root.sidebarInDrawer && !toolbar.replayShown
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.spacingLarge
+                        anchors.verticalCenter: parent.verticalCenter
+                        iconName: "sidebar.left"
+                        label: Tr.t("dashboard.sectionWorkoutsEyebrow")
+                        checkable: true
+                        checked: sidebarDrawer.visible
+                        onClicked: root.toggleSidebar(visualFocus)
+                    }
 
                     // Leading, during the replay only: the way back and the
                     // workout's title.
@@ -257,19 +341,25 @@ ApplicationWindow {
                     // Principal: the sport filter (Studio's segmented picker),
                     // bound to the Library so a filter set from anywhere —
                     // including the gate walk — shows here. It is centred but
-                    // never under the trailing buttons; where even that leaves
-                    // too little room (large text in a narrow window) its
-                    // width is capped and it takes its compact pop-up form,
-                    // never below that form's width (toolbarMinimumWidth
-                    // keeps the room for it).
+                    // never under the leading or trailing buttons. Below the
+                    // large width class, and wherever the room is too small
+                    // (large text in a narrow window), it takes its compact
+                    // pop-up form, never below that form's width
+                    // (toolbarMinimumWidth keeps the room for it).
                     SegmentedControl {
                         id: sportFilter
-                        readonly property real room: trailingButtons.x
-                                                     - 2 * Theme.spacingLarge
+                        readonly property real leadingEdge: drawerButton.visible
+                                                            ? drawerButton.x + drawerButton.width
+                                                              + Theme.spacingLarge
+                                                            : Theme.spacingLarge
+                        readonly property real room: trailingButtons.x - Theme.spacingLarge
+                                                     - leadingEdge
                         visible: !toolbar.replayShown
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(compactWidth, Math.min(implicitWidth, room))
-                        x: Math.max(Theme.spacingLarge,
+                        width: root.sidebarInDrawer
+                               ? compactWidth
+                               : Math.max(compactWidth, Math.min(implicitWidth, room))
+                        x: Math.max(leadingEdge,
                                     Math.min(Math.round((parent.width - width) / 2),
                                              trailingButtons.x - Theme.spacingLarge - width))
                         model: [Tr.t("dashboard.all")].concat(Library.sportNames)
@@ -468,6 +558,63 @@ ApplicationWindow {
         }
     }
 
+    // The sidebar's drawer below the large width class. At medium it is a
+    // modal overlay beside a strip of the dimmed content: a click on the
+    // strip, Escape or the sidebar toggle closes it. At compact it is the
+    // list's page: under the toolbar, the window's full width, and neither
+    // modal nor closed by Escape itself, because Qt blocks every window
+    // shortcut outside a popup that is either (QQuickShortcutContext): the
+    // toolbar and the shell's shortcuts stay live, the drawer button and
+    // the sidebar toggle close the page, and so do Escape (the shortcut
+    // below), settings and the menu's commands on their way.
+    AppDrawer {
+        id: sidebarDrawer
+        y: root.compactLayout ? Theme.toolbarHeight + Theme.ruleWidth : 0
+        width: root.compactLayout ? root.width
+                                  : Math.min(sidebarColumn.SplitView.preferredWidth,
+                                             root.width - Theme.px(56))
+        height: root.height - y
+        edgeRule: !root.compactLayout
+        modal: !root.compactLayout
+        focus: true
+        closePolicy: root.compactLayout ? Popup.NoAutoClose
+                                        : Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        contentItem: Item {
+            id: drawerHost
+
+            // The modal drawer blocks the shell's shortcuts, so the two that
+            // concern the sidebar work inside it too: the toggle closes it
+            // and Find focuses its search field.
+            Shortcut {
+                sequence: root.isMac ? "Meta+Ctrl+S" : "F9"
+                enabled: sidebarDrawer.modal && sidebarDrawer.visible
+                onActivated: sidebarDrawer.close()
+            }
+            Shortcut {
+                sequences: [StandardKey.Find]
+                enabled: sidebarDrawer.modal && sidebarDrawer.visible
+                onActivated: sidebarColumn.focusSearch()
+            }
+        }
+    }
+    // The sidebar fills the drawer while it is there; back in the split
+    // view, SplitView sizes it again.
+    Binding {
+        target: sidebarColumn
+        property: "width"
+        value: drawerHost.width
+        when: sidebarColumn.parent === drawerHost
+        restoreMode: Binding.RestoreNone
+    }
+    Binding {
+        target: sidebarColumn
+        property: "height"
+        value: drawerHost.height
+        when: sidebarColumn.parent === drawerHost
+        restoreMode: Binding.RestoreNone
+    }
+
     // macOS About (the native application menu's About item): the product
     // name, tagline, version and the not-affiliated note, all existing
     // strings. Windows and Linux show the version on the settings page.
@@ -563,6 +710,7 @@ ApplicationWindow {
         // Replay route: load the workout and switch the stack index.
         function onIsReplayPresentedChanged() {
             if (Library.isReplayPresented) {
+                sidebarDrawer.close()
                 root.screenIndex = 3
                 Replay.loadWorkout(Library.selectedWorkoutId)
             } else if (root.screenIndex === 3) {
@@ -683,12 +831,14 @@ ApplicationWindow {
         // the replay.
         sequence: root.isMac ? "Meta+Ctrl+S" : "F9"
         enabled: root.screenIndex !== 3
-        onActivated: root.toggleSidebar()
+        onActivated: root.toggleSidebar(true)
     }
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (root.screenIndex === 3) {
+            if (sidebarDrawer.visible) {
+                sidebarDrawer.close()
+            } else if (root.screenIndex === 3) {
                 Library.closeReplay()
             } else if (root.screenIndex === 2) {
                 root.toggleSettings()

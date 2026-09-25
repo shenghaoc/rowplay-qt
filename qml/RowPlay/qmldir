@@ -34,4 +34,5 @@ AppSlider 1.0 AppSlider.qml
 AppProgressBar 1.0 AppProgressBar.qml
 AppBusyIndicator 1.0 AppBusyIndicator.qml
 AppDialog 1.0 AppDialog.qml
+AppDrawer 1.0 AppDrawer.qml
 AppDialogButtonBox 1.0 AppDialogButtonBox.qml
