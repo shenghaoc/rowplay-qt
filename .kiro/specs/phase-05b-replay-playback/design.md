@@ -24,7 +24,13 @@ split in QML only for display placement — no parsing of numbers).
 QML reads `Replay.poseFrame` (a `var` list) inside a single
 `onPoseFrameChanged` handler that writes joints/materials/camera in one pass;
 the handler is the only consumer. `FrameAnimation { onTriggered:
-Replay.tick(dt) }` is the only clock.
+Replay.tick(dt) }` is the only clock. It runs while the replay plays (and
+for a short settle after a change made while paused, #93): a still
+replay renders on demand. A change made while paused pushes its own frame
+from the slot that made it. A ghost takes two pipeline passes, because the
+camera reads the ghost's packed position before the ghost pipeline writes
+it; a new aspect places the camera afresh, because nothing converges on
+the new target while paused.
 
 ## Athlete posing (R2)
 

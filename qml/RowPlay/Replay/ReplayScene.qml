@@ -308,13 +308,30 @@ Item {
             }
         }
 
-        // Drive Replay.tick from the rendering loop.
+        // Drive Replay.tick from the rendering loop, but only while something
+        // moves: playback, or a short settle after a change made while
+        // paused (#93). A still scene renders on demand. On macOS (cocoa,
+        // Metal) a running FrameAnimation keeps the window rendering at the
+        // display rate, 120 frames/s for a paused replay; under Xvfb +
+        // llvmpipe it fires only on frames something else caused, so the
+        // settle asks the View3D for each of its frames itself (a window
+        // update alone does not re-render a View3D that is not dirty).
         FrameAnimation {
-            running: Replay.hasWorkout && Replay.loadState === "ready"
+            running: replayRoot.visible && Replay.hasWorkout
+                     && Replay.loadState === "ready"
+                     && (Replay.playing || replayRoot.settleFrames > 0)
             onTriggered: {
                 Replay.tick(frameTime)
-                // Feed the governor with the Quick 3D render pass cost.
-                Replay.sampleRenderTime(scene.renderStats.frameTime)
+                if (Replay.playing) {
+                    // Feed the governor with the Quick 3D render pass cost
+                    // of playback; a still scene says nothing about it.
+                    Replay.sampleRenderTime(scene.renderStats.frameTime)
+                } else if (replayRoot.settleFrames > 0) {
+                    replayRoot.settleFrames -= 1
+                    if (replayRoot.settleFrames > 0) {
+                        scene.update()
+                    }
+                }
                 // Bench: collect renderStats.frameTime for measurement,
                 // plus wall-clock delta for cross-check.
                 if (replayRoot.benchCollecting) {
@@ -638,10 +655,36 @@ Item {
     Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "]"; onActivated: { Replay.stepSpeed(1); replayRoot.wakeHud() } }
     Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequences: ["Home", "0"]; onActivated: { Replay.seek(0); replayRoot.wakeHud() } }
 
+    // ---- On-demand rendering while paused (#93) ----
+    // A change made while paused (a seek, the sport, tier or scheme, a
+    // ghost, the viewport) renders on its own, because it changes the
+    // scene. The tick animation then runs a few frames more, each one
+    // asking the View3D for a render: buffer uploads and the sky's light
+    // probe can take more than one frame to land. After that the scene is
+    // still and renders nothing until the next change. The HUD's fade runs
+    // its own animation.
+    readonly property int settleFrameCount: 6
+    property int settleFrames: 0
+    function settle() {
+        if (!Replay.playing) {
+            settleFrames = settleFrameCount
+        }
+    }
+    // Leaving the route pauses the replay. It reloads from the start when
+    // the route opens again, so ticking it out of sight only cost frames.
+    onVisibleChanged: {
+        if (!visible) {
+            Replay.pause()
+        }
+    }
+
     // ---- Connections ----
     Connections {
         target: Replay
-        function onFrameChanged() { replayRoot.applyFrame() }
+        function onFrameChanged() {
+            replayRoot.applyFrame()
+            replayRoot.settle()
+        }
         function onReplayChanged() {
             if (Replay.loadState === "ready") {
                 replayRoot.applySceneRules()
@@ -649,7 +692,9 @@ Item {
                 // signal, so detect what actually changed.
                 replayRoot.syncVenue()
             }
+            replayRoot.settle()
         }
+        function onPlaybackChanged() { replayRoot.settle() }
     }
     onWidthChanged: Replay.setViewport(width, height)
     onHeightChanged: Replay.setViewport(width, height)
