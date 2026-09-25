@@ -399,12 +399,32 @@ Item {
         }
     }
 
-    // ---- Transport HUD (ADR 0013) ----
+    // ---- HUD hit areas (round 3's 2f) ----
+    // Touch needs a larger target than a pointer: every HUD control answers
+    // within at least `minimumTarget` px each way. The mask reaches past the
+    // control's edges, so its compact visual and its place in the layout
+    // stay as they are; `reachX` caps the sideways reach where another
+    // control or the times sit beside it, so no two hit areas overlap.
+    readonly property real minimumTarget: 40
+    component HitArea: QtObject {
+        required property Item target
+        required property real minimum
+        property real reachX: Infinity
+        function contains(point: point) : bool {
+            const dx = Math.min(reachX, Math.max(0, (minimum - target.width) / 2))
+            const dy = Math.max(0, (minimum - target.height) / 2)
+            return point.x >= -dx && point.x <= target.width + dx
+                && point.y >= -dy && point.y <= target.height + dy
+        }
+    }
+
+    // ---- Transport HUD (ADR 0013, 0015) ----
     // Floating controls over the scene: play / pause, elapsed time, the
     // scrubber, total time and distance; then the speed, the metric chips
     // and the race gap, which move under the speed where the two do not fit
     // side by side (a compact window); the verdict gets its own line when a
-    // ghost finishes.
+    // ghost finishes. The controls are the style's (ADR 0015); the panel,
+    // the times, the chips and the verdict are content, drawn as before.
     // Back navigation is the toolbar's leading button (Main.qml). The HUD is
     // opaque, on the grouped surface: translucent, text on it fell below AA
     // over dark parts of the scene. All text is pre-rendered in Rust
@@ -453,20 +473,28 @@ Item {
             anchors.margins: Theme.spacingLarge
             spacing: Theme.spacingMedium
 
+            // Each row of controls is at least the minimum target tall, so
+            // the controls' hit areas fit inside their rows and never reach
+            // the next one (a style with smaller controls, Fusion, would
+            // otherwise overlap them by a couple of pixels).
             RowLayout {
                 Layout.fillWidth: true
+                Layout.minimumHeight: replayRoot.minimumTarget
                 spacing: Theme.spacingMedium
 
-                // Play / pause: a round borderless button whose glyph follows
-                // the transport state.
-                ToolbarButton {
-                    implicitWidth: Theme.px(36)
-                    implicitHeight: Theme.px(36)
-                    cornerRadius: implicitWidth / 2
-                    iconSize: Theme.px(18)
-                    iconName: Replay.playing ? "pause" : "play"
-                    label: Replay.playing ? Tr.t("replay.pause") : Tr.t("replay.play")
+                // Play / pause: a command button showing the platform's play
+                // or pause symbol, as the transport state has it.
+                CommandButton {
+                    id: playButton
+                    glyph: Replay.playing ? "pause" : "play"
+                    text: Replay.playing ? Tr.t("replay.pause") : Tr.t("replay.play")
                     shortcutText: playShortcut.nativeText
+                    icon.width: Theme.px(18)
+                    icon.height: Theme.px(18)
+                    containmentMask: HitArea {
+                        target: playButton
+                        minimum: replayRoot.minimumTarget
+                    }
                     onClicked: Replay.toggle()
                 }
 
@@ -480,6 +508,11 @@ Item {
                     Accessible.name: text
                 }
 
+                // The scrubber stays the HUD's own (ADR 0015: the HUD is
+                // content). The macOS style's slider draws its track beyond
+                // the knob at 243 on the HUD's 244 grey, so the rest of the
+                // workout vanished. Its hit area reaches up and down to the
+                // minimum target, not sideways, where the times sit.
                 AppSlider {
                     id: seekSlider
                     Layout.fillWidth: true
@@ -487,6 +520,11 @@ Item {
                     from: 0
                     to: 1
                     value: Replay.progress
+                    containmentMask: HitArea {
+                        target: seekSlider
+                        minimum: replayRoot.minimumTarget
+                        reachX: 0
+                    }
                     onMoved: Replay.seek(value)
                     Accessible.name: Tr.t("replay.seekSlider")
                 }
@@ -519,18 +557,23 @@ Item {
                 readonly property bool stacked: hud.compactGap || needsStack
                 readonly property real needed: speedControl.implicitWidth + columnSpacing
                                                + chipRow.implicitWidth
+                // The room the HUD gives the row, not the row's own width:
+                // side by side the row is never narrower than its two
+                // columns' minimum, which can equal `needed`, so its own
+                // width would never show that they do not fit.
+                readonly property real room: hudColumn.width
 
                 function restack() {
-                    if (width <= 0) {
+                    if (room <= 0) {
                         return
                     }
-                    if (!needsStack && needed > width) {
+                    if (!needsStack && needed > room) {
                         needsStack = true
-                    } else if (needsStack && needed + Theme.px(24) < width) {
+                    } else if (needsStack && needed + Theme.px(24) < room) {
                         needsStack = false
                     }
                 }
-                onWidthChanged: restack()
+                onRoomChanged: restack()
                 onNeededChanged: restack()
 
                 Layout.fillWidth: true
@@ -538,17 +581,86 @@ Item {
                 columnSpacing: Theme.spacingXLarge
                 rowSpacing: Theme.spacingMedium
 
-                // Takes its pop-up form only where even a line of its own
-                // is too narrow for its segments.
-                SegmentedControl {
+                // The speed (design.md, "SegmentedControl, per use"): the
+                // style's tool buttons, checkable in an exclusive group and
+                // all as wide as the widest, at least the minimum target. One
+                // tab stop, the checked choice, as in a radio group: the
+                // arrows move the choice while it has focus, and neither they
+                // nor Space reach the window's seek and play shortcuts then.
+                RowLayout {
                     id: speedControl
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: implicitWidth
-                    model: Replay.speedLabels
-                    currentIndex: Replay.speedIndex
-                    label: Tr.t("replay.playbackSpeed")
-                    onActivated: function(index) {
+
+                    // Every choice is as wide as the widest (a layout's
+                    // uniform cells take the mean) and at least the minimum
+                    // target.
+                    readonly property real choiceWidth: {
+                        var widest = replayRoot.minimumTarget
+                        for (var i = 0; i < speedRepeater.count; ++i) {
+                            var choice = speedRepeater.itemAt(i)
+                            if (choice) {
+                                widest = Math.max(widest, choice.implicitWidth)
+                            }
+                        }
+                        return widest
+                    }
+
+                    function select(index) {
+                        if (index < 0 || index >= speedRepeater.count) {
+                            return
+                        }
                         Replay.setSpeedIndex(index)
+                        speedRepeater.itemAt(index).forceActiveFocus(Qt.TabFocusReason)
+                    }
+
+                    // A nested layout fills by default; the choices keep
+                    // their own width.
+                    Layout.fillWidth: false
+                    Layout.minimumHeight: replayRoot.minimumTarget
+                    spacing: Theme.spacingXxSmall
+                    Accessible.role: Accessible.Grouping
+                    Accessible.name: Tr.t("replay.playbackSpeed")
+
+                    ButtonGroup {
+                        id: speedGroup
+                    }
+
+                    Repeater {
+                        id: speedRepeater
+                        model: Replay.speedLabels
+
+                        ToolButton {
+                            id: speedButton
+
+                            required property string modelData
+                            required property int index
+
+                            Layout.preferredWidth: speedControl.choiceWidth
+                            text: modelData
+                            checkable: true
+                            checked: index === Replay.speedIndex
+                            ButtonGroup.group: speedGroup
+                            focusPolicy: checked ? Qt.TabFocus : Qt.NoFocus
+                            // Up and down only: the choices are a few pixels
+                            // apart.
+                            containmentMask: HitArea {
+                                target: speedButton
+                                minimum: replayRoot.minimumTarget
+                                reachX: 0
+                            }
+                            Accessible.role: Accessible.RadioButton
+                            Accessible.name: text
+                            onClicked: Replay.setSpeedIndex(index)
+                            Keys.onLeftPressed: speedControl.select(index - 1)
+                            Keys.onRightPressed: speedControl.select(index + 1)
+                            Keys.onShortcutOverride: function(event) {
+                                if (event.modifiers === Qt.NoModifier
+                                        && (event.key === Qt.Key_Left
+                                            || event.key === Qt.Key_Right
+                                            || event.key === Qt.Key_Space)) {
+                                    event.accepted = true
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -560,7 +672,10 @@ Item {
                 GridLayout {
                     id: chipRow
                     Layout.fillWidth: true
-                    Layout.minimumHeight: hudLower.stacked ? 0 : speedControl.implicitHeight
+                    Layout.minimumHeight: hudLower.stacked
+                                          ? 0
+                                          : Math.max(speedControl.implicitHeight,
+                                                     replayRoot.minimumTarget)
                     columns: hud.compactGap ? 2 : 6
                     columnSpacing: Theme.spacingXLarge
                     rowSpacing: Theme.spacingMedium
@@ -781,9 +896,10 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 Accessible.name: text
             }
-            PushButton {
+            Button {
                 Layout.alignment: Qt.AlignHCenter
                 text: Tr.t("replay.closePanel")
+                Accessible.name: text
                 onClicked: Library.closeReplay()
             }
         }
