@@ -99,6 +99,21 @@ fn whole(value: f64) -> String {
     }
 }
 
+/// How close to the end of the replay the race counts as run (the web's
+/// `replayDuration - 0.05`).
+pub const RACE_FINISH_TOLERANCE_SECONDS: f64 = 0.05;
+
+/// Whether the player's replay has reached its finish line, where the race
+/// verdict shows. The web page's `raceFinished` is
+/// `ghostActive && replayDuration > 0 && frame.t >= replayDuration - 0.05`;
+/// the caller holds the ghost, and both times here are the player's,
+/// relative to its first stroke (the web's are absolute, which moves both
+/// sides of the comparison by the same origin).
+#[must_use]
+pub fn race_finished(elapsed_seconds: f64, duration_seconds: f64) -> bool {
+    duration_seconds > 0.0 && elapsed_seconds >= duration_seconds - RACE_FINISH_TOLERANCE_SECONDS
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,5 +181,19 @@ mod tests {
         for field in &fields {
             assert!(!field.contains('|'));
         }
+    }
+
+    /// Re-expressed from the web page's `raceFinished`
+    /// (`replayDuration > 0 && frame.t >= replayDuration - 0.05`): exact
+    /// bounds, so the tolerance is the web's 0.05 s with no float margin.
+    #[test]
+    fn the_race_is_finished_within_the_webs_tolerance_of_the_end() {
+        assert!(!race_finished(0.0, 420.0), "the start line");
+        assert!(!race_finished(210.0, 420.0), "halfway");
+        assert!(!race_finished(419.9, 420.0), "a tenth short");
+        assert!(race_finished(419.95, 420.0), "within 0.05 s");
+        assert!(race_finished(420.0, 420.0), "the end");
+        assert!(!race_finished(0.0, 0.0), "no duration, no race");
+        assert!(!race_finished(f64::NAN, 420.0), "no clock, no finish");
     }
 }
