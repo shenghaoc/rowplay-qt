@@ -878,6 +878,22 @@ two candidate causes, separated by a render-cadence measurement
   it, so the load now runs two passes. A small aspect change stayed under
   the camera's 3 m snap distance and left a ghost pair too close, so a
   paused resize now places the camera afresh.
+- **The ghost never moved: FIXED 2026-09-25 (#97).** The ghost's
+  `ReplayState` was built at load and never played, so the ghost stayed on
+  its start line and the race gap counted the player's whole distance
+  (after 10 s of rower 1001 against 1002 the ghost read 9.6 m where its
+  strokes say 49.7 m). Each pipeline pass now seeks it to the player's
+  time, as the web and Studio sample it, and the chase camera places the
+  ghost at that same instant rather than reading the previous pass's
+  position, which a paused seek left stale. The verdict waits for the
+  finish (the web's `raceFinished`); it had shown whenever playback was
+  paused, on the start line too ("win|49.5|214" at 0:00). The native gate
+  (Apple M5, light) shows the change where a ghost is loaded and nowhere
+  else: `replay-ghost` loses the start-line verdict, the phase shots'
+  close-ups their mid-race verdict, and the twelve chase-view phase shots
+  now frame the pair at its real gap (the rower 95 m, the skier 12 m, the
+  bike's shorter rival finished and holding its last stroke) instead of
+  around a ghost on its start line.
 
 Open question, connection not chased: the review's AT-SPI drive saw the
 app **re-create its X window** on the Replay press and paint only after
