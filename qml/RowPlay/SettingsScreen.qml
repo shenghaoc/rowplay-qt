@@ -13,9 +13,9 @@
 // a GroupBox; a row puts its label (and a detail line) beside its control,
 // or above it where the two do not fit; a switch always sits beside its
 // label, which wraps and toggles it; notes sit under the groups or in row
-// details, never behind a hover. One column at most 640 px (scaled) wide. No dismiss
-// button: back navigation, Escape and the toolbar's settings toggle close
-// the page.
+// details, never behind a hover. One column at most `Theme.readableWidth`
+// (640 px, scaled) wide. No dismiss button: back navigation, Escape and the
+// toolbar's settings toggle close the page.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -155,7 +155,7 @@ Pane {
                 id: form
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: screen.pageMargin
-                width: Math.min(parent.width - 2 * screen.pageMargin, Theme.px(640))
+                width: Math.min(parent.width - 2 * screen.pageMargin, Theme.readableWidth)
                 spacing: Theme.spacingXxLarge
 
                 // A label and its control side by side while they fit, one

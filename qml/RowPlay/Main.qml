@@ -34,12 +34,12 @@ ApplicationWindow {
     minimumHeight: 480
     title: "rowplay"
 
-    // The width class (Theme.widthClass). Large keeps the sidebar beside
-    // the content. Below it the sidebar moves into a drawer: at medium a
-    // modal one over the content, at compact the list's own page under the
-    // toolbar, so the window shows one column at a time.
+    // The width class (Theme.widthClass). Expanded and up keep the sidebar
+    // beside the content. Below it the sidebar moves into a drawer: at
+    // medium a modal one over the content, at compact the list's own page
+    // under the toolbar, so the window shows one column at a time.
     readonly property int widthClass: Theme.widthClass(width)
-    readonly property bool sidebarInDrawer: widthClass !== Theme.widthLarge
+    readonly property bool sidebarInDrawer: widthClass < Theme.widthExpanded
     readonly property bool compactLayout: widthClass === Theme.widthCompact
 
     // The narrowest toolbar that keeps everything reachable: its four gaps,
@@ -1472,7 +1472,9 @@ ApplicationWindow {
                             "screen", root.screenIndex)
                 Library.closeReplay()
                 Library.clearSelection()
-                root.width = 1200
+                // Large, scaled like the breakpoints, so every platform's
+                // text size reaches the same class.
+                root.width = Theme.px(1200)
                 break
             case 229:
                 console.log("gate width classes: large", root.widthClass,
