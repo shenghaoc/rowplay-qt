@@ -10,9 +10,12 @@
 // - the accent (selection, focus rings, switch-on, prominent buttons)
 //   follows the system accent, with the brand blue as the fallback — the
 //   metric colours never follow it;
-// - the colour scheme follows Qt.styleHints.colorScheme, and the OS
-//   contrast preference (Qt 6.10 QStyleHints::accessibility()) switches to
-//   opaque surfaces, stronger lines and full-contrast secondary text.
+// - the colour scheme follows Qt.styleHints.colorScheme, and under the OS
+//   contrast preference (Qt 6.10 QStyleHints::accessibility()) every colour
+//   role comes from the system palette's pairs, as Windows' contrast themes
+//   require (window / windowText, highlight / highlightedText, button /
+//   buttonText, placeholder and disabled text), with 2 px outlines where two
+//   surfaces become the same colour.
 //
 // The PM5 palette and the Metric Mapping Rule are Studio's DESIGN.md ("The
 // Erg Display"). The neutral surface and text ramps are this repository's
@@ -30,8 +33,13 @@ QtObject {
     // Follows the system colour scheme; Qt.ColorScheme.Unknown (no portal /
     // platform support) resolves to light, DESIGN.md's default aesthetic.
     // ROWPLAY_FORCE_COLOR_SCHEME (Settings.colorSchemeOverride) pins the
-    // scheme for tests and CI screenshots.
+    // scheme for tests and CI screenshots. Under high contrast the system
+    // palette decides: its window colour says light or dark, so the scheme
+    // always matches the colours it is drawn in.
     readonly property bool dark: {
+        if (highContrast) {
+            return luminance(hcWindow) < 0.5
+        }
         const forced = Settings.colorSchemeOverride
         if (forced === "dark") {
             return true
@@ -98,10 +106,61 @@ QtObject {
     }
 
     /// White or near-black, whichever contrasts more with `fill` (a label
-    /// on a solid badge or on the accent).
+    /// on a solid badge or on the accent); under high contrast the system
+    /// palette's window or window-text colour.
     function textOn(fill) {
-        return contrastRatio(fill, "#ffffff") >= contrastRatio(fill, "#0e1014")
-               ? "#ffffff" : "#0e1014"
+        const light = highContrast ? (dark ? hcWindowText : hcWindow) : "#ffffff"
+        const deep = highContrast ? (dark ? hcWindow : hcWindowText) : "#0e1014"
+        return contrastRatio(fill, light) >= contrastRatio(fill, deep) ? light : deep
+    }
+
+    /// `foreground` composited over the opaque `background`: what the screen
+    /// shows. macOS reports its text roles with alpha (window text is black
+    /// at 85 %, placeholders at 50 %), so contrast is measured on this.
+    function over(foreground, background) {
+        const f = Qt.lighter(foreground, 1.0)
+        const b = Qt.lighter(background, 1.0)
+        const a = f.a
+        return Qt.rgba(f.r * a + b.r * (1 - a), f.g * a + b.g * (1 - a),
+                       f.b * a + b.b * (1 - a), 1)
+    }
+
+    /// A colour of our own palette (a metric or a status colour) kept under
+    /// high contrast only where it reaches 4.5:1 on `surface` (the window by
+    /// default); otherwise the window text. The label beside a metric names
+    /// it, so no meaning is lost.
+    function hcFit(colour, surface) {
+        if (!highContrast) {
+            return colour
+        }
+        const base = surface === undefined ? hcWindow : surface
+        return contrastRatio(colour, base) >= 4.5 ? colour : hcWindowText
+    }
+
+    // MARK: - System palette (high contrast)
+    //
+    // Under the OS contrast preference, surfaces, text, selection, controls
+    // and lines take the system palette's colour pairs (Windows maps a
+    // contrast theme's Window, WindowText, Highlight, HighlightText,
+    // ButtonFace, ButtonText and GrayText there), composited to opaque
+    // colours. What Qt 6.11 reports per OS is in docs/qt-bridges-notes.md.
+
+    readonly property SystemPalette systemPaletteDisabled: SystemPalette {
+        colorGroup: SystemPalette.Disabled
+    }
+    readonly property color hcWindow: over(systemPalette.window, "#808080")
+    readonly property color hcWindowText: over(systemPalette.windowText, hcWindow)
+    readonly property color hcButton: over(systemPalette.button, hcWindow)
+    readonly property color hcButtonText: over(systemPalette.buttonText, hcButton)
+    readonly property color hcHighlight: over(systemPalette.highlight, hcWindow)
+    readonly property color hcHighlightedText: over(systemPalette.highlightedText, hcHighlight)
+    /// Disabled text only (GrayText on Windows).
+    readonly property color hcGrayText: over(systemPaletteDisabled.windowText, hcWindow)
+    /// Placeholders, where they reach 4.5:1 in a field; the window text
+    /// otherwise.
+    readonly property color hcPlaceholder: {
+        const placeholder = over(systemPalette.placeholderText, hcButton)
+        return contrastRatio(placeholder, hcButton) >= 4.5 ? placeholder : hcButtonText
     }
 
     // MARK: - Accent (system accent, brand blue fallback)
@@ -117,37 +176,43 @@ QtObject {
                                                   && !Qt.colorEqual(systemPalette.accent, "#308cc6")
     /// Monitor Blue (DESIGN.md: primary actions and the accent colour role).
     readonly property color brandBlue: dark ? "#0A84FF" : "#0066CC"
-    readonly property color accentColor: systemAccentAvailable ? systemPalette.accent : brandBlue
+    /// Selection, switch-on and prominent buttons; the system highlight
+    /// under high contrast.
+    readonly property color accentColor: highContrast ? hcHighlight
+                                         : (systemAccentAvailable ? systemPalette.accent
+                                                                  : brandBlue)
     /// Text and glyphs on an accent fill: white or near-black, whichever
-    /// contrasts more with the accent in use (AA for the brand blues).
-    readonly property color onAccent: textOn(accentColor)
+    /// contrasts more with the accent in use (AA for the brand blues); the
+    /// system's highlighted text under high contrast.
+    readonly property color onAccent: highContrast ? hcHighlightedText : textOn(accentColor)
 
-    // MARK: - Colour palette (DESIGN.md "The PM5 Palette")
+    // MARK: - Colour palette (DESIGN.md "The PM5 Palette"; under high
+    // contrast each colour stays only where it reaches 4.5:1, see hcFit)
 
     /// Primary brand blue — distance, key emphasis.
-    readonly property color primaryBlue: dark ? "#0A84FF" : "#0066CC"
+    readonly property color primaryBlue: hcFit(dark ? "#0A84FF" : "#0066CC")
     /// Warm comparison orange — watts, splits, secondary emphasis.
-    readonly property color comparisonOrange: dark ? "#FF9F0A" : "#9A5700"
+    readonly property color comparisonOrange: hcFit(dark ? "#FF9F0A" : "#9A5700")
     /// Energetic green — positive deltas, success states, cadence highlights.
-    readonly property color energeticGreen: dark ? "#30D158" : "#137333"
+    readonly property color energeticGreen: hcFit(dark ? "#30D158" : "#137333")
     /// Alert red — negative deltas, heart rate, finish markers.
-    readonly property color alertRed: dark ? "#FF453A" : "#B3261E"
+    readonly property color alertRed: hcFit(dark ? "#FF453A" : "#B3261E")
     /// Destructive button labels: the alert red, lifted in dark mode, where
     /// the PM5 red measures 4.46:1 on the control fill (AA needs 4.5).
-    readonly property color destructiveText: dark ? "#FF6B61" : alertRed
+    readonly property color destructiveText: hcFit(dark ? "#FF6B61" : "#B3261E", hcButton)
     /// Soft purple — elevation, descent, cadence accents.
-    readonly property color softPurple: dark ? "#BF5AF2" : "#7B2CBF"
+    readonly property color softPurple: hcFit(dark ? "#BF5AF2" : "#7B2CBF")
     /// Warm yellow — caution states, active indicators.
-    readonly property color warmYellow: dark ? "#FFD60A" : "#7A5A00"
+    readonly property color warmYellow: hcFit(dark ? "#FFD60A" : "#7A5A00")
 
     // MARK: - Semantic metric colours (the Metric Mapping Rule: one colour
     // per metric domain, never cross-assigned, never the accent)
 
     readonly property color metricDistance: primaryBlue
-    readonly property color metricDuration: dark ? "#64D2FF" : "#007A99"
+    readonly property color metricDuration: hcFit(dark ? "#64D2FF" : "#007A99")
     /// Slightly lighter blue than distance in dark mode, so pace and distance
     /// stay distinguishable (DesignTokens MetricColor.pace).
-    readonly property color metricPace: dark ? "#409CFF" : "#0066CC"
+    readonly property color metricPace: hcFit(dark ? "#409CFF" : "#0066CC")
     readonly property color metricSpeed: comparisonOrange
     readonly property color metricWatts: comparisonOrange
     readonly property color metricHeartRate: alertRed
@@ -183,28 +248,35 @@ QtObject {
         return positive ? energeticGreen : alertRed
     }
 
-    // MARK: - Surfaces (our neutral ramp; tonal layering, no shadows)
+    // MARK: - Surfaces (our neutral ramp; tonal layering, no shadows. Under
+    // high contrast every surface is the system window colour and controls
+    // the button colour; the outlines below keep them apart.)
 
     /// The content canvas and the toolbar above it.
-    readonly property color windowBackground: dark ? "#111317" : "#FFFFFF"
+    readonly property color windowBackground: highContrast ? hcWindow
+                                              : (dark ? "#111317" : "#FFFFFF")
     readonly property color toolbarBackground: windowBackground
     /// The sidebar column.
-    readonly property color sidebarBackground: dark ? "#16191D" : "#F4F5F7"
+    readonly property color sidebarBackground: highContrast ? hcWindow
+                                               : (dark ? "#16191D" : "#F4F5F7")
     /// Grouped surfaces: cards, grouped settings rows, chart panels. The
     /// light value keeps the PM5 duration colour at AA on it (4.53:1; it
     /// measured 4.496:1 on #F3F4F6).
-    readonly property color groupBackground: dark ? "#191C21" : "#F4F5F7"
+    readonly property color groupBackground: highContrast ? hcWindow
+                                             : (dark ? "#191C21" : "#F4F5F7")
     readonly property color panelBackground: groupBackground
     readonly property color cardBackground: groupBackground
-    /// A selected card (tonal accent wash; opaque in high contrast).
+    /// A selected card (tonal accent wash; the highlight in high contrast).
     readonly property color activeCardBackground: highContrast
-                                                  ? (dark ? "#23324a" : "#dce8f7")
+                                                  ? hcHighlight
                                                   : Qt.rgba(accentColor.r, accentColor.g,
                                                             accentColor.b, 0.12)
     /// Text fields, push buttons, pop-up buttons.
-    readonly property color controlBackground: dark ? "#22262C" : "#FFFFFF"
+    readonly property color controlBackground: highContrast ? hcButton
+                                               : (dark ? "#22262C" : "#FFFFFF")
     /// Menus, pop-up lists, tooltips, dialogs.
-    readonly property color popupBackground: dark ? "#1C1F24" : "#FFFFFF"
+    readonly property color popupBackground: highContrast ? hcWindow
+                                             : (dark ? "#1C1F24" : "#FFFFFF")
     /// Floating controls over the replay scene: opaque, on the grouped
     /// surface. Translucent (0.88–0.90 alpha), the metric colours and the
     /// tertiary text fell below AA over dark parts of the scene.
@@ -212,59 +284,85 @@ QtObject {
 
     // MARK: - Text (WCAG AA on every surface above; see docs/source-map.md)
 
-    readonly property color textPrimary: dark ? "#ECEEF2" : "#15181D"
-    readonly property color textSecondary: highContrast ? textPrimary
-                                                        : (dark ? "#A9B0BA" : "#535A65")
+    readonly property color textPrimary: highContrast ? hcWindowText
+                                         : (dark ? "#ECEEF2" : "#15181D")
+    readonly property color textSecondary: highContrast ? hcWindowText
+                                           : (dark ? "#A9B0BA" : "#535A65")
     /// Placeholders and decoration only; still ≥ 4.5:1. Under high
-    /// contrast it takes the normal secondary value (≥ 7:1), so a
-    /// placeholder stays distinguishable from entered text.
-    readonly property color textTertiary: highContrast ? (dark ? "#A9B0BA" : "#535A65")
-                                                       : (dark ? "#8E959F" : "#666D78")
-    /// Disabled labels (exempt from contrast requirements; still legible).
-    readonly property color textDisabled: highContrast ? (dark ? "#A9B0BA" : "#535A65")
-                                                       : (dark ? "#646B75" : "#A1A8B2")
+    /// contrast the system's placeholder colour where it reaches 4.5:1.
+    readonly property color textTertiary: highContrast ? hcPlaceholder
+                                          : (dark ? "#8E959F" : "#666D78")
+    /// Disabled labels (exempt from contrast requirements; still legible);
+    /// the system's disabled text under high contrast.
+    readonly property color textDisabled: highContrast ? hcGrayText
+                                          : (dark ? "#646B75" : "#A1A8B2")
 
     // MARK: - Lines, washes and control parts
 
-    readonly property color separator: highContrast ? (dark ? "#8E959F" : "#6A717C")
-                                                    : (dark ? "#2A2E35" : "#DDE1E6")
+    readonly property color separator: highContrast ? hcWindowText
+                                       : (dark ? "#2A2E35" : "#DDE1E6")
     /// Control outlines (≥ 3:1 against the surfaces they sit on).
-    readonly property color controlBorder: highContrast ? (dark ? "#A9B0BA" : "#4F5663")
-                                                        : (dark ? "#6B737E" : "#838B96")
-    readonly property color hoverFill: highContrast ? (dark ? "#2A2E35" : "#E3E6EB")
-                                                    : (dark ? Qt.rgba(1, 1, 1, 0.06)
-                                                            : Qt.rgba(0, 0, 0, 0.045))
-    readonly property color pressedFill: highContrast ? (dark ? "#373C44" : "#D3D8DF")
-                                                      : (dark ? Qt.rgba(1, 1, 1, 0.11)
-                                                              : Qt.rgba(0, 0, 0, 0.09))
+    readonly property color controlBorder: highContrast ? hcButtonText
+                                           : (dark ? "#6B737E" : "#838B96")
+    readonly property color hoverFill: highContrast ? Qt.alpha(hcWindowText, 0.12)
+                                       : (dark ? Qt.rgba(1, 1, 1, 0.06)
+                                               : Qt.rgba(0, 0, 0, 0.045))
+    readonly property color pressedFill: highContrast ? Qt.alpha(hcWindowText, 0.24)
+                                         : (dark ? Qt.rgba(1, 1, 1, 0.11)
+                                                 : Qt.rgba(0, 0, 0, 0.09))
     /// Selection with keyboard focus: the accent, its text onAccent.
     readonly property color selectionFill: accentColor
     readonly property color selectionText: onAccent
-    /// Selection without focus: a neutral wash, primary text.
+    /// Selection without focus: a neutral wash, primary text. Under high
+    /// contrast the window fill with a 2 px outline in the highlight
+    /// (selectionOutline), so it still differs from the focused selection.
     readonly property color selectionFillInactive: highContrast
-                                                   ? (dark ? "#30353D" : "#D9DEE5")
+                                                   ? hcWindow
                                                    : (dark ? Qt.rgba(1, 1, 1, 0.10)
                                                            : Qt.rgba(0, 0, 0, 0.075))
-    readonly property color segmentTrack: dark ? "#22262C" : "#E8EAEE"
-    readonly property color segmentThumb: dark ? "#3A3F47" : "#FFFFFF"
-    readonly property color switchTrackOff: dark ? "#3A3F47" : "#D4D8DE"
-    readonly property color switchKnob: "#FFFFFF"
+    readonly property color selectionOutline: highContrast ? hcHighlight : "transparent"
+    readonly property color segmentTrack: highContrast ? hcButton
+                                          : (dark ? "#22262C" : "#E8EAEE")
+    /// The selected segment's thumb and label: the highlight pair under
+    /// high contrast.
+    readonly property color segmentThumb: highContrast ? hcHighlight
+                                          : (dark ? "#3A3F47" : "#FFFFFF")
+    readonly property color segmentThumbText: highContrast ? hcHighlightedText : textPrimary
+    readonly property color switchTrackOff: highContrast ? hcButton
+                                            : (dark ? "#3A3F47" : "#D4D8DE")
+    /// The knob on an off switch and on the slider; switchKnobOn on an on
+    /// switch's accent track.
+    readonly property color switchKnob: highContrast ? hcButtonText : "#FFFFFF"
+    readonly property color switchKnobOn: highContrast ? hcHighlightedText : "#FFFFFF"
     /// Keyboard focus ring, two-tone (FocusRing.qml): the outer band in the
     /// accent, or the primary text colour when an unusual system accent
-    /// would fall below 3:1 against the window, and the inner band in the
-    /// window colour, so one of the two contrasts with whatever the ring
-    /// surrounds or crosses.
-    readonly property color focusRing: contrastRatio(accentColor, windowBackground) >= 3
-                                       ? accentColor : textPrimary
+    /// would fall below 3:1 against the window (always under high contrast),
+    /// and the inner band in the window colour, so one of the two contrasts
+    /// with whatever the ring surrounds or crosses.
+    readonly property color focusRing: highContrast
+                                       || contrastRatio(accentColor, windowBackground) < 3
+                                       ? textPrimary : accentColor
     readonly property color focusRingInner: windowBackground
     readonly property int focusRingWidth: 2
     readonly property int focusRingInnerWidth: 1
     /// How far the ring reaches outside its control.
     readonly property int focusRingExtent: focusRingWidth + focusRingInnerWidth
-    readonly property color chartGrid: highContrast ? (dark ? "#4A5059" : "#B8BEC7")
-                                                    : (dark ? "#23272D" : "#ECEEF1")
-    readonly property color chartAxis: highContrast ? (dark ? "#A9B0BA" : "#4F5663")
-                                                    : (dark ? "#4A5059" : "#B8BEC7")
+    readonly property color chartGrid: highContrast ? Qt.alpha(hcWindowText, 0.4)
+                                       : (dark ? "#23272D" : "#ECEEF1")
+    readonly property color chartAxis: highContrast ? hcWindowText
+                                       : (dark ? "#4A5059" : "#B8BEC7")
+
+    // MARK: - Outlines under high contrast
+    //
+    // There every surface is the window colour, so the edges that tones
+    // drew become 2 px outlines in the separator colour.
+
+    /// Cards and panels (no outline on the tonal ramps).
+    readonly property int cardBorderWidth: highContrast ? 2 : 0
+    /// Outlines drawn in both modes: grouped forms, popups, the replay HUD.
+    readonly property int outlineWidth: highContrast ? 2 : hairline
+    /// Structural rules: the sidebar's edge and the toolbar's.
+    readonly property int ruleWidth: highContrast ? 2 : hairline
 
     // MARK: - Replay materials (Phase 5a)
     //

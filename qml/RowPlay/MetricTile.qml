@@ -25,6 +25,8 @@ Pane {
     background: Rectangle {
         color: Theme.cardBackground
         radius: Theme.radiusMedium
+        border.width: Theme.cardBorderWidth
+        border.color: Theme.separator
     }
 
     ColumnLayout {

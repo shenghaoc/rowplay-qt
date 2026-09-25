@@ -197,7 +197,8 @@ Control {
                     text: String(segment.modelData)
                     font.pixelSize: control.font.pixelSize
                     font.weight: segment.selected ? Font.DemiBold : Font.Normal
-                    color: control.enabled ? Theme.textPrimary : Theme.textDisabled
+                    color: !control.enabled ? Theme.textDisabled
+                         : segment.selected ? Theme.segmentThumbText : Theme.textPrimary
                     elide: Text.ElideRight
                     horizontalAlignment: Text.AlignHCenter
                     Accessible.ignored: true

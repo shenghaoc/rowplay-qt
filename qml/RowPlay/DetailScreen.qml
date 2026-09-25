@@ -72,6 +72,8 @@ Pane {
                             implicitHeight: sportLabel.implicitHeight + Theme.spacingXSmall
                             radius: height / 2
                             color: Theme.segmentTrack
+                            border.width: Theme.cardBorderWidth
+                            border.color: Theme.separator
 
                             Label {
                                 id: sportLabel
@@ -139,6 +141,8 @@ Pane {
                 implicitHeight: stripGrid.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
+                border.width: Theme.cardBorderWidth
+                border.color: Theme.separator
 
                 GridLayout {
                     id: stripGrid
@@ -207,6 +211,8 @@ Pane {
                 implicitHeight: splitsColumn.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
+                border.width: Theme.cardBorderWidth
+                border.color: Theme.separator
 
                 // One key per column, in Detail.splitColumnIds' order.
                 readonly property var cellKeys: [
@@ -394,6 +400,8 @@ Pane {
                 implicitHeight: targetsColumn.implicitHeight + 2 * Theme.spacingXLarge
                 radius: Theme.radiusLarge
                 color: Theme.panelBackground
+                border.width: Theme.cardBorderWidth
+                border.color: Theme.separator
 
                 ColumnLayout {
                     id: targetsColumn

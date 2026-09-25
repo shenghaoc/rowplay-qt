@@ -22,6 +22,8 @@ ColumnLayout {
         implicitHeight: emptyColumn.implicitHeight + 2 * Theme.spacingXLarge
         radius: Theme.radiusLarge
         color: Theme.panelBackground
+        border.width: Theme.cardBorderWidth
+        border.color: Theme.separator
 
         ColumnLayout {
             id: emptyColumn
@@ -56,6 +58,8 @@ ColumnLayout {
         implicitHeight: chartsColumn.implicitHeight + 2 * Theme.spacingXLarge
         radius: Theme.radiusLarge
         color: Theme.panelBackground
+        border.width: Theme.cardBorderWidth
+        border.color: Theme.separator
 
         ColumnLayout {
             id: chartsColumn

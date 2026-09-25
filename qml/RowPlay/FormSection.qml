@@ -37,7 +37,7 @@ ColumnLayout {
         implicitHeight: box.implicitHeight
         radius: Theme.radiusLarge
         color: Theme.groupBackground
-        border.width: Theme.hairline
+        border.width: Theme.outlineWidth
         border.color: Theme.separator
 
         ColumnLayout {

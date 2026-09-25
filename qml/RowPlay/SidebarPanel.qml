@@ -280,6 +280,11 @@ Pane {
                                    : (rowItem.selected ? Theme.selectionFillInactive
                                       : (rowHover.containsMouse ? Theme.hoverFill
                                                                 : "transparent"))
+                            // Under high contrast the unfocused selection
+                            // keeps the window fill inside a highlight outline.
+                            border.width: rowItem.selected && !rowItem.emphasized
+                                          && Theme.highContrast ? 2 : 0
+                            border.color: Theme.selectionOutline
 
                             RowLayout {
                                 id: rowLayout

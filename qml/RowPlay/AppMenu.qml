@@ -18,7 +18,7 @@ Menu {
         implicitWidth: Theme.px(220)
         color: Theme.popupBackground
         radius: Theme.radiusMedium
-        border.width: Theme.hairline
+        border.width: Theme.outlineWidth
         border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
     }
 }
