@@ -4,7 +4,7 @@
 // the highlighted row (hover or keyboard) takes the accent with onAccent
 // text. Disabled items use the disabled text colour.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RowPlay
 

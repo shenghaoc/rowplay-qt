@@ -5,7 +5,7 @@
 // takes an outline under high contrast. Horizontal only (the replay
 // scrubber). Sizes scale with the system font.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Slider {

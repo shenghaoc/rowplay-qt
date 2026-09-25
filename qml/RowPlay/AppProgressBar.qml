@@ -3,7 +3,7 @@
 // accent fill; indeterminate progress shows a sliding segment, held still
 // (centred) under the reduce-motion preference.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 ProgressBar {

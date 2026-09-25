@@ -6,7 +6,7 @@
 // (macOS, Windows, KDE and GNOME differ); callers add PushButtons with a
 // DialogButtonBox.buttonRole and translated text.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 DialogButtonBox {

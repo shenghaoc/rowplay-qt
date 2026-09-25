@@ -8,7 +8,7 @@
 // it (with a focus ring); a click does not take focus, so clicking Reload
 // keeps the list focused.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 AbstractButton {

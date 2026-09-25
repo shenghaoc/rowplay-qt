@@ -4,7 +4,7 @@
 // is also the control's accessible name and reachable another way (a menu
 // entry, a shortcut, a visible label) — nothing is reachable by hover alone.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 ToolTip {

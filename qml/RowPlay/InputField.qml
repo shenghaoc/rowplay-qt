@@ -7,7 +7,7 @@
 // alert colour, so the field itself shows which one is wrong; the caller
 // puts the message beside it. Sizes scale with the system font.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 TextField {

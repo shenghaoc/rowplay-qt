@@ -14,7 +14,7 @@
 // them; a caller lets it shrink by capping its width below `implicitWidth`,
 // and keeps it at least `compactWidth` wide.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Control {

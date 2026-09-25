@@ -4,7 +4,7 @@
 // and the dialog's dimmed backdrop while it is modal. It slides in from the
 // leading edge, and appears at once under the reduce-motion preference.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Drawer {

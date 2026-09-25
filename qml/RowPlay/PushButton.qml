@@ -7,7 +7,7 @@
 // use). `destructive` tints the label red on the neutral bezel. At most one
 // prominent or destructive button per view.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Button {

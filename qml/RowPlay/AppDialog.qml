@@ -5,7 +5,7 @@
 // Qt orders them the platform's way (macOS, Windows, KDE and GNOME differ);
 // callers give each PushButton its DialogButtonBox.buttonRole.
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import RowPlay
 
 Dialog {
