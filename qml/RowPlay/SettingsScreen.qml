@@ -7,7 +7,7 @@
 // - the reduce-motion toggle uses a desktop-supplement key
 //   (settings.reduceMotion) because the web has none;
 // - the timezone picker is a flat list (labels carry the UTC offset) instead
-//   of the web's grouped <select>.
+//   of the web's grouped <select>, filtered as you type (round 2).
 //
 // Design system (ADR 0013): a grouped page — the label at each row's leading
 // edge, at most two controls at its trailing edge, a click anywhere on a
@@ -329,11 +329,17 @@ Pane {
                         // it was a hover-only tooltip.
                         detail: Tr.t("settings.timezoneNote")
 
+                        // 48 entries: typing filters them, by city, UTC
+                        // offset or zone name (the view-model decides).
                         PopupButton {
                             id: timezoneCombo
                             Layout.preferredWidth: Theme.px(220)
                             model: [Tr.t("settings.timezoneUtcDefault")].concat(
                                        Settings.timezoneLabels)
+                            filterable: true
+                            filterLabel: Tr.t("workoutList.search")
+                            filterIndices: Settings.timezoneMatches(
+                                               filterText, Tr.t("settings.timezoneUtcDefault"))
                             Component.onCompleted: currentIndex = Settings.homeTimezoneIndex
                             onActivated: function(index) {
                                 Settings.setHomeTimezoneIndex(index)
