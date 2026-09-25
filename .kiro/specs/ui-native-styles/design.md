@@ -113,6 +113,39 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
   cannot, so Spanish at 480 px overflowed the window. The test now reads
   the column's width.
 
+## Large and extra-large layouts (round 3's 2d)
+
+- **Classes:** M3's five window size classes, scaled with the text like
+  round 2's. Round 2's 600 and 840 are M3's medium and expanded; round 3
+  adds large (≥ 1200) and extra-large (≥ 1600).
+- **Rule for a content layout that splits:** the window is large or
+  extra-large *and* the screen's own column fits two panes of
+  `paneMinWidth` (460 px, scaled) with the gap between.
+  - The sidebar takes some 320 px of the window, so the default 1200 px
+    window with its sidebar keeps one column; at 1440 px it splits.
+  - The column is read from the screen's pane, not the scroll view, so a
+    scroll bar coming or going cannot flip the layout.
+- **Detail (M3's supporting pane):** the header and the comments span both
+  panes. The summary, the splits and the targets are on the left, the
+  stroke charts on the right.
+  - Each section is declared once and placed by a `LayoutItemProxy` in
+    one of two layouts.
+  - A proxy that takes control of its target makes the target visible.
+    So the comments, the strip, the splits and the targets, each
+    sometimes absent, carry their visibility on their proxies; on the
+    sections themselves it was overridden.
+- **Dashboard (M3's feed):**
+  - The two charts sit side by side under the same rule, as tall as the
+    taller.
+  - A tile or card grid whose items all fit one row stops at
+    `tileMaxWidth` (320 px) per item.
+  - Capping every grid narrowed the two-column tiles at the medium width
+    by 10 px, out of line with the cards below. The cap therefore applies
+    only to a single row.
+- **Caps:** the content stops at `contentMaxWidth` (1440 px), centred.
+  Running text (the detail's comments) and the settings form stop at
+  `readableWidth` (640 px, some 90 characters).
+
 ## Motion (round 3's 2e)
 
 - **Tokens:** `Theme` has three durations and two curves.

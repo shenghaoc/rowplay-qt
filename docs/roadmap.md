@@ -1228,3 +1228,11 @@ requests on the round-2 stack's composed top:
    Two Basic imports stay by decision: the HUD's scrubber (content) and
    the live-mode spinner (until the WebP plugin ships). AGENTS.md's QML
    rules now say to use native Qt Quick Controls as-is.
+8. `ui/native-large-layouts`: round 3's 2d. `Theme.widthClass` has M3's
+   five classes, adding large (≥ 1200) and extra-large (≥ 1600). In a
+   large window whose own column fits two panes, the detail opens M3's
+   supporting pane (the stroke charts beside the summary and splits) and
+   the dashboard its feed (the charts side by side). Tiles stop at a
+   maximum width once they fit one row, the content stops at 1440 px
+   centred, and running text at 640 px. Checked at 1200, 1440, 1600 and
+   1920 px in English and Japanese, light and dark.
