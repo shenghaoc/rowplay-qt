@@ -38,15 +38,18 @@
   only while the route is shown and playing, plus a six-frame settle after
   a change made while paused; `tick()` tells the transport when playback
   stops itself. A ghost loaded or dismissed and a new viewport aspect push
-  their own frame while paused. The ghost takes two pipeline passes, so the
-  camera frames the pair, and a new aspect places the camera afresh
-  (both from the Codex review). Measured on an Apple M5: a paused replay
+  their own frame while paused. The ghost took two pipeline passes, so the
+  camera framed the pair (one pass since T12), and a new aspect places the
+  camera afresh (both from the Codex review). Measured on an Apple M5: a paused replay
   dropped from 120 frames/s and 12–14 % CPU to none and under 1.1 %.
 - [x] T12 (#97) The ghost runs on the player's clock. Its `ReplayState` was
   built at load and never played, so the ghost stayed on its start line
   and the race gap grew by the player's whole distance. Each pipeline pass
-  now seeks it to the player's time (Studio's `ReplayRaceGap.ghostFrame`),
-  so play, pause, seek and speed move both, and a shorter rival holds its
+  now seeks it to the player's absolute stroke time (the web's
+  `sampleAt(ghostStrokes, f.t)`, `race_gap::ghost_elapsed_at`; Studio's
+  `ReplayRaceGap.ghostFrame` counts from the ghost's own first stroke,
+  which the demo pair does not share), so play, pause, seek and speed move
+  both, and a shorter rival holds its
   last stroke. The chase camera places the ghost at that same instant: it
   read the previous pass's packed position, which a paused seek left
   stale, and `load_ghost` needs one pass again. The verdict now waits for
