@@ -348,7 +348,7 @@ Item {
         height: hudColumn.implicitHeight + 2 * Theme.spacingLarge
         radius: Theme.radiusLarge
         color: Theme.overlayBackground
-        border.width: Theme.hairline
+        border.width: Theme.outlineWidth
         border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
 
         Behavior on opacity {
@@ -593,7 +593,7 @@ Item {
         height: overlayColumn.implicitHeight + 2 * Theme.spacingXLarge
         radius: Theme.radiusLarge
         color: Theme.overlayBackground
-        border.width: Theme.hairline
+        border.width: Theme.outlineWidth
         border.color: Theme.highContrast ? Theme.controlBorder : Theme.separator
 
         ColumnLayout {

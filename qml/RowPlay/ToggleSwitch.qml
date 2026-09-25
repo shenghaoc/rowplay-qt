@@ -32,8 +32,11 @@ Switch {
         radius: height / 2
         color: !control.enabled ? Theme.segmentTrack
              : control.checked ? Theme.accentColor : Theme.switchTrackOff
-        // The off track's outline carries the control's shape (≥ 3:1).
-        border.width: control.checked && control.enabled ? 0 : Theme.hairline
+        // The off track's outline carries the control's shape (≥ 3:1); under
+        // high contrast the on track keeps it too, since the system highlight
+        // can sit close to the window colour.
+        border.width: control.checked && control.enabled && !Theme.highContrast
+                      ? 0 : Theme.hairline
         border.color: control.enabled ? Theme.controlBorder : Theme.separator
 
         Rectangle {
@@ -42,7 +45,8 @@ Switch {
             radius: width / 2
             y: parent.inset
             x: control.checked ? parent.width - width - parent.inset : parent.inset
-            color: control.enabled ? Theme.switchKnob : Theme.groupBackground
+            color: !control.enabled ? Theme.groupBackground
+                 : control.checked ? Theme.switchKnobOn : Theme.switchKnob
             border.width: Theme.hairline
             border.color: control.down ? Theme.controlBorder : Theme.separator
 
