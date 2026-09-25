@@ -39,3 +39,6 @@
   The compact two-column grid also accommodates Windows font metrics;
   the first fix kept all four chips in one row and failed the Spanish
   bounds assertion on Windows CI.
+  CI installs Noto CJK fonts for these measurements and retains all six
+  locale captures in its screenshot artifact; missing-glyph boxes cannot
+  substitute for Chinese or Japanese visual validation.
