@@ -107,6 +107,16 @@ Apple-HIG pass (#47). It is delivered as a stack of seven PRs
 - R3.3 Sidebar rows have a focused (accent) and an unfocused (neutral)
   selection, sentence-case section headers and no all caps.
 - R3.4 The empty state replaces only the content area.
+- R3.5 Width classes (round 2), HarmonyOS's breakpoints scaled with the
+  system font: compact below 600 px, medium below 840 px, large from
+  840 px. Large is the full layout. Below it the sidebar is a drawer, a
+  modal one over the content at medium and the list's own page under the
+  toolbar at compact, so the window shows one column at a time; a leading
+  toolbar button with an existing name opens it, as do the sidebar toggle
+  and Find, and the sport filter takes its compact form. Grids drop
+  columns with the width, and the replay HUD's controls and the detail's
+  rate and heart-rate charts stack where they do not fit side by side.
+  The minimum window is 480 × 480, its width scaled with the text.
 
 ## R4 — Platform layer
 

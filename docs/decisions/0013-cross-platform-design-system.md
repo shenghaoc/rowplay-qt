@@ -41,7 +41,10 @@ HIG, Microsoft's Fluent guidance and the GNOME HIG are sources of principles
 (hierarchy, grouping, spacing, focus and restraint), not of looks.
 
 - **Layout.** A sidebar and a content area with a toolbar. The sidebar is
-  hidden while the immersive replay is shown.
+  hidden while the immersive replay is shown. Below HarmonyOS's large
+  breakpoint (840 px, scaled with the text) the sidebar is a drawer: a
+  modal one over the content down to 600 px, the list's own page below
+  that, so a narrow window shows one column at a time (round 2).
 - **Toolbar.** Icon-only toolbar buttons, each with a tooltip and an
   accessible name.
 - **Choices.** A segmented control for exclusive choices that apply
