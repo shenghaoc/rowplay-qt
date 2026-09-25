@@ -364,8 +364,52 @@ first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
     - Still flagged at 18 px, and not a defect: the bar chart's category
       labels overflow the 15 px boxes Qt Graphs gives them, which do not
       clip (checked in the capture).
-- [ ] T10 (`ui/breakpoints-min-window`) Width breakpoints and a smaller
-  minimum window.
+- [x] T10 (`ui/breakpoints-min-window`) Width breakpoints and a smaller
+  minimum window (R3.5).
+  - [x] T10.1 `Theme.widthClass` with HarmonyOS's breakpoints: compact
+    below 600 px, medium below 840 px, large from 840 px, all scaled with
+    the text. Large is the layout as it was.
+  - [x] T10.2 Below large the one sidebar moves into `AppDrawer`: modal
+    over the content at medium, and at compact the list's page under the
+    toolbar, not modal, so the shell's shortcuts stay live. A leading
+    toolbar button (a new `sidebar.left` glyph, named with the web's
+    `dashboard.sectionWorkoutsEyebrow`), the sidebar toggle and Find open
+    it, and a chosen workout closes it. The sport filter takes its
+    compact form.
+  - [x] T10.3 Grids fall to one column where two do not fit. The detail's
+    rate and heart-rate charts, and the replay HUD's speed and chips,
+    stack where they do not fit side by side.
+  - [x] T10.4 The minimum window drops from Studio's 1000 × 680 to
+    480 × 480, the width scaled with the text.
+  - [x] T10.5 The gate walks medium and compact (steps 213–229): the
+    drawer, the list's page, settings, the dashboard and the replay. It
+    asserts that a chosen workout closed the drawer and that the sidebar
+    returned beside the content.
+  - [x] T10.6 A scratch probe walked the dashboard, the detail, settings,
+    the replay HUD and the list at large, medium and compact, in English,
+    Spanish and Japanese, light and dark: natively on macOS (13 px) and on
+    the offscreen platform at 150 % text (18 px), 180 combinations. It
+    listed every text that was elided, overflowed its box or ran past the
+    window's edge. Natively nothing; at 150 % only the bar chart's
+    category labels, as in T9. Its first run found the HUD's second row
+    running past the HUD's edge at 480 px, fixed in T10.3. Forced high
+    contrast was checked on the drawer, the list's page and the HUD.
+  - [x] T10.7 A second probe pressed real keys and clicked through QtTest's
+    `TestEvent` in the running app (offscreen): the sidebar toggle, the
+    arrows, Enter, Escape from the list and from the search field, Find,
+    Ctrl/Cmd+1, the drawer button, a row, the wheel over the list and the
+    dimmed strip, at medium and compact. Every path behaves as designed.
+    Its first run found that Escape and a click on the strip left the
+    medium drawer open: Qt 6.11 ties both to a popup's `interactive`,
+    which `AppDrawer` had turned off to stop edge drags. It stays
+    interactive now, with `dragMargin: 0`.
+  - [x] T10.8 Large unchanged: the native gate walks (light, phase shots
+    and close-ups) before and after compare every shared capture at
+    1200 × 800 within run-to-run noise, at most 618 px (2D) and 165 px
+    (3D), all at a channel delta of 1. The first comparison caught the
+    race gap 1 px lower in every capture with a ghost: the HUD's chips
+    had moved into a nested layout, which rounds its own centring. The
+    chips' row now takes the speed control's height beside it.
 - [ ] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,
   the timezone filter, and the menu, error and accessible-name audit.
 - [ ] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the

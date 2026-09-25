@@ -9,7 +9,8 @@ Theme.qml (tokens: palette, ramps, scale, accent, contrast)
    │       Icon, FocusRing, ToolbarButton, PushButton, SegmentedControl,
    │       ToggleSwitch, InputField, PopupButton, FormSection / FormRow,
    │       ChartTheme, AppSlider (6/7), App{ToolTip, Menu, MenuItem, MenuSeparator,
-   │       ScrollBar, ProgressBar, BusyIndicator, Dialog, DialogButtonBox}
+   │       ScrollBar, ProgressBar, BusyIndicator, Dialog, DialogButtonBox,
+   │       Drawer (round 2)}
    │
    ├── ApplicationWindow palette (Main.qml): the safety net for any stock
    │       Basic control, each role mapped by Basic's use of it
@@ -47,6 +48,59 @@ Two different things scale a Qt UI, and the design handles both:
 - **Display scaling** (`QT_SCALE_FACTOR`, a HiDPI screen, or `QT_FONT_DPI`
   with high-DPI scaling on) changes the device pixel ratio. Logical sizes
   stay the same and everything is drawn larger uniformly.
+
+## Width classes (round 2)
+
+`Theme.widthClass(width)` maps the window's width to compact (below
+`Theme.breakpointMedium`, 600 px at the reference), medium (below
+`Theme.breakpointLarge`, 840 px) or large. The breakpoints are HarmonyOS's,
+as design-reference lengths, so larger text reaches the narrower layouts in
+a wider window (at 150 % text, 900 and 1260 px).
+
+- **Large** is the full layout: the sidebar in the `SplitView` beside the
+  content and the segmented sport filter.
+- **Medium.** `Main.placeSidebar()` takes the one `SidebarPanel` out of the
+  split view (`takeItem`) into `AppDrawer`'s content item, so its search
+  text, date range and scroll position go with it, and puts it back
+  (`insertItem`) at large. The drawer is modal, as wide as the sidebar's
+  preferred width but at most the window's less 56 px, beside a strip of
+  the dimmed content. A click on the strip, Escape or the sidebar toggle
+  closes it. `AppDrawer` stays interactive, because Qt 6.11 closes a
+  non-interactive popup neither on Escape nor on a click outside; it sets
+  `dragMargin: 0` instead, so no drag at the window's edge opens it.
+- **Compact.** The same drawer is the list's page: under the toolbar, the
+  window's full width, with no dim and no edge rule. It is neither modal
+  nor `CloseOnEscape`, because Qt 6.11 blocks every window shortcut outside
+  a popup that is either (`docs/qt-bridges-notes.md`). The toolbar and the
+  shell's shortcuts therefore stay live, and the drawer button, the sidebar
+  toggle, Escape (the shell's shortcut closes the drawer first), settings
+  and the menu's commands close the page. The window shows one column at a
+  time.
+- A leading `ToolbarButton` opens the drawer (the `sidebar.left` glyph,
+  named with the web's `dashboard.sectionWorkoutsEyebrow`, checked while
+  the list shows), and so do the sidebar toggle (F9 / Ctrl+Cmd+S) and Find.
+  The modal drawer blocks the shell's shortcuts, so the toggle and Find
+  have their own `Shortcut`s inside it, enabled only while it is modal and
+  open: two enabled shortcuts on one key are ambiguous, and neither fires.
+- The list takes the keyboard when the drawer opens from the keyboard (the
+  toggle, or the button with visual focus). A click leaves the focus with
+  the drawer, so it paints no ring on the list. When the drawer closes, Qt
+  gives the focus back to the item that had it.
+- `SidebarPanel.workoutChosen` (a click, Enter or Space, but not the arrows,
+  whose selection follows focus) closes the drawer and shows the workout,
+  over settings too. In the drawer, Escape in the list closes the drawer
+  instead of clearing the selection.
+- Below large the sport filter takes its compact form, and
+  `toolbarMinimumWidth` counts the drawer button. An open drawer closes
+  when the class changes between medium and compact, and before the
+  sidebar goes back into the split view.
+- Grids drop columns with the width: `balancedColumns` allows one column
+  where two do not fit (a sidebar dragged wide beside a narrow window). The
+  detail's rate and heart-rate charts stand side by side while each keeps
+  240 px, and the replay HUD's speed and chips stack where they do not fit
+  side by side (see Replay).
+- The minimum window is 480 × 480, the width scaled with the text
+  (`Theme.px(480)`), or wider where the toolbar needs it.
 
 ## Colour
 
@@ -166,6 +220,12 @@ Two different things scale a Qt UI, and the design handles both:
 - The metric chips' `Repeater` has a constant model (caption id and metric
   role), and each chip reads its value by index, so frames update the
   labels in place instead of rebuilding the delegates.
+- The speed and the chips share a `GridLayout` that drops to one column
+  where the two do not fit side by side (a compact window). It returns to
+  two only with 24 px (scaled) to spare, so a value that widens during
+  playback cannot flip it back and forth. In the transport row the times
+  and the distance keep their width, and the scrubber gives way down to
+  64 px.
 - Pointer moves are compared by position (at least 1 px from the last one
   acted on), because Qt Quick sends a synthetic hover after every animated
   frame (`docs/qt-bridges-notes.md`).
