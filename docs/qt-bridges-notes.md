@@ -767,7 +767,8 @@ O(value size).
   shadow must darken at least 1 % of the capture by more than the noise
   delta, and take more than 5 % of the luminance where it falls, measured
   against the same pixels unshadowed (Apple M5: 9.24 % of the capture by
-  10.99 % in light, 8.99 % by 19.08 % in dark).
+  10.99 % in light, 8.99 % by 19.08 % in dark; CI's llvmpipe: 9.85 % by
+  10.51 %).
 - **`renderStats.frameTime` vs wall-clock frame deltas** (Phase 5c). With
   `QSG_NO_VSYNC=1`, `renderStats.frameTime` reports the Qt Quick 3D render
   pass cost (sync + prepare + render), while `FrameAnimation.frameTime`
