@@ -121,7 +121,10 @@ substitution (the web's `/replay-assets/` prefix maps to the rcc root).
   texture assertion counts venue textures in the scene (logged by
   `replay venue textures <tier>: n`), 0 at Low/Medium.
 - `assert_shadows` fractions re-checked against the new captures; re-derived
-  and commented if the venue moved them.
+  and commented if the venue moved them. *Superseded 2026-09-25 (#99):*
+  `assert_shadows` now compares the High-tier rower with its unshadowed
+  twin pixel by pixel (R4.2), so there are no region fractions to
+  re-derive.
 
 ## Performance expectations
 

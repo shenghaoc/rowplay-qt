@@ -77,7 +77,15 @@ venues present. Layered on PR 6a (branch `phase-06a-venue-bake`).
   the venue; the existing render assertions (size, colour diversity) and the
   shadow-luminance margin stay. If the venue shifts the luminance regions,
   the sample fractions are re-derived from the new deterministic framing and
-  the change is recorded in the test comment (5b lesson).
+  the change is recorded in the test comment (5b lesson). *Superseded
+  2026-09-25 (round 2's shadow-check PR, #99):* the per-sport region margin
+  measured albedo, not a shadow, because the per-sport captures are Medium,
+  where nothing casts shadows. The shadow check now compares the rower at
+  High (`replay-row-high`) with its twin captured with the key light's
+  shadow off (`replay-row-high-unshadowed`), after checking that both
+  twins' 3D viewports rendered: the shadow must darken at least 1 % of the
+  capture by more than the 3D noise delta, and lose more than 5 % of its
+  luminance there.
 - R4.3 New gate steps capture one venue-specific assertion per sport (the
   inventory line above); no new screenshots are needed beyond the existing
   three, which now cover venue rendering.
