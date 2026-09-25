@@ -37,7 +37,9 @@ instances), material = ghost variant from 5a's resolver, driven by
 `ghost_frame(player_state, rival_trace, t)`; the gap overlay is two Labels
 bound to `Replay.gapText` / `Replay.verdictText` — structured Rust data
 (`hud.gapLabel`, `hud.verdictParts`) that QML words with the web's locale
-ids, so neither overlay ships English.
+ids, so neither overlay ships English. At compact width, the gap has its
+own full-width wrapping row below the four metric chips; wider windows
+keep the inline gap.
 
 ## Measurements
 

@@ -1485,7 +1485,39 @@ ApplicationWindow {
                             detailColumn.children[2].filterTimezones("york"),
                             "of", Settings.timezoneLabels.length + 1)
                 break
-            case 231: detailColumn.children[2].filterTimezones(""); root.screenIndex = 0; break
+            case 231:
+                detailColumn.children[2].filterTimezones("")
+                root.screenIndex = 0
+                if (!Settings.gateQuick) Library.selectWorkout(1004)
+                break
+            // The localized gap must fit beside all four gauges at the
+            // compact width. Check every locale after live retranslation.
+            case 232:
+                if (Settings.gateQuick) { gateTimer.running = false; Qt.exit(0); break }
+                Library.requestReplay(false)
+                root.gateAwaitingReplay = true
+                root.width = Theme.px(480)
+                break
+            case 233:
+                Replay.loadWorkout(1004)
+                Replay.loadGhost(1006)
+                Replay.seek(0.5) // four gauges and a longer real gap (shorter rival)
+                break
+            case 234: case 236: case 238: case 240: case 242: case 244:
+                // Exercise live QML translation without Settings' library
+                // reload, which closes the replay route.
+                Qt.uiLanguage = ["en", "zh", "de", "es", "fr", "ja"][(root.gateStep - 234) / 2]
+                break
+            case 235: case 237: case 239: case 241: case 243: case 245:
+                console.log("gate compact gap:", Qt.uiLanguage, "fits",
+                            detailColumn.children[3].gateGapLayoutFits())
+                root.grabSettledScene("replay-gap-compact-" + Qt.uiLanguage)
+                break
+            case 246:
+                Qt.uiLanguage = Settings.languageCode
+                Library.closeReplay()
+                root.width = 1200
+                break
             default:
                 gateTimer.running = false
                 Qt.exit(0)

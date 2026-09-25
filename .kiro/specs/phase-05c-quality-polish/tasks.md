@@ -30,3 +30,9 @@
   M5, light) shows the change where a ghost is loaded and nowhere else:
   `replay-ghost` and the 24 phase shots and close-ups differ in the HUD's
   lower row only, "1 m (0:00 behind)" becoming "▼ behind by 1m (0.1s)".
+
+- [x] T9 Compact localized gaps: at the compact width class the gap has
+  its own full-width wrapping row below the metric chips. The full runtime
+  gate visits a 480 px ghost replay in all six locales, asserts the visible
+  gap and all four chips stay inside the HUD without overlap, and captures
+  each locale. This covers the longer Spanish wording found in PR review.

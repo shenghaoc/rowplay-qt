@@ -82,6 +82,34 @@ Item {
     property string wattsText: ""
     property string heartText: ""
 
+    // Runtime-gate probe: inspect rendered bounds, independent of which
+    // layout arranges the labels. Called only by Main's gate walk.
+    function gateGapLayoutFits() {
+        function inside(item) {
+            var at = item.mapToItem(hud, 0, 0)
+            return at.x >= Theme.spacingLarge - 1 && at.y >= Theme.spacingLarge - 1
+                && at.x + item.width <= hud.width - Theme.spacingLarge + 1
+                && at.y + item.height <= hud.height - Theme.spacingLarge + 1
+        }
+        var gap = inlineGap.visible ? inlineGap : compactGap
+        if (!gap.visible || !inside(gap) || gap.contentWidth > gap.width + 1
+                || gap.contentHeight > gap.height + 1)
+            return false
+        // This demo has all four gauges: missing a chip cannot make it pass.
+        for (var i = 0; i < metricChips.count; ++i) {
+            var chip = metricChips.itemAt(i)
+            if (!chip || !chip.visible || !inside(chip)
+                    || chip.implicitWidth > chip.width + 1)
+                return false
+            var at = chip.mapToItem(hud, 0, 0)
+            var gapAt = gap.mapToItem(hud, 0, 0)
+            if (at.x < gapAt.x + gap.width && at.x + chip.width > gapAt.x
+                    && at.y < gapAt.y + gap.height && at.y + chip.height > gapAt.y)
+                return false
+        }
+        return metricChips.count === 4
+    }
+
     // ---- 3D scene ----
     View3D {
         id: scene
@@ -394,6 +422,7 @@ Item {
 
         // The verdict: parts[0] is win / lose / tie (locale ids from the web).
         readonly property var verdictParts: Replay.verdictText.split("|")
+        readonly property bool compactGap: Theme.widthClass(replayRoot.width) === Theme.widthCompact
         // The race gap as the web words it: parts[0] is ahead / behind, the
         // metres fill the locale's {m} and the seconds, formatted in Rust
         // with their unit, follow in brackets. Empty without a ghost.
@@ -538,6 +567,7 @@ Item {
                     // model built from the values would rebuild the chips
                     // whenever one changed.
                     Repeater {
+                        id: metricChips
                         model: [
                             { id: "replay.gPace", role: 3 },
                             { id: "replay.gRate", role: 6 },
@@ -577,7 +607,8 @@ Item {
                     // Race gap: the web's words and ▲ / ▼ glyph (visible
                     // when a ghost is loaded).
                     Label {
-                        visible: Replay.hasGhost && hud.gapLabel.length > 0
+                        id: inlineGap
+                        visible: !hud.compactGap && Replay.hasGhost && hud.gapLabel.length > 0
                         text: hud.gapLabel
                         font: Theme.tabularBody
                         color: Theme.textPrimary
@@ -589,6 +620,19 @@ Item {
                         visible: hudLower.stacked
                     }
                 }
+            }
+
+            // Long translations get the full compact HUD width rather than
+            // competing with all four metric chips on the same line.
+            Label {
+                id: compactGap
+                Layout.fillWidth: true
+                visible: hud.compactGap && Replay.hasGhost && hud.gapLabel.length > 0
+                text: hud.gapLabel
+                font: Theme.tabularBody
+                color: Theme.textPrimary
+                wrapMode: Text.Wrap
+                Accessible.name: text
             }
 
             // Race verdict at finish (locale ids from the web): the words
