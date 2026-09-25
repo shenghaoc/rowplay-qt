@@ -241,6 +241,8 @@ jobs:
             artifacts/replay-ski.png
             artifacts/replay-bike.png
             artifacts/replay-ghost.png
+            artifacts/replay-row-high.png
+            artifacts/replay-row-high-unshadowed.png
             artifacts/phase-*.png
           if-no-files-found: error
 

@@ -114,13 +114,21 @@ pub fn assert_shadows(width: usize, height: usize, shadowed: &[u8], unshadowed: 
         }
     }
     let area = darker as f64 / n as f64;
+    let margin = if base > 0.0 { lost / base } else { 0.0 };
+    // Printed on a pass too: the figures per platform are the check's record
+    // (docs/qt-bridges-notes.md, "Three gate assertions").
+    eprintln!(
+        "{what}: the key light's shadow darkens {:.2} % of the capture ({darker} px) \
+         by {:.2} % (need at least 1 % and more than 5 %)",
+        area * 100.0,
+        margin * 100.0
+    );
     assert!(
         area >= 0.01,
         "{what}: the key light's shadow darkens only {:.2} % of the capture \
          ({darker} px), need at least 1 % — the shadow map did not render",
         area * 100.0
     );
-    let margin = lost / base;
     assert!(
         margin > 0.05,
         "{what}: the shadow takes {:.1} % of the luminance where it falls, \
