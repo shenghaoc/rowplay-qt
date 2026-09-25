@@ -62,7 +62,25 @@ pull request that delivers it.
     populated grouping role on every workout. The selection uses the
     style's highlight while the list has keyboard focus and a neutral
     wash in the row content otherwise, without palette overrides.
-- [ ] T4 Settings (R2.1).
+- [x] T4 (`ui/native-settings`) Settings (R2.1).
+  - [x] T4.1 The page's groups are the style's `GroupBox`es laid out by
+    `GridLayout`s, a row's label and detail leading and its control
+    trailing, two columns while they fit; the page's margin is inside the
+    scroll view, so the style's scroll bar sits at the pane's edge.
+  - [x] T4.2 The switches are the style's `Switch`es beside their labels
+    (`SwitchRow`): the labels wrap where a switch's own text would be
+    elided (Spanish at the minimum width), and a click on them toggles
+    the switch.
+  - [x] T4.3 The quality, distance-unit and language pickers are the
+    style's `ComboBox`es; the timezone picker is a filter `TextField` above
+    a `ComboBox` of the matches, which always shows the zone in use.
+  - [x] T4.4 The token field, the buttons and the sync progress are the
+    style's `TextField`, `Button`s (Connect `highlighted`) and
+    `ProgressBar`; the logout confirmation is the style's `Dialog`, its
+    standard buttons renamed with web strings when it opens.
+  - [x] T4.5 The live-mode panel is a `GroupBox` of the same rows. Its
+    spinner stays ours: the macOS style's needs the WebP plugin, which no
+    Qt install of the project carries (design.md, "The spinner").
 - [ ] T5 Detail and dashboard (R2.1).
 - [ ] T6 Replay HUD (R2.1, R7.4).
 - [ ] T7 Theme cleanup and motion tokens (R2.3, R7.2).

@@ -60,10 +60,13 @@ What Qt 6.11.2 does, read from its sources at the tag:
    can be revisited on evidence.
 2. **Standard controls are Qt Quick Controls used as they are.** No
    `background` or `contentItem` is replaced on a control the platform
-   draws. Two bounded exceptions: a list delegate (an `ItemDelegate`
+   draws. Three bounded exceptions: a list delegate (an `ItemDelegate`
    carries its row's data as its `contentItem`, and keeps the style's
-   background, selection and hover), and the sidebar's split handle, a
-   hairline with a 9 px hit area where Fusion's handle is a 2 px target.
+   background, selection and hover); the sidebar's split handle, a
+   hairline with a 9 px hit area where Fusion's handle is a 2 px target;
+   and, until Qt Image Formats' WebP plugin is installed and packaged, the
+   live-mode panel's spinner: the macOS style's is a WebP animation and
+   draws nothing without the plugin.
 3. **Our identity lives in the content.** The charts, the metric colours,
    the tiles and personal-best cards, the splits table and the 3D replay
    with its HUD keep their own drawing.
@@ -88,7 +91,8 @@ What Qt 6.11.2 does, read from its sources at the tag:
    controls pinned to Basic by an explicit import so nothing is drawn half
    native; each area's pull request then replaces its controls with stock
    ones, and the last one deletes the shared controls and the tokens only
-   they used. No `import QtQuick.Controls.Basic` survives the stack.
+   they used. No `import QtQuick.Controls.Basic` survives the stack but
+   the spinner's, until the WebP plugin ships.
 
 ## Consequences
 
@@ -100,6 +104,10 @@ What Qt 6.11.2 does, read from its sources at the tag:
   portal theme reports the colour scheme and contrast preference, but not
   GNOME's palette; GTK platform-theme support remains separate work.
 - Windows is verified by CI captures only (#81).
+- The app's reduce-motion toggle no longer stills the controls the style
+  draws, where the style animates them (Fusion slides its switch's
+  handle): Qt 6.11 surfaces no OS motion preference for a style to read.
+  It still stills the replay, our spinner and the HUD's fade.
 - The native macOS `ScrollView` reserves room for a scroll bar that is not
   transient, so a replaced (Basic) scroll bar made `contentWidth:
   availableWidth` a binding loop; the style's own scroll bars are used.
