@@ -1471,9 +1471,12 @@ that DO capture the 3D scene:
     (about 30 s per 3D capture). The gate timer keeps its 300 ms period
     with or without App Nap, so hiding cannot produce minutes-long pauses.
   - The 56-minute run predates #87 and #90 and stays unexplained.
-  - The pass depends on the scheme: in the dark one, `replay-row`'s shadow
-    check fails at a 4.9 % margin against its 5 % threshold, and it passes
-    with `ROWPLAY_FORCE_COLOR_SCHEME=light` (AGENTS.md, "Gate profiles").
+  - The pass depended on the scheme until 2026-09-25: in the dark one,
+    `replay-row`'s shadow check failed at a 4.9 % margin against its 5 %
+    threshold. The check compared the athlete with the water on Medium
+    captures, which cast no shadows; it now compares the rower at High
+    with its unshadowed twin, and both schemes pass (qt-bridges-notes,
+    "Three gate assertions").
 
 `common::assert_viewport_rendered` samples the viewport region whenever
 `QSG_RHI_BACKEND` is set, so a blank 3D area fails instead of riding on the

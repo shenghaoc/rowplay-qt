@@ -179,7 +179,8 @@ hooks it is compiled out of release builds.
   dialog, the sort menu, settings opened over a replay, and the logout
   dialog. The same forbidden-pattern scan applies, and so do the rower's
   equipment, grip and venue assertions: its venue must load before the
-  first sport switch and match its tier inventory.
+  first sport switch and match its tier inventory. The shadow check needs
+  the tier cycle's High pair, so it runs in `full` only.
 
 Which one to run:
 
@@ -211,12 +212,11 @@ M5 (Metal, 2026-09-24) with the full walk, phase shots and close-ups:
 - The gate timer kept its 300 ms period while hidden, with and without
   `-NSAppSleepDisabled YES`: App Nap does not throttle it.
 
-To run the visual assertions natively, pin the light scheme. In the dark
-one, `replay-row`'s shadow check (`assert_shadows`, calibrated on
-llvmpipe) fails at a 4.9 % margin against its 5 % threshold:
+The visual assertions run natively in either scheme
+(`ROWPLAY_FORCE_COLOR_SCHEME=light|dark` picks one):
 
 ```bash
-QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal ROWPLAY_FORCE_COLOR_SCHEME=light \
+QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal \
   ROWPLAY_PHASE_SHOTS=1 ROWPLAY_PHASE_CLOSEUPS=1 \
   ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
@@ -247,7 +247,7 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
     is published. The gate walk run in a real window there captures every
     screen, 3D included, and `cargo test` with `QT_QPA_PLATFORM=cocoa
     QSG_RHI_BACKEND=metal` runs its visual assertions too (note #17), in
-    the light scheme ("Gate profiles").
+    either scheme ("Gate profiles").
   - **Windows:** there is no one to look, so it ships verified by CI only
     (#81), and the release notes say so.
 

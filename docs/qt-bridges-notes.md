@@ -299,13 +299,18 @@ configuration this note names:
   and 2248 in dark, with no near-black sample, at 2400 × 1600 on the Retina
   display.
 - Through the test itself, `QT_QPA_PLATFORM=cocoa QSG_RHI_BACKEND=metal
-  ROWPLAY_PHASE_SHOTS=1` passes in the light scheme. In the dark one,
-  `replay-row`'s shadow check fails at a 4.9 % margin against its 5 %
-  threshold, which was calibrated on llvmpipe; `ROWPLAY_FORCE_COLOR_SCHEME=light`
-  pins the scheme (2026-09-24). The test keeps a caller-provided platform,
-  and `QSG_RHI_BACKEND` turns on its viewport and shadow checks: all twelve
-  phase shots clear `assert_viewport_rendered` (docs/parity-coverage.md,
-  "Capture caveat").
+  ROWPLAY_PHASE_SHOTS=1` passes in both schemes. Until 2026-09-25 the dark
+  one failed `replay-row`'s shadow check at a 4.9 % margin against its 5 %
+  threshold. That check read the Medium captures, which cast no shadows (the
+  tier rules turn them on at High and Ultra), and once the replay hid the
+  sidebar its centre sample landed on the athlete and hull: it compared
+  their albedo with the water's, and dark water is about as dark as the
+  athlete. The check now compares the rower at High with its twin grab
+  with the key light's shadow off (`assert_shadows` in
+  `crates/rowplay-app/tests/common/mod.rs`). The test
+  keeps a caller-provided platform, and `QSG_RHI_BACKEND` turns on its
+  viewport and shadow checks: all twelve phase shots clear
+  `assert_viewport_rendered` (docs/parity-coverage.md, "Capture caveat").
 
 The rest of this note is the original record.
 
@@ -763,7 +768,16 @@ O(value size).
   8–12% on llvmpipe): catches shadow-map failures. The centre band (55–75%
   of height, 40–60% of width) is compared against the far right edge, both
   sampling unshaded ground; the sample regions are tied to the chase camera's
-  deterministic framing at t=0 for the demo workouts.
+  deterministic framing at t=0 for the demo workouts. **Superseded
+  2026-09-25:** from Phase 5c the captures it read were Medium, which casts
+  no shadows, and from the design system's replay (the sidebar hidden) its
+  centre sampled the athlete and hull, so it compared their albedo with the
+  ground's and failed the dark scheme on Metal at 4.9 %. It now compares the
+  rower at High with its twin grab with the key light's shadow off: the
+  shadow must darken at least 1 % of the capture by more than the noise
+  delta, and take more than 5 % of the luminance where it falls, measured
+  against the same pixels unshadowed (Apple M5: 9.24 % of the capture by
+  10.99 % in light, 8.99 % by 19.08 % in dark).
 - **`renderStats.frameTime` vs wall-clock frame deltas** (Phase 5c). With
   `QSG_NO_VSYNC=1`, `renderStats.frameTime` reports the Qt Quick 3D render
   pass cost (sync + prepare + render), while `FrameAnimation.frameTime`

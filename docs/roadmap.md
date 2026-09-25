@@ -281,6 +281,20 @@ Wayland (`cargo run -p rowplay-app`).
 - Gate: fixed equipment inventory per sport (6/8/4 from the assets README);
   shadow luminance margin (≥5%); colour diversity. Sun-disc azimuth
   confirmed correct for all three sports.
+  - **The shadow check, replaced 2026-09-25.** From Phase 5c on, the
+    captures it read were Medium, which casts no shadows, and once the
+    design system hid the sidebar during the replay its centre sample
+    landed on the athlete and hull. So it compared their albedo with the
+    water's: it passed in light, and failed the dark scheme on Metal at
+    4.9 % (AGENTS.md had pinned light for native runs). The gate now grabs
+    the rower at High twice, as the tier sets the key light and with its
+    shadow off, and the check measures the darkening against the same
+    pixels unshadowed: at least 1 % of the capture must lose more than the
+    noise delta, and those pixels more than 5 % of their luminance (Apple
+    M5: 9.24 % by 10.99 % in light, 8.99 % by 19.08 % in dark). The dark
+    scene's shadow is the stronger one. The same diff showed that at High
+    the shadow darkens most of the SkiErg and BikeErg ground and none shows
+    on the rowing water (#96).
 
 ### Phase 5c — Quality tiers and polish ✓
 
