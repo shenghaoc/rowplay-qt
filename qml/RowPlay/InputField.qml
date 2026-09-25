@@ -22,7 +22,7 @@ TextField {
     bottomPadding: 0
     verticalAlignment: TextInput.AlignVCenter
     font: Theme.body
-    color: enabled ? Theme.textPrimary : Theme.textDisabled
+    color: enabled ? Theme.controlText : Theme.textDisabled
     placeholderTextColor: enabled ? Theme.textTertiary : Theme.textDisabled
     selectionColor: Theme.accentColor
     selectedTextColor: Theme.onAccent
@@ -40,7 +40,7 @@ TextField {
             anchors.verticalCenter: parent.verticalCenter
             name: control.leadingIcon
             size: Theme.iconSize
-            color: control.enabled ? Theme.textSecondary : Theme.textDisabled
+            color: control.enabled ? Theme.controlTextSecondary : Theme.textDisabled
         }
 
         FocusRing {

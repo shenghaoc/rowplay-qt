@@ -94,9 +94,9 @@ ApplicationWindow {
     palette.windowText: Theme.textPrimary
     palette.base: Theme.controlBackground
     palette.alternateBase: Theme.groupBackground
-    palette.text: Theme.textPrimary
+    palette.text: Theme.controlText
     palette.button: Theme.segmentTrack
-    palette.buttonText: Theme.textPrimary
+    palette.buttonText: Theme.controlText
     palette.brightText: Theme.windowBackground
     palette.highlight: Theme.accentColor
     palette.highlightedText: Theme.onAccent

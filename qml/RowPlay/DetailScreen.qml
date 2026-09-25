@@ -80,7 +80,7 @@ Pane {
                                 anchors.centerIn: parent
                                 text: Detail.sportName
                                 font: Theme.metricLabel
-                                color: Theme.textPrimary
+                                color: Theme.controlText
                                 Accessible.name: text
                             }
                         }
