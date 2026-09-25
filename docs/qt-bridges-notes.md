@@ -617,6 +617,29 @@ Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
 
 ## Not qtbridge, but worth knowing
 
+### Blender Direction C pipeline (2026-09-26)
+
+Linux Qt 6.11.2 balsam preserves the generated probe's clearcoat amount and
+roughness, transmission, IOR and PNG normal map. Reproduce with
+`tools/blender/probe_import.py`; the retained athlete still imports as a Qt
+Skin. No new qtbridge API or C++ island is needed. Optional compression and
+texture-extension paths are not used; see the compatibility matrix in
+`tools/blender/README.md` for what has and has not been revalidated here.
+
+Qt's HDR baker emits six-face RGBA16F KTX1, 512-square faces and six mip levels,
+about 16 MiB per sky. `tools/blender/probes.py` validates that layout and reduces
+each level independently to a 128-square top level (about 1 MiB), preserving
+roughness indexing and the last diffuse level. Runtime KTX avoids rebaking the
+HDR in the replay. Generated HDR sources are permitted by ADR 0015; external
+HDRIs remain prohibited. Mac/Metal still needs independent verification.
+
+The static generated instance component must use `InstanceListEntry`, not
+`Instance`. The first integration attempt failed QML loading with the latter;
+as in note #16, the process remained alive without a usable window. It was
+stopped and no images from that run were used. An overlay name filter also
+matched material objects; it now requires a `visible` property before hiding
+the obsolete painted water overlays. Neither fault was silently ignored.
+
 - The `offscreen` QPA platform falls back to the software scene graph, where
   Qt Quick 3D refuses to render (`QSGRendererInterface::isApiRhiBased`). Headless
   rendering needs Xvfb with `xcb` (`libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1

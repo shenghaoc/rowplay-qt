@@ -1,5 +1,18 @@
 # rowplay-qt roadmap
 
+## Blender Direction C pass (in progress)
+
+The owner-approved art direction adds script-generated overcast lighting,
+silver rippled water, fixed course references and a blue-hour companion to the
+existing rowing replay. ADR 0016 permits repository-generated sky probes;
+the athlete, 7.8 m shell contract, chase camera and loop remain unchanged.
+See `docs/blender-audit.md`, `tools/blender/README.md` and
+`.kiro/specs/blender-01-pipeline/tasks.md` for scope and acceptance gaps.
+The replacement-rower phase is dropped. Missing baseline venue furniture is
+tracked separately in #121. Do not claim macOS verification from Linux captures.
+
+## Original implementation roadmap
+
 rowplay-qt ports rowplay (SvelteKit + three.js, canonical) to a cross-platform
 desktop app: Rust for all logic, Qt Bridges for Rust to QML, Qt Quick 3D for the
 replay, Qt Graphs for charts (see `docs/decisions/`). rowplay-studio (Swift) is

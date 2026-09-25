@@ -28,6 +28,23 @@ or web/Studio behavior changes. The reference pins above remain unchanged;
 [bridge notes, entry 21](qt-bridges-notes.md#21-migration-to-qtbridge-030-2026-09-26)
 records the upstream release source and validation.
 
+## Blender art-direction pass (2026-09-26)
+
+Both reference mains were fetched and still match the pinned SHAs above.
+Direction C introduces an intentional rowing-only visual divergence:
+`tools/blender/` authors skies, water normals and a generic course buoy;
+`RowingStyle.qml`, `RowingWater.qml` and `RowingCourse.qml` apply them through
+the existing balsam/QML pipeline. ADR 0016 permits repository-generated skies.
+Pose, camera, oar pivots, shell dimensions, athlete and distance-to-loop mapping
+remain inherited unchanged. Dark mode uses independently authored blue-hour
+ambient colours rather than exposure scaling. No bridge API was added.
+
+The owner dropped the replacement-rower phase and requires stationary course
+references, not accelerated water scrolling, to make motion readable. The
+runtime capture script samples demo 1001 at 208.829 s and subsequent real-time
+quarter-second intervals. Full visual acceptance and macOS verification remain
+tracked in `.kiro/specs/blender-01-pipeline/tasks.md`.
+
 ## Phase 1 — core parity foundation
 
 | Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |

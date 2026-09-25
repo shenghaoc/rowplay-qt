@@ -1,3 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 module RowPlay.Replay
 ReplayScene 1.0 ReplayScene.qml
+singleton RowingStyle 1.0 RowingStyle.qml
+RowingWater 1.0 RowingWater.qml
+RowingCourse 1.0 RowingCourse.qml
