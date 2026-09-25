@@ -1003,3 +1003,15 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
      so the prominent button and an on switch keep their outline there.
    - Not measured: macOS under "Increase contrast" (a system setting, for
      the owner; #66) and Windows' contrast themes (#81).
+2. `ui/min-text-cjk`: a text floor under the whole type scale, 12 px on
+   Windows and Linux (Windows' minimum for body text), 11 px on macOS and
+   12 px in Chinese and Japanese; a caption the floor lifts to the body's
+   size keeps its place by regular weight and the secondary colour.
+   - A scratch probe listed every elided or overflowing text on four
+     screens in English, Chinese, Japanese and Spanish, natively and at
+     12 px and KDE's 14 pt test font (18 px) on the offscreen platform.
+     The floor made Chinese and Japanese sidebar rows elide their
+     distance, which now moves under the date where the two do not fit.
+   - Found on the way, older than the floor: the trend chart labelled
+     every point, and its dates overlapped in Japanese at the default size
+     and in English at 18 px. It labels every n-th point now.
