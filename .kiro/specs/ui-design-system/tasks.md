@@ -302,3 +302,46 @@ that delivers it.
     (#66). Windows is split out to #81. T7.1 and T7.3 are corrected: one
     Phase 5a capture is referenced nowhere, and the timezone note rewords
     "4b polish" rather than dropping it.
+
+## Round 2 — Windows, KDE and HarmonyOS guidance (2026-09-25)
+
+Rules the Apple and GNOME guidelines did not cover, from Microsoft's
+Windows and Fluent guidance (WinUI as the reference implementation), the
+KDE HIG and HarmonyOS's layout breakpoints, each checked against the code
+first. A stack of five PRs, merged bottom-up: `ui/focus-ring-high-contrast`,
+`ui/min-text-cjk`, `ui/breakpoints-min-window`,
+`ui/shortcut-tooltips-timezone-errors` and `docs/design-system-round-2`.
+
+- [x] T8 (`ui/focus-ring-high-contrast`) The two-tone focus ring and high
+  contrast from the system palette (R1.6, R2.4).
+  - [x] T8.1 `FocusRing` draws a 1 px inner band in the window colour and
+    a 2 px outer band in the accent (the text colour under high contrast),
+    3 px outside the control instead of a 2 px band after a 2 px gap.
+    Every control draws it through that one component.
+  - [x] T8.2 Under the OS contrast preference, `Theme` takes every role
+    from `SystemPalette` (Active and Disabled), composited to opaque
+    colours, and keeps a metric or status colour only where it reaches
+    4.5:1 on the window. The scheme follows the palette. The prominent
+    button and an on switch keep their outline, an unfocused sidebar
+    selection takes a 2 px highlight outline.
+  - [x] T8.3 2 px outlines under high contrast only: the sidebar's edge,
+    the toolbar's rule, cards and chart panels, grouped forms, popups,
+    dialogs, tooltips and the replay HUD.
+  - [x] T8.4 `ROWPLAY_FORCE_COLOR_SCHEME` also asks Qt for its scheme, so
+    forced high contrast can be checked in dark on macOS.
+  - [x] T8.5 Checked natively on macOS with a scratch probe that gives
+    Tab focus to twelve real controls (the prominent button, the sidebar
+    list, the search field, the sport filter, a switch, the quality
+    control, a pop-up button, the dialog's buttons, the HUD's play button,
+    scrubber and speed control), in light, dark and forced high contrast
+    in both: the ring's pixel runs read two bands, and the colours match
+    the palette Qt reports. macOS's "Increase contrast" itself is for the
+    owner to switch (the probe cannot), and Windows' four contrast themes
+    are on #81's checklist.
+- [ ] T9 (`ui/min-text-cjk`) Minimum text sizes and CJK.
+- [ ] T10 (`ui/breakpoints-min-window`) Width breakpoints and a smaller
+  minimum window.
+- [ ] T11 (`ui/shortcut-tooltips-timezone-errors`) Shortcuts in tooltips,
+  the timezone filter, and the menu, error and accessible-name audit.
+- [ ] T12 (`docs/design-system-round-2`) ADR 0013's round-2 notes, the
+  AGENTS.md style line and the documentation pass.

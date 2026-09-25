@@ -49,13 +49,42 @@ Two different things scale a Qt UI, and the design handles both:
 - **Contrast.** `Theme.highContrast` follows
   `Qt.styleHints.accessibility.contrastPreference === Qt.HighContrast`
   unless `Settings.contrastOverride` (`ROWPLAY_FORCE_CONTRAST`) pins it.
-  Under high contrast:
-  - surfaces stay opaque;
-  - `separator` and `controlBorder` become ≥ 4.4:1;
-  - `textSecondary` equals `textPrimary`, and `textTertiary` takes the
-    normal secondary value, so placeholders stay distinct;
-  - the focus ring is 3 px;
+  Under high contrast every role comes from the system palette (round 2;
+  the tonal ramps are not used):
+  - `SystemPalette` (Active, and Disabled for grey text), each role
+    composited to an opaque colour (`Theme.over`): macOS reports its text
+    roles with alpha, window text at 85 %;
+  - surfaces (window, toolbar, sidebar, groups, cards, popups, the HUD)
+    are `window`; controls, segment tracks and off switches `button`;
+  - primary and secondary text, `separator` and chart axes `windowText`;
+    control outlines and the slider or off-switch knob `buttonText`;
+  - the accent's roles (selection, the selected segment, switch-on, the
+    prominent button, the slider fill) `highlight` with `highlightedText`;
+    a prominent button and an on switch keep their outline, because the
+    highlight can sit close to the window (1.64:1 in macOS's light palette);
+  - an unfocused sidebar selection keeps the window fill inside a 2 px
+    highlight outline;
+  - placeholders `placeholderText` where it reaches 4.5:1 in a field,
+    else the button text; disabled text the Disabled group's window text;
+  - the PM5 metric and status colours stay where they reach 4.5:1 on the
+    window (`Theme.hcFit`), else the window text;
+  - hover and pressed washes are the window text at 12 % and 24 %, chart
+    grid lines at 40 %;
+  - 2 px outlines where two surfaces became the same colour
+    (`cardBorderWidth`, `outlineWidth`, `ruleWidth`): the sidebar's edge
+    and the toolbar's rule, cards and chart panels, grouped forms,
+    popups, dialogs, tooltips and the HUD;
+  - `Theme.dark` follows the palette's window colour, so the scheme always
+    matches the colours drawn; `ROWPLAY_FORCE_COLOR_SCHEME` sets
+    `Qt.styleHints.colorScheme` at startup, which the macOS palette
+    follows;
   - scroll bars stay visible.
+- **Focus ring** (round 2). `FocusRing` draws two bands outside its
+  control, following its radius: `focusRingInnerWidth` (1 px) in
+  `focusRingInner` (the window colour) against the control, then
+  `focusRingWidth` (2 px) in `focusRing` (the accent; the text colour under
+  high contrast or below 3:1). `focusRingExtent` (3 px) is how far it
+  reaches, which a layout that clips reserves.
 - **Accent.** `Theme.accentColor` is `SystemPalette.accent`, unless that
   reads as Qt's built-in default `#308cc6` (the platform supplied none), in
   which case it is the brand blue `#0066CC` / `#0A84FF`. `Theme.onAccent` is
