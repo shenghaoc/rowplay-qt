@@ -70,9 +70,11 @@ control layer. It is delivered as a stack of pull requests (`tasks.md`).
 
 ## R6 — Icons
 
-- R6.1 A tool button names its icon per platform (an SF Symbol on macOS, a
-  Segoe glyph on Windows, a freedesktop name on Linux) and falls back to an
-  SVG built from `Icon.qml`'s glyph paths. No image file is added.
+- R6.1 A tool button uses a platform icon name on macOS (SF Symbol) and
+  Windows (Segoe glyph). On Linux it uses an SVG built from `Glyphs.qml`'s
+  original path data, with Qt Svg deployed in the AppImage. A nonempty
+  `icon.source` takes precedence over `icon.name`; no theme lookup occurs
+  for these commands. No image file is added.
 
 ## R7 — Round 3, re-scoped
 

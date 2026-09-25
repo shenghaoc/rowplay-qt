@@ -25,12 +25,16 @@ pull request that delivers it.
     3 platform theme). Not pushed.
   - [x] T1.8 ADR 0015 (0013's control layer superseded in part), this spec.
 - [x] T2 (`ui/native-shell`) Shell and toolbar (R2.1, R5.1, R6.1).
-  - [x] T2.1 `Glyphs.qml`: the glyph paths (moved from `Icon.qml`), the
-    platform icon names per OS and the SVG fallback, which only Linux gets
-    (Qt asks the platform icon engine only while an icon has no `source`).
+  - [x] T2.1 `Glyphs.qml`: the glyph paths (moved from `Icon.qml`), platform
+    icon names on macOS/Windows, and the SVG source on Linux. Qt asks the
+    platform icon engine only while an icon has no `source`; the AppImage
+    carries the SVG decoder. The configured icon colour follows enabled or
+    disabled theme text so the black source paths remain visible on dark
+    Fusion surfaces.
   - [x] T2.2 The toolbar is the style's `ToolBar` with tool buttons (an
     inline `CommandButton`: the platform icon, the label as accessible name
-    and tooltip with the shortcut, a press dismisses the tooltip, Space
+    and tooltip with the shortcut, hover tracking enabled regardless of
+    platform hints, a press dismisses the tooltip, Space
     presses the focused button); the rule under it stays, as layout.
   - [x] T2.3 The sport filter is the style's `ComboBox`, as wide as its
     widest choice (design.md).
@@ -41,6 +45,10 @@ pull request that delivers it.
   - [x] T2.6 About is the style's `Dialog`, its standard button named by
     the web's `common.dismiss`; the landing's buttons are the style's
     `Button`s, the prominent one `highlighted`.
+  - [x] T2.7 The Linux AppImage stages Qt Svg's image-format plugin and
+    library for its SVG command icons. The local package launch check
+    passes, and Qt's plugin log confirms `libqsvg.so` loads from the
+    extracted AppImage.
 - [ ] T3 Sidebar (R2.1).
 - [ ] T4 Settings (R2.1).
 - [ ] T5 Detail and dashboard (R2.1).

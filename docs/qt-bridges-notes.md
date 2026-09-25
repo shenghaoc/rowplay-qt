@@ -535,11 +535,10 @@ converted string), or allow an associated function as a slot.
   silently break `qsTrId` after `lrelease`.
 - A Qt Quick Controls icon asks the platform's icon engine (SF Symbols on
   macOS, Segoe glyphs on Windows) only while its `source` is empty
-  (`QQuickIconImage::updateIcon`, Qt 6.11): the freedesktop theme first,
-  then the platform engine if no source is set, else the source. Setting
-  both `icon.name` and a fallback `icon.source` therefore always shows the
-  source on macOS and Windows. `Glyphs.iconSource` gives the SVG fallback
-  only where no engine answers names (ADR 0015).
+  (`QQuickIconImage::updateIcon`, Qt 6.11). A nonempty source wins over
+  `icon.name`: `Glyphs.iconSource` therefore supplies the SVG directly on
+  Linux, while macOS and Windows leave the source empty. The AppImage
+  deploys Qt Svg's image plugin so the Linux command icons render (ADR 0015).
 - Popups (Dialog, Drawer, Menu) live in the window's overlay, not under the
   shell's `Item`, so a grab of that item never shows them; grab the popup's
   own item (`contentItem.parent`).

@@ -136,6 +136,16 @@ if [ -n "$WAYLAND_PLUGINS" ]; then
 else
     echo "== Wayland platform plugins: not in this Qt install; the AppImage is xcb-only (XWayland on Wayland desktops)"
 fi
+# Linux controls use SVG data URLs for their icons. Stage the image-format
+# plugin explicitly: a successful launch does not prove icon pixels rendered.
+# Deploy its Qt Svg dependency with linuxdeploy before the Qt plugin packs the
+# AppImage. The icon-engine plugin is not needed because icon.source wins over
+# icon.name for these controls.
+SVG_PLUGIN="$QT_PLUGINS/imageformats/libqsvg.so"
+[ -f "$SVG_PLUGIN" ] || { echo "Qt Svg image-format plugin not found: $SVG_PLUGIN" >&2; exit 1; }
+mkdir -p "$APPDIR/usr/plugins/imageformats"
+cp "$SVG_PLUGIN" "$APPDIR/usr/plugins/imageformats/"
+DEPLOY_DEPS+=(--deploy-deps-only "$APPDIR/usr/plugins/imageformats")
 # The Qt plugin prints "ERROR: Missing qml module: RowPlay / RowPlay.Replay /
 # RowPlay.ReplayAssets" while scanning qml/ — those three are compiled into
 # the binary (ADR 0012) and it carries on; the launch check is what proves
@@ -151,6 +161,8 @@ export VERSION
 export LDAI_OUTPUT="$DIST/$OUTPUT_NAME" OUTPUT="$DIST/$OUTPUT_NAME"
 (cd "$DIST" && "$CACHE/linuxdeploy-x86_64.AppImage" --appdir "$APPDIR" \
     ${DEPLOY_DEPS[@]+"${DEPLOY_DEPS[@]}"} --plugin qt --output appimage)
+[ -f "$APPDIR/usr/plugins/imageformats/libqsvg.so" ] || { echo "AppImage missing Qt Svg image plugin" >&2; exit 1; }
+[ -n "$(find "$APPDIR/usr/lib" -maxdepth 1 -name 'libQt6Svg.so*' -print -quit)" ] || { echo "AppImage missing Qt Svg library" >&2; exit 1; }
 [ -f "$DIST/$OUTPUT_NAME" ] || { echo "linuxdeploy produced no $OUTPUT_NAME in $DIST" >&2; ls -la "$DIST" >&2; exit 1; }
 
 # 4. it starts on its own (xcb; under Xvfb + software Mesa when headless)

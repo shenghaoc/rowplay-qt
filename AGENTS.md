@@ -460,7 +460,7 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `ToggleSwitch`, `InputField`, `PopupButton`, `FormSection` / `FormRow`,
   `AppSlider` and the `App*` popups) are pinned to Basic while the
   native-style stack replaces them area by area (spec `ui-native-styles`):
-  add no new uses. New symbols are original path data in `Icon.qml`, never
+  add no new uses. New symbols are original path data in `Glyphs.qml`, never
   image files. Text is in sentence case (no `toUpperCase()`), nothing is
   conveyed by colour alone, and nothing is reachable only by hover.
 - Round 2 of the design system (spec T8–T12) added four rules. Focus
