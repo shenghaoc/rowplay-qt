@@ -29,10 +29,30 @@ What Qt 6.11.2 does, read from its sources at the tag:
   draw Button, CheckBox, ComboBox, TextField, SearchField, Slider, SpinBox,
   Switch, ScrollBar, ProgressBar, GroupBox, Frame and a few more through
   `QtQuick.NativeStyle`, and warn when a `background` or `contentItem` is
-  replaced. Controls they do not implement (ToolBar, ToolButton, TabBar,
-  ToolTip, Drawer, Pane, Label) come from their fallback style, Fusion. The
-  macOS `ItemDelegate` is plain QML over the template, drawn from the
-  palette.
+  replaced. The macOS `ItemDelegate` is plain QML over the template, drawn
+  from the palette.
+- **The controls they do not implement come from Basic, not Fusion.** That
+  covers ToolBar, ToolButton, TabBar, ToolTip, Drawer, Pane, Popup, Label
+  and SplitView.
+  - Both styles declare Fusion as their fallback (`IMPORTS
+    QtQuick.Controls.Fusion/auto`, "the required fallback style"), and
+    Qt's documentation says a style's qmldir names its fallback.
+  - With run-time selection, though, the Controls plugin registers Basic
+    as the style's fallback (`QtQuickControls2Plugin::registerTypes`),
+    and Basic wins.
+  - Measured on macOS with Qt's own `qml` runner (2026-09-25; the split
+    handle in the app):
+
+    | Control               | Measured | Basic | Fusion |
+    |-----------------------|----------|-------|--------|
+    | Pane padding          | 12       | 12    | 9      |
+    | Popup padding         | 12       | 12    | 6      |
+    | ToolBar height        | 40       | 40    | 26     |
+    | ToolButton background | 40       | 40    | 20     |
+    | SplitView handle      | 6 px     | 6 px  | 2 px   |
+
+    `QT_QUICK_CONTROLS_FALLBACK_STYLE=Fusion` gives Fusion's values.
+  - Windows takes the same code path; it was not measured.
 - **The platform icon engines** (Qt 6.7+): on macOS `QAppleIconEngine`
   maps freedesktop names to SF Symbols and passes any other name to
   `imageWithSystemSymbolName`, so an SF Symbol name works as it is; on
@@ -63,13 +83,21 @@ What Qt 6.11.2 does, read from its sources at the tag:
    draws. Three bounded exceptions: a list delegate (an `ItemDelegate`
    carries its row's data as its `contentItem`, and keeps the style's
    background, selection and hover); the sidebar's split handle, a
-   hairline with a 9 px hit area where Fusion's handle is a 2 px target;
+   hairline with a 9 px hit area where the default handle is Basic's 6 px
+   bar (Fusion's, on Linux, is 2 px);
    and, until Qt Image Formats' WebP plugin is installed and packaged, the
    live-mode panel's spinner: the macOS style's is a WebP animation and
    draws nothing without the plugin.
 3. **Our identity lives in the content.** The charts, the metric colours,
    the tiles and personal-best cards, the splits table and the 3D replay
-   with its HUD keep their own drawing.
+   with its HUD keep their own drawing. In the HUD, the panel, the times,
+   the metric chips, the verdict and the scrubber stay ours. The play
+   button and the speed buttons are the style's.
+   - The macOS style's slider draws its track beyond the knob in 243 on
+     the HUD's 244 grey, about 1.0:1, so the part of the workout still
+     to come vanished.
+   - Every HUD control answers within at least 40 px (round 3's 2f).
+
 4. **Relative to the system.** Surfaces, text and lines derive from the
    system palette (the window and window-text colours, the base colour, and
    tonal steps between them), fitted to the floors ADR 0013 set: 4.5:1 for
@@ -99,6 +127,12 @@ What Qt 6.11.2 does, read from its sources at the tag:
 - The app looks like each platform's app: macOS controls on macOS, the
   Windows style on Windows, Fusion on Linux. Screens differ per OS by
   design; the content does not.
+- Where the macOS and Windows styles have no control of their own (the
+  toolbar and its tool buttons, tool tips, the drawer, the replay's speed
+  buttons), Qt's Basic style draws it, flat, in the system palette. A
+  `FallbackStyle` in a configuration file would give Fusion's bevelled
+  ones instead, as the styles declare; that is a style choice left to the
+  owner, and none is made.
 - Screen readers get the platform's own control roles from the styles.
 - The AppImage carries Qt Svg to draw its command icons. Its desktop
   portal theme reports the colour scheme and contrast preference, but not

@@ -1211,3 +1211,13 @@ requests on the round-2 stack's composed top:
    every default button there). The detail and the dashboard keep their
    margins inside their scroll views, like settings, so the style's scroll
    bar sits at the pane's edge. Neither page has another control.
+6. `ui/native-replay-hud`: the HUD's play button and speed buttons are
+   the style's (the toolbar's command button, and checkable tool buttons in
+   an exclusive group with one tab stop). The scrubber stays the HUD's own:
+   the macOS style's slider hides its track beyond the knob on the HUD's
+   grey. Every HUD control answers within at least 40 px without moving
+   (round 3's 2f), with no two hit areas overlapping under the macOS style
+   or Fusion. The speed and chips now stack against the HUD column's
+   width: Spanish at 480 px overflowed once the speed could no longer
+   shrink. ADR 0015 is corrected: controls the native styles lack come
+   from Basic, not Fusion (measured with Qt's own `qml` runner).
