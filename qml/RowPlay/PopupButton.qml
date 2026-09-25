@@ -186,6 +186,9 @@ ComboBox {
                 visible: control.filterable
                 leadingIcon: "magnifyingglass"
                 placeholderText: control.filterLabel
+                // The view-model reads at most 64 characters of a filter
+                // (settings::TIMEZONE_QUERY_MAX_CHARS); a paste stops here.
+                maximumLength: 64
                 Accessible.name: control.filterLabel
                 // A new filter highlights its first match.
                 onTextChanged: filterList.currentIndex = 0
