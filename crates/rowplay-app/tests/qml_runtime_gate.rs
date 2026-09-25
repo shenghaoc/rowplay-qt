@@ -809,12 +809,38 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             let (width, height, pixels) = common::parse_ppm(&bytes);
             let label = format!("replay-{sport}");
             common::assert_rendered(width, height, pixels, &label);
-            // Phase 5b: shadows must be visible on the ground plane.
-            // Only checked under a real GL backend — the offscreen QPA
-            // does not render View3D content, so its captures are flat.
-            if std::env::var("QSG_RHI_BACKEND").is_ok() {
-                common::assert_shadows(width, height, pixels, &label);
-            }
+        }
+    }
+
+    // Phase 5b: the key light's shadow renders. Only High and Ultra cast
+    // shadows, so the tier cycle grabs the rower at High twice: as the tier
+    // sets the light and with its shadow off (the quick profile skips the
+    // cycle). Only checked under a real GPU backend — the offscreen QPA
+    // does not render View3D content, so its captures are flat.
+    if !quick && std::env::var("QSG_RHI_BACKEND").is_ok() {
+        if let Some(dir) = std::env::var_os("ROWPLAY_SMOKE_SCREENSHOT_DIR") {
+            let read = |name: &str| {
+                let ppm = Path::new(&dir).join(format!("{name}.ppm"));
+                std::fs::read(&ppm).unwrap_or_else(|error| {
+                    panic!(
+                        "read {}: {error} — the tier cycle must save the shadow check's \
+                         pair\n\napp log:\n{}",
+                        ppm.display(),
+                        common::gate_log_lines(&combined)
+                    )
+                })
+            };
+            let (shadowed, unshadowed) =
+                (read("replay-row-high"), read("replay-row-high-unshadowed"));
+            let (width, height, with) = common::parse_ppm(&shadowed);
+            let (twin_width, twin_height, without) = common::parse_ppm(&unshadowed);
+            assert_eq!(
+                (width, height),
+                (twin_width, twin_height),
+                "the shadow check's twins differ in size"
+            );
+            common::assert_rendered(width, height, with, "replay-row-high");
+            common::assert_shadows(width, height, with, without, "replay-row-high");
         }
     }
 
