@@ -9,6 +9,7 @@ Pipeline scripts. Nothing here is linked into the app.
 | `gen-row-phase-parity.mjs` | Regenerate `tests/fixtures/replay-row-phase-parity.json`: pins the rower authored stroke-phase calibration from the web at its pinned commit (Node ≥ 23.6; needs the web checkout's `node_modules` for three.js). |
 | `gen-stroke-model-parity.mjs` | Regenerate `tests/fixtures/replay-stroke-model-parity.json`: imports the web's real `strokeModel.ts` at the pinned commit and records `buildStrokeTimeline` / `strokePoseAt` / `fallbackStrokePose` outputs over nine timelines and a boundary-inclusive query sweep (Node ≥ 23.6; no node_modules needed). Parity audit ranking 5. |
 | `gen-v4-hand-parity.mjs` | Regenerate `tests/fixtures/replay-v4-hand-parity.json`: installs the web's real `ReplayV4MotionController` on the real SkiErg avatar with the production wiring and drives it through the dense guard's own sweep (2000 steps, 30 spm, `meters = step·3`), recording the rendered hand's per-step position / orientation / elbow / contact-point deltas and the grip residual — the oracle the guard compares against instead of a continuity budget (issue #40; Node ≥ 23.6 with `--experimental-transform-types`). |
+| `gen-venue-shadow-parity.mjs` (+ `gen-venue-shadow-resolve.mjs`) | Regenerate `tests/fixtures/replay-venue-shadow-parity.json`: builds the web's production `CourseRenderer3D` headless (the resolve hook gives the web's modules the stand-in `WebGLRenderer` its own tests mock in) for every sport at High and Ultra, and records each venue mesh's `castShadow` / `receiveShadow` under the vendored GLBs' names (issue #96; Node ≥ 24 with `--experimental-transform-types`). |
 | `package/macos.sh`, `package/linux.sh`, `package/windows.ps1` | Phase 9 packaging (ADR 0012): release build → platform bundle (`macdeployqt` / `linuxdeploy` + Qt plugin / `windeployqt` + Inno Setup) → launch check → `.dmg` / `.AppImage` / installer + zip under `dist/`, each with a `.sha256`. `.github/workflows/release.yml` runs all three. |
 | `package/launch-check.py` | Starts a packaged binary from a clean environment (no `PATH`, `DYLD_*`, `LD_LIBRARY_PATH`, `QT_*`), with `ROWPLAY_EXIT_AFTER_FRAMES=30`, and fails on a non-zero exit, a timeout, or a loader / QML failure signature. Shared by the three package scripts. |
 | `package/gen-icons.py` | Derives the committed `assets/icon/rowplay-qt.icns` / `.ico` from the vendored web icon with Pillow (`--check` compares bytes); both outputs are SHA-256-pinned by `asset_hashes.rs`. |
@@ -23,8 +24,8 @@ the Node venue exporter plus Blender clean-up scripts (Phase 6).
 Every script that reads the working tree of `reference/` refuses to run
 unless the checkout is at the commit pinned in `docs/source-map.md`:
 `convert-locales.mjs`, `gen-ski-arm-hand-window.mjs`,
-`gen-rig-phase-parity.mjs`, `gen-v4-hand-parity.mjs` and
-`web-tilt-probe.mjs` against
+`gen-rig-phase-parity.mjs`, `gen-v4-hand-parity.mjs`,
+`gen-venue-shadow-parity.mjs` and `web-tilt-probe.mjs` against
 `reference/rowplay`, `vendor-fixtures.py` against `reference/rowplay-studio`;
 `vendor-replay-assets.py` compares the checkout's texture-pin table against
 the committed vendored one (its assets predate the current session pin).

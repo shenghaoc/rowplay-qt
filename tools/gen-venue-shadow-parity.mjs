@@ -10,31 +10,38 @@
  * casts and receives by default, and the GLB bake carries no flags, so the
  * port shadowed its whole venue: the BikeErg roof shell put the track in
  * shadow and the snow shadowed itself into acne (#96). This fixture records
- * the flags the web's own objects carry, under the names the vendored GLBs
- * use, so the port's rule is checked against what the web renders rather
- * than against the porter's reading of its source.
+ * the flags the web renders, under the names the vendored GLBs use, so the
+ * port's rule is checked against what the web renders rather than against
+ * the porter's reading of its source.
  *
- * The scene is assembled as tools/bake-venues/bake.mjs assembles it (the
- * horizon rings, infield, apron and the world, then the bake's two naming
- * passes), with one difference: the three pieces the web's renderer builds
- * itself rather than the environment builder (`makeVerticalArc`, the
- * infield and the apron, renderer3d.ts) take the renderer's flags. The
- * generator reads those assignments from renderer3d.ts at the pin and fails
- * if the source no longer carries them, so a change there re-records.
+ * The web's production renderer builds every variant: `CourseRenderer3D`,
+ * constructed in Node as the web's own renderer3d.test.ts constructs it (a
+ * stand-in `WebGLRenderer`, see tools/gen-venue-shadow-resolve.mjs, and a
+ * stub `document` and `window`). Every flag is read off the object the web
+ * would draw, whichever file set it: the environment builder's objects and
+ * the renderer's own vertical arcs, infield and apron alike, with anything
+ * the constructor does to them afterwards. One rendered frame must leave
+ * every flag as recorded, or the generator fails.
+ *
+ * The venue's four roots are then taken out of the scene and named as
+ * tools/bake-venues/bake.mjs names the GLBs' nodes: the meshes the web hides
+ * are dropped, and an unnamed mesh takes `<parent>-part-<n>`.
  *
  * Usage (from the repository root; needs `pnpm install` in reference/rowplay):
  *
- *   node --experimental-transform-types \
- *     --import ./tools/bake-venues/register.mjs \
- *     tools/gen-venue-shadow-parity.mjs
+ *   node --experimental-transform-types tools/gen-venue-shadow-parity.mjs
  *
  * Writes tests/fixtures/replay-venue-shadow-parity.json.
  */
+import { register } from "node:module";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+register("./gen-rig-phase-resolve.mjs", import.meta.url);
+register("./gen-venue-shadow-resolve.mjs", import.meta.url);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..");
@@ -42,23 +49,18 @@ const REFERENCE = join(REPO, "reference", "rowplay");
 const OUT = join(REPO, "tests", "fixtures", "replay-venue-shadow-parity.json");
 const PINNED_COMMIT = "173c6facbcedef419ad39168c5e3e642abb7e57e";
 
+const RENDERER_PATH = "src/lib/replay/renderer3d.ts";
 const ENVIRONMENT_PATH = "src/lib/replay/renderer3dEnvironment.ts";
 const KIT_PATH = "src/lib/replay/renderer3dVenueKit.ts";
-const RENDERER_PATH = "src/lib/replay/renderer3d.ts";
+const STROKE_MODEL_PATH = "src/lib/replay/strokeModel.ts";
 
 const SPORTS = ["rower", "skierg", "bike"];
 /** Only these tiers cast a shadow (renderer3d.ts `QUALITY`, `shadows: true`). */
 const TIERS = ["high", "ultra"];
-/** tools/bake-venues/bake.mjs: the bake's seed, so the scatter matches. */
+/** tools/bake-venues/bake.mjs: the bake's seed, pinned before the web's modules load. */
 const SEED = 20260913;
-const INNER_R = 22;
-const OUTER_R = 34;
-const WORLDS = { rower: "addRowerRegattaWorld", skierg: "addSkiStadiumWorld", bike: "addBikeCircuitWorld" };
-/** The QUALITY fields the builder reads, as bake.mjs copies them. */
-const QUALITY = {
-  high: { laneSegments: 112, groundSegments: 32, displacement: true, shadows: true, environmentDetail: 2 },
-  ultra: { laneSegments: 160, groundSegments: 64, displacement: true, shadows: true, environmentDetail: 3 },
-};
+/** The venue's roots in the renderer's scene (renderer3d.ts `buildEnvironment`). */
+const ROOTS = ["midground", "detail", "infield", "apron"];
 
 function sha256(text) {
   return createHash("sha256").update(text, "utf8").digest("hex");
@@ -79,102 +81,108 @@ if (head !== PINNED_COMMIT) {
   throw new Error(`reference/rowplay is at ${head}, not the pinned ${PINNED_COMMIT}`);
 }
 const sources = Object.fromEntries(
-  [ENVIRONMENT_PATH, KIT_PATH, RENDERER_PATH].map((path) => [path, readFileSync(join(REFERENCE, path), "utf8")]),
+  [RENDERER_PATH, ENVIRONMENT_PATH, KIT_PATH].map((path) => [path, readFileSync(join(REFERENCE, path), "utf8")]),
 );
 
-/**
- * The renderer's own receivers: the line that sets the flag, found inside
- * the named block of renderer3d.ts. Throws when the source moved on.
- */
-function rendererFlag(anchor, assignment) {
-  const source = sources[RENDERER_PATH];
-  const start = source.indexOf(anchor);
-  if (start === -1) throw new Error(`${RENDERER_PATH}: "${anchor}" not found`);
-  const at = source.indexOf(assignment, start);
-  const next = source.indexOf("\n  private ", start + anchor.length);
-  if (at === -1 || (next !== -1 && at > next)) {
-    throw new Error(`${RENDERER_PATH}: "${assignment}" not found in the block of "${anchor}"`);
-  }
-  return `${RENDERER_PATH}:${source.slice(0, at).split("\n").length}`;
+// renderer3d.test.ts: a 2D context and canvas stub for the text sprites, a
+// `document` that makes them, and a `window` for the reduced-motion query.
+function make2dContext() {
+  const noop = () => {};
+  return {
+    font: "",
+    fillStyle: "",
+    textAlign: "",
+    textBaseline: "",
+    fillRect: noop,
+    fillText: noop,
+    clearRect: noop,
+    beginPath: noop,
+    roundRect: noop,
+    fill: noop,
+    stroke: noop,
+    measureText: () => ({ width: 60 }),
+  };
 }
-const VERTICAL_ARC = rendererFlag("private makeVerticalArc(", "mesh.receiveShadow = this.cfg.shadows;");
-const INFIELD = rendererFlag("infield.name = `environment:${this.sport}:infield`;", "infield.receiveShadow = this.cfg.shadows;");
-const APRON = rendererFlag("apron.name = `environment:${this.sport}:apron`;", "apron.receiveShadow = this.cfg.shadows;");
+function makeCanvas() {
+  const context = make2dContext();
+  return {
+    style: {},
+    width: 0,
+    height: 0,
+    getContext: (type) => (type === "2d" ? context : null),
+    remove: () => {},
+  };
+}
+globalThis.document = {
+  createElement: (tag) => {
+    if (tag === "canvas") return makeCanvas();
+    if (tag === "div") return { style: {}, dataset: {}, remove: () => {} };
+    return {};
+  },
+};
+globalThis.window = { devicePixelRatio: 1, matchMedia: () => ({ matches: false }) };
 
 Math.random = mulberry32(SEED);
+const url = (path) => pathToFileURL(join(REFERENCE, path)).href;
+const { CourseRenderer3D } = await import(url(RENDERER_PATH));
+const { buildStrokeTimeline, strokePoseAt } = await import(url(STROKE_MODEL_PATH));
 const THREE = await import("three");
-const { EnvironmentBuilder } = await import(pathToFileURL(join(REFERENCE, ENVIRONMENT_PATH)).href);
-const { themed, FULL_CIRCLE } = await import(pathToFileURL(join(REFERENCE, KIT_PATH)).href);
 
-/** Any colour will do: the flags do not depend on the palette. */
-const grey = themed(0x808080, 0x404040);
-function environmentStyle() {
-  return new Proxy(
-    { fogNear: 60, fogFar: 180, hemisphereIntensity: 1, sunIntensity: 2, fillIntensity: 0.6, exposure: 1, envIntensity: 0.5, hemisphereIntensityIbl: 0.5 },
-    { get: (target, key) => (key in target ? target[key] : grey) },
+/** Every mesh's flags under `root`, keyed by the object. */
+function flagsOf(root) {
+  const flags = new Map();
+  root.traverse((object) => {
+    if (object.isMesh) flags.set(object, [object.castShadow === true, object.receiveShadow === true]);
+  });
+  return flags;
+}
+
+/** renderer3d.test.ts `makeRenderState`: two strokes, the frame between them. */
+function renderState(sport) {
+  const timeline = buildStrokeTimeline(
+    [
+      { t: 2, d: 10, pace: 120, spm: 28, watts: 160 },
+      { t: 4, d: 21, pace: 118, spm: 30, watts: 190 },
+    ],
+    sport,
+    true,
   );
+  return {
+    frame: { t: 2.1, d: 100, pace: 120, spm: 28, watts: 100, hr: 0 },
+    ghost: null,
+    strokePose: strokePoseAt(timeline, 2.1),
+    distFrac: 0.5,
+    totalDistance: 2000,
+    sport,
+  };
 }
 
 function buildVariant(sport, tier) {
-  const cfg = QUALITY[tier];
-  const environment = environmentStyle();
-  const owners = new Map();
-  const ctx = {
-    sport,
-    quality: tier,
-    cfg,
-    environment,
-    textures: [],
-    environmentThemeMats: [],
-    mat: (m) => m,
-    track: (g) => g,
-    trackInstanced: (mesh) => mesh,
-    environmentStandardMat: (name, color, opts = {}) =>
-      Object.assign(new THREE.MeshStandardMaterial({ ...opts, color: color("light") }), { name }),
-    environmentBasicMat: (name, color, opts = {}) =>
-      Object.assign(new THREE.MeshBasicMaterial({ ...opts, color: color("light") }), { name }),
-    // renderer3d.ts `makeVerticalArc`, flags included (see VERTICAL_ARC).
-    makeVerticalArc: (name, radius, height, y, sector, material) => {
-      const segments = Math.max(6, Math.ceil((cfg.laneSegments * sector.span) / FULL_CIRCLE));
-      const geometry = new THREE.CylinderGeometry(radius, radius, height, segments, 1, true, sector.start, sector.span);
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.name = name;
-      mesh.position.y = y;
-      mesh.receiveShadow = cfg.shadows;
-      owners.set(mesh, VERTICAL_ARC);
-      return mesh;
-    },
-  };
+  const host = { appendChild: () => {}, children: [] };
+  const renderer = new CourseRenderer3D(host, tier, sport);
+  const scene = renderer.scene;
+  const roots = ROOTS.map((suffix) => {
+    const object = scene.getObjectByName(`environment:${sport}:${suffix}`);
+    if (!object) throw new Error(`${sport}:${tier}: no environment:${sport}:${suffix} in the scene`);
+    return object;
+  });
 
-  const builder = new EnvironmentBuilder(ctx);
-  const mid = new THREE.Group();
-  mid.name = `environment:${sport}:midground`;
-  const detail = new THREE.Group();
-  detail.name = `environment:${sport}:detail`;
-  if (sport !== "bike") {
-    const farHeight = sport === "skierg" ? 22 : 12.5;
-    const farVariation = sport === "skierg" ? 9 : 5.2;
-    const midHeight = sport === "skierg" ? 12 : 8.4;
-    const midVariation = sport === "skierg" ? 6 : 3.6;
-    mid.add(builder.makeHorizonRing(`environment:${sport}:horizon-far`, 116, -2.5, farHeight, farVariation, 72, grey, 0.7));
-    mid.add(builder.makeHorizonRing(`environment:${sport}:horizon-mid`, 84, -1.4, midHeight, midVariation, 64, grey, 2.1));
+  // The flags as constructed must be the flags a rendered frame leaves.
+  const constructed = new Map(roots.flatMap((root) => [...flagsOf(root)]));
+  renderer.render(renderState(sport), false, "light");
+  for (const root of roots) {
+    for (const [object, [cast, receive]] of flagsOf(root)) {
+      const before = constructed.get(object);
+      if (!before || before[0] !== cast || before[1] !== receive) {
+        throw new Error(`${sport}:${tier}: a frame changed ${object.name || "an unnamed mesh"}'s flags`);
+      }
+    }
   }
-  const surface = () => new THREE.MeshStandardMaterial({ color: 0x808080 });
-  const infield = new THREE.Mesh(new THREE.CircleGeometry(INNER_R - 0.8, cfg.laneSegments), surface());
-  infield.name = `environment:${sport}:infield`;
-  infield.receiveShadow = cfg.shadows;
-  owners.set(infield, INFIELD);
-  if (sport === "rower" || sport === "skierg") infield.visible = false;
-  const apron = new THREE.Mesh(new THREE.RingGeometry(OUTER_R + 0.2, 55, cfg.laneSegments), surface());
-  apron.name = `environment:${sport}:apron`;
-  apron.receiveShadow = cfg.shadows;
-  owners.set(apron, APRON);
-  builder[WORLDS[sport]](mid, detail, OUTER_R);
 
+  // bake.mjs `bakeVariant`: the four roots under one venue root.
   const root = new THREE.Group();
   root.name = `venue-${sport}-${tier}`;
-  root.add(mid, detail, infield, apron);
-
+  root.add(...roots);
   // bake.mjs pass 0: meshes the web hides are not in the GLB.
   const invisible = [];
   root.traverse((object) => {
@@ -197,10 +205,12 @@ function buildVariant(sport, tier) {
   root.traverse((object) => {
     if (!object.isMesh) return;
     if (object.name in meshes) throw new Error(`${sport}:${tier}: two meshes named ${object.name}`);
+    const path = [];
+    for (let node = object.parent; node && node !== root; node = node.parent) path.unshift(node.name);
     meshes[object.name] = {
       cast: object.castShadow === true,
       receive: object.receiveShadow === true,
-      source: owners.get(object) ?? ENVIRONMENT_PATH,
+      parent: path.join(" / "),
     };
   });
   return Object.fromEntries(Object.entries(meshes).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
@@ -213,9 +223,10 @@ for (const sport of SPORTS) {
 
 const fixture = {
   description:
-    "The key light's shadow flags of every venue mesh at the tiers that cast one, recorded from the web's own " +
-    "objects under the names the vendored GLBs use (#96). `cast` / `receive` are three.js castShadow / " +
-    "receiveShadow; `source` is the file (and, for the renderer's own pieces, the line) that set them.",
+    "The key light's shadow flags of every venue mesh at the tiers that cast one, read off the objects the " +
+    "web's production renderer (`CourseRenderer3D`, built headless as its own tests build it) puts in its " +
+    "scene, under the names the vendored GLBs use (#96). `cast` / `receive` are three.js castShadow / " +
+    "receiveShadow; `parent` is the mesh's ancestry below the venue root.",
   generator: "tools/gen-venue-shadow-parity.mjs",
   source: {
     repo: "https://github.com/shenghaoc/rowplay",

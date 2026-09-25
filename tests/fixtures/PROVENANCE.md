@@ -57,13 +57,16 @@ Five fixtures are generated locally rather than vendored:
   (Node ≥ 23.6; no node_modules needed).
 - `replay-venue-shadow-parity.json` (issue #96) records which venue meshes
   the web lets cast and receive the key light's shadow at the two tiers that
-  have one (High and Ultra), under the names the vendored GLBs use: the
-  web's own environment objects built as the venue bake builds them, plus
-  the renderer's infield, apron and vertical arcs with the flags
-  `renderer3d.ts` sets (the generator finds those assignments in the source
-  at the pin and fails if they moved). 464 meshes over six variants.
-  Regenerate with
-  `node --experimental-transform-types --import ./tools/bake-venues/register.mjs tools/gen-venue-shadow-parity.mjs`
+  have one (High and Ultra), under the names the vendored GLBs use. The
+  flags are read off the scene the web's production renderer builds:
+  `CourseRenderer3D`, constructed headless as the web's own
+  `renderer3d.test.ts` constructs it (a stand-in `WebGLRenderer`, stub
+  `document` and `window`), so the environment builder's objects and the
+  renderer's own infield, apron and vertical arcs carry whatever flags the
+  web leaves on them; one rendered frame must not change any. The venue's
+  roots are then named as the bake names the GLBs' nodes. 464 meshes over
+  six variants. Regenerate with
+  `node --experimental-transform-types tools/gen-venue-shadow-parity.mjs`
   (Node ≥ 24, web `node_modules` present); the generator refuses a
   reference checkout that is not at the pin.
 
@@ -102,7 +105,7 @@ its nearest double.
 | `stroke-pose-parity.json` | 2385 | `b72484dfdbc335ae2652a0f86f245c98be6db250424edc60c2805655953d57ae` |
 | `replay-row-phase-parity.json` | 29459 | `ec426b6890bce64e0854837b569df42175198cc75e991f6255c2ea2bb446853d` |
 | `replay-stroke-model-parity.json` | 96504 | `11e3072f42921050af59d33a1e07d3c2475dd94078e2a3daca5a28499c3673a1` |
-| `replay-venue-shadow-parity.json` | 76414 | `2dff20437874f59ce80225bf7e68ab61d943b6cfc94be20da3142622b96bd4d5` |
+| `replay-venue-shadow-parity.json` | 82832 | `e0139e8ec71b9da4245358713a9e962f638459066ed966e25c99d438a75e7c96` |
 
 ## Licence
 

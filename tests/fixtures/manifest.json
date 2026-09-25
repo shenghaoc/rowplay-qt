@@ -189,8 +189,8 @@
         "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
         "path": "tests/fixtures/replay-venue-shadow-parity.json"
       },
-      "bytes": 76414,
-      "sha256": "2dff20437874f59ce80225bf7e68ab61d943b6cfc94be20da3142622b96bd4d5"
+      "bytes": 82832,
+      "sha256": "e0139e8ec71b9da4245358713a9e962f638459066ed966e25c99d438a75e7c96"
     },
     {
       "path": "stroke-pose-parity.json",
