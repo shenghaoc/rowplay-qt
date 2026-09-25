@@ -481,8 +481,11 @@ Concept2 token. Cache failures never silently fall back to demo data.
     and are fitted to the contrast floors. The only literal colours outside
     `Theme` are `transparent`, alpha washes of its tokens, and the smoke
     test's own.
-  - A layout that depends on the window's width reads `Theme.widthClass`
-    (compact, medium, large).
+  - A layout that depends on the window's width reads `Theme.widthClass`:
+    M3's compact, medium, expanded, large and extra-large, scaled with
+    the text. A content layout that splits into panes also checks its own
+    column against `Theme.paneMinWidth`, since the sidebar takes part of
+    the window (round 3's 2d).
 - Animations of ours use `Theme`'s motion tokens: `durationShort`,
   `durationMedium` and `durationLong`, with `easingStandard` or
   `easingEmphasized` as an `Easing.BezierSpline`. Reduce motion makes

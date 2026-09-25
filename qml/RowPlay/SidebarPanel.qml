@@ -11,7 +11,7 @@
 // day headers are the list's sections, small, bold and in sentence case;
 // each row carries its sport glyph; the selection uses the style's highlight
 // while the list has keyboard focus and a neutral content wash otherwise.
-// Below the large width class the shell shows the panel in
+// Below the expanded width class the shell shows the panel in
 // a drawer, which a chosen workout closes.
 import QtQuick
 import QtQuick.Controls
@@ -21,7 +21,7 @@ import RowPlay
 Pane {
     id: panel
 
-    /// Set while the panel is the shell's drawer (below the large width
+    /// Set while the panel is the shell's drawer (below the expanded width
     /// class): Escape in the list then closes the drawer instead of
     /// clearing the selection.
     property bool inDrawer: false

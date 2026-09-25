@@ -6,7 +6,7 @@
 // scene; its 1000x680 minimum gave way to the width classes below.
 //
 // Design system (ADR 0013): the sidebar runs the full window height and can
-// be hidden (it always is during the immersive replay), and below the large
+// be hidden (it always is during the immersive replay), and below the expanded
 // width class it becomes a drawer; the toolbar sits over the content column
 // with icon-only buttons and the sport filter as a segmented control, and
 // shows only the way back and the workout's title during the replay; the
@@ -57,7 +57,7 @@ ApplicationWindow {
     // The platform layer's only branch: macOS has the native menu bar and
     // its own sidebar-toggle chord.
     readonly property bool isMac: Qt.platform.os === "osx" || Qt.platform.os === "macos"
-    // The sidebar toggle (F9 / Ctrl+Cmd+S) at the large width class;
+    // The sidebar toggle (F9 / Ctrl+Cmd+S) at the expanded width class;
     // SplitView keeps the column's width while it is hidden. Below it the
     // toggle opens and closes the drawer instead.
     property bool sidebarShown: true
@@ -172,7 +172,7 @@ ApplicationWindow {
         sidebarColumn.focusSearch()
     }
 
-    // The one sidebar moves between the split view (large) and the drawer,
+    // The one sidebar moves between the split view (expanded) and the drawer,
     // so its search text, date range and scroll position go with it. The
     // drawer closes first when the window widens past the breakpoint.
     function placeSidebar() {
@@ -225,7 +225,7 @@ ApplicationWindow {
 
             // Sidebar column (Studio: min 260, ideal 320), full height;
             // hidden during the replay, and SplitView restores its width.
-            // Below the large width class it lives in the drawer
+            // Below the expanded width class it lives in the drawer
             // (placeSidebar) and shows whenever the drawer does.
             SidebarPanel {
                 id: sidebarColumn
@@ -262,7 +262,7 @@ ApplicationWindow {
 
                     readonly property bool replayShown: root.screenIndex === 3
 
-                    // Leading, below the large width class: the drawer with
+                    // Leading, below the expanded width class: the drawer with
                     // the workout list (named like the web's workouts
                     // section). Checked while the list shows.
                     CommandButton {
@@ -535,7 +535,7 @@ ApplicationWindow {
         }
     }
 
-    // The sidebar's drawer below the large width class. At medium it is a
+    // The sidebar's drawer below the expanded width class. At medium it is a
     // modal overlay beside a strip of the dimmed content: a click on the
     // strip, Escape or the sidebar toggle closes it. At compact it is the
     // list's page: under the toolbar, the window's full width, and neither

@@ -134,5 +134,23 @@ pull request that delivers it.
   - [x] T7.4 Two Basic imports stay: `AppSlider` (the HUD's scrubber,
     content) and `AppBusyIndicator` (the WebP exception). AGENTS.md's QML
     rules now say "use native Qt Quick Controls as-is".
-- [ ] T8 Large and extra-large layouts (R7.1).
+- [x] T8 (`ui/native-large-layouts`) Large and extra-large layouts (R7.1).
+  - [x] T8.1 `Theme.widthClass` has M3's five classes, scaled with the
+    text: compact, medium, expanded (the old "large", ≥ 840), large
+    (≥ 1200) and extra-large (≥ 1600). The sidebar's drawer rule reads
+    "below expanded"; the gate's full-width step sets `Theme.px(1200)` and
+    expects class 3 on every platform.
+  - [x] T8.2 The detail's supporting pane: in a large window whose detail
+    column fits two panes of `paneMinWidth`, the stroke charts sit beside
+    the summary, the splits and the targets. One set of sections, two
+    layouts of `LayoutItemProxy`; a sometimes-absent section's visibility
+    is on its proxies, because a proxy that takes control shows its
+    target.
+  - [x] T8.3 The dashboard's feed: the charts side by side under the same
+    rule; a tile or card grid whose items all fit one row stops at
+    `tileMaxWidth` per item.
+  - [x] T8.4 The content stops at `contentMaxWidth`, centred; the
+    comments and the settings page at `readableWidth`.
+  - [x] T8.5 Checked at 1200, 1440, 1600 and 1920 px, light and dark,
+    English and Japanese: every text item fits (32 runs, none flagged).
 - [ ] T9 Documentation and the full verification matrix (R8, R9).
