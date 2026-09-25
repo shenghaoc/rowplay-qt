@@ -87,20 +87,30 @@ Item {
     function gateGapLayoutFits() {
         function inside(item) {
             var at = item.mapToItem(hud, 0, 0)
-            return at.x >= Theme.spacingLarge - 1 && at.y >= Theme.spacingLarge - 1
+            var fits = at.x >= Theme.spacingLarge - 1 && at.y >= Theme.spacingLarge - 1
                 && at.x + item.width <= hud.width - Theme.spacingLarge + 1
                 && at.y + item.height <= hud.height - Theme.spacingLarge + 1
+            if (!fits)
+                console.log("gate gap bounds:", at.x, at.y, item.width, item.height,
+                            "HUD", hud.width, hud.height, "margin", Theme.spacingLarge)
+            return fits
         }
         var gap = inlineGap.visible ? inlineGap : compactGap
         if (!gap.visible || !inside(gap) || gap.contentWidth > gap.width + 1
-                || gap.contentHeight > gap.height + 1)
+                || gap.contentHeight > gap.height + 1) {
+            console.log("gate gap text:", gap.visible, gap.contentWidth, gap.contentHeight,
+                        "allocated", gap.width, gap.height)
             return false
+        }
         // This demo has all four gauges: missing a chip cannot make it pass.
         for (var i = 0; i < metricChips.count; ++i) {
             var chip = metricChips.itemAt(i)
             if (!chip || !chip.visible || !inside(chip)
-                    || chip.implicitWidth > chip.width + 1)
+                    || chip.implicitWidth > chip.width + 1) {
+                console.log("gate metric chip:", i, chip ? chip.implicitWidth : -1,
+                            "allocated", chip ? chip.width : -1)
                 return false
+            }
             var at = chip.mapToItem(hud, 0, 0)
             var gapAt = gap.mapToItem(hud, 0, 0)
             if (at.x < gapAt.x + gap.width && at.x + chip.width > gapAt.x
@@ -505,7 +515,8 @@ Item {
             GridLayout {
                 id: hudLower
 
-                property bool stacked: false
+                property bool needsStack: false
+                readonly property bool stacked: hud.compactGap || needsStack
                 readonly property real needed: speedControl.implicitWidth + columnSpacing
                                                + chipRow.implicitWidth
 
@@ -513,10 +524,10 @@ Item {
                     if (width <= 0) {
                         return
                     }
-                    if (!stacked && needed > width) {
-                        stacked = true
-                    } else if (stacked && needed + Theme.px(24) < width) {
-                        stacked = false
+                    if (!needsStack && needed > width) {
+                        needsStack = true
+                    } else if (needsStack && needed + Theme.px(24) < width) {
+                        needsStack = false
                     }
                 }
                 onWidthChanged: restack()
@@ -546,11 +557,13 @@ Item {
                 // height (a layout's maximum comes from its items, so
                 // fillHeight cannot stretch it) the grid centred it at a
                 // rounded 2 px, and the race gap sat 1 px lower.
-                RowLayout {
+                GridLayout {
                     id: chipRow
                     Layout.fillWidth: true
                     Layout.minimumHeight: hudLower.stacked ? 0 : speedControl.implicitHeight
-                    spacing: Theme.spacingXLarge
+                    columns: hud.compactGap ? 2 : 6
+                    columnSpacing: Theme.spacingXLarge
+                    rowSpacing: Theme.spacingMedium
 
                     // Beside the speed the chips sit at the trailing edge,
                     // under it at the leading edge.
@@ -617,7 +630,7 @@ Item {
 
                     Item {
                         Layout.fillWidth: true
-                        visible: hudLower.stacked
+                        visible: hudLower.stacked && !hud.compactGap
                     }
                 }
             }
