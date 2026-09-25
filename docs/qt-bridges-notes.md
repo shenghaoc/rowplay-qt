@@ -1144,7 +1144,10 @@ converted string), or allow an associated function as a slot.
     `KColorScheme::createApplicationPalette`, and that sets
     `QPalette::Accent` to the colour scheme's selection colour
     (kcolorscheme, master `b44cfeac`). So under Plasma the app follows the
-    user's accent.
+    user's accent, with `Theme.qml`'s two fallbacks: a selection colour of
+    exactly `#308cc6` still reads as "no accent" (the brand blue), and an
+    accent under 3:1 against the window draws the focus ring in the
+    primary text colour.
   - **Contrast:** `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10)
     is `HighContrast`:
     - on macOS under "Increase contrast"
