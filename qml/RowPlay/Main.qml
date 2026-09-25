@@ -1287,7 +1287,10 @@ ApplicationWindow {
                 root.gateAwaitingReplay = true
                 break
             case 53: Replay.loadWorkout(1001); break     // rower demo workout
-            case 54: root.grabSettledScene("replay-row"); break
+            case 54:
+                console.log("gate speed focus:", detailColumn.children[3].gateSpeedFocusTracksSelection())
+                root.grabSettledScene("replay-row")
+                break
             case 55: Replay.loadWorkout(1003); break     // skierg demo workout
             case 56: root.grabSettledScene("replay-ski"); break
             case 57: Replay.loadWorkout(1004); break     // bike demo workout

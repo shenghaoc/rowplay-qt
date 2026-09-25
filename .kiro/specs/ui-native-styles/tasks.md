@@ -98,7 +98,9 @@ pull request that delivers it.
   - [x] T6.2 The speed is the style's checkable tool buttons in an
     exclusive `ButtonGroup`: one tab stop, the arrows move the choice, the
     checked choice's label bold (the style's wash alone measured 1.05:1 in
-    dark), every choice as wide as the widest (design.md, "The HUD").
+    dark), every choice as wide as the widest (design.md, "The HUD"). A
+    speed change through a global shortcut transfers focus to the newly
+    checked button when focus was already inside the speed group.
   - [x] T6.3 The scrubber stays `AppSlider`, as content (ADR 0015,
     decision 3): the macOS style's slider hides its track beyond the knob
     on the HUD.
