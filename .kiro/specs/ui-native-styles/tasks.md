@@ -92,7 +92,23 @@ pull request that delivers it.
   - [x] T5.3 The dashboard has no control, and the charts none of their
     own: nothing else to replace (design.md's "chart controls" did not
     exist).
-- [ ] T6 Replay HUD (R2.1, R7.4).
+- [x] T6 (`ui/native-replay-hud`) Replay HUD (R2.1, R7.4).
+  - [x] T6.1 Play / pause is a `CommandButton`, moved from `Main.qml` to
+    a file of its own and shared with the toolbar.
+  - [x] T6.2 The speed is the style's checkable tool buttons in an
+    exclusive `ButtonGroup`: one tab stop, the arrows move the choice,
+    every choice as wide as the widest (design.md, "The HUD").
+  - [x] T6.3 The scrubber stays `AppSlider`, as content (ADR 0015,
+    decision 3): the macOS style's slider hides its track beyond the knob
+    on the HUD.
+  - [x] T6.4 Every HUD control answers within at least 40 px (`HitArea`
+    masks, rows at least 40 px tall); no two hit areas overlap under the
+    macOS style or Fusion (R7.4).
+  - [x] T6.5 The speed and the chips stack against the HUD column's
+    width, not the row's own.
+  - [x] T6.6 The replay's Close button is the style's `Button`.
+  - [x] T6.7 ADR 0015 corrected: the native styles' missing controls come
+    from Basic, not Fusion (measured).
 - [ ] T7 Theme cleanup and motion tokens (R2.3, R7.2).
 - [ ] T8 Large and extra-large layouts (R7.1).
 - [ ] T9 Documentation and the full verification matrix (R8, R9).

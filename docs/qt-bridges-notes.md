@@ -533,6 +533,25 @@ converted string), or allow an associated function as a slot.
 - ID-based `.ts` catalogues need an empty `<source>` (see note 12); `lupdate`
   writes that shape itself, hand-written files with a non-empty source
   silently break `qsTrId` after `lrelease`.
+- **The macOS and Windows Qt Quick Controls styles fall back to Basic,
+  not the Fusion they declare** (Qt 6.11.2, run-time style selection).
+  - Both styles' CMakeLists list `IMPORTS QtQuick.Controls.Fusion/auto`
+    ("Fusion style is the required fallback style"). Qt's documentation
+    says a style's qmldir names its fallback.
+  - With no fallback set, `QtQuickControls2Plugin::registerTypes`
+    registers `QtQuick.Controls.Basic` as an import of the style module,
+    and that import wins.
+  - Repro on macOS with Qt's `qml` runner: `import QtQuick.Controls;
+    Pane {}` pads 12 (Basic; Fusion pads 9). A `ToolBar` is 40 tall
+    (Fusion 26), and a `ToolButton`'s background is 40 (Fusion 20).
+  - `QT_QUICK_CONTROLS_FALLBACK_STYLE=Fusion` gives Fusion's values.
+  - Worth reporting to Qt; ADR 0015 records what it means here.
+- `GridLayout.uniformCellWidths` gives every cell the mean of the items'
+  preferred widths, not the widest: five tool buttons of 50.4, 40, 47.3,
+  40 and 40 px got 44 each, and the two widest elided (Qt 6.11.2). Size
+  the items from the widest yourself. `RowLayout` has no such property;
+  assigning it fails the load ("Cannot assign to non-existent property"),
+  which leaves the app blocking with no window (note 16).
 - A Qt Quick Controls icon asks the platform's icon engine (SF Symbols on
   macOS, Segoe glyphs on Windows) only while its `source` is empty
   (`QQuickIconImage::updateIcon`, Qt 6.11). A nonempty source wins over
