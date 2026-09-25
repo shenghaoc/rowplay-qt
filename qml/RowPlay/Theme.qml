@@ -249,11 +249,18 @@ QtObject {
     readonly property color segmentThumb: dark ? "#3A3F47" : "#FFFFFF"
     readonly property color switchTrackOff: dark ? "#3A3F47" : "#D4D8DE"
     readonly property color switchKnob: "#FFFFFF"
-    /// Keyboard focus ring: the accent, or the primary text colour when an
-    /// unusual system accent would fall below 3:1 against the window.
+    /// Keyboard focus ring, two-tone (FocusRing.qml): the outer band in the
+    /// accent, or the primary text colour when an unusual system accent
+    /// would fall below 3:1 against the window, and the inner band in the
+    /// window colour, so one of the two contrasts with whatever the ring
+    /// surrounds or crosses.
     readonly property color focusRing: contrastRatio(accentColor, windowBackground) >= 3
                                        ? accentColor : textPrimary
-    readonly property int focusRingWidth: highContrast ? 3 : 2
+    readonly property color focusRingInner: windowBackground
+    readonly property int focusRingWidth: 2
+    readonly property int focusRingInnerWidth: 1
+    /// How far the ring reaches outside its control.
+    readonly property int focusRingExtent: focusRingWidth + focusRingInnerWidth
     readonly property color chartGrid: highContrast ? (dark ? "#4A5059" : "#B8BEC7")
                                                     : (dark ? "#23272D" : "#ECEEF1")
     readonly property color chartAxis: highContrast ? (dark ? "#A9B0BA" : "#4F5663")
