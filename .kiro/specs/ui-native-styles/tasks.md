@@ -20,9 +20,9 @@ pull request that delivers it.
   - [x] T1.6 CI: informational Windows walks in a real window (D3D11), the
     Windows style and FluentWinUI3, light and dark, uploaded as
     `screenshots-windows`.
-  - [x] T1.7 Packaging inspected from the release workflow's logs; the
-    AppImage's missing pieces proposed in the pull request (Qt Svg, the GTK
-    3 platform theme). Not pushed.
+  - [x] T1.7 Packaging inspected from the release workflow's logs. That
+    initial proposal was followed by T2.7's Qt Svg package fix; GTK 3
+    platform-theme integration remains separate.
   - [x] T1.8 ADR 0015 (0013's control layer superseded in part), this spec.
 - [x] T2 (`ui/native-shell`) Shell and toolbar (R2.1, R5.1, R6.1).
   - [x] T2.1 `Glyphs.qml`: the glyph paths (moved from `Icon.qml`), platform
@@ -157,21 +157,24 @@ pull request that delivers it.
   - [x] T8.5 Checked at 1200, 1440, 1600 and 1920 px, light and dark,
     English and Japanese: every text item fits (32 runs, none flagged).
 - [ ] T9 (`docs/native-design-system`) Documentation and the full
-  verification matrix (R8, R9). Open: T9.4.
+  verification matrix (R8, R9). Open: T9.3 and T9.4.
   - [x] T9.1 `docs/design-system.md`: the six principles, platform
     behaviour → Qt API, per platform with its known issues, and what stays
     ours. AGENTS.md sends UI work there first.
   - [x] T9.2 ADR 0015's "What was checked where"; ADR 0013's round-3
     notes; the README's screenshots, now the native macOS captures.
-  - [x] T9.3 R8.1 on macOS:
-    - the full gate walk, light, at the stack's top;
+  - [ ] T9.3 R8.1 on macOS remains incomplete. Earlier native checks covered:
+    - the full gate walk in light at the pre-#124 stack tip;
     - the text-fit matrix: five screens, three languages, three widths,
       native light and dark, 150 % light and dark; nothing flagged
       natively, and only Qt Graphs' axis labels at 150 %, as on the base;
     - the large widths;
     - real input through QtTest's `TestEvent`. It found that the HUD's
-      masks answered `contains()` but not real clicks; the fix is in #114,
-      with cherry-picks in #115 and #116.
+      masks answered `contains()` but not real clicks; the fix is in #114.
+    The five-width-class × three-language × two-text-scale × two-scheme
+    matrix, including Spanish at large and extra-large and all screens at
+    every width, was not run on the rebased head. A current native macOS
+    full walk in both schemes is also still required.
   - [ ] T9.4 R8.1 by the owner: a non-blue accent, Increase Contrast and
     the native menu bar's roles.
   - [x] T9.5 R8.2 Windows: CI's captures looked at. The Windows style is

@@ -21,17 +21,19 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
    control, not added after.
    - Every control and tile has an `Accessible.name`, and the styles give
      the controls their platform roles.
-   - Text meets 4.5:1 and our marks 3:1 on the surfaces they are drawn on,
-     and no text is set under `Theme.textFloor`.
+   - Enabled text drawn by our content meets 4.5:1 and our marks 3:1 on
+     their surfaces, and no text is set under `Theme.textFloor`. Disabled
+     text and platform-drawn controls follow the platform style.
    - Focus is always visible: the style draws it on its controls and
      `FocusRing` on ours.
    - Nothing is conveyed by colour alone and nothing is reachable only by
      hover.
-   - Motion stills under reduce motion.
+   - App-owned motion stills under reduce motion; Qt owns animations inside
+     platform-drawn controls.
    - The replay HUD's controls answer within 40 px.
 2. **Native by default.**
-   - A standard control is the platform style's, used as it is: no
-     `background` or `contentItem` of ours.
+   - A platform-drawn standard control uses the style's background and
+     content; the bounded structural exceptions are listed below.
    - Icons are the platform's, named. A dialog's buttons follow the
      platform's order. macOS gets its menu bar.
 3. **Our identity lives in the content.**
@@ -51,7 +53,9 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
    - The accent is the system's. Light or dark follows the palette in use,
      and high contrast follows the system's contrast preference.
 6. **Same product, native manners.** Every platform has the same screens,
-   strings, content and behaviour. The manners are each platform's own:
+   web-localized content strings and behaviour. The native macOS application
+   menu's role titles remain in Qt's English until its catalogues ship (#80).
+   The manners are each platform's own:
    the controls, the icons, the shortcuts and their notation, the dialog
    order and the menus.
 
@@ -64,7 +68,7 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 | Scroll bars (transient or not, as the system says) | the style's `ScrollBar`, through `ScrollView` | the screens and the sidebar |
 | Keyboard shortcuts | `Shortcut { sequences: [StandardKey.Find] }`, `StandardKey.Refresh`, `.Preferences`, `.Back`, `.Quit`, `.Close` | `Main.qml` |
 | A shortcut in the platform's notation | `Shortcut.nativeText` in the tooltip | `CommandButton` |
-| Icons | `icon.name`: SF Symbols through `QAppleIconEngine`, Segoe glyphs through `QWindowsIconEngine`, the freedesktop theme on Linux; `icon.source` (an SVG of our glyph) on Linux only, for a theme without the icon | `Glyphs.qml`, `CommandButton` |
+| Icons | `icon.name` uses SF Symbols through `QAppleIconEngine` and Segoe glyphs through `QWindowsIconEngine`; on Linux `icon.source` directly uses an SVG of our glyph, decoded by packaged Qt Svg. A nonempty source takes precedence over the name. | `Glyphs.qml`, `CommandButton` |
 | A dialog's buttons and their order | `Dialog.standardButtons`, renamed with web strings as the dialog opens | About, the logout confirmation |
 | The macOS menu bar | `Qt.labs.platform` `MenuBar` with `AboutRole`, `PreferencesRole`, `QuitRole` | `Main.qml` (a `ToolButton` and `Menu` elsewhere) |
 | The system palette | `SystemPalette` (active, inactive and disabled groups), composited opaque | `Theme.qml`, the sidebar's selection |
@@ -84,10 +88,10 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 |---|---|---|---|
 | Style | macOS (NSView-drawn) | Windows; FluentWinUI3 is opt-in, and CI captures both | Fusion |
 | Controls the style lacks | Basic | Basic | (Fusion has them) |
-| Icons | SF Symbols | Segoe Fluent Icons (Windows 11), Segoe MDL2 Assets | the desktop's freedesktop theme, then our SVG |
+| Icons | SF Symbols | Segoe Fluent Icons (Windows 11), Segoe MDL2 Assets | our original SVG, decoded by Qt Svg in the AppImage |
 | Palette | the system's | the system's | the platform theme's: the desktop portal's in the AppImage, the GTK or KDE theme's with a distribution's Qt |
 | How it is checked | natively, with the gate walk and scratch probes | CI captures in a real window (#81) | CI under Xvfb; dark through Fusion on macOS (Xvfb has no theme to ask) |
-| Known issues | the style's spinner needs the WebP plugin; the slider's track beyond the knob all but vanishes on a grey surface | the Windows style draws its controls light under the dark scheme, so their dark-scheme text is unreadable (the rows, the pop-up buttons, the fields); FluentWinUI3 draws both schemes | the AppImage lacks Qt Svg and the GTK 3 platform theme (proposed) |
+| Known issues | the style's spinner needs the WebP plugin; the slider's track beyond the knob all but vanishes on a grey surface | the Windows style draws its controls light under the dark scheme, so their dark-scheme text is unreadable (the rows, the pop-up buttons, the fields); FluentWinUI3 draws both schemes | GTK 3 platform-theme integration remains separate; the AppImage already carries Qt Svg for its command icons |
 
 ## What stays ours
 
@@ -101,4 +105,5 @@ Content, drawn by us:
 Bounded exceptions to "native by default", each in ADR 0015:
 - a list delegate's content (the sidebar's rows);
 - the sidebar's split handle;
+- the Basic-fallback Drawer's structural content host for reparenting the sidebar and its shortcuts;
 - the live-mode spinner, until the WebP plugin ships.

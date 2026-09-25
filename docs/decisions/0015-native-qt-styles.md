@@ -157,9 +157,9 @@ The page that applies this ADR is
 [`docs/design-system.md`](../design-system.md): the six principles, platform
 behaviour mapped to Qt API, and what stays ours.
 
-- **macOS, natively** (Apple M5, macOS 27, cocoa and Metal):
+- **macOS, natively, before the #124 restack** (Apple M5, macOS 27, cocoa and Metal):
   - **Gate walks:** the full walk in light, phase shots and close-ups
-    included, at the stack's top. In dark, the quick walk captures every
+    included, at the then-current stack tip. In dark, the quick walk captures every
     screen; its old shadow check then trips at 4.9 % on this base, as
     AGENTS.md records.
   - **Text fit:** five screens × English, Spanish and Japanese × three
@@ -177,6 +177,9 @@ behaviour mapped to Qt API, and what stays ours.
     native menu bar's roles. They need the owner at the Mac: the agent
     changes no System Settings, and a background process cannot bring the
     app's window forward.
+  - These checks do not cover every R8.1 combination on the current rebased
+    head; T9.3 stays open for the full width/language/text-scale matrix and
+    current light and dark native gate walks.
 - **Windows:** CI's captures in a real window (D3D11), both styles, light
   and dark.
   - The Windows style draws its controls light under the dark scheme, so the
