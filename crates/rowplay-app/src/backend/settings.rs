@@ -11,7 +11,7 @@ use qtbridge::qobject;
 use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::models::DistanceUnit;
 use rowplay_platform::token_store::SecretToken;
-use rowplay_viewmodel::settings::{Language, timezone_options, unit_options};
+use rowplay_viewmodel::settings::{Language, timezone_matches, timezone_options, unit_options};
 
 use crate::backend::AppState;
 
@@ -313,6 +313,19 @@ impl SettingsBackend {
         self.language_index = index;
         code.clone_into(&mut self.language_code);
         self.settings_changed();
+    }
+
+    /// The timezone picker's type-to-filter: the picker positions a typed
+    /// filter keeps (0 is the "UTC (default)" entry, whose translated label
+    /// QML passes), in order.
+    // A slot is a method, and qtbridge hands it its arguments owned.
+    #[allow(clippy::unused_self, clippy::needless_pass_by_value)]
+    #[qslot]
+    fn timezone_matches(&self, query: String, default_label: String) -> Vec<i32> {
+        timezone_matches(&query, &default_label)
+            .into_iter()
+            .map(|index| index as i32)
+            .collect()
     }
 
     #[qslot]
