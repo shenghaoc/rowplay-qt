@@ -13,14 +13,9 @@
 // - Windows: Qt's Windows icon engine maps freedesktop names to Segoe
 //   Fluent Icons (Windows 11) or Segoe MDL2 Assets glyphs, and draws a
 //   one-character name as that glyph;
-// - elsewhere, the desktop's freedesktop icon theme, with an SVG of the
-//   same path as the fallback (`iconSource`).
-// Qt's icon image asks the platform icon engine only while no `source` is
-// set (QQuickIconImage::updateIcon, Qt 6.11), so the SVG is given only
-// where no engine answers names. Nothing is bundled: the platform draws its
-// own symbols, and the fallback is built from the path data below. It
-// needs Qt Svg's image plugin, which the AppImage does not carry yet (ADR
-// 0015).
+// - elsewhere, an SVG of the same path (`iconSource`). A nonempty source
+//   takes precedence over the freedesktop name, so Linux uses the SVG
+//   directly. The AppImage carries Qt Svg's image plugin (ADR 0015).
 pragma Singleton
 import QtQuick
 
@@ -112,7 +107,7 @@ QtObject {
     })
 
     /// Per glyph key: the macOS, Windows and freedesktop icon names. A
-    /// missing entry, or an empty name, uses the SVG fallback.
+    /// missing entry, or an empty name, uses the SVG source on Linux.
     readonly property var platformNames: ({
         "arrow.clockwise": { mac: "view-refresh", windows: "view-refresh", other: "view-refresh" },
         "chevron.left": { mac: "go-previous", windows: "go-previous", other: "go-previous" },
@@ -137,10 +132,9 @@ QtObject {
              : Qt.platform.os === "windows" ? names.windows : names.other
     }
 
-    /// The glyph as an SVG data URL, where no platform icon engine answers
-    /// names (not macOS, not Windows): the fallback when the desktop's icon
-    /// theme has no icon of that name. Drawn black; the style tints it like
-    /// any icon. No intrinsic size, so the image provider renders it at the
+    /// The glyph as an SVG data URL on Linux. A nonempty source prevents
+    /// Qt's icon image from consulting icon.name. Drawn black; the style
+    /// tints it like any icon. No intrinsic size, so the provider renders at
     /// size the control asks for (a 16-unit SVG scaled up after rasterising
     /// blurs).
     function iconSource(key) {

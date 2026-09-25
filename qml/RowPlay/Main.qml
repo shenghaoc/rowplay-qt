@@ -67,9 +67,11 @@ ApplicationWindow {
         display: AbstractButton.IconOnly
         icon.name: Glyphs.iconName(glyph)
         icon.source: Glyphs.iconSource(glyph)
+        icon.color: enabled ? Theme.textPrimary : Theme.textDisabled
         icon.width: Theme.iconSize
         icon.height: Theme.iconSize
         focusPolicy: Qt.TabFocus
+        hoverEnabled: true
         Accessible.name: text
         ToolTip.visible: hovered && !tipDismissed && text.length > 0
         ToolTip.delay: 600

@@ -42,11 +42,11 @@ would conflict with them at merge time.
 
 ## Icons
 
-`Glyphs` (a singleton) holds the glyph paths `Icon.qml` draws, and for a
-tool button returns the platform name and a `data:image/svg+xml` fallback
-built from the same paths. The fallback needs Qt Svg's image-format plugin,
-which Windows' package and the Qt installs carry and the AppImage does not
-(ADR 0015, packaging proposal).
+`Glyphs` (a singleton) holds the glyph paths `Icon.qml` draws. macOS and
+Windows use platform icon names. Linux uses a `data:image/svg+xml` source
+built from the same paths. The nonempty source takes precedence over the
+freedesktop name, so the SVG is the icon rather than a theme fallback. The
+AppImage deploys Qt Svg's image-format plugin for it (ADR 0015).
 
 ## Colours
 

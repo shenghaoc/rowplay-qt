@@ -78,12 +78,12 @@ What Qt 6.11.2 does, read from its sources at the tag:
 5. **Linux: Fusion with the system palette.** The platform theme supplies
    the palette: in the AppImage the desktop portal's (colour scheme and
    contrast), with a distribution's own Qt the GTK or KDE theme's.
-6. **Icons by name, per platform, with a fallback of our own.** Tool
-   buttons name an SF Symbol on macOS, a Segoe glyph on Windows and a
-   freedesktop icon on Linux (`Glyphs.qml`), so no image file is added. On
-   Linux an SVG built from the glyph paths is the fallback for a theme
-   without the icon; Qt asks the platform's icon engine only while an icon
-   has no `source`, so macOS and Windows get none.
+6. **Platform symbols on macOS and Windows, original SVGs on Linux.** Tool
+   buttons name an SF Symbol on macOS and a Segoe glyph on Windows
+   (`Glyphs.qml`). On Linux they use SVG data URLs built from the same
+   original paths. A nonempty `icon.source` wins over `icon.name`, so the
+   freedesktop theme is not consulted for those buttons. The AppImage
+   deploys Qt Svg's image plugin and library; no image asset is added.
 7. **One step at a time.** The switch comes first, with the shared
    controls pinned to Basic by an explicit import so nothing is drawn half
    native; each area's pull request then replaces its controls with stock
@@ -96,11 +96,9 @@ What Qt 6.11.2 does, read from its sources at the tag:
   Windows style on Windows, Fusion on Linux. Screens differ per OS by
   design; the content does not.
 - Screen readers get the platform's own control roles from the styles.
-- The AppImage cannot draw SVG icons or read GNOME's palette until it
-  carries Qt Svg and the GTK 3 platform theme. That is a `tools/package`
-  change for the owner to approve (it runs the release workflow); until
-  then the freedesktop icons and the SVG fallback do not render in the
-  AppImage.
+- The AppImage carries Qt Svg to draw its command icons. Its desktop
+  portal theme reports the colour scheme and contrast preference, but not
+  GNOME's palette; GTK platform-theme support remains separate work.
 - Windows is verified by CI captures only (#81).
 - The native macOS `ScrollView` reserves room for a scroll bar that is not
   transient, so a replaced (Basic) scroll bar made `contentWidth:
