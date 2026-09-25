@@ -71,9 +71,14 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
   the platform's play and pause symbols.
 - **Speed:** the style's checkable tool buttons in an exclusive
   `ButtonGroup`, in a `RowLayout`.
-  - Every choice is as wide as the widest. `uniformCellWidths` was tried
-    and gives each cell the mean of the preferred widths, which elided
-    "0.5×" and "1.5×" at 150 % text.
+  - The checked choice's label is bold. Basic's checked wash differs
+    from the unchecked one by 1.39:1 in light and 1.05:1 in dark, too
+    little to carry the choice, which would then be conveyed by colour
+    alone.
+  - Every choice is as wide as the widest label in bold, so a change of
+    speed moves nothing. `uniformCellWidths` was tried and gives each cell
+    the mean of the preferred widths, which elided "0.5×" and "1.5×" at
+    150 % text.
   - One tab stop, the checked choice: the arrows move the choice, and
     neither they nor Space reach the window's seek and play shortcuts
     while a choice has focus.
