@@ -21,3 +21,15 @@
   governor rollback re-check, R5.2 ladder if Medium exceeds budget (R5.1–R5.3).
 - [x] T8 Docs: roadmap 6b, source-map runtime rows, qt-bridges-notes entries;
   full validation; stacked PR (R6.1–R6.3).
+
+## Follow-ups
+
+- [x] T9 (#96) The venue casts and receives the key light's shadow as the
+  web flags it. `tools/gen-venue-shadow-parity.mjs` records the web's flags
+  for every mesh of the High and Ultra variants under the GLBs' names;
+  `venue_runtime::venue_shadow_flags` is checked against it, and the scene
+  applies it in the venue walk. The athlete, the equipment and the ghost
+  take the web's roles, Ultra's map is 2048, and the bias, depth and PCF
+  settings clear the athlete's speckle. The shadow check (T6) still passes,
+  on the rower's own shadow now: 1.62 % in light, 1.49 % in dark (Apple
+  M5).
