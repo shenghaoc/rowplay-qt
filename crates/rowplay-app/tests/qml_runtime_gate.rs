@@ -478,6 +478,15 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate i18n zh:") && !combined.contains("gate i18n zh: nav.dashboard"),
         "live language switch to zh did not retranslate\noutput:\n{combined}"
     );
+    if !quick {
+        for locale in ["en", "zh", "de", "es", "fr", "ja"] {
+            let expected = format!("gate compact gap: {locale} fits true");
+            assert!(
+                combined.contains(&expected),
+                "localized gap or metric chips overflow the compact HUD ({locale})\n{combined}"
+            );
+        }
+    }
     // Singleton properties: every member QML references must resolve on the
     // qtbridge object. A missing registration reads as `undefined` and
     // produces no QML warning at all, so this is the only thing that catches
