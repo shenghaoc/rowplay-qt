@@ -49,7 +49,17 @@ pull request that delivers it.
     library for its SVG command icons. The local package launch check
     passes, and Qt's plugin log confirms `libqsvg.so` loads from the
     extracted AppImage.
-- [ ] T3 Sidebar (R2.1).
+- [x] T3 (`ui/native-sidebar`) Sidebar (R2.1).
+  - [x] T3.1 The search and date fields are the style's `TextField`s (Qt
+    6.11's `SearchField` draws no placeholder); a refused date keeps its
+    message and accessible description under the field.
+  - [x] T3.2 The sort button is a tool button with the platform's icon and
+    the sort menu the style's `Menu`, the active field checked with its
+    direction after the label.
+  - [x] T3.3 The rows are the style's `ItemDelegate`s with the workout's
+    data as content; the day headers are the list's own sections; the
+    selection shows the system's active highlight while the list has
+    keyboard focus and its inactive one otherwise.
 - [ ] T4 Settings (R2.1).
 - [ ] T5 Detail and dashboard (R2.1).
 - [ ] T6 Replay HUD (R2.1, R7.4).
