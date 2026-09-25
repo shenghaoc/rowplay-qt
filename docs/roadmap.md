@@ -1189,3 +1189,10 @@ requests on the round-2 stack's composed top:
    the platform icon engine only while an icon has no source, so a first
    version with both showed our SVGs on macOS. Linux uses its SVG source
    directly because a nonempty source bypasses the freedesktop name.
+3. `ui/native-sidebar`: the sidebar's fields are the style's text fields,
+   the sort menu its menu, and the rows its item delegates carrying the
+   workout's data, with the list's own day sections. The selection shows
+   the system's active highlight while the list has the keyboard and its
+   inactive one otherwise. The date fields lose round 2's alert outline:
+   the style's field has no error state, and the message under it marks
+   it.
