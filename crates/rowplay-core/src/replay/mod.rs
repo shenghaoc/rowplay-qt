@@ -43,8 +43,8 @@ pub use motion::{
 pub use motion_graph::{ReplayMotionGraph, sample_motion_graph};
 pub use quality::{QualityBudgets, RenderQuality, RendererKind};
 pub use race_gap::{
-    absolute_time, finish_delta_sec, ghost_dist_at_player_finish, ghost_distance, ghost_frame,
-    player_dist_at_ghost_finish, race_gap_metres, race_gap_seconds, relative_duration,
+    absolute_time, finish_delta_sec, ghost_dist_at_player_finish, ghost_distance, ghost_elapsed_at,
+    ghost_frame, player_dist_at_ghost_finish, race_gap_metres, race_gap_seconds, relative_duration,
 };
 pub use race_result::{RaceOutcome, RaceResult, race_result, time_crossing_target};
 pub use rivals::{

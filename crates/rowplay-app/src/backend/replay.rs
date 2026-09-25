@@ -20,6 +20,7 @@ use rowplay_core::replay::engine::{ReplaySpeed, ReplayState};
 use rowplay_core::replay::motion::PerfGovernor;
 use rowplay_core::replay::motion_graph::{ReplayMotionGraph, sample_motion_graph};
 use rowplay_core::replay::quality::RenderQuality;
+use rowplay_core::replay::race_gap::ghost_elapsed_at;
 use rowplay_core::replay::rig_pose::{SportRigPose, solve_rig_pose};
 use rowplay_core::replay::stroke_model::{
     StrokeTimeline, build_stroke_timeline, fallback_stroke_pose, reduced_motion, stroke_pose_at,
@@ -1230,18 +1231,24 @@ impl ReplayBackend {
         let advanced = distance - self.last_distance;
         self.last_distance = distance;
         // The ghost runs on the player's clock: the web samples it at the
-        // player's frame time, Studio at the player's elapsed time
-        // (`ReplayRaceGap.ghostFrame`). Its state is only ever sought, never
-        // played, so a play, pause, seek or speed change moves both at once,
-        // and past the end of a shorter rival the ghost holds its last
-        // stroke (#97). It is sought here, before the camera, which frames
-        // the pair from the ghost's course position at this same instant.
-        // The web reads the placement its previous ghost render pass left,
-        // and its continuous loop corrects that a frame later; a paused
-        // replay renders no later pass, so reading last pass's packed
-        // position framed a sought pair around where the ghost had been.
+        // player's absolute frame time (`sampleAt(ghostStrokes, f.t)`), so
+        // it is sought to that instant on its own axis. Studio samples at
+        // the player's elapsed time from the ghost's first stroke
+        // (`ReplayRaceGap.ghostFrame`), which differs whenever the two
+        // workouts' first strokes do; the web wins. Its state is only ever
+        // sought, never played, so a play, pause, seek or speed change
+        // moves both at once, and past the end of a shorter rival the ghost
+        // holds its last stroke (#97). It is sought here, before the
+        // camera, which frames the pair from the ghost's course position at
+        // this same instant. The web reads the placement its previous ghost
+        // render pass left, and its continuous loop corrects that a frame
+        // later; a paused replay renders no later pass, so reading last
+        // pass's packed position framed a sought pair around where the
+        // ghost had been.
+        let player_strokes = playback.state.strokes();
         let ghost_placement = self.ghost_playback.as_mut().and_then(|ghost| {
-            ghost.state.seek(time);
+            let at = ghost_elapsed_at(time, player_strokes, ghost.state.strokes());
+            ghost.state.seek(at);
             let at = place(
                 ghost.sport,
                 ghost.state.current_frame().d,
@@ -2038,28 +2045,28 @@ mod tests {
     }
 
     /// #97: the ghost runs on the player's clock, as the web samples it at
-    /// the player's frame time (`sampleAt(ghostStrokes, f.t)`; Studio's
-    /// `ReplayRaceGap.ghostFrame`). Its own state was built and never
-    /// played, so it stayed on its start line and the gap grew by all the
-    /// ground the player covered.
+    /// the player's absolute frame time (`sampleAt(ghostStrokes, f.t)`).
+    /// Its own state was built and never played, so it stayed on its start
+    /// line and the gap grew by all the ground the player covered. Studio's
+    /// `ReplayRaceGap.ghostFrame` samples at the player's elapsed time from
+    /// the ghost's own first stroke instead, which the demo pair tells
+    /// apart: their first strokes fall at different times.
     #[test]
     fn the_ghost_runs_on_the_players_clock() {
-        use rowplay_core::replay::race_gap::{ghost_frame, race_gap_metres};
+        use rowplay_core::replay::engine::sample_at;
+        use rowplay_core::replay::race_gap::race_gap_metres;
 
         fn assert_on_one_clock(replay: &ReplayBackend, rival: &[rowplay_core::models::Stroke]) {
-            let player = replay
-                .playback
-                .as_ref()
-                .expect("a workout is loaded")
-                .state
-                .current_frame();
+            let playback = replay.playback.as_ref().expect("a workout is loaded");
+            let player = playback.state.current_frame();
+            let player_first = playback.state.strokes()[0].t;
             let ghost = replay
                 .ghost_playback
                 .as_ref()
                 .expect("a ghost is loaded")
                 .state
                 .current_frame();
-            let expected = ghost_frame(player.t, rival).d;
+            let expected = sample_at(rival, player_first + player.t).d;
             assert!(
                 (ghost.d - expected).abs() < 1e-9,
                 "at {:.2} s the ghost is at {:.1} m, its strokes say {expected:.1} m",
@@ -2084,6 +2091,16 @@ mod tests {
             .as_ref()
             .map(|ghost| ghost.state.strokes().to_vec())
             .unwrap_or_default();
+        let player_first = replay
+            .playback
+            .as_ref()
+            .map_or(f64::NAN, |playback| playback.state.strokes()[0].t);
+        assert!(
+            (player_first - rival[0].t).abs() > 0.1,
+            "the pair must start at different stroke times to tell the web's \
+             sampling from Studio's: {player_first} and {}",
+            rival[0].t
+        );
         let start = [
             replay.ghost_frame[frame::COURSE_X],
             replay.ghost_frame[frame::COURSE_Z],
