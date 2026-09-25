@@ -163,11 +163,12 @@ jobs:
         if: env.RUN_APP == 'true' && runner.os == 'Linux'
         run: |
           sudo apt-get update
+          # The six-locale HUD gate must measure real CJK glyphs, not missing-glyph boxes.
           sudo apt-get install -y --no-install-recommends \
             xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
             libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
             libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
-            libdbus-1-dev pkg-config
+            libdbus-1-dev pkg-config fonts-noto-cjk
       - name: Toolchain report
         if: env.RUN_APP == 'true'
         shell: bash
@@ -273,11 +274,12 @@ jobs:
       - name: Linux GL and X11 runtime
         run: |
           sudo apt-get update
+          # The six-locale HUD gate must measure real CJK glyphs, not missing-glyph boxes.
           sudo apt-get install -y --no-install-recommends \
             xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 \
             libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
             libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
-            libdbus-1-dev pkg-config
+            libdbus-1-dev pkg-config fonts-noto-cjk
       - name: Build app
         run: cargo build -p rowplay-app
       - name: Headless smoke screenshot and runtime-error gate (Xvfb + Mesa)
