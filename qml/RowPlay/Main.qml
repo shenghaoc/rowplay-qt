@@ -299,6 +299,7 @@ ApplicationWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: "sidebar.left"
                         label: Tr.t("dashboard.sectionWorkoutsEyebrow")
+                        shortcutText: sidebarShortcut.nativeText
                         checkable: true
                         checked: sidebarDrawer.shown
                         onClicked: root.toggleSidebar(visualFocus)
@@ -321,6 +322,7 @@ ApplicationWindow {
                         ToolbarButton {
                             iconName: "chevron.left"
                             label: Tr.t("replay.closePanel")
+                            shortcutText: escapeShortcut.nativeText
                             onClicked: Library.closeReplay()
                         }
                         Label {
@@ -383,6 +385,7 @@ ApplicationWindow {
                         ToolbarButton {
                             iconName: "arrow.clockwise"
                             label: Tr.t("pwa.reload")
+                            shortcutText: refreshShortcut.nativeText
                             enabled: !Sync.isRunning
                             onClicked: Library.reload()
                         }
@@ -390,6 +393,9 @@ ApplicationWindow {
                         ToolbarButton {
                             iconName: "sliders"
                             label: Tr.t("settings.title")
+                            shortcutText: preferencesShortcut.nativeText.length > 0
+                                          ? preferencesShortcut.nativeText
+                                          : preferencesFallback.nativeText
                             checkable: true
                             checked: root.screenIndex === 2
                             onClicked: root.toggleSettings()
@@ -826,6 +832,7 @@ ApplicationWindow {
         onActivated: root.goBack()
     }
     Shortcut {
+        id: sidebarShortcut
         // The sidebar toggle: F9 on Windows and Linux, Ctrl+Cmd+S on macOS
         // (Qt's "Ctrl" is Command there and "Meta" is Control). Off during
         // the replay.
@@ -834,6 +841,7 @@ ApplicationWindow {
         onActivated: root.toggleSidebar(true)
     }
     Shortcut {
+        id: escapeShortcut
         sequence: "Escape"
         onActivated: {
             if (sidebarDrawer.visible) {

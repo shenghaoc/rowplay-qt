@@ -380,6 +380,7 @@ Item {
                     iconSize: Theme.px(18)
                     iconName: Replay.playing ? "pause" : "play"
                     label: Replay.playing ? Tr.t("replay.pause") : Tr.t("replay.play")
+                    shortcutText: playShortcut.nativeText
                     onClicked: Replay.toggle()
                 }
 
@@ -686,7 +687,7 @@ Item {
 
     // ---- Keyboard shortcuts (web replay transport keys) ----
     // Every one of them also brings the HUD back.
-    Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Space"; onActivated: { Replay.toggle(); replayRoot.wakeHud() } }
+    Shortcut { id: playShortcut; enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Space"; onActivated: { Replay.toggle(); replayRoot.wakeHud() } }
     Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Left"; onActivated: { Replay.seekBy(-10); replayRoot.wakeHud() } }
     Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Right"; onActivated: { Replay.seekBy(10); replayRoot.wakeHud() } }
     Shortcut { enabled: replayRoot.visible && Replay.hasWorkout; sequence: "Shift+Left"; onActivated: { Replay.seekBy(-30); replayRoot.wakeHud() } }
