@@ -96,7 +96,12 @@ Pane {
                             font: Theme.subheadline
                             color: Theme.textSecondary
                             elide: Text.ElideRight
-                            Accessible.name: Detail.headerAccessible
+                            // Date, time and source from Rust, the interval
+                            // tag translated here.
+                            Accessible.name: Detail.isInterval
+                                             ? Detail.headerAccessible + ", "
+                                               + Tr.t("workout.tag.interval")
+                                             : Detail.headerAccessible
                         }
                     }
                 }
@@ -348,11 +353,15 @@ Pane {
 
                                     Layout.fillWidth: true
                                     spacing: 0
-                                    Accessible.name: Tr.t("replay.segSplits") + " "
-                                                     + modelData.numberText + ": "
+                                    // The row's number first, the part that
+                                    // tells it from the next; the table's
+                                    // title (splits or intervals) describes
+                                    // every row, so it is the description.
+                                    Accessible.name: modelData.numberText + ": "
                                                      + modelData.distanceText + ", "
                                                      + modelData.timeText + ", "
                                                      + modelData.paceText
+                                    Accessible.description: Tr.t(Detail.splitsSectionId)
 
                                     // Hairline rule above every row.
                                     Rectangle {

@@ -118,15 +118,18 @@ fn sidebar_row(
     let pace_text = fmt_pace(workout.pace);
     let is_pb = pb_ids.contains(&workout.id);
 
-    // Studio: "<sport> <type>[, Personal Best]" + "<date>; <distance>;
-    // <time>; <pace>". The PB suffix stays the untranslated token "PB" —
-    // the badge text itself is the same in Studio.
+    // The title first, the part that tells one row from the next; then the
+    // sport (shared by many rows, and left out where it is the title),
+    // date, distance and pace. Studio led with the sport. "PB" is the
+    // badge's text in every locale (`dashboard.pbTag`).
     let pb_suffix = if is_pb { " PB" } else { "" };
-    let accessible_text = format!(
-        "{} {}{pb_suffix}; {date_text}; {distance_text}; {pace_text}",
-        workout.sport.display_name(),
-        title
-    );
+    let sport_name = workout.sport.display_name();
+    let mut spoken = vec![format!("{title}{pb_suffix}")];
+    if title != sport_name {
+        spoken.push(sport_name.to_owned());
+    }
+    spoken.extend([date_text.clone(), distance_text.clone(), pace_text.clone()]);
+    let accessible_text = spoken.join("; ");
 
     SidebarRow {
         id: workout.id,
@@ -136,7 +139,7 @@ fn sidebar_row(
         distance_text,
         pace_text,
         sport_key: sport_key(workout.sport),
-        sport_name: workout.sport.display_name(),
+        sport_name,
         is_pb,
         section,
         section_text: String::new(),
@@ -244,6 +247,62 @@ mod tests {
         assert!(first.pace_text.contains(':'));
         assert!(!first.accessible_text.is_empty());
         assert!(matches!(first.sport_key, "rower" | "skierg" | "bike"));
+    }
+
+    #[test]
+    fn a_row_is_named_by_its_title_first() {
+        let rows = demo_rows(DistanceUnit::Metric);
+        for row in &rows {
+            let parts: Vec<&str> = row.accessible_text.split("; ").collect();
+            let title = if row.is_pb {
+                format!("{} PB", row.title)
+            } else {
+                row.title.clone()
+            };
+            assert_eq!(parts[0], title, "{}", row.accessible_text);
+            assert_eq!(
+                parts[parts.len() - 3..],
+                [
+                    row.date_text.as_str(),
+                    row.distance_text.as_str(),
+                    row.pace_text.as_str()
+                ]
+            );
+        }
+        assert!(
+            rows.iter().any(|row| row.is_pb),
+            "the demo has personal bests"
+        );
+
+        // The sport follows a logbook type, and is not said twice where the
+        // title is the sport itself.
+        let mut typed = mock_workouts()[0].clone();
+        typed.workout_type = Some("2000m test".to_owned());
+        let mut untyped = typed.clone();
+        untyped.workout_type = None;
+        let render = |workout: &Workout| {
+            sidebar_rows(
+                std::slice::from_ref(workout),
+                &WorkoutListQuery::default(),
+                &BTreeSet::new(),
+                DistanceUnit::Metric,
+                Language::En,
+                None,
+            )
+            .remove(0)
+        };
+        let sport = typed.sport.display_name();
+        let typed_row = render(&typed);
+        assert!(
+            typed_row
+                .accessible_text
+                .starts_with(&format!("2000m test; {sport}; ")),
+            "{}",
+            typed_row.accessible_text
+        );
+        let untyped_row = render(&untyped);
+        assert_eq!(untyped_row.title, sport);
+        assert_eq!(untyped_row.accessible_text.split("; ").count(), 4);
     }
 
     #[test]
