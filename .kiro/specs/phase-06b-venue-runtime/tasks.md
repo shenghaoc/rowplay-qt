@@ -14,7 +14,9 @@
   binding from the rcc (R1.2–R2.3, R3.1–R3.3).
 - [x] T5 Environments + procedural rcc bundling in `build.rs` (R3.1).
 - [x] T6 Gate: exact venue inventory lines, FAILED-is-fatal, venue texture
-  counts, screenshot + shadow-region recheck (R4.1–R4.3).
+  counts, screenshot + shadow-region recheck (R4.1–R4.3). The region
+  recheck was replaced on 2026-09-25 (#99) by the High-tier twin
+  comparison (R4.2's note).
 - [x] T7 Measurements per sport × tier with ghost, `QSG_NO_VSYNC=1`,
   governor rollback re-check, R5.2 ladder if Medium exceeds budget (R5.1–R5.3).
 - [x] T8 Docs: roadmap 6b, source-map runtime rows, qt-bridges-notes entries;
