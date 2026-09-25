@@ -169,7 +169,10 @@ a wider window (at 150 % text, 900 and 1260 px).
   where it was, while Tab reaches the button and shows its ring. It keeps
   the template's accessible role (Button, or CheckBox while checkable) and
   claims Space while focused, so a window shortcut on Space cannot take the
-  key from it.
+  key from it. Its `shortcutText` (round 2), a `Shortcut`'s `nativeText`,
+  follows the label in the tooltip: "Reload (⌘R)" on macOS, "Reload (F5)"
+  on Windows, the drawer's "Workouts (⌃⌘S)", the replay's "Close (⎋)" and
+  "Play (Space)". The accessible name stays the label.
 - `SegmentedControl` emits `activated(index)` and never writes
   `currentIndex`, so its binding to the store stays intact. Capped below
   its implicit width, it shows the same choices as a `PopupButton` (the
@@ -190,7 +193,22 @@ a wider window (at 150 % text, 900 and 1260 px).
   background of its own: Basic paints `palette.window`, which differs from
   the popup surface in dark mode.
 - `PopupButton` rows keep the checkmark's slot in every row (it shows by
-  opacity), so the labels line up.
+  opacity), so the labels line up. A `filterable` one (round 2, the
+  timezone picker) opens with an `InputField` above its list, which holds
+  the keyboard: Up / Down / Page Up / Page Down move the highlighted row,
+  Enter chooses it, Escape closes, and typing on the closed button opens
+  the list with that text (Space still opens it empty). Screen readers
+  follow the focus, which stays in the field, so the row the keys or the
+  filter highlight is announced (`Accessible.announce`, Qt 6.8). The
+  caller maps
+  `filterText` to `filterIndices` in the view-model
+  (`settings::timezone_matches`: label or zone name, case-insensitive,
+  `-` for the labels' `−`, the query bounded at 64 characters), and the
+  list draws those rows like the plain ones. The ComboBox keeps its own
+  keyboard behaviour while closed, and gets the focus back on close.
+- `InputField.invalid` (round 2) draws the outline 2 px in the alert
+  colour: the field itself says it was refused, and the caller puts the
+  reason under it and in its `Accessible.description`.
 - `AppScrollBar` has no track. Basic's own shows only under the OS contrast
   preference, in a colour the high-contrast thumb vanishes into (1.00–1.06:1).
   `maximumThickness` (the widened thumb and its padding) is the room a
@@ -202,6 +220,23 @@ a wider window (at 150 % text, 900 and 1260 px).
 - `AppSlider` (6/7, the replay scrubber) draws a thin track with the accent
   fill and shows its knob on hover, press and keyboard focus, with the
   focus ring around it.
+
+## Errors and status (round 2)
+
+- A failed sync's status row is labelled "Sync failed" (`sync.failed`)
+  above the error it met (`sync.errorHint`, which is the error alone) in
+  the alert colour, with "Retry sync" (`sync.retry`) in the row:
+  `Sync.retry()` starts the last sync again in its mode. Demo mode shows
+  its own line instead, so neither the red nor the retry appears there.
+- The date range validates each field on its own (`Library.isDayKey`, the
+  view-model's `normalize_day_key`). A refused one takes the `invalid`
+  outline, and under it sits "Please try again." (`common.tryAgain`) with
+  the form it takes, today's date in the home timezone
+  (`Library.dayKeyExample`). The web has no string for an invalid date:
+  its inputs are native date pickers.
+- No success opens a dialog: syncs, token changes and live-mode checks
+  report on their own rows. The two dialogs are the logout confirmation
+  and About.
 
 ## Replay
 

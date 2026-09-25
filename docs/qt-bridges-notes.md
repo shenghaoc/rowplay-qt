@@ -420,6 +420,26 @@ Suggestion: convert a `Constant` property once and hand out the cached
 `QVariant`, and document that each read of a `serde_json` property costs
 O(value size).
 
+## 19. A `Member` property is writable from QML
+
+`qproperty!("name", Member = field, Notify = changed)` generates a WRITE
+accessor as well as a READ one (`qproperty_info.rs`, `get_write_code`: with
+no `Write` method it assigns the member and emits the notify signal). So QML
+can assign any such property, and the app's backends use this form for
+state that only Rust should set: a scratch probe for the round-2 errors
+work (never committed) showed the settings page's failure row with
+`Sync.statusId = "sync.failed"`, no failed sync needed. Nothing in the
+app's QML writes these properties; `Constant` and `Read = getter` without a
+`Write` are the read-only forms.
+
+Repro: a backend with `qproperty!("status", Member = status, Notify =
+changed)` and QML running `Obj.status = "x"`: the Rust field changes and
+`changed` fires.
+
+Suggestion: a read-only flag for `Member` properties (a `ReadOnly` keyword,
+or `Member` read-only unless `Write` is named), since READ plus NOTIFY with
+Rust as the only writer is the common case for a backend's state.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -583,7 +603,10 @@ O(value size).
   active; window shortcuts match only in the active window). Its
   `mouseWheel` takes `(item, x, y, buttons, modifiers, xDelta, yDelta,
   delay)`, not `TestCase.mouseWheel`'s order, and a wrong order aborts
-  on an assert in `quicktestevent.cpp`.
+  on an assert in `quicktestevent.cpp`; its `mouseMove` needs all six
+  arguments, `(item, x, y, delay, buttons, modifiers)`, and fails with
+  "Insufficient arguments" otherwise. A `ToolTip` declared in a control
+  sits in its `data`, not its `children`.
 - `createObject` of a Quick 3D object with a 2D parent (the `View3D`) logs
   "QML ProceduralSkyTextureData: Created graphical object was not placed in
   the graphics scene" and the object never reaches the scene graph; parent
