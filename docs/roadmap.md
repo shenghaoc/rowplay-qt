@@ -1191,8 +1191,10 @@ requests on the round-2 stack's composed top:
    directly because a nonempty source bypasses the freedesktop name.
 3. `ui/native-sidebar`: the sidebar's fields are the style's text fields,
    the sort menu its menu, and the rows its item delegates carrying the
-   workout's data, with the list's own day sections. The selection shows
-   the system's active highlight while the list has the keyboard and its
-   inactive one otherwise. The date fields lose round 2's alert outline:
+   workout's data, with the list's own day sections. Every workout carries
+   its day's grouping label, so a second workout cannot create a blank
+   section. The selection uses the style's highlight while the list has
+   the keyboard and a neutral wash in the row content otherwise, without
+   overriding palette roles. The date fields lose round 2's alert outline:
    the style's field has no error state, and the message under it marks
    it.

@@ -43,7 +43,7 @@ pub struct SidebarRow {
     pub is_pb: bool,
     /// `YYYY-MM-DD` day key (home-zone bucketing).
     pub section: String,
-    /// Locale header for `section`; only set on the section's first row.
+    /// Locale header for `section`; populated on every row for QML grouping.
     pub section_text: String,
     /// True on the first row of its section (QML draws the header here).
     pub is_section_start: bool,
@@ -73,18 +73,17 @@ pub fn sidebar_rows(
         .iter()
         .map(|workout| sidebar_row(workout, pb_ids, unit, language, home_timezone))
         .collect();
-    // Mark section starts and render each day header exactly once (only the
-    // starting row carries the text — 5k rows reuse ~1.4k sections).
+    // Mark section starts and render each distinct day header once. QML's
+    // grouping role is populated on every row so same-day workouts never
+    // produce an empty section between them.
     let mut previous_key: Option<&str> = None;
     for row in &mut rows {
         let start = previous_key != Some(row.section.as_str());
         row.is_section_start = start;
-        if start {
-            let text = section_texts
-                .entry(row.section.clone())
-                .or_insert_with_key(|key| fmt_date(key, language, home_timezone));
-            row.section_text.clone_from(text);
-        }
+        let text = section_texts
+            .entry(row.section.clone())
+            .or_insert_with_key(|key| fmt_date(key, language, home_timezone));
+        row.section_text.clone_from(text);
         previous_key = Some(row.section.as_str());
     }
     rows
@@ -320,6 +319,26 @@ mod tests {
             }
         }
         assert!(rows[0].is_section_start);
+    }
+
+    #[test]
+    fn same_day_workouts_share_a_populated_grouping_role() {
+        let first = mock_workouts()[0].clone();
+        let mut second = first.clone();
+        second.id += 1;
+        let rows = sidebar_rows(
+            &[first, second],
+            &WorkoutListQuery::default(),
+            &BTreeSet::new(),
+            DistanceUnit::Metric,
+            Language::En,
+            None,
+        );
+        assert_eq!(rows.len(), 2);
+        assert!(rows[0].is_section_start);
+        assert!(!rows[1].is_section_start);
+        assert!(!rows[0].section_text.is_empty());
+        assert_eq!(rows[0].section_text, rows[1].section_text);
     }
 
     #[test]
