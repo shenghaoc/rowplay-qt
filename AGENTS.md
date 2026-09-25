@@ -451,9 +451,10 @@ Concept2 token. Cache failures never silently fall back to demo data.
 - QML: one module per directory with a `qmldir`; strings through
   `Tr.t("dotted.web.key", { vars })` (never `qsTr` with inline English, never
   hardcoded user-visible text); each platform's own Qt Quick Controls
-  style, with no style forced and no palette role set (ADR 0015: macOS,
-  Windows, Fusion); `Theme.qml`'s tokens, derived from the system palette,
-  for our own content; lengths and type scaled from the system font;
+  style and no palette role set (ADR 0015: macOS and Fusion, Qt's
+  defaults, and FluentWinUI3 on Windows, named by
+  `qml/+windows/qtquickcontrols2.conf`); `Theme.qml`'s tokens, derived
+  from the system palette, for our own content; lengths and type scaled from the system font;
   `Accessible.name` on every control and tile; no metric formatting and no
   inline per-frame arithmetic that belongs in Rust.
 - Use native Qt Quick Controls as-is; never override `background`/`contentItem`

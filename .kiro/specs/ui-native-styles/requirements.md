@@ -22,8 +22,10 @@ control layer. It is delivered as a stack of pull requests (`tasks.md`).
 
 ## R1 — Styles
 
-- R1.1 No style is forced. `qtquickcontrols2.conf` is removed, so Qt 6.11
-  picks macOS on macOS, Windows on Windows and Fusion on Linux.
+- R1.1 Qt 6.11 picks its default macOS and Fusion styles on macOS and Linux.
+  A file-selected `qtquickcontrols2.conf` selects FluentWinUI3 on Windows
+  (T10), because the default Windows style was unreadable under the dark
+  scheme in CI's captures.
 - R1.2 Linux: Fusion with the system palette, from the platform theme.
 - R1.3 FluentWinUI3 is evaluated on Windows from CI captures of both
   styles, light and dark, before any per-version choice.

@@ -63,8 +63,8 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 
 | Platform behaviour | Qt API | Where |
 |---|---|---|
-| The platform's control look | No style forced, so Qt picks macOS, Windows or Fusion (`QQuickStyleSpec::resolve`) | no `qtquickcontrols2.conf` (ADR 0015) |
-| A control the style lacks (tool button, tool tip, drawer, pane, popup) | Qt's run-time fallback, Basic; the styles declare Fusion, but Basic wins | ADR 0015, "Context" |
+| The platform's control look | Qt's default on macOS (macOS) and Linux (Fusion); FluentWinUI3 on Windows, through a file-selected configuration | `qml/qtquickcontrols2.conf` (no style) and `qml/+windows/qtquickcontrols2.conf` (ADR 0015) |
+| A control the style lacks (on macOS: tool button, tool tip, drawer, pane, popup) | Qt's run-time fallback, Basic; the styles declare Fusion, but Basic wins | ADR 0015, "Context" |
 | Scroll bars (transient or not, as the system says) | the style's `ScrollBar`, through `ScrollView` | the screens and the sidebar |
 | Keyboard shortcuts | `Shortcut { sequences: [StandardKey.Find] }`, `StandardKey.Refresh`, `.Preferences`, `.Back`, `.Quit`, `.Close` | `Main.qml` |
 | A shortcut in the platform's notation | `Shortcut.nativeText` in the tooltip | `CommandButton` |
@@ -86,12 +86,12 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 
 | | macOS | Windows | Linux |
 |---|---|---|---|
-| Style | macOS (NSView-drawn) | Windows; FluentWinUI3 is opt-in, and CI captures both | Fusion |
-| Controls the style lacks | Basic | Basic | (Fusion has them) |
+| Style | macOS (NSView-drawn) | FluentWinUI3, named by `qml/+windows/qtquickcontrols2.conf`; CI also captures the Windows style | Fusion |
+| Controls the style lacks | Basic | Basic (the drawer, panes, labels, the split view) | (Fusion has them) |
 | Icons | SF Symbols | Segoe Fluent Icons (Windows 11), Segoe MDL2 Assets | our original SVG, decoded by Qt Svg in the AppImage |
 | Palette | the system's | the system's | the platform theme's: the desktop portal's in the AppImage, the GTK or KDE theme's with a distribution's Qt |
 | How it is checked | natively, with the gate walk and scratch probes | CI captures in a real window (#81) | CI under Xvfb; dark through Fusion on macOS (Xvfb has no theme to ask) |
-| Known issues | the style's spinner needs the WebP plugin; the slider's track beyond the knob all but vanishes on a grey surface | the Windows style draws its controls light under the dark scheme, so their dark-scheme text is unreadable (the rows, the pop-up buttons, the fields); FluentWinUI3 draws both schemes | GTK 3 platform-theme integration remains separate; the AppImage already carries Qt Svg for its command icons |
+| Known issues | the style's spinner needs the WebP plugin; the slider's track beyond the knob all but vanishes on a grey surface | none known from CI's captures; the Windows style, no longer used, was unreadable under the dark scheme | GTK 3 platform-theme integration remains separate; the AppImage already carries Qt Svg for its command icons |
 
 ## What stays ours
 

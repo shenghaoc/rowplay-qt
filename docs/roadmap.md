@@ -1252,3 +1252,10 @@ requests on the round-2 stack's composed top:
      schemes; real mouse/keyboard input; actual purple accent, Increase
      Contrast and native menu roles. T9 is complete, with original system
      preferences restored. See the [verification record](native-macos-verification.md).
+10. `ui/windows-fluent`: Windows gets FluentWinUI3.
+    - CI's captures showed the Windows style unreadable under the dark
+      scheme: its controls stay light under light text.
+    - Qt reads its configuration file through a `QFileSelector`, so
+      `qml/+windows/qtquickcontrols2.conf` names FluentWinUI3 for Windows
+      alone, beside a base file that names no style.
+    - No Rust and no packaging change. ADR 0015's decision 1 is amended.
