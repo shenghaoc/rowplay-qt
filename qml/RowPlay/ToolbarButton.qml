@@ -3,9 +3,10 @@
 // (ADR 0013): no fill at rest, a rounded wash on hover and press, the glyph in
 // the accent while `checked`. Icon-only, so `label` is both the accessible
 // name and the tooltip — and the tooltip is never the only way in: the
-// command also has its menu entry or shortcut. Tab reaches it (with a focus
-// ring); a click does not take focus, so clicking Reload keeps the list
-// focused.
+// command also has its menu entry or shortcut. The tooltip names that
+// shortcut too, "Reload (F5)", in the platform's own notation. Tab reaches
+// it (with a focus ring); a click does not take focus, so clicking Reload
+// keeps the list focused.
 import QtQuick
 import QtQuick.Controls
 import RowPlay
@@ -17,6 +18,9 @@ AbstractButton {
     property string iconName: ""
     /// Translated label: accessible name and tooltip.
     property string label: ""
+    /// The command's shortcut in the platform's notation (a `Shortcut`'s
+    /// `nativeText`), shown after the label in the tooltip; "" for none.
+    property string shortcutText: ""
     property real iconSize: Theme.iconSize
     property real cornerRadius: Theme.radiusSmall
 
@@ -48,7 +52,9 @@ AbstractButton {
 
     AppToolTip {
         visible: control.hovered && !control.tipDismissed && control.label.length > 0
-        text: control.label
+        text: control.shortcutText.length > 0
+              ? control.label + " (" + control.shortcutText + ")"
+              : control.label
     }
 
     contentItem: Item {
