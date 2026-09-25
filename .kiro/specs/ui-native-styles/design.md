@@ -113,6 +113,28 @@ macOS: flat, with a 40 × 40 background in the palette's button colour.
   cannot, so Spanish at 480 px overflowed the window. The test now reads
   the column's width.
 
+## Motion (round 3's 2e)
+
+- **Tokens:** `Theme` has three durations and two curves.
+  - `durationShort` (150 ms): a small element's change of state.
+  - `durationMedium` (250 ms): a panel appearing or leaving.
+  - `durationLong` (400 ms): a change of the whole view, which no
+    animation of ours is today.
+  - The curves are M3's standard curve (0.2, 0, 0, 1) and its
+    emphasized-decelerate one (0.05, 0.7, 0.1, 1), as
+    `Easing.BezierSpline` control points.
+- **Reduce motion:** every duration is 0 under the app's reduce-motion
+  preference, so all of our motion is instant. Qt 6.11 surfaces no OS
+  motion preference.
+- **Uses:**
+  - the scrubber's knob fades in short and standard;
+  - the HUD fades medium and standard;
+  - the drawer slides in medium and emphasized, and out medium and
+    standard.
+  - The spinner's 900 ms turn is a period, not a transition; under reduce
+    motion the ring holds still.
+- **No new animation.** The old values were 140 ms and 200 ms `OutCubic`.
+
 ## The spinner
 
 The macOS style's `BusyIndicator` is an animated WebP image, and Qt reads

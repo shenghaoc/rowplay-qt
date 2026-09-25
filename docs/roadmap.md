@@ -1221,3 +1221,10 @@ requests on the round-2 stack's composed top:
    width: Spanish at 480 px overflowed once the speed could no longer
    shrink. ADR 0015 is corrected: controls the native styles lack come
    from Basic, not Fusion (measured with Qt's own `qml` runner).
+7. `ui/native-theme-cleanup`: the seventeen shared controls nothing uses
+   any more are deleted, and `Theme` keeps content tokens only (27 members
+   gone). Round 3's motion tokens (2e) replace the last ad hoc durations:
+   three durations and M3's two curves, all instant under reduce motion.
+   Two Basic imports stay by decision: the HUD's scrubber (content) and
+   the live-mode spinner (until the WebP plugin ships). AGENTS.md's QML
+   rules now say to use native Qt Quick Controls as-is.

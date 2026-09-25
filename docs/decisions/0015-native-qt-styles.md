@@ -119,8 +119,9 @@ What Qt 6.11.2 does, read from its sources at the tag:
    controls pinned to Basic by an explicit import so nothing is drawn half
    native; each area's pull request then replaces its controls with stock
    ones, and the last one deletes the shared controls and the tokens only
-   they used. No `import QtQuick.Controls.Basic` survives the stack but
-   the spinner's, until the WebP plugin ships.
+   they used. Two `import QtQuick.Controls.Basic` survive the stack: the
+   spinner's, until the WebP plugin ships, and the HUD scrubber's, which is
+   content (decision 3).
 
 ## Consequences
 
@@ -141,7 +142,9 @@ What Qt 6.11.2 does, read from its sources at the tag:
 - The app's reduce-motion toggle no longer stills the controls the style
   draws, where the style animates them (Fusion slides its switch's
   handle): Qt 6.11 surfaces no OS motion preference for a style to read.
-  It still stills the replay, our spinner and the HUD's fade.
+  Our own motion runs on `Theme`'s motion tokens (round 3's 2e), which
+  the toggle makes instant: the HUD's fade, the drawer's slide and the
+  scrubber's knob. It also stills the replay and our spinner.
 - The native macOS `ScrollView` reserves room for a scroll bar that is not
   transient, so a replaced (Basic) scroll bar made `contentWidth:
   availableWidth` a binding loop; the style's own scroll bars are used.
