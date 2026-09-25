@@ -60,6 +60,11 @@ QtObject {
     readonly property real yLabelColumn: 40
 
     function yLabelOverflow(labels, metrics) {
+        return Math.max(0, Math.ceil(widestLabel(labels, metrics)) - yLabelColumn)
+    }
+
+    // The widest of `labels` in `metrics`' font.
+    function widestLabel(labels, metrics) {
         if (!labels || !metrics) {
             return 0
         }
@@ -70,7 +75,18 @@ QtObject {
         for (var i = 0; i < labels.length; ++i) {
             widest = Math.max(widest, metrics.advanceWidth(String(labels[i])))
         }
-        return Math.max(0, Math.ceil(widest) - yLabelColumn)
+        return widest
+    }
+
+    // The step, in points, between labelled points on an index axis whose
+    // labels (at most `widest` wide) share `width`, so neighbouring labels
+    // keep `gap` between them: 1 when every label fits. Layout arithmetic
+    // only.
+    function labelStep(count, widest, width, gap) {
+        if (!(count > 0) || !(width > 0)) {
+            return 1
+        }
+        return Math.max(1, Math.ceil((widest + gap) / (width / count)))
     }
 
     // The tick step that puts `count` ticks on low…high, both ends included
