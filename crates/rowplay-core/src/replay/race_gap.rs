@@ -107,6 +107,36 @@ pub fn ghost_distance(elapsed: f64, strokes: &[Stroke]) -> f64 {
     ghost_frame(elapsed, strokes).d
 }
 
+/// The ghost's own elapsed time (from its first stroke) at the web's
+/// sampling instant: the web samples the ghost at the player's absolute
+/// frame time (`sampleAt(ghostStrokes, f.t)`), which is the player's first
+/// stroke plus `player_elapsed`. Studio's [`ghost_frame`] samples at the
+/// ghost's first stroke plus `player_elapsed` instead; the two agree only
+/// when both workouts start at the same stroke time. The result is not
+/// clamped: seeking a [`crate::replay::engine::ReplayState`] to it clamps
+/// to the ghost's span, which holds its first or last stroke like the
+/// web's `sampleAt`.
+#[must_use]
+pub fn ghost_elapsed_at(
+    player_elapsed: f64,
+    player_strokes: &[Stroke],
+    ghost_strokes: &[Stroke],
+) -> f64 {
+    let first = |strokes: &[Stroke]| {
+        strokes
+            .first()
+            .map(|s| s.t)
+            .filter(|t| t.is_finite())
+            .unwrap_or(0.0)
+    };
+    let elapsed = if player_elapsed.is_finite() {
+        player_elapsed
+    } else {
+        0.0
+    };
+    first(player_strokes) + elapsed - first(ghost_strokes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +208,33 @@ mod tests {
         assert_eq!(absolute_time(10.0, &[]), 0.0);
         let empty = ghost_frame(10.0, &[]);
         assert_eq!(empty.d, 0.0);
+    }
+
+    #[test]
+    fn ghost_elapsed_at_follows_the_players_absolute_time() {
+        // The player starts at 2 s and the ghost at 1 s: 4 s into the
+        // player's replay the web samples both at t = 6, which is 5 s into
+        // the ghost's own replay.
+        let player = strokes(&[2.0, 12.0], &[10.0, 110.0]);
+        let ghost = strokes(&[1.0, 11.0], &[0.0, 100.0]);
+        let elapsed = ghost_elapsed_at(4.0, &player, &ghost);
+        assert!((elapsed - 5.0).abs() < 1e-12);
+        let web = sample_at(&ghost, 2.0 + 4.0).d;
+        assert!((absolute_time(elapsed, &ghost) - 6.0).abs() < 1e-12);
+        assert!((sample_at(&ghost, absolute_time(elapsed, &ghost)).d - web).abs() < 1e-12);
+        // Studio's elapsed-time sampling reads the ghost a second early:
+        // 10 m short at its 10 m/s.
+        assert!((web - ghost_distance(4.0, &ghost) - 10.0).abs() < 1e-12);
+        // Same first stroke: the two agree.
+        let same = strokes(&[2.0, 12.0], &[0.0, 100.0]);
+        assert!((ghost_elapsed_at(4.0, &player, &same) - 4.0).abs() < 1e-12);
+        // A ghost that starts later reads a negative elapsed time, which a
+        // seek clamps to its first stroke, where `sampleAt` holds too.
+        let late = strokes(&[5.0, 15.0], &[0.0, 100.0]);
+        assert!((ghost_elapsed_at(1.0, &player, &late) - (-2.0)).abs() < 1e-12);
+        // Non-finite or missing inputs read as zero.
+        assert!((ghost_elapsed_at(f64::NAN, &player, &ghost) - 1.0).abs() < 1e-12);
+        assert!((ghost_elapsed_at(4.0, &[], &ghost) - 3.0).abs() < 1e-12);
+        assert!((ghost_elapsed_at(4.0, &player, &[]) - 6.0).abs() < 1e-12);
     }
 }
