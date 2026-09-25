@@ -24,7 +24,9 @@ split in QML only for display placement — no parsing of numbers).
 QML reads `Replay.poseFrame` (a `var` list) inside a single
 `onPoseFrameChanged` handler that writes joints/materials/camera in one pass;
 the handler is the only consumer. `FrameAnimation { onTriggered:
-Replay.tick(dt) }` is the only clock.
+Replay.tick(dt) }` is the only clock. It runs while the replay plays (and
+for a short settle after a change made while paused, #93): a still
+replay renders on demand.
 
 ## Athlete posing (R2)
 
