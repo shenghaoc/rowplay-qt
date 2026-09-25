@@ -1236,3 +1236,16 @@ requests on the round-2 stack's composed top:
    maximum width once they fit one row, the content stops at 1440 px
    centred, and running text at 640 px. Checked at 1200, 1440, 1600 and
    1920 px in English and Japanese, light and dark.
+9. `docs/native-design-system`: `docs/design-system.md` (the six
+   principles, platform behaviour → Qt API, per platform), ADR 0015's
+   verification record, ADR 0013's round-3 notes, and the README's native
+   screenshots.
+   - The verification's real input (QtTest's `TestEvent`) found the HUD's
+     hit areas answering `contains()` but not clicks. Qt 6.11 prunes an
+     item from delivery outside its rectangle plus its handlers' margins,
+     so #114 now adds a passive `HoverHandler` margin.
+   - CI's Windows captures show the Windows style unreadable under the
+     dark scheme, while FluentWinUI3 is not; switching is proposed in its
+     own pull request.
+   - Left for the owner at the Mac: a non-blue accent, Increase Contrast
+     and the native menu bar's roles.
