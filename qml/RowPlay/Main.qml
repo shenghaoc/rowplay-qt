@@ -1015,13 +1015,16 @@ ApplicationWindow {
                     fresh ? "(scene changed)" : "(same scene)")
     }
 
-    function grabScreen(name) {
+    // Grabs the shell, or `item` (a popup, which lives in the window's
+    // overlay, outside the shell).
+    function grabScreen(name, item) {
         if (Settings.screenshotDir.length === 0) {
             return
         }
         grabPending = true
         grabWaits = 0
-        shellRoot.grabToImage(function(result) {
+        var target = item ? item : shellRoot
+        target.grabToImage(function(result) {
             var path = Settings.screenshotDir + "/" + name + ".png"
             console.log("gate screenshot",
                         result.saveToFile(path) ? "saved" : "FAILED", path)
@@ -1391,6 +1394,49 @@ ApplicationWindow {
                 break
             case 211: break
             case 212: detailColumn.children[2].showLogoutDialog(false); root.screenIndex = 0; break
+            // The width classes (Theme.widthClass), at widths that scale
+            // with the text like the breakpoints: a medium window with its
+            // drawer, which a chosen workout closes, then the compact one
+            // (the list's page, settings, the dashboard and the replay HUD
+            // in two rows), then the full layout again.
+            case 213: root.width = Theme.px(720); break
+            case 214: root.grabScreen("dashboard-medium"); break
+            case 215: root.toggleSidebar(); break
+            case 216: root.grabScreen("drawer-medium", sidebarDrawer.contentItem.parent); break
+            case 217:
+                sidebarColumn.choose(1005)
+                console.log("gate width classes: medium", root.widthClass,
+                            "drawer", sidebarDrawer.opened ? "open" : "closed",
+                            "screen", root.screenIndex)
+                break
+            case 218: root.width = Theme.px(480); break
+            case 219: root.grabScreen("detail-compact"); break
+            case 220: root.toggleSidebar(); break
+            case 221: root.grabScreen("sidebar-compact", sidebarDrawer.contentItem.parent); break
+            case 222: root.showSettings(); break
+            case 223: root.grabScreen("settings-compact"); break
+            case 224: root.showDashboard(); break
+            case 225: root.grabScreen("dashboard-compact"); break
+            case 226:
+                Library.selectWorkout(1001)
+                Library.requestReplay(false)
+                root.gateReplayWaits = 0
+                root.gateAwaitingReplay = true
+                break
+            case 227: root.grabScreen("replay-compact"); break
+            case 228:
+                console.log("gate width classes: compact", root.widthClass,
+                            "drawer", sidebarDrawer.opened ? "open" : "closed",
+                            "screen", root.screenIndex)
+                Library.closeReplay()
+                Library.clearSelection()
+                root.width = 1200
+                break
+            case 229:
+                console.log("gate width classes: large", root.widthClass,
+                            "sidebar", sidebarColumn.parent === drawerHost ? "in the drawer"
+                                                                             : "beside the content")
+                break
             default:
                 gateTimer.running = false
                 Qt.exit(0)
