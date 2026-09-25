@@ -24,7 +24,23 @@ pull request that delivers it.
     AppImage's missing pieces proposed in the pull request (Qt Svg, the GTK
     3 platform theme). Not pushed.
   - [x] T1.8 ADR 0015 (0013's control layer superseded in part), this spec.
-- [ ] T2 Shell and toolbar (R2.1, R5.1, R6.1).
+- [x] T2 (`ui/native-shell`) Shell and toolbar (R2.1, R5.1, R6.1).
+  - [x] T2.1 `Glyphs.qml`: the glyph paths (moved from `Icon.qml`), the
+    platform icon names per OS and the SVG fallback, which only Linux gets
+    (Qt asks the platform icon engine only while an icon has no `source`).
+  - [x] T2.2 The toolbar is the style's `ToolBar` with tool buttons (an
+    inline `CommandButton`: the platform icon, the label as accessible name
+    and tooltip with the shortcut, a press dismisses the tooltip, Space
+    presses the focused button); the rule under it stays, as layout.
+  - [x] T2.3 The sport filter is the style's `ComboBox`, as wide as its
+    widest choice (design.md).
+  - [x] T2.4 The Windows / Linux application menu is the style's `Menu`;
+    its items show no shortcut (the tooltips name them).
+  - [x] T2.5 The sidebar's drawer is the style's `Drawer`, keeping `shown`,
+    no edge drag, the reduce-motion transitions and the close policy.
+  - [x] T2.6 About is the style's `Dialog`, its standard button named by
+    the web's `common.dismiss`; the landing's buttons are the style's
+    `Button`s, the prominent one `highlighted`.
 - [ ] T3 Sidebar (R2.1).
 - [ ] T4 Settings (R2.1).
 - [ ] T5 Detail and dashboard (R2.1).

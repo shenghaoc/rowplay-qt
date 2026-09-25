@@ -533,6 +533,16 @@ converted string), or allow an associated function as a slot.
 - ID-based `.ts` catalogues need an empty `<source>` (see note 12); `lupdate`
   writes that shape itself, hand-written files with a non-empty source
   silently break `qsTrId` after `lrelease`.
+- A Qt Quick Controls icon asks the platform's icon engine (SF Symbols on
+  macOS, Segoe glyphs on Windows) only while its `source` is empty
+  (`QQuickIconImage::updateIcon`, Qt 6.11): the freedesktop theme first,
+  then the platform engine if no source is set, else the source. Setting
+  both `icon.name` and a fallback `icon.source` therefore always shows the
+  source on macOS and Windows. `Glyphs.iconSource` gives the SVG fallback
+  only where no engine answers names (ADR 0015).
+- Popups (Dialog, Drawer, Menu) live in the window's overlay, not under the
+  shell's `Item`, so a grab of that item never shows them; grab the popup's
+  own item (`contentItem.parent`).
 - Qt Graphs in Qt 6.11 uses the post-6.9 type names (`LineSeries`,
   `BarSeries`, `BarSet`, `ValueAxis`, `BarCategoryAxis`, `GraphsView`,
   `GraphsTheme`); most sample code on the web still shows the 6.8 names
