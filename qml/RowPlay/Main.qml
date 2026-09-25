@@ -803,6 +803,10 @@ ApplicationWindow {
     // second grab of the same seek through the close-up camera (the
     // torso-and-hands framing the wrist/posture judgement needs).
     property bool gateSceneCloseup: false
+    // The shadow check's twin (tests/common, assert_shadows): after the
+    // rower's High-tier grab, the same frame again with the key light's
+    // shadow off. Only High and Ultra cast shadows.
+    property bool gateSceneUnshadowed: false
 
     // An idle scene renders exactly one frame per change, so a "+N frames"
     // settle target is unreachable and mesh-buffer uploads (which only
@@ -851,6 +855,7 @@ ApplicationWindow {
         gateSceneTicksNeeded = fresh ? gateSceneMinTicks : 1
         gateSceneGrabName = name
         gateSceneCloseup = Settings.phaseCloseups && name.indexOf("phase-") === 0
+        gateSceneUnshadowed = name === "replay-row-high"
         console.log("gate scene: settling", name, "from",
                     gateRenderedFrames, "frames",
                     fresh ? "(scene changed)" : "(same scene)")
@@ -890,6 +895,25 @@ ApplicationWindow {
             }
             if (name.indexOf("-closeup") >= 0) {
                 Replay.setCloseupCamera(false)
+            }
+            if (root.gateSceneUnshadowed) {
+                // Same frame, the key light's shadow off: settle again so it
+                // has rendered, then re-enter grabScreen for the twin.
+                root.gateSceneUnshadowed = false
+                detailColumn.children[3].shadowsSuppressed = true
+                root.grabPending = false
+                root.gateAwaitingScene = true
+                root.gateSceneFramesTarget = root.gateRenderedFrames + 3
+                root.gateSceneWaits = 0
+                root.gateSceneTicks = 0
+                root.gateSceneTicksNeeded = 1
+                root.gateSceneGrabName = name + "-unshadowed"
+                console.log("gate scene: settling", root.gateSceneGrabName,
+                            "from", root.gateRenderedFrames, "frames")
+                return
+            }
+            if (name.indexOf("-unshadowed") >= 0) {
+                detailColumn.children[3].shadowsSuppressed = false
             }
             root.grabPending = false
         })
@@ -1108,7 +1132,9 @@ ApplicationWindow {
             // Tier cycling: exercise all four quality tiers on the rower scene
             // so the gate can assert texture set counts per tier.
             case 62: Replay.setQualityIndex(0); break  // Low
-            case 63: Replay.setQualityIndex(2); break  // High
+            // High casts shadows: the shadow check's pair (the grab and its
+            // twin with the key light's shadow off).
+            case 63: Replay.setQualityIndex(2); root.grabSettledScene("replay-row-high"); break
             case 64: Replay.setQualityIndex(3); break  // Ultra
             case 65: Replay.setQualityIndex(1); break  // back to Medium
             // Phase shots (ROWPLAY_PHASE_SHOTS=1): stroke-phase captures

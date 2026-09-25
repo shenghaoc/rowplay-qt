@@ -70,6 +70,9 @@ Item {
     property var ghostPoleShaftNodes: ({})
     property var ghostGripNodes: ({})
     property var ghostBasketNodes: ({})
+    // Gate hook: the shadow check's twin capture renders the same frame with
+    // the key light's shadow off (Main.qml, the tier cycle's High step).
+    property bool shadowsSuppressed: false
     // ---- HUD text parts (updated by applyFrame) ----
     property string clockText: ""
     property string totalText: ""
@@ -141,7 +144,8 @@ Item {
             DirectionalLight {
                 id: keyLight
                 color: Replay.skySun; brightness: 1.2
-                castsShadow: scene.ts ? scene.ts.shadows : true
+                castsShadow: !replayRoot.shadowsSuppressed
+                             && (scene.ts ? scene.ts.shadows : true)
                 shadowMapQuality: Light.ShadowMapQualityHigh; shadowFactor: 80
                 shadowBias: 0.02; pcfFactor: 0.03; shadowMapFar: 60; csmNumSplits: 2
             }

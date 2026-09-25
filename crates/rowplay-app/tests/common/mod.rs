@@ -71,74 +71,62 @@ pub fn assert_rendered(width: usize, height: usize, pixels: &[u8], what: &str) {
     );
 }
 
-/// Asserts that shadows are present on the ground plane.
-///
-/// The chase camera tracks the equipment in the viewport centre, and the key
-/// light casts shadows onto the ground beneath it. The assertion samples
-/// ground luminance in the centre band (where shadows fall) and compares
-/// against the far right edge (unshaded ground at the same height). The
-/// actual darkening under llvmpipe is 8–12%; the 5% threshold gives headroom
-/// above dithering noise while catching a genuine shadow-map failure.
-///
-/// The sidebar occupies the left ~27% of the frame, so "far edge" samples
-/// from the right edge. The ground plane fills the lower portion of the
-/// replay captures. If the 5c chase camera changes the framing, these
-/// fractions need updating alongside the camera.
-#[allow(dead_code)]
-pub fn assert_shadows(width: usize, height: usize, pixels: &[u8], what: &str) {
-    if pixels.len() < width * height * 3 {
-        return; // truncated — the rendered check already caught this
-    }
-    // Sample regions derived from the 5b chase camera's framing at t=0 for
-    // the demo workouts (1001/1003/1004): the equipment sits in the viewport
-    // centre, the ground plane fills the lower portion, and the sidebar
-    // occupies the left ~27%. If the chase camera or the demo workouts
-    // change, re-derive these fractions from the new captures rather than
-    // lowering the threshold — a threshold change masks a real regression.
-    let centre_luma = region_luminance(pixels, width, height, 0.40, 0.60, 0.55, 0.75);
-    let edge_luma = region_luminance(pixels, width, height, 0.90, 0.98, 0.55, 0.75);
-    if edge_luma > 10.0 {
-        let margin = (edge_luma - centre_luma) / edge_luma;
-        assert!(
-            margin > 0.05,
-            "{what}: no shadow detected on the ground plane — \
-             centre luminance {centre_luma:.1} vs edge {edge_luma:.1} \
-             (margin {:.1}%, need >5%)",
-            margin * 100.0
-        );
-    }
-}
+/// A luminance change a shadow must exceed: the 3D capture noise bound's
+/// channel delta (AGENTS.md, "Working efficiently").
+const SHADOW_NOISE_DELTA: f64 = 4.0;
 
+/// Asserts that the key light's shadow renders, from two grabs of the same
+/// frame: `shadowed` as the tier sets the light, and `unshadowed` with the
+/// light's shadow off.
+///
+/// Every pixel is compared with itself unshadowed, the local ground or
+/// surface under it, so the check measures the shadow's relative contrast
+/// and does not depend on the scheme's palette. The shadow must darken at
+/// least 1 % of the capture by more than the noise delta, and those pixels
+/// must lose more than 5 % of their luminance on average: a shadow map that
+/// fails renders the twins alike.
+///
+/// It replaced a check that compared the capture's centre with its right
+/// edge in the Medium captures, which have no shadows at all (the tier rules
+/// cast them at High and Ultra only). Once the replay hid the sidebar the
+/// centre sampled the athlete and hull, so it compared their albedo with the
+/// water's: the light scheme passed and the dark one, whose water is about
+/// as dark as the athlete, failed at 4.9 % (Metal).
 #[allow(dead_code)]
-fn region_luminance(
-    pixels: &[u8],
-    width: usize,
-    height: usize,
-    x0_frac: f64,
-    x1_frac: f64,
-    y0_frac: f64,
-    y1_frac: f64,
-) -> f64 {
-    let x0 = (width as f64 * x0_frac) as usize;
-    let x1 = (width as f64 * x1_frac) as usize;
-    let y0 = (height as f64 * y0_frac) as usize;
-    let y1 = (height as f64 * y1_frac) as usize;
-    let mut sum = 0.0_f64;
-    let mut count = 0usize;
-    // Sample every 3rd pixel to bound cost.
-    for y in (y0..y1).step_by(3) {
-        for x in (x0..x1).step_by(3) {
-            let at = (y * width + x) * 3;
-            if at + 2 < pixels.len() {
-                let r = f64::from(pixels[at]);
-                let g = f64::from(pixels[at + 1]);
-                let b = f64::from(pixels[at + 2]);
-                sum += 0.299 * r + 0.587 * g + 0.114 * b;
-                count += 1;
-            }
+pub fn assert_shadows(width: usize, height: usize, shadowed: &[u8], unshadowed: &[u8], what: &str) {
+    let n = width * height;
+    assert!(
+        shadowed.len() >= n * 3 && unshadowed.len() >= n * 3,
+        "{what}: truncated pixel buffer"
+    );
+    let luma = |pixels: &[u8], i: usize| {
+        0.299 * f64::from(pixels[i * 3])
+            + 0.587 * f64::from(pixels[i * 3 + 1])
+            + 0.114 * f64::from(pixels[i * 3 + 2])
+    };
+    let (mut darker, mut lost, mut base) = (0usize, 0.0_f64, 0.0_f64);
+    for i in 0..n {
+        let (with, without) = (luma(shadowed, i), luma(unshadowed, i));
+        if without - with > SHADOW_NOISE_DELTA {
+            darker += 1;
+            lost += without - with;
+            base += without;
         }
     }
-    if count == 0 { 0.0 } else { sum / count as f64 }
+    let area = darker as f64 / n as f64;
+    assert!(
+        area >= 0.01,
+        "{what}: the key light's shadow darkens only {:.2} % of the capture \
+         ({darker} px), need at least 1 % — the shadow map did not render",
+        area * 100.0
+    );
+    let margin = lost / base;
+    assert!(
+        margin > 0.05,
+        "{what}: the shadow takes {:.1} % of the luminance where it falls, \
+         need more than 5 %",
+        margin * 100.0
+    );
 }
 
 /// The app's gate progress lives in its captured stdout/stderr, invisible in
