@@ -1,0 +1,2347 @@
+{
+  "description": "The key light's shadow flags of every venue mesh at the tiers that cast one, recorded from the web's own objects under the names the vendored GLBs use (#96). `cast` / `receive` are three.js castShadow / receiveShadow; `source` is the file (and, for the renderer's own pieces, the line) that set them.",
+  "generator": "tools/gen-venue-shadow-parity.mjs",
+  "source": {
+    "repo": "https://github.com/shenghaoc/rowplay",
+    "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+    "sha256": {
+      "src/lib/replay/renderer3dEnvironment.ts": "0084a007c1247cda32caae3e45d34e8381ecdad92479bd29530a7190fd5aadd4",
+      "src/lib/replay/renderer3dVenueKit.ts": "374a6591aba17fa6764c95290f244966388d110ce0bb6d5a378c12d78f800f8e",
+      "src/lib/replay/renderer3d.ts": "fc9e41159432b409ee7cb234829e090122ce5628bfe21b0231cf7228ac4f7fba"
+    }
+  },
+  "variants": {
+    "rower:high": {
+      "environment:rower:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:rower:bank-terrace-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:broadleaves": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:campus-path": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:distance-posts": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:distance-posts-boards": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-cabin": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-glazing": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-mast": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-shaft": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-wing": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:horizon-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:horizon-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-beach": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-core": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-lawn": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-mound": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-shrubs": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-trees": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:mist-band-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:mist-band-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:mist-band-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:pine-trunks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:pines": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reed-beds": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reflection-band-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reflection-band-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:ridge-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:ridge-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:start-pontoon-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:start-pontoon-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:vista-shingle": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:vista-wet-edge": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-10": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-5": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-6": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-7": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-8": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-9": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    },
+    "rower:ultra": {
+      "environment:rower:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:rower:bank-terrace-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:bank-terrace-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:boathouse-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:broadleaves": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:campus-path": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:course-bridge-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:distance-posts": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:distance-posts-boards": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:earth-bank-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-cabin": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-glazing": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-mast": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-shaft": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:finish-tower-wing": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:grass-bank-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:horizon-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:horizon-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-beach": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-core": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-lawn": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-mound": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-shrubs": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:island-trees": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:launch-dock-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:mist-band-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:mist-band-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:mist-band-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:rower:pine-trunks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:pines": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reed-beds": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reflection-band-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:reflection-band-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:regatta-pavilion-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:ridge-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:ridge-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:start-pontoon-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:start-pontoon-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:sun-glints": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:timing-tower-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:vista-shingle": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:vista-wet-edge": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-10": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-11": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-12": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-13": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-14": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-5": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-6": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-7": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-8": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:water-ripple-9": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:waterline-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wet-edge-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wetland-boardwalk-deck": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wetland-boardwalk-posts": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wetland-hide-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wetland-hide-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:rower:wetland-hide-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    },
+    "skierg:high": {
+      "environment:skierg:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:skierg:broadleaves": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:course-fencing": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-panels": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-poles": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-pools": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:foothills": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:horizon-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:horizon-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-peaks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:pine-trunks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:pines": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:piste-poles": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:piste-poles-boards": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:rock-outcrops": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:rock-snow-ledges": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snow-fences": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snowbank": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snowcaps": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:stadium-field": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:start-chute": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:start-pad": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wind-lip-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wind-lip-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    },
+    "skierg:ultra": {
+      "environment:skierg:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:skierg:broadleaves": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:course-fencing": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-panels": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-poles": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:floodlight-pools": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:foothills": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-7": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:groom-line-8": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:horizon-far": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:horizon-mid": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-peaks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:mountain-rescue-shelter-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:pine-trunks": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:pines": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:piste-poles": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:piste-poles-boards": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:rock-outcrops": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:rock-snow-ledges": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snow-crystals": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snow-fences": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snowbank": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:snowcaps": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:stadium-field": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:start-chute": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:start-pad": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:terrace-canopy": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:terrace-step-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:terrace-step-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:terrace-step-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-arch-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:timing-lodge-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-shadow-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:valley-sun-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wax-hut-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wind-lip-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:skierg:wind-lip-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    },
+    "bike:high": {
+      "environment:bike:ad-band": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:bike:arena-wall-bay-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:finish-gantry-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:finish-gantry-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:finish-gantry-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-10": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-7": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-8": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-9": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-10": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-12": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-14": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-16": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-18": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-20": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-8": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1824"
+      },
+      "environment:bike:infield-centre-circle": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-floor": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-half-court": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-key-a": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-key-b": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:rail-posts": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-shell": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-screen": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-1-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-1-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-2-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-2-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-3-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-3-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-4-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-4-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-canopy": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:track-boards-inner": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:track-boards-outer": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    },
+    "bike:ultra": {
+      "environment:bike:ad-band": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:apron": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1855"
+      },
+      "environment:bike:arena-wall-bay-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-3": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:arena-wall-bay-4": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1746"
+      },
+      "environment:bike:finish-gantry-deck": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:finish-gantry-leg-1": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:finish-gantry-leg-2": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-10": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-11": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-12": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-13": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-14": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-7": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-8": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-light-9": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-10": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-12": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-14": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-16": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-18": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-20": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-22": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-24": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-26": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-28": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hangar-lights-part-8": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hospitality-deck-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:hospitality-deck-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3d.ts:1824"
+      },
+      "environment:bike:infield-centre-circle": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-floor": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-half-court": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-key-a": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:infield-key-b": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:rail-posts": {
+        "cast": true,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-shell": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:roof-truss-7": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:scoreboard-screen": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-5": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:service-building-part-6": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:skylight-4": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:staging-pad-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-1-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-1-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-2-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-2-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-3-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-3-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-4-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-4-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-5-sector-1": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:stands-tier-5-sector-2": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-1": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-2": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-bay-3": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:team-pit-canopy": {
+        "cast": false,
+        "receive": false,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:track-boards-inner": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      },
+      "environment:bike:track-boards-outer": {
+        "cast": false,
+        "receive": true,
+        "source": "src/lib/replay/renderer3dEnvironment.ts"
+      }
+    }
+  }
+}
