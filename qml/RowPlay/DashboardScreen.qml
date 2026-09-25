@@ -20,7 +20,11 @@ import RowPlay
 Pane {
     id: screen
 
-    padding: Theme.spacingXxxLarge
+    // The page's margin is inside the scroll view (the column's x and y), so
+    // the style's scroll bar sits at the pane's edge and the content keeps
+    // its distance from it.
+    padding: 0
+    readonly property real pageMargin: Theme.spacingXxxLarge
 
     ScrollView {
         id: scroll
@@ -30,11 +34,14 @@ Pane {
         // Flickable content item, i.e. its own implicit width, and stopped a
         // quarter to a third short of the pane.
         contentWidth: availableWidth
+        contentHeight: content.implicitHeight + 2 * screen.pageMargin
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ColumnLayout {
             id: content
-            width: scroll.availableWidth
+            x: screen.pageMargin
+            y: screen.pageMargin
+            width: scroll.availableWidth - 2 * screen.pageMargin
             spacing: Theme.spacingXxLarge
 
             Label {

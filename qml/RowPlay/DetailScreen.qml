@@ -4,11 +4,11 @@
 // The Replay action keeps Studio's availability policy; tools/annotations/
 // comparison/export stay deferred.
 //
-// Design system (ADR 0013): the title with the sport in a neutral capsule
-// and Replay as the view's one prominent button; the metrics, the charts,
-// the table and the targets each sit in a tonal card; labels in sentence
-// case; the table has a header row, hairline rules and right-aligned
-// tabular numbers.
+// Design system (ADR 0013, 0015): the title with the sport in a neutral
+// capsule and Replay as the view's one prominent button (the style's,
+// highlighted); the metrics, the charts, the table and the targets each sit
+// in a tonal card; labels in sentence case; the table has a header row,
+// hairline rules and right-aligned tabular numbers.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -17,7 +17,11 @@ import RowPlay
 Pane {
     id: screen
 
-    padding: Theme.spacingXxxLarge
+    // The page's margin is inside the scroll view (the column's x and y), so
+    // the style's scroll bar sits at the pane's edge and the content keeps
+    // its distance from it.
+    padding: 0
+    readonly property real pageMargin: Theme.spacingXxxLarge
 
     ScrollView {
         id: scroll
@@ -27,11 +31,14 @@ Pane {
         // Flickable content item, i.e. its own implicit width, and stopped a
         // quarter to a third short of the pane.
         contentWidth: availableWidth
+        contentHeight: content.implicitHeight + 2 * screen.pageMargin
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ColumnLayout {
             id: content
-            width: scroll.availableWidth
+            x: screen.pageMargin
+            y: screen.pageMargin
+            width: scroll.availableWidth - 2 * screen.pageMargin
             spacing: Theme.spacingXxLarge
 
             // Header (Studio: title + sport, date/time/source/intervals,
@@ -99,22 +106,17 @@ Pane {
                     }
                 }
 
-                // The view's one prominent action; a label, no icon.
-                PushButton {
+                // The view's one prominent action: the style's button,
+                // highlighted; a label, no icon.
+                Button {
                     Layout.alignment: Qt.AlignTop
-                    // Room for its focus ring (FocusRing reaches
-                    // focusRingExtent outside the button, and the scroll
-                    // view clips at its top edge), and clear of the overlay
-                    // scroll bar, which would otherwise take clicks on its
-                    // trailing edge.
-                    Layout.topMargin: Theme.focusRingExtent
-                    Layout.rightMargin: scroll.ScrollBar.vertical.width
                     text: Tr.t("common.replay")
-                    prominent: true
+                    highlighted: true
                     // Studio's policy: replay needs stroke data and no sync
                     // in flight. The disabled state explains nothing yet:
                     // the web has no string for why (tracked in #64).
                     enabled: Detail.hasStrokeData && !Sync.isRunning
+                    Accessible.name: text
                     onClicked: Library.requestReplay(Sync.isRunning)
                 }
             }
