@@ -292,7 +292,8 @@ in the open-source Qt edition). That covers its Rust, QML, build scripts and
 tools, including the Blender tooling.
 
 Common RowPlay-family assets authored here, everything under
-`assets/replay/authored/`, are MIT so that rowplay and rowplay-studio can
-reuse them (ADR 0002). Vendored assets and fixtures keep their original
-MIT / CC0 terms. See `LICENSES/`, `ASSET_PROVENANCE.md` and
-`tests/fixtures/PROVENANCE.md`.
+`assets/replay/authored/`, are MIT (ADR 0002). The owner holds their copyright
+and their provenance is clean, so rowplay and rowplay-studio can reuse them;
+their inputs from elsewhere are recorded in `ASSET_PROVENANCE.md`. Vendored
+assets and fixtures keep their original MIT / CC0 terms. See `LICENSES/`,
+`ASSET_PROVENANCE.md` and `tests/fixtures/PROVENANCE.md`.

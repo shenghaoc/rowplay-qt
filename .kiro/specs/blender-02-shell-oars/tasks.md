@@ -40,3 +40,14 @@ alone. File anything else as an issue.
   byte-identical rebuild; native Metal check on the Apple M5.
 - [x] File what was found out of scope: #129 (the blades never square) and #130
   (the seat anchor and pelvis target sit below the web's).
+- [x] Licence the shell with the rest of the authored pack (ADRs 0002 and 0016,
+  amended 2026-09-26):
+  - `rowing-shell.glb` is MIT. The owner holds its copyright and its
+    provenance is clean; being generated is not the reason.
+  - `shell.py` stays GPL-3.0-or-later, and its licence decides nothing about
+    its output.
+  - The shell's inputs are recorded with their licences in
+    `ASSET_PROVENANCE.md`: rowplay's MIT work (the V3 pack's rowing contract,
+    `rowRig.ts`' grip and oarlock, `renderer3dRowAvatar.ts`' grip drop and
+    blade origin, the web's bob and roll) and the CC0 base mesh of the athlete
+    it is fitted to.

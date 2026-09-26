@@ -67,6 +67,24 @@ blade leaf in the scene:
 
 The divergences it adds are in the table below.
 
+### Licensing of the authored assets
+
+Everything under `assets/replay/authored/` is MIT (ADRs 0002 and 0016, amended
+2026-09-26). That is Direction C's skies, probes, water normals, buoy and
+course, the Phase 2 shell, and the manifest. The owner holds its copyright and
+its provenance is clean; being generated is not the reason. The Blender
+scripts that generate it stay GPL-3.0-or-later, and their licence decides
+nothing about their output.
+
+The web sources the pack takes numbers from are MIT (rowplay), and
+`ASSET_PROVENANCE.md` records them as inputs:
+- the V3 pack's rowing contract;
+- `rowRig.ts` (`ROWER_SCULL_GRIP`, `ROWER_OARLOCK`);
+- `renderer3dRowAvatar.ts` (the grip drop and the blade's origin);
+- `renderer3d.ts` (`loopRadius`, `ghostRadius`, `SPORT_PROFILES`).
+
+It also records the CC0 base mesh of the athlete the shell is fitted to.
+
 ## Phase 1 — core parity foundation
 
 | Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |

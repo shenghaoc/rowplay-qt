@@ -47,13 +47,15 @@ and the asset's provenance entry says which kind it is.
 
 Licences (amended 2026-09-26, with ADR 0002):
 
-- **The assets are MIT.** What either route produces is a common
-  RowPlay-family asset under MIT when we own it, and so is a modelled asset's
-  `.blend` source.
+- **The assets are MIT under ADR 0002's test.** What either route produces is
+  a common RowPlay-family asset under MIT, and so is a modelled asset's
+  `.blend` source. This holds when the owner holds its copyright and its
+  provenance is clean (every input from elsewhere recorded, with a licence
+  that allows MIT). The route does not decide it.
 - **The tooling stays GPL.** The generation, export and validation scripts
   are application tooling and stay GPL-3.0-or-later.
 - **Neither rule implies the other.** An MIT asset need not be generated
-  vertex by vertex in code, and a GPL script does not make its output GPL.
+  vertex by vertex in code. A GPL script makes its output neither GPL nor MIT.
 
 Downloaded, imported and scanned HDRIs remain prohibited, whatever their
 licence.
