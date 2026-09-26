@@ -484,3 +484,276 @@ The walks took about 160 s, against 106.5 s for a Phase 1 walk earlier the
 same day. Back-to-back full light walks show that gap is machine state, not
 the change: the Phase 1 head walked in 161.2 s and the Phase 2 head in
 159.3 s. The replay's first frame stayed at 0.2–0.3 s.
+
+## Phase 3: environment and water (2026-09-26)
+
+Phase 3 finishes the water and gives the basin depth: a near bank, a
+mid-distance mass and a far-bank silhouette. Phase 1's lighting (overcast
+light, the independent blue hour, the probes, the key light, the fog) is not
+redone, and the replay truth is untouched. The branch is stacked on #132, with
+#132's two commits restacked onto #131's head: #132 did not contain #131's
+two newest commits.
+
+### Baseline and the three deficiencies
+
+The Phase 2 scene was captured with `tools/blender/capture.py` natively on the
+Apple M5 (Cocoa/Metal): demo 1001 at 208.829 s, Low to Ultra, light and blue
+hour. At the approved moment the three most visible deficiencies were:
+
+1. **The water is a lattice.** Parallel ripple bands at one spacing cover the
+   whole surface. The Phase 1 map has 16 wave components on a 4 m tile, with an
+   RMS slope of 0.070 along the tile and 0.029 across it.
+2. **There is no shoreline.** The water runs flat into lawn slabs at water
+   level. There is no bank relief, no waterline and no cue to the basin's
+   scale, and the pontoons sit on an edgeless plane.
+3. **The depth is empty.** Nothing stands between the bank and a two-band ridge
+   with a faceted, even top. The tower stands alone, and the web's woodland
+   does not render in Qt (#121).
+
+### Budgets
+
+Set before the environment was built, from the scene's measured totals:
+athlete 106,256 triangles (twice with a ghost), shell 46,164 as drawn, 256
+buoys at 224 each, rower venue 7,304 (Low) to 17,516 (Ultra). The authored pack
+was 3,226,748 bytes against a 4 MiB budget.
+
+| Item | Budget | Final |
+| --- | ---: | ---: |
+| Terrain, near bank to the rim (one mesh, every tier) | 16,000 triangles | 13,350 |
+| Far bank: forest belt and distant hills | 8,000 triangles | 6,480 |
+| Woodland masses | 6,000 triangles | 2,436 |
+| Each vegetation variant | 800 triangles | 16-599 |
+| Vegetation instances: Low / Medium / High / Ultra | 100 / 200 / 300 / 400 | 73 / 147 / 221 / 294 |
+| Vegetation triangles drawn per tier | 60k / 90k / 120k / 150k | 21,269 / 42,554 / 64,047 / 85,316 |
+| New textures | the water normal only, 512 square | 512 square |
+| Authored pack | 6 MiB (was 4 MiB) | 4,677,393 bytes |
+
+The pack budget was the Phase 1 brief's guess. It rises to 6 MiB for the
+`.blend` source (648,848 bytes) and its GLB (595,504), far below ADR 0011's
+100 MB tripwire. Every environment mesh is one draw: three land Models and six
+instanced variants. At Medium, Phase 3 adds 64,820 triangles over 9 draws. The
+largest cost stays the athlete, and Low and Medium draw no shadows.
+
+### Concept, in Blender and then in Qt
+
+The concept was built in Blender 5.2.2 LTS around the scene the replay draws:
+the web venue's retained structures, the Phase 2 shell at the approved moment,
+the buoys, the committed water normal, the authored skies as the world, and
+Qt's depth fog reproduced in every material. The render was calibrated against
+the Qt baseline first: sky, water and tower tones matched. Iterations, judged
+from eight chase views round the lap as well as the approved one:
+
+1. **Scattered trees.** Round crowns on long trunks read as lollipops, the
+   shrubs as rocks, the campus paving as a road.
+2. **Crowns as unions of lumps, woodland as stands.** The woodland filled the
+   upper third of the frame and competed with the athlete.
+3. **Stands pushed back to 118-150 m, fewer accents.** More sky, and the
+   layering read.
+4. **In Qt.** The grass read lime-bright and the woodland as rows of separate
+   trees. The palette went darker and greyer, crowns lower on thicker
+   trunks. A continuous canopy mass went behind each stand's edge, with
+   understory shrubs in front, and the masses taper to the ground at their
+   ends.
+
+Qt then exposed two integration faults, both fixed in the source and both now
+caught by the export:
+
+- **The launch dock.** The web's launch dock (High and Ultra; deck top 0.21 m)
+  was buried by a 0.28 m quay, and its front face poked out of the quay as a
+  dark wedge. The quay is now 0.18 m and follows the dock's front edge.
+- **The boardwalk.** Reeds stood on the web's wetland boardwalk. The export's
+  footprint check had used bounding boxes, which cannot describe the curved
+  deck. It now uses annular sectors read from the venue GLB.
+
+### Sources of truth
+
+| Asset | Kind | Source |
+| --- | --- | --- |
+| `water-normal.png` | procedural | `tools/blender/water.py`, written by `build_all.py` |
+| `rowing-environment.blend` | modelled source (MIT) | itself: authored in Blender and judged by eye |
+| `rowing-environment.glb` | derived | exported from the `.blend` by `export_environment.py` |
+| `vegetation.json` | derived placement data | exported from the `.blend` by `export_environment.py` |
+
+The environment is the first modelled asset under ADR 0016's source rule. Its
+first version came from a scripted Blender session: a polar height field with
+seeded noise, crowns made as unions of lumps, and placement by land use. The
+session was not committed; the `.blend` is the source. It holds collections
+for the land (terrain, far bank, woodland), the six variants and one per tier.
+The instances are linked duplicates, tinted by their object colour. Moving a
+tree or reshaping a bank is an edit in Blender, then `make
+blender-environment`. The export refuses a file that breaks the contract:
+names, identity transforms, yaw-only instances, budgets, a waterline no
+closer than 36.2 m, nothing planted in a retained structure, and a Low
+instance for every variant.
+
+The land uses follow the web's sectors: the campus near 8-56 degrees (tower,
+dock, pavilion, boathouse), the open vista near 300-358 degrees (wetland,
+boardwalk) and woodland between them. The terrain meets the retained
+structures at their base heights, and the export checks those heights.
+
+### Water
+
+The tile is 8 m (6000 m / 750). It carries 360 integer wave vectors, from 6 cm
+to 2.8 m, spread about a 28-degree wind with 28 % of them about a second
+direction 74 degrees away, plus an 18 % seeded amplitude variation. The texture
+is tileable and fixed in the world. Nothing scrolls, and no speed or presentation term exists.
+
+The RMS slope was settled in Qt. Phase 1's map had an RMS slope of 0.0757,
+nearly all of it along one axis. Spread over every direction, the same RMS
+read nearly flat near the boat, where the passing texture is the water's
+motion cue. At the approved frame, 0.08, 0.11 and 0.14 were compared: 0.11
+keeps visible, irregular ripples near the boat, and 0.14 reads choppy for flat
+water. The material's normal strengths are unchanged.
+
+`test_water.py` guards the spectrum. No component may carry 2 % or more of the
+slope variance (each of Phase 1's carried at least 6.25 %), and the RMS slopes
+along and across the tile may not differ by 1.5x or more (Phase 1's: 2.4x).
+Seen from above, the texture repeats every 8 m, and its distinctive points
+repeat with it (`water-normal-16m-before-after.png` on the evidence branch).
+From the chase camera, at grazing angles and with mipmapping, the Qt captures
+show neither that repeat nor a lattice.
+
+### In Qt
+
+`build.rs` runs balsam on `rowing-environment.glb` for its meshes only. It
+checks balsam's mesh file names and the placement invariants, then generates
+`EnvironmentScene.qml`: the three land Models and six instanced Models, whose
+`InstanceList`s come from `vegetation.json`. The file is sorted by variant and
+then tier, so a tier's instances are a prefix of each list, and
+`instanceCountOverride` selects the prefix. `RowingEnvironment.qml` declares
+the materials. Vertex colours carry the albedo, blue hour tints them cooler,
+and each instance's colour multiplies in. No runtime walker touches the
+environment.
+
+The web rower venue's land and vegetation (banks, horizon and ridge bands,
+woodland, reeds, the campus path) are hidden through the venue walk that
+already hid Phase 1's painted overlays: the name list grew, and no walker was
+added. Its structures stay until Phase 4: the finish tower, pontoons,
+pavilion, boathouse, timing tower, course bridge, boardwalk, hide and island.
+Bucket clones now inherit their archetype's visibility. The island shows only
+when the comparison camera pulls back with a ghost. `RowingStyle`'s grass and
+lawn colour now reaches only the island, so its lawn takes the authored lawn
+tone and no longer reads as a bright green disc beside the new banks.
+
+**Shadows.** The High shadow check first dropped from Phase 2's 41,342 px
+(1.07 %) / 5.42 % to 38,877 px (1.01 %) / 5.16 %, still passing. Bounds
+unchanged, an A/B isolated the cause:
+
+- with the old water normal it read 38,748 px: the water is not the cause;
+- hiding the environment restored 40,893 px;
+- the 2,016 px lost lay in rows 640-673 only: the finish tower's shadow, which
+  had fallen on the water and now fell on the new, non-receiving quay. The
+  rower's own shadow was pixel-identical.
+
+The web flags every bank arc it draws as a shadow receiver, and its trees and
+horizon as neither, so the terrain now receives and nothing in the environment
+casts. The tower shadows the quay again. The check reads light 40,672 px (1.05
+%) / 7.83 % and dark 43,048 px (1.12 %) / 8.13 % (truncated, from the saved
+twins).
+
+### Runtime invariants
+
+`compare.py` checks all 18 controlled states per scheme against the Phase 2
+parent: pose frame without its sequence counter, grip table and tier. They
+match exactly in light and in blue hour. The same replay state, grabbed at two
+wall-clock times (`style-medium` and `motion-000`), renders 0 differing pixels
+before and after, in both schemes. Nothing in the water or the environment
+moves on its own clock. The only motion is the replay's own camera, whose
+frames are unchanged. `compare.py` now asserts this, and reads pixels with
+Pillow where ImageMagick is missing.
+
+Phase 1's "water band" patch at (0, 420) lies across the far bank and the sky
+in the current layout, so it now sits on near water at (0, 1150). Its
+first-to-last change over the 3 s sequence is 0.0120 before and 0.0098 after
+in light, and 0.0158 and 0.0129 in blue hour. That is visual change in a fixed
+patch, not a measure of perceived speed.
+
+### Motion
+
+A 12 s real-replay sequence (demo 1001 from 208.829 s, every 0.5 s, Medium; the
+same 25 states on both sides) shows:
+
+- the near bank and the trees shifting against the far bank as the boat moves;
+- the stationary buoys passing the hull;
+- the water texture staying put in the world.
+
+`qt-motion-before-after.gif`, `.mp4` and `qt-motion-strip.jpg` are on the
+evidence branch. A phase-correlation measure of motion by depth band was
+tried and dropped: in this framing the left half of the frame looks across the
+basin, so its bands do not separate depths, and its correlation peaks were
+weak (0.06-0.24).
+
+### Metal results (Apple M5, macOS 27.0, Qt 6.11.2, Rust 1.98.1)
+
+All four tiers in light and blue hour were inspected at the approved moment
+and at eight positions round the lap. The athlete and the data stay primary.
+The environment reads as layered and restrained, and blue hour reads as its
+own cool scene: dark silhouettes against a lighter sky, with the water the
+brightest plane. Low draws the smallest vegetation subset, and Ultra the
+fullest.
+
+Both native Cocoa/Metal app suites passed all 32 tests, with screenshot smoke,
+phase shots and close-ups. The gate walks took 108.1 s (light) and 107.2 s
+(blue hour), and the replay's first frame came 0.3 s after step 52.
+
+### Performance
+
+Measured with Phases 1 and 2's method: real playback of demo 1001, Qt's
+`QSG_RENDER_TIMING` GUI intervals over 24 s steady windows, `ps` samples every
+2 s, and the Phase 2 parent run back to back from its own worktree. This is GUI
+cadence at the display's 120 Hz, not GPU timing. GPU time was not measured:
+the Metal HUD's log mode wrote no metrics here. The repository's bench
+(`ROWPLAY_REPLAY_BENCH`) stayed at 8.33 ms on both sides, because
+`QSG_NO_VSYNC` does not unthrottle Cocoa/Metal, so it shows no headroom.
+
+| Window | Samples | Median | p95 | Max | > 50 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Parent, Medium, light | 2,880 | 8 ms | 10 ms | 13 ms | 0 |
+| Phase 3, Medium, light | 2,878 | 8 ms | 10 ms | 21 ms | 0 |
+| Parent, High, light | 2,879 | 8 ms | 10 ms | 13 ms | 0 |
+| Phase 3, High, light | 2,880 | 8 ms | 10 ms | 14 ms | 0 |
+| Parent, Ultra, light | 2,879 | 8 ms | 10 ms | 12 ms | 0 |
+| Phase 3, Ultra, light | 2,880 | 8 ms | 10 ms | 14 ms | 0 |
+| Parent, Medium, blue hour | 2,878 | 8 ms | 10 ms | 30 ms | 0 |
+| Phase 3, Medium, blue hour | 2,880 | 8 ms | 10 ms | 12 ms | 0 |
+
+No window shows a recurring stall. CPU ranged over 42-71 % of one core on
+both sides. Resident memory is flat within every window: no growth. Between
+runs it is not stable. Three alternating Medium runs per side read 344.2,
+366.1 and 365.0 MiB (parent) and 293.5, 370.6 and 373.4 MiB (Phase 3): a spread
+of up to 80 MiB for one tree, pairwise differences of -50.7, +4.5 and +8.4 MiB,
+and medians 5.6 MiB apart. No memory regression is demonstrated. For a laptop
+iGPU the added cost is the table above's triangles and 9 draws, plus
+shadow sampling on the terrain at High and Ultra. That is an estimate, not a
+measurement on such a GPU.
+
+### Determinism
+
+Two generations of the water normal and three exports from the unchanged
+`.blend` were byte-identical (Blender 5.2.2 LTS on this Mac). The water PNG
+also matches the numpy prototype judged in Qt to within one 8-bit level. The
+`.blend` is not regenerated from a script: it is the source.
+
+### Validation
+
+- 19 pipeline tests with Blender's Python (`test_canonical`, `test_probes`,
+  `test_water`, `test_export_environment`).
+- `cargo fmt --all -- --check`.
+- `cargo clippy --workspace --all-targets -- -D warnings`.
+- Qt-free tests: 591 passed, 2 existing ignores.
+- The asset tests: the new ones check the manifest's source hash and budgets,
+  the placement invariants, and the water tile against `RowingWater.qml`. The
+  tile check fails, as it should, with the old 1500 repeat put back.
+- Both native app suites; `git diff --check`.
+
+### Limitations
+
+- **Style.** The environment is stylised rather than photographic: crowns are
+  lumpy low-poly masses, and conifers are stacked cones. Distance and fog hide
+  most of it, but the nearest parkland trees show their facets at 2400 px.
+- **The web venue.** Its structures and island stay unchanged until Phase 4.
+  #121 (the web venue's instanced groups in Qt) is untouched. For rowing, the
+  woodland it concerned is now hidden and replaced.
+- **The water tile.** It repeats every 8 m when looked at from above.
+- **Wake and foam.** There is none; that is its own phase.
+- **Performance.** GPU time and iGPU hardware were not measured.

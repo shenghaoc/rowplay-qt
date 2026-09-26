@@ -662,6 +662,36 @@ native Metal capture:
   rules require finite bounds on every attribute. `canonical.bound_attributes`
   adds them, and fails on any non-finite value.
 
+### Blender Phase 3: environment and water (2026-09-26)
+
+Checked in the Qt 6.11.2 sources and then in native Metal captures:
+
+- **balsam names mesh files predictably.** A glTF mesh becomes
+  `meshes/<name>_mesh.mesh`, with the name in lower case and every other
+  character an underscore: the buoy's `Sphere` became `sphere_mesh.mesh`. A
+  declarative `Model { source: "…/meshes/…mesh" }` loads that file directly, so
+  the environment never goes through balsam's component, its placeholder
+  materials or a runtime walk. `build.rs` checks that every expected file
+  exists, so a naming change fails the build.
+- **`instanceCountOverride` selects a tier without re-uploading.** Each
+  variant's `InstanceList` is sorted by tier, so every tier is a prefix.
+  Changing the override draws fewer or more instances of the table uploaded
+  once. The export guarantees every list has a Low instance, so no count is
+  zero.
+- **Instance colour multiplies the vertex colour.**
+  `qssgvertexpipelineimpl.cpp` sets `qt_vertColor = attr_color` for a mesh
+  with colours, then `qt_vertColor *= qt_instanceColor` when instanced. A
+  plant's tint scales its baked crown shading, and the material's base colour
+  (the scheme's tint) multiplies both.
+- **Depth fog** is `pow(smoothstep(near, far, distance), curve) * density`
+  towards the fog colour (`fog.glsllib`), applied to materials and not to the
+  sky. The Blender review renders reproduce it (`review_environment.py`).
+- **`QSG_NO_VSYNC` does not unthrottle Cocoa/Metal.** With it set, the
+  replay bench's `renderStats.frameTime` and wall intervals stayed at 8.33 ms
+  on a 120 Hz display, so on this Mac the bench shows no headroom. The Metal
+  HUD (`MTL_HUD_ENABLED`, `MTL_HUD_LOG_ENABLED`) loaded but logged no metrics,
+  so GPU time went unmeasured.
+
 ### Platforms and tooling
 
 - The `offscreen` QPA platform falls back to the software scene graph, where
