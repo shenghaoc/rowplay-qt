@@ -420,6 +420,7 @@ const AUTHORED: &[&str] = &[
     "authored/course.json",
     "authored/overcast.hdr",
     "authored/overcast.ktx",
+    "authored/rowing-shell.glb",
     "authored/water-normal.png",
 ];
 
@@ -447,6 +448,11 @@ fn authored_assets_match_manifest_and_budgets() {
     assert!(total <= 4 * 1024 * 1024, "authored pack exceeds 4 MiB");
     assert!(manifest["buoyTriangles"].as_u64().unwrap() <= 5000);
     assert!(manifest["textureMax"].as_u64().unwrap() <= 1024);
+    // Blender Phase 2: the shell and both oars as drawn (build.rs recounts
+    // them from the GLB itself through rowing_shell::validate_rowing_shell).
+    let shell = &manifest["shell"];
+    assert_eq!(shell["budget"].as_u64(), Some(60_000));
+    assert!(shell["triangles"]["rendered"].as_u64().unwrap() <= 60_000);
     let course_text = std::fs::read_to_string(dir.join("course.json")).unwrap();
     let course: Vec<serde_json::Value> = serde_json::from_str(&course_text).unwrap();
     assert_eq!(course.len(), 256);
