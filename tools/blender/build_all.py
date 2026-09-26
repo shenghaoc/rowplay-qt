@@ -15,6 +15,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import contact_sheet, export, linear, material, reset
 from probes import bake
+import shell
 
 SEED = 20260926
 ROOT = Path(__file__).resolve().parents[2]
@@ -118,6 +119,22 @@ def placements():
     return result
 
 
+def rowing_shell(output, previews):
+    """The single scull and its sculls (Phase 2), budget-checked before export."""
+    reset()
+    counts = shell.build(material("rowplay-neutral", "#8c9399", 0.5))
+    total = shell.rendered_triangles(counts)
+    if total > shell.TRIANGLE_BUDGET:
+        raise ValueError(f"shell and oars: {total} triangles exceeds {shell.TRIANGLE_BUDGET}")
+    shell.export(output)
+    shell.validate(output)
+    if previews:
+        previews.mkdir(parents=True, exist_ok=True)
+        shell.contact_sheet(previews / "shell-contact-sheet.png")
+    return {"blender": bpy.app.version_string, "triangles": dict(counts, rendered=total),
+            "budget": shell.TRIANGLE_BUDGET}
+
+
 def course_json(entries):
     """One buoy per line, so a moved buoy is a one-line diff."""
     lines = (json.dumps(entry, separators=(", ", ": ")) for entry in entries)
@@ -129,9 +146,20 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "assets/replay/authored")
     parser.add_argument("--previews", type=Path, default=ROOT / "build/previews")
     parser.add_argument("--balsam", default=os.environ.get("ROWPLAY_BALSAM", "balsam"))
+    parser.add_argument("--only", choices=("all", "shell"), default="all",
+                        help="shell: rebuild the shell pack alone and re-pin it in MANIFEST.json")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     args.output.mkdir(parents=True, exist_ok=True)
     print("Blender", bpy.app.version_string, "seed", SEED)
+    if args.only == "shell":
+        manifest_path = args.output / "MANIFEST.json"
+        report = json.loads(manifest_path.read_text())
+        report["shell"] = rowing_shell(args.output / "rowing-shell.glb", args.previews)
+        data = (args.output / "rowing-shell.glb").read_bytes()
+        report["files"]["rowing-shell.glb"] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+        report["files"] = dict(sorted(report["files"].items()))
+        write_manifest(args.output, report)
+        return
     sky(args.output / "overcast.hdr", False)
     sky(args.output / "blue-hour.hdr", True)
     for name in ("overcast", "blue-hour"):
@@ -140,6 +168,7 @@ def main():
     water(args.output / "water-normal.png")
     triangles = buoy(args.output / "buoy.glb", args.previews)
     (args.output / "course.json").write_text(course_json(placements()))
+    shell_report = rowing_shell(args.output / "rowing-shell.glb", args.previews)
     files = {}
     for path in sorted(args.output.iterdir()):
         if path.name == "MANIFEST.json" or not path.is_file():
@@ -148,10 +177,14 @@ def main():
         files[path.name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
     report = {"blender": bpy.app.version_string, "seed": SEED,
               "buoyTriangles": triangles, "buoyInstances": 256,
-              "textureMax": 512, "files": files}
-    (args.output / "MANIFEST.json").write_text(json.dumps(report, indent=2) + "\n")
-    if sum(f["bytes"] for f in files.values()) > 4 * 1024 * 1024:
+              "textureMax": 512, "shell": shell_report, "files": files}
+    write_manifest(args.output, report)
+
+
+def write_manifest(output, report):
+    if sum(f["bytes"] for f in report["files"].values()) > 4 * 1024 * 1024:
         raise ValueError("authored source budget exceeds 4 MiB")
+    (output / "MANIFEST.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
 
 

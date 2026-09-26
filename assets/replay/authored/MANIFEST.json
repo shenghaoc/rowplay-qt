@@ -29,9 +29,24 @@
       "bytes": 1048436,
       "sha256": "5548083b00cd6963b66243bf66174d749985a308cdceb8c96d12efbce9996d88"
     },
+    "rowing-shell.glb": {
+      "bytes": 912596,
+      "sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d"
+    },
     "water-normal.png": {
       "bytes": 129901,
       "sha256": "bd620dbb1857decd46352295a1e73aa7fcf855d2f3560e4c3dd7c291548bd601"
     }
+  },
+  "shell": {
+    "blender": "5.2.2 LTS",
+    "triangles": {
+      "equipment:row:boat-assembly": 31248,
+      "equipment:row:seat-carriage": 2440,
+      "equipment:row:oar-rig": 3048,
+      "equipment:row:blade": 3190,
+      "rendered": 46164
+    },
+    "budget": 60000
   }
 }
