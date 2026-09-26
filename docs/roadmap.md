@@ -18,6 +18,16 @@ See [bridge migration notes](qt-bridges-notes.md#21-migration-to-qtbridge-030-20
 for source references, lockfile alignment and validation. The phase records
 below retain their original toolchain history.
 
+## Dependency maintenance (2026-09-26)
+
+Dependabot checks Cargo dependencies weekly for the complete root workspace
+and shared `Cargo.lock`, and GitHub Actions weekly across `.github/workflows/`.
+There is no separate fuzz workspace or per-crate updater. The Actions updater
+excludes only `dtolnay/rust-toolchain`: its refs select the Rust toolchains,
+including MSRV, and are deliberately synchronized by hand with the local and
+release pins. Dependency and other action updates remain subject to PR review
+and CI; the exact qtbridge pin is retained until a deliberate upgrade.
+
 ## Phase 0 — Bootstrap
 
 Status: delivered (this PR).
