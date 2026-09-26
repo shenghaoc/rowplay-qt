@@ -15,6 +15,7 @@ Pipeline scripts. Nothing here is linked into the app.
 | `package/gen-icons.py` | Derives the committed `assets/icon/rowplay-qt.icns` / `.ico` from the vendored web icon with Pillow (`--check` compares bytes); both outputs are SHA-256-pinned by `asset_hashes.rs`. |
 | `convert-locales.mjs` | Regenerate the ID-based Qt `.ts` catalogues in `i18n/` from the web locales in `reference/rowplay/src/lib/locales/` (`--check` verifies the committed files; needs Node ≥ 23.6 for type stripping). |
 | `capture-diff.py` | Compares two directories of gate captures (the raw `.ppm` files the walk saves next to its PNGs in `ROWPLAY_SMOKE_SCREENSHOT_DIR`) and marks every capture outside the capture noise bound (AGENTS.md, "Working efficiently"); name substrings narrow it to the captures a change reaches. Standard library only. |
+| `ci/change-scope.sh` (+ `ci/test-change-scope.sh`) | The CI workflow's docs-only classifier: prints `code=true` or `code=false` for a change list on stdin or for `--diff <base-ref>`. The test script pins its cases, renames through git included; CI runs it before every classification (AGENTS.md, "Continuous integration"). Bash and git only. |
 
 Later phases add asset vendoring and `balsam` pre-processing (Phase 5), and
 the Node venue exporter plus Blender clean-up scripts (Phase 6).
