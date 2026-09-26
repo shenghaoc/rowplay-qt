@@ -529,8 +529,10 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
 ///
 /// balsam converts `authored/rowing-environment.glb` for its meshes only: the
 /// component it writes carries placeholder materials and is not registered.
-/// Instead a generated `EnvironmentScene.qml` declares the Models: the
-/// terrain, the far bank, and one instanced Model per vegetation variant whose
+/// `rowplay_viewmodel::replay::environment::validate_environment` checks the
+/// GLB first, since only its meshes reach the scene. A generated
+/// `EnvironmentScene.qml` declares the Models: the terrain, the far bank, the
+/// woodland, and one instanced Model per vegetation variant whose
 /// `InstanceList` comes from `authored/vegetation.json`. That file is sorted by
 /// variant and then by tier, so each tier's instances are a prefix of its
 /// variant's list and `instanceCountOverride` selects the prefix: a tier
@@ -562,7 +564,7 @@ fn build_environment(
         ("reeds", "reeds"),
     ];
     const TIERS: usize = 4;
-    const PREFIX: &str = "environment:row:";
+    const PREFIX: &str = rowplay_viewmodel::replay::environment::ENVIRONMENT_PREFIX;
     // balsam names a mesh file after its glTF mesh: lower case, every other
     // character an underscore, then `_mesh.mesh` (the buoy's `Sphere` became
     // `sphere_mesh.mesh`). Checked below on the files it wrote.
@@ -584,27 +586,21 @@ fn build_environment(
     println!("cargo::rerun-if-changed={}", glb.display());
     let bytes =
         std::fs::read(&glb).unwrap_or_else(|error| panic!("read {}: {error}", glb.display()));
-    let json_len = u32::from_le_bytes(bytes[12..16].try_into().expect("GLB header")) as usize;
-    let doc: serde_json::Value =
-        serde_json::from_slice(&bytes[20..20 + json_len]).expect("environment GLB JSON");
-    let mut meshes: Vec<String> = doc["meshes"]
-        .as_array()
-        .expect("environment meshes")
-        .iter()
-        .map(|mesh| mesh["name"].as_str().expect("mesh name").to_owned())
-        .collect();
-    meshes.sort();
-    let mut expected: Vec<String> = LAND
-        .iter()
-        .map(|(name, _, _)| *name)
-        .chain(VARIANTS.iter().map(|(name, _)| *name))
-        .map(|name| format!("{PREFIX}{name}"))
-        .collect();
-    expected.sort();
+    rowplay_viewmodel::replay::environment::validate_environment(&bytes).unwrap_or_else(|error| {
+        panic!(
+            "authored/rowing-environment.glb fails its contract: {error}; \
+             re-export it with `make blender-environment`"
+        )
+    });
+    // The validator holds the land parts and variants the GLB must carry;
+    // the lists above add each one's material and shadow flag.
     assert_eq!(
-        meshes, expected,
-        "authored/rowing-environment.glb must hold exactly the land parts and the \
-         vegetation variants; re-export it with `make blender-environment`"
+        LAND.map(|(name, _, _)| name),
+        rowplay_viewmodel::replay::environment::ENVIRONMENT_LAND
+    );
+    assert_eq!(
+        VARIANTS.map(|(name, _)| name),
+        rowplay_viewmodel::replay::environment::ENVIRONMENT_VARIANTS
     );
 
     let out = module_root.join("environment");
