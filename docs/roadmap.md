@@ -38,8 +38,9 @@ and irregular enough to lose Phase 1's lattice. The basin gains a near bank
 bank (a forest belt, distant hills). The environment is the first modelled
 asset: `rowing-environment.blend` is its source, and
 `tools/blender/export_environment.py` exports and validates it. It replaces the
-baked web venue's rowing land and vegetation (ADR 0016, amended); the venue's
-structures stay until Phase 4. The frame, the camera, the rig and the loop are
+baked web venue's rowing land and vegetation round the basin (ADR 0016,
+amended); the venue's structures and the island at the course's centre stay
+until Phase 4. The frame, the camera, the rig and the loop are
 unchanged. Scope, budgets, evidence and measurements are in
 `.kiro/specs/blender-03-environment-water/tasks.md` and `docs/blender-audit.md`.
 

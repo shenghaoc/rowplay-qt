@@ -110,18 +110,21 @@ sorted by variant and tier). The file's contract:
 - a collection `rowplay-environment` holding `land` (`environment:row:terrain`,
   `far-bank`, `woodland`), `vegetation-variants` (the six variants) and
   `vegetation-low` to `vegetation-ultra`;
-- every mesh named like its object, at the origin with no rotation, scale or
-  modifier, and carrying a point colour attribute `Col` (the albedo, linear);
+- every mesh named like its object, unparented, with an identity world
+  transform (delta transforms and constraints count) and no modifier, and
+  carrying a point colour attribute `Col` (the albedo, linear);
 - every instance a linked duplicate of a variant, turned about +Z only, scaled
   uniformly, tinted by its object colour, and in exactly one tier collection.
   An instance shown at Medium sits in `vegetation-medium` and also shows at
-  High and Ultra.
+  High and Ultra. The placements are read from its location, Z rotation and
+  scale, so its world transform must agree with them to 1 mm.
 
 It refuses:
 
 - a part over its budget, or a tier over its instance or triangle count;
 - a variant with no Low instance;
-- terrain above the water inside 36.2 m (the outer buoy ring is at 33.3 m);
+- land at or above the water inside 36.2 m, checked on every triangle, not
+  only at its vertices (the outer buoy ring is at 33.3 m);
 - anything planted inside a retained web venue structure, or ground at a
   structure's middle outside its range. The footprints are annular sectors
   read from the vendored Ultra venue.
@@ -130,7 +133,11 @@ To edit the environment, open the file in Blender 5.2, change it (sculpt the
 bank, move or re-tier a tree, retint an instance), save it, and run `make
 blender-environment`. The manifest's `environment` section then records the
 file's SHA-256, the triangle counts, the instances per variant and tier, and the
-budgets; the asset tests check all of them. Two things trip the exporter:
+budgets; the asset tests check all of them, recount the triangles from the
+GLB and pin every budget. `build.rs` checks the GLB itself
+(`replay::environment::validate_environment` in rowplay-viewmodel): the nine
+meshes on flat, untransformed nodes, triangle lists with vertex colours, and
+no materials. Two things trip the exporter:
 
 - **Shared topology.** Blender's exporter shares identical index buffers
   between meshes, which `canonical.py` refuses, so each variant needs its own
@@ -259,8 +266,9 @@ alpha, nonblank pixels, tier/grip equality and water-band differences. It also
 checks that the same replay state renders the same pixels at two wall-clock
 times (`style-medium` and `motion-000`), so nothing moves on its own clock. It
 creates side-by-side stills and a 4 fps comparison clip. It reads pixels with
-Pillow and numpy where they are installed and with ImageMagick otherwise, and
-needs FFmpeg for the clip; none of these is required by generation or the app
-build. Ask before installing them. The water band is a fixed 250 x 230 patch
-of near water at (0, 1150); Phase 1's (0, 420) lies across the far bank in the
+Pillow and numpy where they are installed and with ImageMagick otherwise
+(the same-state pair is then decoded through FFmpeg), and needs FFmpeg for
+the clip; none of these is required by generation or the app build. Ask
+before installing them. The water band is a fixed 250 x 230 patch of near
+water at (0, 1150); Phase 1's (0, 420) lies across the far bank in the
 current layout.
