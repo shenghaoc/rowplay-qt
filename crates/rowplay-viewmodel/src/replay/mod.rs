@@ -3,7 +3,9 @@
 //! ([`glb`]), the material-role → theme-key palette resolver ([`materials`]),
 //! the venue palette bridge for sky, ground and lanes ([`palette`]) and the
 //! equipment anchor table from the asset README ([`anchors`]). Phase 6a adds
-//! the baked-venue reader and contract validator ([`venue`]).
+//! the baked-venue reader and contract validator ([`venue`]); Blender Phase 2
+//! the authored rowing shell's gate against the V3 contract
+//! ([`rowing_shell`]).
 //!
 //! Everything here is Qt-free data and validation: the app crate's `Replay`
 //! singleton adapts it to QML, and no hex colour or anchor coordinate is
@@ -21,6 +23,7 @@ pub mod hud;
 pub mod materials;
 pub mod palette;
 pub mod pose;
+pub mod rowing_shell;
 pub mod tier;
 pub mod venue;
 pub mod venue_runtime;

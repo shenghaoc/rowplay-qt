@@ -186,6 +186,18 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
     let library = rowplay_viewmodel::replay::glb::validate_v3(&bytes)
         .unwrap_or_else(|error| panic!("vendored V3 rig pack fails its contract: {error}"));
 
+    // Blender Phase 2: the authored shell and sculls stand in for the V3
+    // pack's rowing geometry in the scene. They must carry exactly its rowing
+    // names, roles and composite rules, within the triangle budget as drawn,
+    // checked here on the bytes balsam converts.
+    let shell_path = assets.join("authored").join("rowing-shell.glb");
+    println!("cargo::rerun-if-changed={}", shell_path.display());
+    let shell_bytes = std::fs::read(&shell_path)
+        .unwrap_or_else(|error| panic!("read {}: {error}", shell_path.display()));
+    let shell =
+        rowplay_viewmodel::replay::rowing_shell::validate_rowing_shell(&shell_bytes, &library)
+            .unwrap_or_else(|error| panic!("authored rowing shell fails the V3 contract: {error}"));
+
     let mut mesh_roles = serde_json::Map::new();
     for entry in &library.mesh_roles {
         mesh_roles.insert(
@@ -211,6 +223,10 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
             "bounds": [leaf.bounds.0, leaf.bounds.1],
         })).collect::<Vec<_>>(),
         "meshRoles": mesh_roles,
+        "rowingShell": {
+            "byteLength": shell.byte_length,
+            "renderedTriangles": shell.rendered_triangles,
+        },
     });
     std::fs::write(
         out_dir.join("replay_assets_meta.json"),
@@ -304,8 +320,14 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
     // The venues' stems match `venue_runtime::component_name` ("skierg"
     // trims to "ski"), so the scene can compute component URLs from the
     // sport and tier alone.
-    const PACKS: [(&str, &str, &str, &str); 15] = [
+    const PACKS: [(&str, &str, &str, &str); 16] = [
         ("authored/buoy.glb", "Buoy.qml", "buoy", "CourseBuoy"),
+        (
+            "authored/rowing-shell.glb",
+            "Rowing_shell.qml",
+            "rowing",
+            "RowingRig",
+        ),
         ("rowplay-rigs-v3.glb", "Rowplay_rigs_v3.qml", "rigs", "Rigs"),
         (
             "rowplay-athlete-v4.glb",
