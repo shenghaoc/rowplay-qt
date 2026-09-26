@@ -11,6 +11,7 @@ Source `.envrc` for Qt 6.11.2, then:
 ```sh
 make blender-assets BLENDER="$HOME/opt/blender-5.2.1-linux-x64/blender"
 # macOS: BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
+make blender-shell BLENDER=...   # the shell and oars alone (Phase 2)
 ```
 
 The target uses factory startup and `--python-exit-code 1`. `build_all.py`
@@ -35,10 +36,53 @@ one unextended opaque mesh primitive/material with an embedded buffer and
 disjoint, tightly packed views. Mixed primitives, transmission/extensions,
 index/attribute aliasing and out-of-view indices fail before writing. Regression
 tests check winding, idempotence, these refusals and the committed buoy's bytes.
+The shell pack uses `canonicalize_pack`, the same contract applied to every
+primitive of a multi-mesh pack, then `bound_attributes`. That writes min/max
+on every vertex attribute: Blender's exporter bounds only POSITION, and the
+V3 rules the app enforces require finite bounds on every attribute.
 
 `common.py` owns metre units and the Blender Z-up to glTF Y-up conversion.
 One glTF unit is one Qt scene metre; there is no 100x import scale. Qt built-in
 Rectangle is 100 units wide, explicitly accounted for by `RowingWater.qml`.
+
+## Shell and oars (Phase 2)
+
+`shell.py` generates `rowing-shell.glb`, the single scull and its sculls: the
+hull, canvases, cockpit, gunwales, riggers, oarlocks, sliding seat and tracks,
+foot stretcher, fin, and the oar with its shaft, grip, button, sleeve and
+hatchet blade. It is a procedural asset under ADR 0016's source rule, so the
+script is its source and no `.blend` is committed. Every dimension that binds
+to the rig is named after the Rust constant it must match: the 7.8 m shell,
+the oarlock pivots, the grip the hands close on, and the blade leaf's origin.
+
+- **Contract.** The pack carries the V3 pack's three rowing template roots and
+  the blade leaf. They use the same node names, material roles and composite
+  rules. `build.rs` checks this against the vendored pack on the exact bytes
+  balsam converts (`rowing_shell::validate_rowing_shell`), and recounts the
+  triangles as drawn: the boat and seat once, the oar rig and blade once per
+  side. The app hides the V3 pack's rowing nodes and walks these instead.
+  The V3 pack stays vendored and pinned.
+- **Fit.** The seat, rails, floor and stretcher are fitted to the athlete the
+  app draws. The V4 athlete was skinned with the replay's own pose frames over
+  one stroke, and the fit is recorded in `docs/blender-audit.md`, "Phase 2".
+  The generator refuses a cockpit part that pokes through the hull at any seat
+  position, and a fin that shows above the water at the top of the bob.
+- **Left blade.** The blade has a handedness. The app reflects the left leaf
+  in its own z and gives it a front-face-culled copy of the paint material.
+  `docs/qt-bridges-notes.md` explains why double-sided would be wrong.
+- **Wet band.** The hull's vertex colours scale the carbon material's roughness
+  (red) and clearcoat roughness (green) toward the waterline. There is no
+  texture and no UV set; parts without the colour attribute are unaffected.
+- **Budget.** `build_all.py` refuses more than 60,000 triangles as drawn
+  before export, and `build.rs` refuses it again from the GLB.
+
+`make blender-shell` rebuilds only this pack and re-pins it in `MANIFEST.json`
+(its `shell` section records the Blender version and the triangle counts). The
+other authored assets keep their Linux build. The shell was generated on macOS
+with Blender 5.2.2 LTS; two independent builds there were byte-identical. The
+previews are `build/previews/shell-contact-sheet.png` (top, side, front and
+three-quarter views, posed as the app clones the oars) and
+`build/previews/shell-details.png` (close-ups).
 
 ## Outputs and budgets
 
@@ -49,7 +93,7 @@ required. Generated source provenance is in `ASSET_PROVENANCE.md`.
 
 | Asset | Limit |
 | --- | --- |
-| Future hero shell plus oars | 60,000 triangles, 2K textures |
+| Shell plus oars | 60,000 triangles as drawn; 1K PNG textures (none used) |
 | Each new environment prop | 5,000 triangles, 1K textures |
 | Water detail | 512 square, periodic tangent-space normal PNG |
 | Sky source | 512 x 256 linear HDR |

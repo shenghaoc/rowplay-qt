@@ -377,3 +377,107 @@ byte. The skies, probes and buoy did not match, which the pipeline README
 anticipates for another Blender build and baker backend. The buoy's positions,
 normals and indices were identical; 34 of its 302 texture-coordinate floats
 differed by at most 6e-8. None of those outputs was committed.
+
+## Phase 2: shell and oars (2026-09-26)
+
+`rowing-shell.glb` rebuilds the single scull and its sculls inside the V3
+contract. It is a procedural asset under the amended ADR 0016: its script is
+its source. The shell is 7.8 m long, the oarlock pins stand on the animated
+pivots, and the grip spans the V3 grip the hands close on (0.82 to 0.50 m
+inboard, 23 mm radius, 4 cm below the pivot line). Each of these is pinned by
+a test against the Rust constant (`rowing_shell.rs`). As drawn, the boat,
+seat and both oars total 46,164 triangles against the 60,000 budget. The
+authored pack totals 3,226,748 bytes, under its 4 MiB budget.
+
+### Fitting the cockpit to the athlete the app draws
+
+The V3 seat carriage never showed in the port. The port's anchor puts the
+template at the moving group's origin, where the web adds `(0, 0.29, −0.14)`,
+so the seat rendered below the cockpit floor. The port's pelvis target is also
+0.30 against the web's 0.376. Both are tracked in #130; Phase 2 changes
+neither.
+
+To fit the new cockpit, the V4 athlete was skinned with the replay's own pose
+frames: 40 samples over one stroke of demo 1001, logged by an instrumented
+gate. The skinning was validated two ways:
+
+- Projected through the logged camera, the skinned vertices land on the
+  rendered athlete in a native capture of the same frame.
+- The hand contacts land on the oar grip axis, exactly at one sample and
+  within 14.5 mm at the catch.
+
+The fit follows from the measurements:
+
+- **Seat.** The pelvis rests at y 0.121–0.126 under the ischia and 0.099 on the
+  centre line, 0.16 aft of the seat origin. The pad top is at 0.118, with a
+  centre channel.
+- **Floor.** The floor sits at 0.034 on the centre line, rising in a shallow U.
+  At the largest bob (±1.94 cm) and roll (4.5°) it stays above the water plane.
+- **Feet.** The soles lie on a 43° plane. At the catch the heels lift 7–8 cm;
+  at the finish they rest 2 cm past the board plane, on the floor. The board
+  therefore starts above the heels, and rubber heel cups on the floor take
+  them.
+
+Athlete vertices inside each part, at the worst of the 40 samples (V3 as the
+port places it, then Phase 2):
+
+| Part | V3 | Phase 2 |
+| --- | ---: | ---: |
+| Heel cups | 5,319 | 95 |
+| Footboard | 3,983 | 8 |
+| Stretcher hardware | 192 | 0 |
+| Riggers | 76 | 0 |
+| Slide rails | 30 | 0 |
+| Seat pad | 0 | 6 |
+| Grip | 3,054 | 3,053 |
+| Handle cap | 168 | 170 |
+
+The grip and handle cap are the hand closing on the same 23 mm rubber, unchanged
+by design. The generator refuses a cockpit part that pokes through the hull at
+any seat position, and a fin that shows above the water at the top of the bob.
+
+### Qt comparisons
+
+The Qt captures were taken with `tools/blender/capture.py` natively on the
+Apple M5 (Cocoa/Metal): demo 1001 at 208.829 s, Low through Ultra, light and
+blue hour, before (Phase 1 head) and after.
+
+- All 18 runtime states per scheme match exactly (pose frame without its
+  sequence counter, grip table and tier).
+- Every capture is opaque and non-blank.
+- 4.1–4.2 % of pixels change at Low and Medium, and 5.2–5.3 % at High and
+  Ultra. Every change lies in the boat, oar and shadow region.
+
+A probe with the hull's vertex-colour masks switched off changed about 2,700
+pixels by at most delta 26 (light, Medium). They form a band a median 6 px
+wide along the projected waterline, which confirms the wet band renders on
+Metal and stays subtle.
+
+The phase close-ups (catch, mid-drive, finish, mid-recovery) show the hands
+closing on the grips through the stroke. The blades in the recovery frames
+render solid and mirrored. At mid-drive the boat's roll accent sinks the port
+blade and lifts the starboard one clear of the water, in the Phase 1 capture
+as in this one. The blades never square, because the port does not apply the
+frame's blade roll (tracked in #129).
+
+Two independent `make blender-shell` builds on this Mac were byte-identical to
+each other and to the committed file.
+
+### Validation (Apple M5, macOS 27.0, Qt 6.11.2, Rust 1.98.1)
+
+Both native Cocoa/Metal app suites passed all 29 tests in light and in dark,
+with screenshot smoke, phase shots and close-ups enabled. The High shadow
+check passed unchanged limits:
+
+| Scheme | Shadow area | Darkening |
+| --- | ---: | ---: |
+| Light | 1.08 % | 5.42 % |
+| Dark | 1.13 % | 6.10 % |
+
+That is less margin than Phase 1's 1.23 % and 5.97 % (light): the old tall
+stretcher board and oarlock posts cast more shadow than the new parts.
+
+The walks took about 160 s, against 106.5 s for a Phase 1 walk earlier the
+same day. Back-to-back full light walks show that gap is machine state, not
+the change: the Phase 1 head walked in 161.2 s and the Phase 2 head in
+159.3 s. The replay's first frame stayed at 0.2–0.3 s.

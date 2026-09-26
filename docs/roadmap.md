@@ -17,6 +17,18 @@ Qt source tracing and the isolated filter timing comparison. Both hardware
 acceptance gates passed on Apple M5/Metal at the audited head; see the
 acceptance and current-main integration records in `docs/blender-audit.md`.
 
+### Blender Phase 2: shell and oars
+
+The single scull and its sculls are rebuilt inside the V3 rowing contract: the
+7.8 m shell, the oarlock pivots, and the node names and roles the scene maps
+materials onto. The rig tests and the grip and pivot checks are unchanged.
+The shell is procedural under the amended ADR 0016 (its script is its source).
+It is drawn with 46,164 triangles against a 60,000 budget, and fitted to the
+athlete the app draws. Scope, evidence and the fit are in
+`.kiro/specs/blender-02-shell-oars/tasks.md` and `docs/blender-audit.md`.
+Found on the way and left for their own changes: the blades never square
+(#129), and the seat and pelvis sit below the web's (#130).
+
 ## Original implementation roadmap
 
 rowplay-qt ports rowplay (SvelteKit + three.js, canonical) to a cross-platform
