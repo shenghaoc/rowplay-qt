@@ -42,14 +42,14 @@ ambient colours rather than exposure scaling. No bridge API was added.
 The owner dropped the replacement-rower phase and requires stationary course
 references, not accelerated water scrolling, to make motion readable. The
 runtime capture script samples demo 1001 at 208.829 s and subsequent real-time
-quarter-second intervals. Full visual acceptance and macOS verification remain
-tracked in `.kiro/specs/blender-01-pipeline/tasks.md`.
+quarter-second intervals. Both acceptance gates passed on an Apple M5 under
+Metal: the visual acceptance (light and blue hour, all four tiers) and the
+interactive replay and performance check. The records, including the
+current-main integration, are in `docs/blender-audit.md`.
 
 Source-first closeout tightened only the GLB/KTX generator input contracts;
 committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
-Qt source tracing and the isolated filter timing comparison. Both hardware
-acceptance gates passed on Apple M5/Metal at the audited head; see the
-acceptance and current-main integration records in `docs/blender-audit.md`.
+Qt source tracing and the isolated filter timing comparison.
 
 ## Phase 1 — core parity foundation
 

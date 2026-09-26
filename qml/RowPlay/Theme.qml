@@ -376,7 +376,10 @@ QtObject {
     // lives here so the 3D scene shares the shell's light/dark palettes.
     // `rowplay_viewmodel::replay::materials` maps every replayMaterialRole to
     // one of these tokens (or to the venue palette for lane paint) — QML must
-    // not hardcode material hex values.
+    // not hardcode material hex values. The one exception is the rowing
+    // scene's palette (ADR 0016) in `Replay/RowingStyle.qml`: the shell and
+    // oars, water, fog, key light and venue tints. It colours only the 3D
+    // scene, never text or controls.
 
     /// Athlete skin (V4 vertex-colour skin regions).
     readonly property color replaySkin: dark ? "#c98d68" : "#d99a72"

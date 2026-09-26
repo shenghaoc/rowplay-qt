@@ -492,8 +492,9 @@ Concept2 token. Cache failures never silently fall back to demo data.
   - Text, fills, strokes and focus in our own content take their colours
     from `Theme`'s tokens, which derive from the system palette (ADR 0015)
     and are fitted to the contrast floors. The only literal colours outside
-    `Theme` are `transparent`, alpha washes of its tokens, and the smoke
-    test's own.
+    `Theme` are `transparent`, alpha washes of its tokens, the smoke test's
+    own, and the rowing scene's palette in `Replay/RowingStyle.qml` (ADR
+    0016), which colours only the 3D scene, never text or controls.
   - A layout that depends on the window's width reads `Theme.widthClass`:
     M3's compact, medium, expanded, large and extra-large, scaled with
     the text. A content layout that splits into panes also checks its own
