@@ -462,10 +462,17 @@ Concept2 token. Cache failures never silently fall back to demo data.
   `workout_local_day_key`) so `docs/source-map.md` stays greppable.
 - Every source file (Rust, QML, scripts, workflows, qrc) starts with
   `SPDX-License-Identifier: GPL-3.0-or-later`.
-- The common assets under `assets/replay/authored/` are MIT (ADR 0002): each
-  gets an MIT row in `ASSET_PROVENANCE.md`, and the asset tests check it.
-  Binary assets and JSON carry no SPDX header. The scripts that make these
-  assets stay GPL.
+- The common assets under `assets/replay/authored/` are MIT (ADR 0002)
+  because the owner holds their copyright and their provenance is clean, not
+  because a script generated them.
+  - Each gets an MIT row in `ASSET_PROVENANCE.md`, which the asset tests
+    check.
+  - Record there every input taken from elsewhere, with its source and
+    licence, and keep any attribution it requires. An input is anything the
+    asset takes from outside: a web constant, a vendored pack's names or
+    dimensions, a mesh it is measured against.
+  - Binary assets and JSON carry no SPDX header.
+  - The scripts that make these assets stay GPL.
 - QML: one module per directory with a `qmldir`; strings through
   `Tr.t("dotted.web.key", { vars })` (never `qsTr` with inline English, never
   hardcoded user-visible text); each platform's own Qt Quick Controls

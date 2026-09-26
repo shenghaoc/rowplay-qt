@@ -29,6 +29,18 @@ athlete the app draws. Scope, evidence and the fit are in
 Found on the way and left for their own changes: the blades never square
 (#129), and the seat and pelvis sit below the web's (#130).
 
+### Licensing of the authored assets (2026-09-26)
+
+Everything under `assets/replay/authored/` is MIT (ADRs 0002 and 0016). That
+is Direction C's skies, probes, water normals, buoy and course, the Phase 2
+shell, and the manifest. The owner holds its copyright and its provenance is
+clean; being generated is not the reason. The Blender scripts that generate
+it stay GPL-3.0-or-later, and their licence decides nothing about their
+output. Its inputs from elsewhere are recorded with their licences in
+`ASSET_PROVENANCE.md`: rowplay's MIT work (the V3 pack's rowing contract and
+the web's rig and lane constants) and the CC0 base mesh of the athlete the
+shell is fitted to.
+
 ## Original implementation roadmap
 
 rowplay-qt ports rowplay (SvelteKit + three.js, canonical) to a cross-platform
