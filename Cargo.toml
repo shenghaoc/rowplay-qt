@@ -102,7 +102,6 @@ too_many_arguments = "allow"
 # The ports keep the web app's exact arithmetic (`(a + b) / 2`, not `midpoint`).
 manual_midpoint = "allow"
 
-# Raising MSRV to 1.88 enables let-chain and array-chunk style suggestions.
+# Raising MSRV to 1.88 enables let-chain style suggestions.
 # Keep the existing port structure during the qtbridge API migration.
 collapsible_if = "allow"
-chunks_exact_to_as_chunks = "allow"

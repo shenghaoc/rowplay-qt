@@ -537,10 +537,11 @@ The earlier entries record 0.2 observations unless updated here.
   so this and later bumps rename no required check; it was `MSRV 1.87
   (Qt-free crates)`, and the `main` ruleset must require the new name
   before this change merges. Its compiler is 1.88.0. The regular compiler
-  stays at 1.98.1. Raising the MSRV enabled `collapsible_if` let-chain and
-  `chunks_exact_to_as_chunks` suggestions; both are explicitly allowed at
-  workspace level to preserve existing port structure instead of mixing a
-  style rewrite into the bridge migration.
+  stays at 1.98.1. The `collapsible_if` allowance preserves existing port
+  structure. The three constant-size chunk calls flagged by pinned Clippy
+  use `as_chunks::<N>()`, available in Rust 1.88, retaining the previous
+  ignored-remainder behavior. No `chunks_exact_to_as_chunks` allowance is
+  configured because Clippy 1.88 does not recognize that lint.
 
 Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
 
