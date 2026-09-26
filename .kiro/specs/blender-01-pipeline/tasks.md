@@ -27,6 +27,8 @@ same runtime frame truth, existing athlete retained. No new straight course.
   retain native styles as ADR 0015 and renumber Blender lighting to ADR 0016.
 - [x] Recheck fixed-state parity, native Metal light/dark/tier visuals, instancing,
   short interactive playback, fmt/clippy/build and Qt-free/full app tests.
+- [x] Review follow-up: write `course.json` with one buoy per line, re-pin it, and
+  confirm two independent generations are byte-identical.
 
 Phase 2 remains the shell/oar rebuild inside the existing 7.8 m rig contract.
 Replacement anatomy/rigging is explicitly out of scope.
