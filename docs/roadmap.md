@@ -199,7 +199,11 @@ Status: delivered (this PR).
   (2026-09-24: a docs-only pull request skips the app build and test steps
   and the step-529 job, while the app jobs still report their required
   checks, and a newer push cancels the run it supersedes; AGENTS.md,
-  "Continuous integration".)
+  "Continuous integration". 2026-09-26: a docs-only pull request, now also
+  one that edits a tool README, runs no Rust, Qt, MSRV or visual gate at
+  all; the Qt-free job keeps its `git diff --check` and the other required
+  jobs report a notice. `ASSET_PROVENANCE.md`, which the asset tests read,
+  is code. The classifier and its cases live in `tools/ci/`.)
 - Docs: README, LICENSE and `LICENSES/`, `ASSET_PROVENANCE.md`, ADRs
   0001–0006, `docs/source-map.md` (web → Swift → Rust),
   `docs/qt-bridges-notes.md`, `.kiro/specs/phase-00-bootstrap/` and

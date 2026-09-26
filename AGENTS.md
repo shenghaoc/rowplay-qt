@@ -272,15 +272,30 @@ renames no required check. The step-529 job is informational. Rules:
 - A newer push to a pull request cancels the run it supersedes. Runs on
   `main` are never cancelled. A re-run of an older run cancels nothing: it
   waits for the run in progress.
-- A docs-only pull request skips the App jobs' build and test steps and the
-  step-529 job. Docs-only means every changed path is under `docs/`,
-  `.kiro/` or `LICENSES/`, or is `LICENSE`, the pull request template or a
-  repository-root `*.md`. A rename counts both its old and its new path. The
-  App jobs still run and report their required checks. The Qt-free job, with
-  its `git diff --check`, always runs, and so does every push to `main`. No
-  test reads those paths. A `.md` anywhere else is code, because the asset
-  and fixture manifest tests police their directories. Widening the list
-  needs the same check against the tests first.
+- A docs-only pull request compiles and tests nothing, yet still reports
+  all five required checks. `tools/ci/change-scope.sh` decides, and
+  `tools/ci/test-change-scope.sh` pins its cases; the `Change scope` job
+  runs both.
+  - Docs-only means every changed path is under `docs/`, `.kiro/` or
+    `LICENSES/`, or is `LICENSE`, the pull request template, a
+    repository-root `*.md` other than `ASSET_PROVENANCE.md`, or a
+    `README.md` under `tools/`. A rename counts both its old and its new
+    path, and an empty change list is code.
+  - On such a pull request the Qt-free job checks out the tree and runs
+    only `git diff --check`. The MSRV job and each App leg print a notice
+    and nothing else: no Rust, no Qt, no apt packages, no gate walk, no
+    artifacts. The step-529 job is skipped.
+  - Markdown that something reads stays code. `asset_hashes.rs` reads
+    `ASSET_PROVENANCE.md`, and the asset and fixture manifest tests police
+    the Markdown under `assets/`, `tests/fixtures/` and `i18n/`. No script
+    or test reads a tool README (checked 2026-09-26). Widening the list
+    needs the same check against the tests and tools first, and a case in
+    the test script.
+  - Every push to `main` and every dispatch runs the full CI, whatever the
+    paths.
+  - The Qt-free and MSRV jobs run even when `Change scope` fails, and then
+    fail themselves: a required job skipped because a job it needs failed
+    would report success.
 - Required check names are load-bearing. Renaming a job or its matrix
   means updating the ruleset. Never skip a required job with a job-level
   `if:`: a matrix job skipped at job level does not report its per-OS
