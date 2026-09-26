@@ -14,3 +14,6 @@
 *.svg text eol=lf
 *.icns binary
 *.ico binary
+# Blender Phase 3: the environment's source file is pinned in the authored
+# pack's MANIFEST.json like its outputs.
+*.blend binary
