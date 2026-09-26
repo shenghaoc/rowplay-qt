@@ -87,7 +87,8 @@ three-quarter views, posed as the app clones the oars) and
 ## Outputs and budgets
 
 Committed build outputs live in `assets/replay/authored/`, with their hashes in
-`MANIFEST.json`; `course.json` holds one buoy per line. Previews and Qt's full-resolution intermediate probes go under
+`MANIFEST.json`; `course.json` holds one buoy per line. The outputs are MIT
+common assets and these scripts are GPL-3.0-or-later tooling (ADR 0002). Previews and Qt's full-resolution intermediate probes go under
 gitignored `build/`. No blend file, downloaded texture or third-party logo is
 required. Generated source provenance is in `ASSET_PROVENANCE.md`.
 
