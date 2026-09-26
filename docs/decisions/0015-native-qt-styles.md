@@ -157,29 +157,22 @@ The page that applies this ADR is
 [`docs/design-system.md`](../design-system.md): the six principles, platform
 behaviour mapped to Qt API, and what stays ours.
 
-- **macOS, natively, before the #124 restack** (Apple M5, macOS 27, cocoa and Metal):
-  - **Gate walks:** the full walk in light, phase shots and close-ups
-    included, at the then-current stack tip. In dark, the quick walk captures every
-    screen; its old shadow check then trips at 4.9 % on this base, as
-    AGENTS.md records.
-  - **Text fit:** five screens × English, Spanish and Japanese × three
-    widths, native light and dark, and 150 % text light and dark (180 runs).
-    - Nothing is flagged natively.
-    - At 150 % only Qt Graphs' own axis labels are flagged, as on the base.
-  - **Large windows:** 1200, 1440, 1600 and 1920 px, English and Japanese,
-    light and dark (32 runs), none flagged.
-  - **Real input** through QtTest's `TestEvent`:
-    - a switch row's label toggles its switch, and Replay opens;
-    - the replay HUD's hit areas answer beyond their controls;
-    - the speed choices take the arrows without seeking;
-    - Space on a speed choice leaves play alone.
-  - **Not checked here:** a non-blue accent, Increase Contrast and the
-    native menu bar's roles. They need the owner at the Mac: the agent
-    changes no System Settings, and a background process cannot bring the
-    app's window forward.
-  - These checks do not cover every R8.1 combination on the current rebased
-    head; T9.3 stays open for the full width/language/text-scale matrix and
-    current light and dark native gate walks.
+- **macOS, natively, on the current composed #118 code** (Apple M5,
+  macOS 27, Cocoa and Metal; 2026-09-26): the full light and dark gates,
+  all five width classes × en/es/ja × 100/150 % text × both schemes,
+  native mouse/keyboard delivery, and actual System Settings/menu checks
+  passed. The [verification record](../native-macos-verification.md)
+  records achieved sizes, 960 distinct matrix cases, the unclipped Qt
+  Graphs label-bound flags, and excluded locked-window attempts.
+  - Purple accent and Increase Contrast in both schemes were inspected
+    through Computer Use; product contrast and HUD containment were
+    measured without app overrides. About, Preferences and Quit worked,
+    including shortcuts and the documented Japanese/English role-title
+    exception (#80).
+  - Original system preferences were visibly restored. T9.3 and T9.4 are
+    complete. This is native debug-app evidence, not release-package
+    approval; platform-owned animation and disabled-colour exceptions
+    remain unchanged.
 - **Windows:** CI's captures in a real window (D3D11), both styles, light
   and dark.
   - The Windows style draws its controls light under the dark scheme, so the

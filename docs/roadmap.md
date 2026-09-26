@@ -1247,5 +1247,8 @@ requests on the round-2 stack's composed top:
    - CI's Windows captures show the Windows style unreadable under the
      dark scheme, while FluentWinUI3 is not; switching is proposed in its
      own pull request.
-   - Left for the owner at the Mac: a non-blue accent, Increase Contrast
-     and the native menu bar's roles.
+   - Current composed #118 code verified natively on macOS: full light
+     and dark gates; five width classes, en/es/ja, 100/150 % text and both
+     schemes; real mouse/keyboard input; actual purple accent, Increase
+     Contrast and native menu roles. T9 is complete, with original system
+     preferences restored. See the [verification record](native-macos-verification.md).
