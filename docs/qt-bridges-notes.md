@@ -630,8 +630,9 @@ Qt's HDR baker emits six-face RGBA16F KTX1, 512-square faces and six mip levels,
 about 16 MiB per sky. `tools/blender/probes.py` validates that layout and reduces
 each level independently to a 128-square top level (about 1 MiB), preserving
 roughness indexing and the last diffuse level. Runtime KTX avoids rebaking the
-HDR in the replay. Generated HDR sources are permitted by ADR 0015; external
-HDRIs remain prohibited. Mac/Metal still needs independent verification.
+HDR in the replay. Generated HDR sources are permitted by ADR 0016; external
+HDRIs remain prohibited. On an Apple M5 under Metal, balsam baked and compacted
+both skies and the probes passed visual acceptance (`docs/blender-audit.md`).
 
 The static generated instance component must use `InstanceListEntry`, not
 `Instance`. The first integration attempt failed QML loading with the latter;
