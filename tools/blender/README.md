@@ -14,6 +14,7 @@ make blender-assets BLENDER="$HOME/opt/blender-5.2.1-linux-x64/blender"
 make blender-shell BLENDER=...   # the shell and oars alone (Phase 2)
 make blender-water BLENDER=...   # the water normal alone (Phase 3)
 make blender-environment BLENDER=...   # export the environment from its .blend (Phase 3)
+make blender-dressing BLENDER=...   # export the course dressing from its .blend (Phase 4)
 ```
 
 Each `--only` mode rebuilds one part and re-pins just its files in
@@ -43,7 +44,11 @@ disjoint, tightly packed views. Mixed primitives, transmission/extensions,
 index/attribute aliasing and out-of-view indices fail before writing. Regression
 tests check winding, idempotence, these refusals and the committed buoy's bytes.
 The shell pack uses `canonicalize_pack`, the same contract applied to every
-primitive of a multi-mesh pack, then `bound_attributes`. That writes min/max
+primitive of a multi-mesh pack, then `bound_attributes`. Blender writes one
+index accessor for primitives of identical topology (the dressing's boxes and
+posts, whatever their vertices), so `canonicalize_pack` sorts a shared index
+accessor once and requires every primitive sharing it to hold the vertex
+count it addresses. That writes min/max
 on every vertex attribute: Blender's exporter bounds only POSITION, and the
 V3 rules the app enforces require finite bounds on every attribute.
 
@@ -157,14 +162,77 @@ blender -b --factory-startup -P tools/blender/review_environment.py -- \
     --output build/previews/environment-light --scheme light
 ```
 
+## Course dressing (Phase 4)
+
+**Dressing** (a modelled asset: `assets/replay/authored/rowing-dressing.blend`
+is its source, MIT). `export_dressing.py` does not model; it opens the file,
+validates it and writes `rowing-dressing.glb` (one mesh per structure and
+per furniture variant, its primitives split by material class, vertex
+colours, no materials) and `dressing.json` (the structures' classes, shadow
+roles and footprints, the variants' classes, and every furniture instance,
+one per line, sorted by variant and tier). The file's contract:
+
+- a collection `rowplay-dressing` holding `structures` (the fourteen in
+  `STRUCTURES`: the finish tower, the start jetty, the launch and coaching
+  pontoons, the course bridge, the clubhouse, boathouse and regatta office,
+  the wetland boardwalk and hide, the three distance boards, the island),
+  `furniture-variants` (the six in `VARIANTS`: bollard, bench, life-ring,
+  flagpole, trestle-hull, finish-buoy) and `furniture-low` to
+  `furniture-ultra`;
+- every structure a mesh named like its object, modelled where it stands,
+  unparented at the identity world transform, without modifiers, with a
+  point colour attribute `Col` and material slots named `paint`, `timber`,
+  `metal`, `glass`, `float` or `ground` (each used by a face); every variant
+  the same, modelled at the origin;
+- every furniture instance a linked duplicate of a variant, turned about +Z
+  only, scaled uniformly (0.5 to 2), tinted by its object colour, in exactly
+  one tier collection, and where its own transform channels put it.
+
+It refuses: a structure or variant over its budget, or a tier over its
+instance or triangle count; anything solid inside the lane band (r 22.8 to
+33.6 m, the buoy rings and the blades' reach) below the bridge's 4.2 m
+clearance; a land structure whose base does not meet the Phase 3 terrain
+(read from `rowing-environment.blend`) within -0.5 and +0.45 m, or that
+reaches deeper than a driven pile; a water structure whose floats are not
+0.2 to 0.6 m under the water or that is grounded; a bridge that does not
+land on the bank; an island outside 16.5 m; a plant (`vegetation.json`)
+inside a structure's footprint, or on the island's beach. The footprints
+are annular sectors from the structures' vertices, and the environment's
+export reads them back from `dressing.json`, so the two sources agree.
+
+After export it reads the GLB back and matches every primitive to its
+material slot by the sorted centroids of its triangles, which survive the
+export and the canonicalisation unchanged, and records the classes in
+primitive order: the scene passes one material per primitive in that order.
+An unmatched or ambiguous primitive refuses the export.
+
+To edit the dressing, open the file in Blender 5.2, change it (move a
+bollard to another tier, re-plank a deck, reshape the tower), save it, and
+run `make blender-dressing`. The manifest's `dressing` section then records
+the file's SHA-256, the triangle counts, the instances per variant and tier,
+and the budgets; the asset tests check all of them, recount the triangles
+from the GLB against the placements and pin every budget. `build.rs` checks
+the GLB against the placements (`replay::dressing::validate_dressing` in
+rowplay-viewmodel), converts it with balsam for its mesh files alone, and
+generates `DressingScene.qml`: one Model per structure with its shadow
+roles and one material per primitive, one instanced Model per variant
+whose `InstanceList` is sorted by tier so `instanceCountOverride` selects a
+prefix; a variant with no instance at a tier is hidden by a binding.
+`RowingDressing.qml` declares the six class materials.
+
+**Review renders** (`review_environment.py`) draw the dressing in place of
+the web venue's structures since Phase 4, with a `zones` view set (launch,
+finish, bridge, far bank, coaching pontoon, wetland) beside the Phase 3 ones.
+
 ## Outputs and budgets
 
 Committed build outputs live in `assets/replay/authored/`, with their hashes in
 `MANIFEST.json`; `course.json` holds one buoy per line, `vegetation.json` one
-plant per line. The environment's `.blend` source is pinned there too. The outputs are MIT
+plant per line and `dressing.json` one furniture instance per line. The
+environment's and the dressing's `.blend` sources are pinned there too. The outputs are MIT
 common assets and these scripts are GPL-3.0-or-later tooling (ADR 0002). Previews and Qt's full-resolution intermediate probes go under
 gitignored `build/`. No downloaded texture or third-party logo is required;
-the one `.blend` is the environment's own source. Generated source provenance is in `ASSET_PROVENANCE.md`.
+the two `.blend` files are the environment's and the dressing's own sources. Generated source provenance is in `ASSET_PROVENANCE.md`.
 
 | Asset | Limit |
 | --- | --- |
@@ -174,21 +242,27 @@ the one `.blend` is the environment's own source. Generated source provenance is
 | Each vegetation variant (Phase 3) | 800 triangles; no textures |
 | Vegetation instances, Low / Medium / High / Ultra | 100 / 200 / 300 / 400 |
 | Vegetation triangles drawn, Low / Medium / High / Ultra | 60k / 90k / 120k / 150k |
+| Each dressing structure / all structures (Phase 4) | 5,000 / 30,000 triangles; no textures |
+| Each furniture variant (Phase 4) | 600 triangles |
+| Furniture instances, Low / Medium / High / Ultra | 10 / 40 / 80 / 120 |
+| Furniture triangles drawn, Low / Medium / High / Ultra | 4k / 10k / 20k / 30k |
 | Water detail | 512 square, periodic tangent-space normal PNG |
 | Sky source | 512 x 256 linear HDR |
 | Runtime IBL | 128 square per face, six Qt-prefiltered levels |
-| Entire authored pack | 6 MiB (4 MiB before Phase 3) |
+| Entire authored pack | 8 MiB (4 MiB before Phase 3, 6 MiB before Phase 4) |
 | Entire replay inventory | 100 MiB (ADR 0011) |
 
 The existing athlete is retained, not rebuilt; the discarded Phase 5's 40k
 budget does not apply. Export checks mesh triangles; generation enforces the
 pack size; Rust tests verify hashes, inventory, placement radii and budgets.
-Course dressing is 256 instances of one shared buoy mesh, not a combined mesh.
+The course buoys are 256 instances of one shared mesh, not a combined mesh,
+and the furniture 24 instances of six.
 
 Run `python3 tools/blender/audit.py --output docs/blender-asset-inventory.md`
 to inventory every model/texture and count exported triangles. The pipeline
-tests (canonicalisation, KTX layout, the water field, the environment export's
-helpers) run with Blender's bundled Python, which supplies NumPy:
+tests (canonicalisation, KTX layout, the water field, the environment and
+dressing exports' helpers) run with Blender's bundled Python, which supplies
+NumPy:
 `<blender-dir>/5.2/python/bin/python3.13 -m unittest discover -s tools/blender`.
 
 `probes.py` validates Qt's exact KTX layout before independently box-reducing

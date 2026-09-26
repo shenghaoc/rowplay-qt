@@ -692,6 +692,41 @@ Checked in the Qt 6.11.2 sources and then in native Metal captures:
   HUD (`MTL_HUD_ENABLED`, `MTL_HUD_LOG_ENABLED`) loaded but logged no metrics,
   so GPU time went unmeasured.
 
+### Blender Phase 4: course dressing and venue furniture (2026-09-27)
+
+Checked in native Metal captures and in the tools' output:
+
+- **balsam keeps a mesh's primitives as subsets, and `Model.materials` maps
+  onto them in order.** A glTF mesh whose primitives are split by material
+  slot (Blender's placeholder-material export) becomes one `.mesh` file
+  with one subset per primitive; a `Model` with `materials: [a, b, c]`
+  draws subset `i` with material `i`. The dressing relies on it: one Model
+  per structure, its paint, timber, metal, glass and float parts each with
+  their own `PrincipledMaterial`, seen in the tower's dark glazing band
+  between its white wall bands. The exporter records the class order by
+  matching each written primitive back to its slot by the centroids of its
+  triangles, so a reordering would refuse the export rather than swap
+  materials silently.
+- **Blender writes one index accessor for primitives of identical
+  topology.** Two boxes anywhere in the file share an index buffer, so a
+  pack of hard-surface parts always shares some. `canonicalize_pack` now
+  sorts a shared accessor once and checks that every primitive sharing it
+  addresses the same vertex count; balsam converts the shared accessor
+  without complaint (twenty mesh files, every one loading).
+- **A variant with no instance at a tier is hidden by a binding**
+  (`visible: tierCounts[tierIndex] > 0`) rather than drawn with an
+  `instanceCountOverride` of 0. Whether Qt draws such a Model once at its
+  own transform was not measured; the binding sidesteps the question, and
+  the environment keeps its rule of a Low instance for every variant.
+- **balsam's mesh naming held**: `dressing:row:finish-tower` became
+  `meshes/dressing_row_finish_tower_mesh.mesh`, as the Phase 3 note
+  predicts, and `build.rs` checks every expected file exists.
+- **The High shadow check moved for a legitimate reason.** With the tower,
+  the launch pontoon and the jetty casting at High, the check's capture
+  (the replay's first frame, looking at the campus) reads 2.44 % of the
+  capture darkened by 8.68 % in light, from Phase 3's 1.05 % / 7.83 %. No
+  bound was touched; the 1 % floor and 5 % darkening stand.
+
 ### Platforms and tooling
 
 - The `offscreen` QPA platform falls back to the software scene graph, where

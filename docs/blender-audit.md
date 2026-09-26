@@ -775,3 +775,330 @@ also matches the numpy prototype judged in Qt to within one 8-bit level. The
 - **The water tile.** It repeats every 8 m when looked at from above.
 - **Wake and foam.** There is none; that is its own phase.
 - **Performance.** GPU time and iGPU hardware were not measured.
+
+## Phase 4: course dressing and venue furniture (2026-09-27)
+
+Phase 3 made the basin believable as an environment. Phase 4 makes it read
+as a rowing venue: where the course is, where crews launch, where the timing
+and finish infrastructure stands, what gives the scene human scale, and what
+marks the lap. The athlete and the shell stay the hero; the replay truth
+(the 225-float frame, the camera, the pose, the seat, the oars, the shell
+contract, the course mapping, the circular loop) is untouched, and every
+structure is stationary world geometry.
+
+### The retained structures, audited
+
+Every structure the web venue bake (`rowplay-venue-rower-*.glb`) still
+rendered after Phase 3 was captured natively (Cocoa/Metal, demo 1001) at the
+approved moment, at eight loop positions and from zone views (launch,
+finish, bridge, far bank, wetland, the island with a ghost), then classified.
+"Source" is `renderer3dEnvironment.ts` @ `173c6fa`, baked (ADR 0005).
+
+| Structure | Web source, tiers | As rendered in Qt before Phase 4 | Role | Decision |
+| --- | --- | --- | --- | --- |
+| Finish tower | `addRowerFinishTower`: a 1.5 m box shaft, a rounded cabin, a glass band, a box wing, a mast; 768 triangles; Medium and up (Low had none) | A flat white monolith, the one vertical; visible at the approved moment, at 0 m and 875 m of the lap and from the wetland | The finish and timing landmark | **REBUILD**: a judges' tower on a lattice frame (plinth, four columns, bracing, an open stair, a mid landing, a glazed cabin with a gallery, a finish-line boom over the water with a camera housing and a plain finish board, a mast with a plain flag); every tier |
+| Start pontoons | `addRowerIslandCenter`: two rounded blocks, 700 triangles each, at r 18.8 and 21.4 m, 27°; Medium and up | Two grey slabs on the water, left of the boat at the approved moment | The start | **REBUILD** as the start jetty: a floating jetty from the island's beach to r 21.6 m on the finish line (52°), with mooring piles, the aligner's seat and the finish post; every tier |
+| Launch dock | `addRowerCampus`: a rounded deck on the quay (top 0.21 m) with four rail posts; High and up | A slab on the quay with four white posts, at the left edge of the approved view | Where crews launch | **REBUILD** as a floating launch pontoon (8 m, freeboard 0.15 m, cleats, fenders, piles, a gangway from the quay); every tier |
+| Distance posts | `addTrackEdgePosts`: 4 (High) or 6 (Ultra) tapered posts with blank boards, campus arc only | Thin white poles along the quay, like lamp posts | Lap distance | **REPLACE** with three numbered distance boards, 250, 500 and 750 m from the finish line (142°, 232°, 322°), block numerals in geometry; every tier |
+| Regatta pavilion | `addPavilions`: rounded block, cone roof, glass strip; 3,644 triangles; every tier | A white villa with a terracotta cone roof at r 72 m, visible from the wetland and at 750-875 m | The campus skyline | **REBUILD** as the clubhouse: a glazed front, a terrace with a railing, a clerestory; 456 triangles |
+| Boathouse | as the pavilion, scaled; Medium and up | The same villa, smaller | The campus | **REBUILD** as a boathouse: a gabled shed with three bay doors facing the water and an apron; 132 triangles |
+| Timing tower | as the pavilion, stretched; High and up | A tall villa | The campus | **REBUILD** as the regatta office: two storeys, a balcony toward the water, a mono-pitch roof; 192 triangles |
+| Course bridge | `addOverheadSpan`: two cylinder legs and a box deck at 4.7 m, 148°; High and up | Two white cylinders and a brown slab; the only overhead landmark | The lap's one crossing | **REBUILD** as a footbridge from the island to the bank: a swept deck with handrails, A-frame piers outside the lanes, stairs down to the island's beach; every tier |
+| Wetland boardwalk | `addRowerWetlandBoardwalk`: an arc deck at 0.32 m with seven posts; Ultra only | Lost among the reeds | The quiet bank | **REBUILD**: a deck on piles with a handrail on the water side, ramps at both ends and a spur to the hide; every tier |
+| Wetland hide | a rounded timber block with a dark slot; Ultra only | Hidden by the reeds and the deck | The quiet bank's landmark | **REBUILD**: a timber hide on short piles with a slot window and a mono-pitch roof; every tier |
+| Central island | `addRowerIslandCenter`: three discs, a scaled foothill mound, instanced trees and shrubs (the web's instance path, #121); every tier | A flat green disc with a dark rim; its trees and shrubs do not render; visible only when a ghost pulls the camera back | The centre of the loop | **REPLACE**: an authored low island (a lawn dome, a beach, a sunken skirt) in the dressing pack, planted from the environment's own vegetation variants, the start jetty and the bridge landing on it |
+| Reed beds, ripples, reflections, glints, mist, campus path | painted overlays and instanced reeds | Hidden since Phases 1 and 3 | none | **REMOVE** (already hidden; nothing changes) |
+
+Judged from the chase camera and round the lap, the island earns its place
+once it has a function: the start jetty and the bridge land on it, its trees
+stand between the bank and the far side of the loop, and with a ghost the
+pulled-back camera sees a lagoon course rather than a buoy circle on a lake.
+Kept as the web drew it, it was a bare disc.
+
+**New for Phase 4**, each answering a composition or readability need:
+
+| Asset | Need | Tiers |
+| --- | --- | --- |
+| Finish line: the tower's boom, the jetty's finish post and two finish buoys (r 22.25 and 34.2 m, 52°) | where the lap is timed | every tier |
+| Coaching pontoon with a moored coaching launch (264°) | a landmark on the otherwise empty far bank; the safety boat | every tier |
+| Bollards, benches, life-ring posts, flagpoles with plain flags, an upturned single on slings | human scale at the quay, the jetty, the pontoons and the boardwalk | instanced, by tier |
+
+Nothing is branded: no maker's shapes, logos, sponsor boards or club colours;
+the flags and the finish board are plain.
+
+### Layout
+
+The web's zones stay, since the Phase 3 terrain was authored round them:
+
+```
+campus (8-56 deg): clubhouse, boathouse, regatta office, flagpoles
+  launch zone (31 deg): the launch pontoon at the quay, the slings, bollards
+  finish line (52 deg): the tower and its boom, the jetty from the island, two buoys
+open water and woodland banks (56-300 deg): the bridge at 148 deg,
+  the 250 m and 500 m boards, the coaching pontoon at 264 deg
+wetland (300-358 deg): the boardwalk, the hide, the 750 m board
+```
+
+The start and the finish are one line, as they must be on a loop; the boards
+count from it. The finish line stays at 52° and not at the loop's 0° because
+the approved moment (355°) looks straight at it from 33 m: at 0° the tower
+would stand 7 m off the camera's right shoulder.
+
+### Budgets
+
+Set before the structures were built, from the Phase 3 scene: athlete
+106,256 triangles, shell 46,164, 256 buoys at 224, the environment 64,820 at
+Medium over 9 draws, and the retained web structures 14,000 to 17,500. The
+authored pack was 4,677,393 bytes against 6 MiB.
+
+| Item | Budget | Final |
+| --- | --- | --- |
+| Each structure | 5,000 triangles | 120-2,184 |
+| All structures together (every tier) | 30,000 triangles | 8,816 |
+| Each furniture variant | 600 triangles | 88-440 |
+| Furniture instances: Low / Medium / High / Ultra | 10 / 40 / 80 / 120 | 2 / 10 / 18 / 24 |
+| Furniture triangles drawn per tier | 4k / 10k / 20k / 30k | 288 / 2,092 / 3,848 / 4,780 |
+| New textures | none: vertex colours, numerals in geometry | none |
+| Draw calls | 20 Models: 14 structures with 1-5 material subsets each, 6 instanced variants | 42 subsets at Ultra |
+| Authored pack | 8 MiB (was 6 MiB) | 8,092,112 bytes (96 % of it) |
+
+The pack budget rises for the dressing's `.blend` source (1.29 MB) and its
+GLB (0.64 MB), still far below ADR 0011's 100 MB tripwire; the next
+modelled asset will need the budget raised again, deliberately. The furniture
+draws no shadow; the structures cast and receive at High and Ultra, the
+island and the boards' backs receive only, as the exporter records.
+
+### Sources of truth
+
+| Asset | Kind | Source |
+| --- | --- | --- |
+| `rowing-dressing.blend` | modelled source (MIT) | itself: authored in Blender and judged by eye in Blender and in Qt |
+| `rowing-dressing.glb` | derived | exported from the `.blend` by `export_dressing.py` |
+| `dressing.json` | derived placement data | exported from the `.blend` by `export_dressing.py`: the structures' classes, shadow roles and footprints, the variants' classes, every furniture instance by tier |
+| `rowing-environment.blend` | modelled source (MIT, Phase 3) | edited in place: nine plants on the island's lawn, in the tier collections |
+| `vegetation.json` | derived (Phase 3) | re-exported; the environment GLB is byte-identical |
+
+The dressing is the second modelled asset under ADR 0016's source rule, on
+the Phase 3 precedent: its first version came from a scripted Blender
+session (boxes, bars, lofts and sweeps placed on the loop from the Phase 3
+terrain's heights, block numerals from seven strokes), which is not
+committed and is not the source; the `.blend` is. Repeated furniture is
+instanced: one mesh per variant, placements in tier collections, exported
+as a table. No Python CAD framework was written; `export_dressing.py`
+models nothing.
+
+### Concept, in Blender and then in Qt
+
+The concept was built in Blender 5.2.2 LTS in the context the replay draws
+(`review_environment.py` now draws the dressing in place of the web
+structures, with zone views and close-ups), from the approved chase view,
+the zone views and the structure close-ups, then judged in Qt on the Apple
+M5 (Cocoa/Metal). Three rounds:
+
+1. **The first concept.** Every structure landed where intended, and the
+   zones read from the chase camera: the tower and the finish line at the
+   approved moment, the numbered boards passing on the bank, the bridge
+   overhead, the campus and its flags from across the water. The island's
+   lawn had radial colour stripes, the tower's stair was a solid wedge, the
+   upturned single floated over its slings, and the bridge deck was a brown
+   slab: all four were fixed in the source.
+2. **What the export refused.** The committed exporter caught what the
+   renders had not: reeds under the coaching pontoon and the boardwalk's
+   ramps, the launch pontoon's ends inside the quay face (a straight 12 m
+   pontoon on a 35 m arc has a 0.51 m sagitta; it is 8 m now), a finish
+   buoy touching the lane band (r 22.7 m; now 22.25, with the jetty
+   shortened to 21.6), the coaching pontoon grounded on the shore (moved to
+   264 degrees, the one reed-free stretch of the far bank, and its floats
+   made shallower), and the bridge landing 0.7 m above the bank (its deck
+   now descends to the bank at r 41.2 m).
+3. **In Qt.** The upturned single read as a white plank on legs at Medium
+   and above; its hull is now a light warm grey. Nothing else moved.
+
+**Validation of the exporter's rules**, by mutating the committed source in
+memory and expecting each defect to be refused by name (a scratch script,
+run with Blender's Python): a structure moved into the lane band; a pontoon
+sunk, and one moved onto the shore; a building floated 1.2 m over the
+ground, and a board buried; a delta transform, a modifier and an unknown
+material slot; a variant modelled off the origin; an instance in two tiers,
+one tilted, one in the lane band, one floating over its ground, one moved
+by a constraint; a plant in the tower's footprint; the island raised 1 m;
+the bridge lowered into the lane band; a structure subdivided over its
+budget. All eighteen refused, and the unchanged file still exports byte
+for byte. The Rust gate refuses eleven drifts of the GLB and placements by
+name (`dressing.rs`), and the canonicaliser's shared-index rule and the
+export helpers (sectors, the lane band, primitive matching, the placement
+file's layout) have their own tests.
+
+### In Qt
+
+`build.rs` gates the GLB through `replay::dressing::validate_dressing`
+against `dressing.json`, runs balsam for the mesh files alone (twenty, one
+per structure and variant, named as the Phase 3 note predicts), and
+generates `DressingScene.qml`: one Model per structure with one material
+per primitive in the exporter's class order and the shadow roles it
+records; one instanced Model per furniture variant, its `InstanceList`
+sorted by tier so `instanceCountOverride` selects a prefix, and hidden by a
+binding at a tier with no instance. `RowingDressing.qml` declares the six
+class materials (paint, timber, metal, glass, float, and the island's
+ground, which is the environment's land material). Nothing walks the
+dressing at runtime. The web rower venue's structures and island are hidden
+by the existing walk's name list, which grew by eleven names; no walker was
+added or broadened, and the walk still builds the hidden nodes' materials,
+so the gate's venue texture counts hold.
+
+### Runtime invariants
+
+`compare.py` checks all 18 controlled states per scheme against the Phase 3
+parent: pose frame without its sequence counter, grip table and tier. They
+match exactly in light and in blue hour, and so do the 33 lap and zone
+states of the audit probe (51 states per scheme in all) and the 25 states
+of the 12 s sequence. The same replay state, grabbed at two wall-clock
+times (`style-medium` and `motion-000`), renders 0 differing pixels before
+and after in both schemes: nothing in the dressing moves on its own clock.
+The near-water patch's first-to-last change over the 3 s sequence is
+0.0098 before and after in light: the dressing does not touch it.
+
+### Shadows
+
+The structures cast at High and Ultra. The gate's shadow check (the
+replay's first frame at High, looking across the campus at the tower, the
+launch pontoon and the jetty, against its twin with the light's shadow off)
+reads light **2.44 % / 8.68 %** (93,552 px) and blue hour **2.39 % /
+10.46 %** (91,711 px), from Phase 3's 1.05 % / 7.83 % and 1.12 % / 8.13 %.
+The mask shows why: the tower's frame and cabin shade themselves and the
+quay behind them, the pontoon and the jetty shade the water, and the
+rower's own shadow is what it was. The 1 % floor and the 5 % darkening
+stand, untouched.
+
+### Determinism
+
+Two exports from the unchanged `.blend` produced the same GLB, placements
+and manifest byte for byte (Blender 5.2.2 LTS on this Mac). The environment
+re-exported byte-identically after its exporter changed to read the
+dressing's footprints; planting the island then changed `vegetation.json`
+by nine lines and the environment GLB not at all.
+
+### Metal results (Apple M5, macOS 27.0, Qt 6.11.2, Rust 1.98.1)
+
+All four tiers in light and blue hour were inspected at the approved
+moment, in the zones and round the lap, before and after, on the same
+replay states. From the chase camera the venue now answers the five
+questions the phase set out to: the buoy rings and the finish line say
+where the course is; the pontoon, the slings and the boathouse say where
+crews launch; the tower, its boom and the jetty say where the lap is timed;
+the bollards, benches, railings, flags and the single on its slings give
+the quay and the island human scale; the boards, the bridge, the coaching
+pontoon and the hide give each stretch of the lap its own landmark. The
+athlete and the shell stay primary: nothing stands in the lane band, the
+tower is 33 m from the approved camera where the web's was, and the
+furniture sits at the water's edge rather than filling the frame. Blue
+hour keeps the tinted structures as dark silhouettes against the lighter
+sky, the flags and the finish board readable. Low is the venue's
+silhouettes without furniture, not a broken scene; Ultra adds a few
+bollards and benches, not clutter.
+
+The web's island is gone with its bare disc; the authored one, with its
+trees, jetty and bridge landing, shows when a ghost pulls the camera back,
+and the pulled-back view now reads as a lagoon course rather than a buoy
+circle on a lake.
+
+### #121
+
+The gate's SkiErg capture on this branch shows the snow field, the apron
+and the horizon band and none of the venue's instanced pines, berms or
+foothills, so the discrepancy the issue found is the instanced groups as a
+class, for every sport, not the rower venue's woodland. For rowing it is
+superseded by Phase 3 (the woodland it saw missing is hidden and replaced)
+and completed by Phase 4 (the island's trees and shrubs and the distance
+posts, the last two instanced groups the rower scene relied on, are
+replaced, and nothing of the rower bake is drawn). It stays open for the
+SkiErg and BikeErg venues, whose instanced groups go through the same
+`applyInstanceGroup` path; that path was not instrumented here, and the
+cause is not established. Recorded on the issue without a closing keyword.
+
+### Limitations
+
+- **Style.** Stylised hard-surface geometry with vertex colours: no
+  textures, no signage beyond the numerals, flags that do not move.
+- **Only the rower bake is replaced.** SkiErg and BikeErg keep their baked
+  venues, and #121's instancing path with them.
+- **The athlete** looks weaker beside a proper venue: the seat still sits
+  low and the blades never square (#130, #129). That is evidence for Phase
+  5, not something fixed here.
+- **GPU time** was not measured (the Metal HUD logs nothing, the bench is
+  vsync-capped on Cocoa), and no laptop iGPU was tested.
+- **The web venue GLBs still load** for rowing, wholly hidden, and the walk
+  still builds their materials; unloading them is a ReplayScene refactor
+  item, out of scope here.
+
+### Motion
+
+The 12 s real-replay sequence (demo 1001 from 208.829 s, every 0.5 s, Medium;
+the same 25 states on both sides, checked frame by frame) shows the tower
+and its boom growing as the boat approaches the line, the launch pontoon
+and the quay furniture sweeping past faster than the tower behind them,
+and the jetty drifting across the left of the frame: the near structures
+give the parallax the web's builder wanted from its span, the far ones
+move slowly, and nothing animates. That is a visual reading of the frames,
+not a perceived-speed number; the sequence, its clip and a five-frame strip
+are on the evidence branch.
+
+### Performance (Apple M5)
+
+Measured with Phase 3's method: real playback of demo 1001 from 0.45 of the
+workout, Qt's `QSG_RENDER_TIMING` GUI-thread intervals (`polishAndSync`,
+"elapsed since last call") over a 24 s steady window starting 8 s after
+play, `ps` every 2 s, and the Phase 3 parent run back to back from its own
+worktree. This is GUI cadence at the display's 120 Hz, not GPU timing. GPU
+time was not measured: the Metal HUD's log mode writes nothing here, and
+the repository's bench stays vsync-capped on Cocoa.
+
+| Window | Samples | Median | p95 | Max | > 50 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Parent, Medium, light | 2,875 | 8 ms | 10 ms | 17 ms | 0 |
+| Phase 4, Medium, light (first run) | 2,528 | 8 ms | 9 ms | 2,684 ms | 2 |
+| Parent, Medium, light (reruns) | 2,879 / 2,868 | 8 / 8 ms | 10 / 10 ms | 20 / 56 ms | 0 / 1 |
+| Phase 4, Medium, light (reruns) | 2,876 / 2,876 | 8 / 8 ms | 10 / 10 ms | 15 / 14 ms | 0 / 0 |
+| Parent, High, light | 2,877 | 8 ms | 9 ms | 17 ms | 0 |
+| Phase 4, High, light | 2,880 | 8 ms | 9 ms | 12 ms | 0 |
+| Parent, Ultra, light | 2,880 | 8 ms | 9 ms | 16 ms | 0 |
+| Phase 4, Ultra, light | 2,881 | 8 ms | 9 ms | 11 ms | 0 |
+| Parent, Medium, blue hour | 2,880 | 8 ms | 10 ms | 14 ms | 0 |
+| Phase 4, Medium, blue hour | 2,878 | 8 ms | 10 ms | 34 ms | 0 |
+
+The first Phase 4 Medium window held one 2.7 s interval and lost 350
+samples to it. Two back-to-back reruns per side did not reproduce it (the
+Phase 4 maxima were 15 and 14 ms; one parent rerun had a single 56 ms
+interval), so it is recorded as unexplained, not as a cost of the dressing
+and not as a flake: nothing in the log names its cause, and this Mac was in
+use for other work during the chain. No other window shows a stall. CPU in
+the steady windows ranged over 15-91 % of one core on both sides. Resident
+memory is flat within every window and not stable between runs (Phase 3
+measured the same spread): 332-432 MiB for Phase 4 against 351-441 MiB for
+the parent across the light windows, in the same range. For a laptop iGPU
+the added cost is the budget table's 8,816 structure triangles and up to
+4,780 furniture triangles over 20 Models (42 material subsets at Ultra),
+plus the structures' shadow casting at High and Ultra. That is an
+estimate, not a measurement on such a GPU.
+
+### Validation (Apple M5, macOS 27.0, Qt 6.11.2, Rust 1.98.1, Blender 5.2.2 LTS)
+
+- 28 pipeline tests with Blender's Python (`test_canonical` with the
+  shared-index case, `test_probes`, `test_water`, `test_export_environment`,
+  `test_export_dressing`).
+- `cargo fmt --all -- --check`; `cargo clippy --workspace --all-targets
+  -- -D warnings`; `git diff --check`.
+- Qt-free tests: 597 passed, 2 existing ignores.
+- The asset tests: the dressing's manifest section against the source's
+  SHA-256, every budget pinned, the triangles recounted from the GLB against
+  the placements, the placements' layout and lane clearance; the vegetation
+  test admits the island's lawn; the provenance rows for the three new
+  files.
+- The exporter's eighteen refusals and the validator's eleven (above); the
+  environment's export, re-run, reproducing its GLB byte for byte.
+- The full native gate walk, light and blue hour, with phase shots and
+  close-ups: all three gate tests, 108.3 s and 113.5 s of app log, the
+  replay's first frame 0.3 s after step 52, no hold starved.
+- Both native Cocoa/Metal app suites (`cargo test -p rowplay-app` with the
+  smoke screenshot, phase shots and close-ups): 33 passed each in light and
+  in blue hour, the gate walks at 112.2 s and 111.7 s, no hold starved.
