@@ -197,11 +197,11 @@ impl Node {
     }
 }
 
-fn extra_str<'a>(node: &'a Node, key: &str) -> Option<&'a str> {
+pub(crate) fn extra_str<'a>(node: &'a Node, key: &str) -> Option<&'a str> {
     node.extras.get(key).and_then(Value::as_str)
 }
 
-fn template_of(node: &Node) -> Option<&str> {
+pub(crate) fn template_of(node: &Node) -> Option<&str> {
     extra_str(node, "replayAssetTemplateSlot")
 }
 
@@ -364,7 +364,7 @@ pub(crate) fn parse_nodes(json: &Value) -> Result<Vec<Node>, AssetError> {
 
 /// Finite-bounds check over every mesh attribute accessor (web
 /// `cloneFiniteGeometry`); the exporter writes min/max for each attribute.
-fn validate_accessors(json: &Value, nodes: &[Node]) -> Result<(), AssetError> {
+pub(crate) fn validate_accessors(json: &Value, nodes: &[Node]) -> Result<(), AssetError> {
     let empty = Vec::new();
     let accessors = json
         .get("accessors")
@@ -495,7 +495,7 @@ fn composite_roots(nodes: &[Node]) -> Result<Vec<usize>, AssetError> {
 
 /// The web's `isIdentityTemplateRoot`: absent or unit translation, rotation
 /// and scale on every composite root.
-fn is_identity(node: &Node) -> bool {
+pub(crate) fn is_identity(node: &Node) -> bool {
     let translation_ok = node
         .translation
         .is_none_or(|t| t.iter().all(|c| c.abs() < EPSILON));
@@ -508,7 +508,7 @@ fn is_identity(node: &Node) -> bool {
     translation_ok && rotation_ok && scale_ok
 }
 
-fn template_error(template: &str, reason: impl Into<String>) -> AssetError {
+pub(crate) fn template_error(template: &str, reason: impl Into<String>) -> AssetError {
     AssetError::Template {
         template: template.to_owned(),
         reason: reason.into(),
@@ -516,7 +516,7 @@ fn template_error(template: &str, reason: impl Into<String>) -> AssetError {
 }
 
 /// Declared role list of a root (web `readDeclaredRoles`).
-fn declared_roles(node: &Node, template: &str) -> Result<Vec<String>, AssetError> {
+pub(crate) fn declared_roles(node: &Node, template: &str) -> Result<Vec<String>, AssetError> {
     let Some(list) = node
         .extras
         .get("replayMaterialRoles")
@@ -559,7 +559,7 @@ fn declared_roles(node: &Node, template: &str) -> Result<Vec<String>, AssetError
 
 /// Walks one composite subtree (web `snapshotTemplateNode`), collecting mesh
 /// roles and enforcing the per-node contract.
-fn snapshot(
+pub(crate) fn snapshot(
     nodes: &[Node],
     index: usize,
     template: &str,
