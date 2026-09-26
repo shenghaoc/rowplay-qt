@@ -1,0 +1,344 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Export and validate the rowing environment (Blender Phase 3).
+
+The environment is a modelled asset under ADR 0016's source rule: the reviewed
+`assets/replay/authored/rowing-environment.blend` is its source of truth. This
+script does not model anything. It opens that file, checks it against the
+contract below, and writes two runtime outputs:
+
+- `rowing-environment.glb`: the terrain, the far bank, the woodland masses
+  and the vegetation variants, one mesh each, with vertex colours and no materials (the scene's
+  materials are declared in `RowingEnvironment.qml`);
+- `vegetation.json`: every placed vegetation instance, one per line, sorted by
+  variant and then by tier, so each tier is a prefix of its variant's list.
+
+The contract of the source file:
+
+- a collection `rowplay-environment` holding `land`, `vegetation-variants`
+  and one collection per quality tier, `vegetation-low` to `vegetation-ultra`;
+- `land`: exactly `environment:row:terrain`, `environment:row:far-bank` and
+  `environment:row:woodland` (the continuous canopy behind the woodland edges);
+- `vegetation-variants`: exactly the names in VARIANTS;
+- every mesh named like its object, at the origin with no rotation or scale,
+  with a point colour attribute `Col` and no modifiers;
+- every instance a linked duplicate of one variant, turned about +Z only,
+  scaled uniformly, tinted by its object colour, in exactly one tier.
+
+Blender axes are converted to glTF / Qt axes: (x, y, z) -> (x, z, -y), and a
+turn about Blender +Z is the same turn about Qt +Y.
+"""
+
+import hashlib
+import json
+import math
+from pathlib import Path
+import struct
+
+try:
+    import bpy
+    from mathutils import Vector
+    from mathutils.bvhtree import BVHTree
+except ImportError:  # test_export_environment.py checks the pure helpers without Blender
+    bpy = None
+
+from canonical import bound_attributes, canonicalize_pack
+
+LAND = ("environment:row:terrain", "environment:row:far-bank", "environment:row:woodland")
+VARIANTS = ("tree-broadleaf-a", "tree-broadleaf-b", "tree-conifer", "tree-poplar", "shrub", "reeds")
+TIERS = ("low", "medium", "high", "ultra")
+PREFIX = "environment:row:"
+VENUE_PREFIX = "environment:rower:"
+
+# Budgets (docs/blender-audit.md, "Phase 3"). Triangles are counted as drawn:
+# a variant's triangles once per instance shown at that tier.
+BUDGET = {
+    "terrain": 16_000,
+    "far-bank": 8_000,
+    "woodland": 6_000,
+    "variant": 800,
+    "instances": {"low": 100, "medium": 200, "high": 300, "ultra": 400},
+    "drawn": {"low": 60_000, "medium": 90_000, "high": 120_000, "ultra": 150_000},
+}
+# The water ring the environment must stay out of: the outer buoy ring is at
+# 33.3 m (course.json) and the oar blades reach about 33 m on the live lane.
+# The quay meets the web launch dock's front edge, at 36.27 m.
+SHORE_MIN = 36.2
+# Web venue structures that stay until Blender Phase 4, with the highest the
+# ground may stand at the middle of each: the buildings sink at most 0.45 m
+# into the terrain, the launch dock's deck (top 0.21 m) must stay above the
+# quay and the boardwalk's deck (0.32 m) above the marsh. Their footprints are
+# read from the vendored Ultra venue (it has them all) as annular sectors
+# (radius and loop angle ranges), which fit the compact buildings and the
+# curved boardwalk alike, and nothing is planted inside them.
+STRUCTURES = {"finish-tower": 0.45, "regatta-pavilion": 0.45, "boathouse": 0.45,
+              "timing-tower": 0.45, "course-bridge-leg-2": 0.45, "wetland-hide": 0.45,
+              "launch-dock": 0.19, "wetland-boardwalk-deck": 0.30}
+VENUE = "venues/rowplay-venue-rower-ultra.glb"
+
+
+class ContractError(ValueError):
+    pass
+
+
+def _srgb(linear):
+    """Blender's object colour is scene-linear; QML colour strings are sRGB."""
+    if linear <= 0.0031308:
+        return 12.92 * linear
+    return 1.055 * linear ** (1 / 2.4) - 0.055
+
+
+def _triangles(obj):
+    obj.data.calc_loop_triangles()
+    return len(obj.data.loop_triangles)
+
+
+def _is_identity(obj):
+    return (obj.location.length < 1e-6 and max(abs(v) for v in obj.rotation_euler) < 1e-6
+            and max(abs(v - 1.0) for v in obj.scale) < 1e-6)
+
+
+def _check_mesh(obj, problems):
+    if obj.type != "MESH":
+        problems.append(f"{obj.name} is not a mesh")
+        return
+    if obj.data.name != obj.name:
+        problems.append(f"{obj.name}: mesh data is named {obj.data.name!r}")
+    if not _is_identity(obj) or obj.parent is not None:
+        problems.append(f"{obj.name} must sit at the origin, unparented, unrotated and unscaled")
+    if obj.modifiers:
+        problems.append(f"{obj.name} carries modifiers; apply them in the source")
+    colour = obj.data.color_attributes.get("Col")
+    if colour is None or colour.domain != "POINT":
+        problems.append(f"{obj.name} has no point colour attribute 'Col'")
+
+
+def _venue_footprints(assets):
+    """{structure: (r_min, r_max, a_min, a_max)} from the venue GLB's vertices.
+
+    Radii in metres from the basin centre, angles in degrees round the loop
+    (atan2(x, z), as the course places the boat)."""
+    data = (assets / VENUE).read_bytes()
+    size = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(data[20:20 + size])
+    start = 28 + size
+
+    def matrix(node):
+        t = node.get("translation", [0.0, 0.0, 0.0])
+        x, y, z, w = node.get("rotation", [0.0, 0.0, 0.0, 1.0])
+        s = node.get("scale", [1.0, 1.0, 1.0])
+        r = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+             [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+             [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+        return [[r[i][j] * s[j] for j in range(3)] + [t[i]] for i in range(3)]
+
+    def compose(a, b):
+        return [[sum(a[i][k] * b[k][j] for k in range(3)) + (a[i][3] if j == 3 else 0.0)
+                 for j in range(4)] for i in range(3)]
+
+    found = {}
+
+    def walk(index, parent, owner):
+        node = doc["nodes"][index]
+        m = compose(parent, matrix(node))
+        name = node.get("name", "")
+        if name.startswith(VENUE_PREFIX) and name[len(VENUE_PREFIX):] in STRUCTURES:
+            owner = name[len(VENUE_PREFIX):]
+        if "mesh" in node and owner:
+            for primitive in doc["meshes"][node["mesh"]]["primitives"]:
+                accessor = doc["accessors"][primitive["attributes"]["POSITION"]]
+                view = doc["bufferViews"][accessor["bufferView"]]
+                offset = start + view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+                for i in range(accessor["count"]):
+                    p = struct.unpack_from("<3f", data, offset + 12 * i)
+                    x = sum(m[0][k] * p[k] for k in range(3)) + m[0][3]
+                    z = sum(m[2][k] * p[k] for k in range(3)) + m[2][3]
+                    r, a = math.hypot(x, z), math.degrees(math.atan2(x, z)) % 360.0
+                    lo = found.get(owner, (r, r, a, a))
+                    found[owner] = (min(lo[0], r), max(lo[1], r), min(lo[2], a), max(lo[3], a))
+        for child in node.get("children", []):
+            walk(child, m, owner)
+
+    identity = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
+    for root in doc["scenes"][0]["nodes"]:
+        walk(root, identity, None)
+    missing = [s for s in STRUCTURES if s not in found]
+    if missing:
+        raise ContractError(f"venue {VENUE} lost the structures {missing}")
+    wrapped = [s for s, (_, _, a0, a1) in found.items() if a1 - a0 > 180.0]
+    if wrapped:
+        raise ContractError(f"{wrapped} straddle the loop's 0 degrees; the footprint check does not handle that")
+    return found
+
+
+def _inside(footprint, x, z, margin):
+    r0, r1, a0, a1 = footprint
+    r, a = math.hypot(x, z), math.degrees(math.atan2(x, z)) % 360.0
+    slack = math.degrees(margin / max(r, 1.0))
+    return r0 - margin <= r <= r1 + margin and a0 - slack <= a <= a1 + slack
+
+
+def _terrain_height(bvh, x, z):
+    """Height of the terrain under the Qt point (x, z), by a downward ray."""
+    hit = bvh.ray_cast(Vector((x, -z, 500.0)), Vector((0.0, 0.0, -1.0)))
+    return None if hit[0] is None else hit[0].z
+
+
+def validate(assets):
+    """Check the open file against the contract; return the export plan."""
+    problems = []
+    root = bpy.data.collections.get("rowplay-environment")
+    if root is None:
+        raise ContractError("no collection 'rowplay-environment'")
+    names = {c.name for c in root.children}
+    expected = {"land", "vegetation-variants", *(f"vegetation-{t}" for t in TIERS)}
+    if names != expected:
+        raise ContractError(f"rowplay-environment holds {sorted(names)}, expected {sorted(expected)}")
+    land = {o.name: o for o in bpy.data.collections["land"].objects}
+    if set(land) != set(LAND):
+        problems.append(f"land holds {sorted(land)}, expected {sorted(LAND)}")
+    variants = {o.name: o for o in bpy.data.collections["vegetation-variants"].objects}
+    if set(variants) != {PREFIX + v for v in VARIANTS}:
+        problems.append(f"vegetation-variants holds {sorted(variants)}")
+    for obj in [*land.values(), *variants.values()]:
+        _check_mesh(obj, problems)
+    triangles = {name: _triangles(obj) for name, obj in [*land.items(), *variants.items()]}
+    for name, count in triangles.items():
+        part = name[len(PREFIX):]
+        limit = BUDGET.get(part, BUDGET["variant"])
+        if count > limit:
+            problems.append(f"{name}: {count} triangles over its budget of {limit}")
+    if problems:
+        raise ContractError("; ".join(problems))
+
+    # The waterline: nothing of the terrain above the water inside SHORE_MIN.
+    terrain = land[LAND[0]]
+    high = [v.co for v in terrain.data.vertices
+            if math.hypot(v.co.x, v.co.y) < SHORE_MIN and v.co.z >= 0.0]
+    if high:
+        problems.append(f"the terrain rises above the water at {len(high)} vertices inside {SHORE_MIN} m")
+    bvh = BVHTree.FromObject(terrain, bpy.context.evaluated_depsgraph_get())
+
+    footprints = _venue_footprints(assets)
+    for name, (r0, r1, a0, a1) in footprints.items():
+        a_mid = math.radians((a0 + a1) / 2)
+        ground = _terrain_height(bvh, (r0 + r1) / 2 * math.sin(a_mid), (r0 + r1) / 2 * math.cos(a_mid))
+        if ground is None or not -0.1 <= ground <= STRUCTURES[name]:
+            problems.append(f"the terrain under the {name} is at {ground} m, "
+                            f"not -0.1 to {STRUCTURES[name]}")
+
+    seen = {}
+    instances = []
+    for tier, tier_name in enumerate(TIERS):
+        for obj in bpy.data.collections[f"vegetation-{tier_name}"].objects:
+            if obj.name in seen:
+                problems.append(f"{obj.name} is in two tiers")
+                continue
+            seen[obj.name] = tier
+            variant = obj.data.name[len(PREFIX):] if obj.type == "MESH" else None
+            if variant not in VARIANTS:
+                problems.append(f"{obj.name} is not a linked duplicate of a variant")
+                continue
+            if obj.parent is not None or obj.modifiers:
+                problems.append(f"{obj.name} must be unparented and unmodified")
+            rx, ry, _ = obj.rotation_euler
+            if abs(rx) > 1e-6 or abs(ry) > 1e-6 or obj.rotation_mode != "XYZ":
+                problems.append(f"{obj.name} is turned about more than +Z")
+            s = obj.scale
+            if max(s) - min(s) > 1e-6 or not 0.3 <= s.x <= 2.0:
+                problems.append(f"{obj.name} scale {tuple(s)} is not uniform in 0.3-2.0")
+            colour = obj.color
+            if abs(colour[3] - 1.0) > 1e-6 or not all(0.0 <= c <= 1.0 for c in colour[:3]):
+                problems.append(f"{obj.name} tint {tuple(colour)} is not an opaque colour")
+            x, y, z = obj.location.x, obj.location.z, -obj.location.y
+            radius = math.hypot(x, z)
+            if radius < (35.0 if variant == "reeds" else SHORE_MIN + 2.0):
+                problems.append(f"{obj.name} stands in the course water (r {radius:.2f} m)")
+            margin = 0.3 if variant == "reeds" else 2.0
+            for name, footprint in footprints.items():
+                if _inside(footprint, x, z, margin):
+                    problems.append(f"{obj.name} stands in the {name}")
+            yaw = math.degrees(obj.rotation_euler.z) % 360.0
+            instances.append({
+                "variant": variant, "tier": tier, "name": obj.name,
+                "position": [round(x, 4), round(y, 4), round(z, 4)],
+                "yaw": round(yaw, 3), "scale": round(s.x, 4),
+                "color": "#" + "".join(f"{round(_srgb(c) * 255):02x}" for c in colour[:3]),
+            })
+    instanced = {o.name for o in bpy.data.objects if o.type == "MESH" and o.data.name.startswith(PREFIX)
+                 and o.data.name[len(PREFIX):] in VARIANTS and o.name not in variants}
+    stray = sorted(instanced - set(seen))
+    if stray:
+        problems.append(f"instances outside every tier: {stray[:5]}")
+    instances.sort(key=lambda e: (e["variant"], e["tier"], e["name"]))
+    counts = {v: [sum(1 for e in instances if e["variant"] == v and e["tier"] <= t)
+                  for t in range(len(TIERS))] for v in VARIANTS}
+    for variant, per_tier in counts.items():
+        if per_tier[0] == 0:
+            problems.append(f"{variant} has no Low instance; an empty instance table is never drawn")
+    shown = {t: sum(c[i] for c in counts.values()) for i, t in enumerate(TIERS)}
+    drawn = {t: sum(counts[v][i] * triangles[PREFIX + v] for v in VARIANTS) for i, t in enumerate(TIERS)}
+    for t in TIERS:
+        if shown[t] > BUDGET["instances"][t]:
+            problems.append(f"{t}: {shown[t]} instances over {BUDGET['instances'][t]}")
+        if drawn[t] > BUDGET["drawn"][t]:
+            problems.append(f"{t}: {drawn[t]} vegetation triangles drawn over {BUDGET['drawn'][t]}")
+    if problems:
+        raise ContractError("rowing environment: " + "; ".join(problems))
+    return {"land": land, "variants": variants, "instances": instances, "counts": counts,
+            "shown": shown, "drawn": drawn, "triangles": triangles}
+
+
+def export(glb, plan):
+    """One mesh per land part and variant; no materials, no instances."""
+    scene = bpy.context.scene
+    staging = bpy.data.collections.new("export")
+    scene.collection.children.link(staging)
+    for obj in [*plan["land"].values(), *plan["variants"].values()]:
+        staging.objects.link(obj)
+    layer = bpy.context.view_layer.layer_collection.children["export"]
+    bpy.context.view_layer.active_layer_collection = layer
+    bpy.ops.export_scene.gltf(
+        filepath=str(glb), export_format="GLB", export_yup=True,
+        use_active_collection=True, use_active_collection_with_nested=False,
+        export_materials="NONE", export_vertex_color="NAME", export_vertex_color_name="Col",
+        export_all_vertex_colors=False, export_texcoords=False, export_normals=True,
+        export_tangents=False, export_extras=False, export_apply=False,
+        export_animations=False, export_cameras=False, export_lights=False,
+        export_draco_mesh_compression_enable=False, export_meshopt_compression_enable=False,
+        export_use_gltfpack=False,
+    )
+    bpy.data.collections.remove(staging)
+    canonicalize_pack(glb)
+    bound_attributes(glb)
+
+
+def placement_json(instances):
+    """One instance per line, so a moved tree is a one-line diff."""
+    lines = []
+    for e in instances:
+        entry = {"variant": e["variant"], "tier": e["tier"], "position": e["position"],
+                 "yaw": e["yaw"], "scale": e["scale"], "color": e["color"]}
+        lines.append("  " + json.dumps(entry, separators=(", ", ": ")))
+    return "[\n" + ",\n".join(lines) + "\n]\n"
+
+
+def build(source, output):
+    """Open the source, validate it, write the GLB and the placements.
+
+    Returns the manifest's `environment` section."""
+    assets = Path(source).resolve().parents[1]
+    bpy.ops.wm.open_mainfile(filepath=str(source))
+    plan = validate(assets)
+    glb = output / "rowing-environment.glb"
+    export(glb, plan)
+    (output / "vegetation.json").write_text(placement_json(plan["instances"]))
+    return {
+        "source": Path(source).name,
+        "sourceSha256": hashlib.sha256(Path(source).read_bytes()).hexdigest(),
+        "blender": bpy.app.version_string,
+        "triangles": {k[len(PREFIX):]: v for k, v in plan["triangles"].items()},
+        "instances": plan["counts"],
+        "shown": plan["shown"],
+        "drawnTriangles": plan["drawn"],
+        "budget": BUDGET,
+    }

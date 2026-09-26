@@ -420,9 +420,17 @@ const AUTHORED: &[&str] = &[
     "authored/course.json",
     "authored/overcast.hdr",
     "authored/overcast.ktx",
+    "authored/rowing-environment.blend",
+    "authored/rowing-environment.glb",
     "authored/rowing-shell.glb",
+    "authored/vegetation.json",
     "authored/water-normal.png",
 ];
+
+/// The authored pack's plain-Git budget (ADR 0011). Blender Phase 3 raised it
+/// from 4 to 6 MiB for the environment's `.blend` source and its outputs
+/// (`docs/blender-audit.md`, "Phase 3").
+const AUTHORED_PACK_BUDGET: u64 = 6 * 1024 * 1024;
 
 #[test]
 fn authored_assets_match_manifest_and_budgets() {
@@ -443,9 +451,12 @@ fn authored_assets_match_manifest_and_budgets() {
             pin["sha256"].as_str().unwrap(),
             "{name}"
         );
-        total += bytes.len();
+        total += bytes.len() as u64;
     }
-    assert!(total <= 4 * 1024 * 1024, "authored pack exceeds 4 MiB");
+    assert!(
+        total <= AUTHORED_PACK_BUDGET,
+        "authored pack exceeds {AUTHORED_PACK_BUDGET} bytes"
+    );
     assert!(manifest["buoyTriangles"].as_u64().unwrap() <= 5000);
     assert!(manifest["textureMax"].as_u64().unwrap() <= 1024);
     // Blender Phase 2: the shell and both oars as drawn (build.rs recounts
@@ -470,6 +481,124 @@ fn authored_assets_match_manifest_and_budgets() {
         let radius = p[0].as_f64().unwrap().hypot(p[2].as_f64().unwrap());
         assert!((radius - 23.1).abs() < 1e-5 || (radius - 33.3).abs() < 1e-5);
     }
+}
+
+/// Blender Phase 3: the environment is exported from the committed `.blend`
+/// (`tools/blender/export_environment.py`). The manifest records which source
+/// the GLB and the placements came from, and their budgets; the placements
+/// keep the invariants the scene relies on.
+#[test]
+fn the_environment_matches_its_source_and_budgets() {
+    const VARIANTS: [&str; 6] = [
+        "tree-broadleaf-a",
+        "tree-broadleaf-b",
+        "tree-conifer",
+        "tree-poplar",
+        "shrub",
+        "reeds",
+    ];
+    let dir = assets_dir().join("authored");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("MANIFEST.json")).unwrap()).unwrap();
+    let environment = &manifest["environment"];
+    // The outputs were exported from exactly the committed source.
+    assert_eq!(
+        environment["source"].as_str(),
+        Some("rowing-environment.blend")
+    );
+    let blend = std::fs::read(dir.join("rowing-environment.blend")).unwrap();
+    assert_eq!(
+        environment["sourceSha256"].as_str(),
+        Some(sha256_hex(&blend).as_str()),
+        "rowing-environment.blend changed without a re-export (make blender-environment)"
+    );
+    let budget = &environment["budget"];
+    let triangles = environment["triangles"].as_object().unwrap();
+    for part in ["terrain", "far-bank", "woodland"] {
+        assert!(
+            triangles[part].as_u64().unwrap() <= budget[part].as_u64().unwrap(),
+            "{part} over budget"
+        );
+    }
+    for variant in VARIANTS {
+        assert!(triangles[variant].as_u64().unwrap() <= budget["variant"].as_u64().unwrap());
+    }
+    assert_eq!(triangles.len(), 3 + VARIANTS.len());
+    for (key, limit) in [
+        ("terrain", 16_000),
+        ("far-bank", 8_000),
+        ("woodland", 6_000),
+        ("variant", 800),
+    ] {
+        assert_eq!(
+            budget[key].as_u64(),
+            Some(limit),
+            "the {key} budget moved; update docs/blender-audit.md"
+        );
+    }
+
+    // One instance per line, so a moved tree is a one-line diff; sorted by
+    // variant and then tier, so each tier is a prefix of its variant's list
+    // (the scene's instanceCountOverride relies on it).
+    let text = std::fs::read_to_string(dir.join("vegetation.json")).unwrap();
+    let placements: Vec<serde_json::Value> = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        text.lines().count(),
+        placements.len() + 2,
+        "one instance per line"
+    );
+    let key = |e: &serde_json::Value| {
+        (
+            e["variant"].as_str().unwrap().to_owned(),
+            e["tier"].as_u64().unwrap(),
+        )
+    };
+    assert!(
+        placements.windows(2).all(|w| key(&w[0]) <= key(&w[1])),
+        "vegetation.json must be sorted by variant, then tier"
+    );
+    let tiers = ["low", "medium", "high", "ultra"];
+    let mut shown = [0_u64; 4];
+    let mut drawn = [0_u64; 4];
+    for variant in VARIANTS {
+        let mut counts = [0_u64; 4];
+        for entry in placements.iter().filter(|e| e["variant"] == variant) {
+            let tier = usize::try_from(entry["tier"].as_u64().unwrap()).unwrap();
+            for count in &mut counts[tier..] {
+                *count += 1;
+            }
+            let p = entry["position"].as_array().unwrap();
+            let radius = p[0].as_f64().unwrap().hypot(p[2].as_f64().unwrap());
+            // Clear of the course: the outer buoy ring is at 33.3 m and the
+            // quay at 36.2 m or beyond; only reeds stand in the shallows.
+            let floor = if variant == "reeds" { 35.0 } else { 38.2 };
+            assert!(radius >= floor, "{variant} at r {radius:.2} m");
+            let scale = entry["scale"].as_f64().unwrap();
+            assert!((0.3..=2.0).contains(&scale));
+        }
+        assert!(
+            counts[0] > 0,
+            "{variant} has no Low instance: an empty instance table is not drawn"
+        );
+        let recorded: Vec<u64> = environment["instances"][variant]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c.as_u64().unwrap())
+            .collect();
+        assert_eq!(recorded, counts, "{variant} tier counts");
+        for (i, count) in counts.iter().enumerate() {
+            shown[i] += count;
+            drawn[i] += count * triangles[variant].as_u64().unwrap();
+        }
+    }
+    for (i, tier) in tiers.iter().enumerate() {
+        assert_eq!(environment["shown"][tier].as_u64(), Some(shown[i]));
+        assert_eq!(environment["drawnTriangles"][tier].as_u64(), Some(drawn[i]));
+        assert!(shown[i] <= budget["instances"][tier].as_u64().unwrap());
+        assert!(drawn[i] <= budget["drawn"][tier].as_u64().unwrap());
+    }
+    assert_eq!(placements.len() as u64, shown[3]);
 }
 
 /// Blender Phase 3: the water normal's tile is the one the scene repeats.

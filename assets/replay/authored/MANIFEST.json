@@ -29,9 +29,21 @@
       "bytes": 1048436,
       "sha256": "5548083b00cd6963b66243bf66174d749985a308cdceb8c96d12efbce9996d88"
     },
+    "rowing-environment.blend": {
+      "bytes": 648848,
+      "sha256": "b0357a84701ca980740db6ad3a3811e7f38d3bce3bae961ea9425cba6a30dfa5"
+    },
+    "rowing-environment.glb": {
+      "bytes": 595504,
+      "sha256": "88083f2db270249efee911b4f062316e0c96353cfd450b72daaf52868e379b84"
+    },
     "rowing-shell.glb": {
       "bytes": 912596,
       "sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d"
+    },
+    "vegetation.json": {
+      "bytes": 38777,
+      "sha256": "991f68b7f0486105eee829c2b72dc4fc2c68c37b949348b97fb07a3baf9f10ef"
     },
     "water-normal.png": {
       "bytes": 297417,
@@ -71,5 +83,89 @@
       0.0607,
       2.8284
     ]
+  },
+  "environment": {
+    "source": "rowing-environment.blend",
+    "sourceSha256": "b0357a84701ca980740db6ad3a3811e7f38d3bce3bae961ea9425cba6a30dfa5",
+    "blender": "5.2.2 LTS",
+    "triangles": {
+      "terrain": 13350,
+      "far-bank": 6480,
+      "woodland": 2436,
+      "tree-broadleaf-a": 559,
+      "tree-broadleaf-b": 599,
+      "tree-conifer": 132,
+      "tree-poplar": 379,
+      "shrub": 300,
+      "reeds": 16
+    },
+    "instances": {
+      "tree-broadleaf-a": [
+        8,
+        16,
+        23,
+        31
+      ],
+      "tree-broadleaf-b": [
+        9,
+        18,
+        28,
+        37
+      ],
+      "tree-conifer": [
+        6,
+        12,
+        17,
+        23
+      ],
+      "tree-poplar": [
+        2,
+        4,
+        6,
+        8
+      ],
+      "shrub": [
+        32,
+        64,
+        97,
+        129
+      ],
+      "reeds": [
+        16,
+        33,
+        50,
+        66
+      ]
+    },
+    "shown": {
+      "low": 73,
+      "medium": 147,
+      "high": 221,
+      "ultra": 294
+    },
+    "drawnTriangles": {
+      "low": 21269,
+      "medium": 42554,
+      "high": 64047,
+      "ultra": 85316
+    },
+    "budget": {
+      "terrain": 16000,
+      "far-bank": 8000,
+      "woodland": 6000,
+      "variant": 800,
+      "instances": {
+        "low": 100,
+        "medium": 200,
+        "high": 300,
+        "ultra": 400
+      },
+      "drawn": {
+        "low": 60000,
+        "medium": 90000,
+        "high": 120000,
+        "ultra": 150000
+      }
+    }
   }
 }

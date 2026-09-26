@@ -15,6 +15,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import contact_sheet, export, linear, material, reset
 from probes import bake
+import export_environment
 import shell
 from water import normals as water_field
 
@@ -137,9 +138,9 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "assets/replay/authored")
     parser.add_argument("--previews", type=Path, default=ROOT / "build/previews")
     parser.add_argument("--balsam", default=os.environ.get("ROWPLAY_BALSAM", "balsam"))
-    parser.add_argument("--only", choices=("all", "shell", "water"), default="all",
-                        help="rebuild one part alone and re-pin it in MANIFEST.json: shell (Phase 2) "
-                             "or water (Phase 3)")
+    parser.add_argument("--only", choices=("all", "shell", "water", "environment"), default="all",
+                        help="rebuild one part alone and re-pin it in MANIFEST.json: shell (Phase 2), "
+                             "water or environment (Phase 3)")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     args.output.mkdir(parents=True, exist_ok=True)
     print("Blender", bpy.app.version_string, "seed", SEED)
@@ -148,9 +149,13 @@ def main():
         if args.only == "shell":
             report["shell"] = rowing_shell(args.output / "rowing-shell.glb", args.previews)
             pinned = ["rowing-shell.glb"]
-        else:
+        elif args.only == "water":
             report["water"] = water(args.output / "water-normal.png")
             pinned = ["water-normal.png"]
+        else:
+            report["environment"] = export_environment.build(
+                args.output / "rowing-environment.blend", args.output)
+            pinned = ["rowing-environment.blend", "rowing-environment.glb", "vegetation.json"]
         for name in pinned:
             data = (args.output / name).read_bytes()
             report["files"][name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
@@ -166,6 +171,8 @@ def main():
     triangles = buoy(args.output / "buoy.glb", args.previews)
     (args.output / "course.json").write_text(course_json(placements()))
     shell_report = rowing_shell(args.output / "rowing-shell.glb", args.previews)
+    # Last: it opens the environment's source file in place of the scene.
+    environment_report = export_environment.build(args.output / "rowing-environment.blend", args.output)
     files = {}
     for path in sorted(args.output.iterdir()):
         if path.name == "MANIFEST.json" or not path.is_file():
@@ -174,13 +181,19 @@ def main():
         files[path.name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
     report = {"blender": bpy.app.version_string, "seed": SEED,
               "buoyTriangles": triangles, "buoyInstances": 256,
-              "textureMax": 512, "shell": shell_report, "water": water_report, "files": files}
+              "textureMax": 512, "shell": shell_report, "water": water_report,
+              "environment": environment_report, "files": files}
     write_manifest(args.output, report)
 
 
+# The authored pack's plain-Git budget (ADR 0011). Blender Phase 3 raised it
+# from 4 to 6 MiB for the environment's source file and its outputs.
+PACK_BUDGET = 6 * 1024 * 1024
+
+
 def write_manifest(output, report):
-    if sum(f["bytes"] for f in report["files"].values()) > 4 * 1024 * 1024:
-        raise ValueError("authored source budget exceeds 4 MiB")
+    if sum(f["bytes"] for f in report["files"].values()) > PACK_BUDGET:
+        raise ValueError(f"authored pack exceeds {PACK_BUDGET} bytes")
     (output / "MANIFEST.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
 
