@@ -12,7 +12,8 @@ were delivered together as the bootstrap PR.
 
 Qt Bridge for Rust is pinned to 0.3.0; Rust MSRV is 1.88. Manual `RowPlay`
 1.0 singleton registration and the existing worker/frame paths are retained.
-The MSRV check is now `MSRV (Qt-free crates)`, with no version in its name.
+The MSRV check is now `MSRV (Qt-free crates)`, with no version in its name,
+and the macOS App job verifies the CXX generator alignment before it builds.
 See [bridge migration notes](qt-bridges-notes.md#21-migration-to-qtbridge-030-2026-09-26)
 for source references, lockfile alignment and validation. The phase records
 below retain their original toolchain history.

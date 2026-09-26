@@ -292,6 +292,14 @@ renames no required check. The step-529 job is informational. Rules:
   Windows style and FluentWinUI3, light and dark, the replay on D3D11) and
   uploads their captures as `screenshots-windows`. They are informational
   (`continue-on-error`): the required walk is the offscreen one before it.
+- The macOS App job verifies the CXX generator alignment before it builds.
+  CXX-Qt generates its C++ with `cxx-gen`, which Cargo resolves apart from
+  CXX, and CXX's macro and generators write their patch number into every
+  bridge symbol. The step reads `cargo metadata --locked`, prints every
+  CXX, CXX-Qt and qtbridge version, and fails on a package resolved twice,
+  a CXX or CXX-Qt family split across versions, or a `cxx-gen` patch that
+  is not `cxx`'s. Fix the lockfile (`cargo update -p cxx-gen --precise
+  0.7.<patch>`), never delete it (bridge notes, entry 21).
 
 ## Architecture boundaries
 
