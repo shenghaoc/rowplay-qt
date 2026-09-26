@@ -12,13 +12,24 @@ import numpy as np
 def compact_ktx(source, output):
     data = source.read_bytes()
     magic = b"\xabKTX 11\xbb\r\n\x1a\n"
-    if data[:12] != magic:
+    if len(data) < 64 or data[:12] != magic:
         raise ValueError("expected KTX1 from Qt balsam")
     header = list(struct.unpack_from("<13I", data, 12))
     endian, typ, size, fmt, internal, base, width, height, depth, arrays, faces, levels, metadata = header
     if (endian, typ, size, fmt, internal, base, width, height, depth, arrays, faces, levels) != (
             0x04030201, 0x140B, 2, 0x1908, 0x881A, 0x1908, 512, 512, 0, 0, 6, 6):
         raise ValueError(f"unexpected Qt IBL layout: {header}")
+    # Qt 6.11.2 qssgiblbaker.cpp writes this exact version-1 marker.
+    # The runtime uses its presence to bypass online IBL baking. A changed
+    # baker contract must be reviewed, not copied into an apparently valid KTX.
+    expected_metadata = struct.pack("<I", 23) + b"QT_IBL_BAKER_VERSION\x001\x00\x00"
+    if metadata != len(expected_metadata) or data[64:64 + metadata] != expected_metadata:
+        raise ValueError("unexpected Qt IBL baker metadata")
+    expected_size = 64 + metadata + sum(4 + 6 * (512 >> level) ** 2 * 8 for level in range(6))
+    if len(data) != expected_size:
+        raise ValueError("unexpected Qt IBL payload length")
+    # RGBA16F rows and every face at both resolutions are multiples of four:
+    # KTX1 cubePadding and mipPadding are zero. imageSize is PER FACE.
     # Do not discard top levels: their indices encode roughness, not just size.
     # Box-reduce each independently, including the final diffuse level.
     header[6] = header[7] = 128

@@ -29,8 +29,11 @@ independent builds.
 Blender 5.2.1 can emit the same opaque mesh with different triangle ordering.
 `canonical.py` normalises triangle order and cyclic vertex order without
 reversing winding or changing any vertex attribute. It refuses non-opaque
-primitives, where draw order could matter. Regression tests check winding,
-idempotence and refusal of translucent inputs.
+primitives, where draw order could matter. Its supported input is deliberately
+one unextended opaque mesh primitive/material with an embedded buffer and
+disjoint, tightly packed views. Mixed primitives, transmission/extensions,
+index/attribute aliasing and out-of-view indices fail before writing. Regression
+tests check winding, idempotence, these refusals and the committed buoy's bytes.
 
 `common.py` owns metre units and the Blender Z-up to glTF Y-up conversion.
 One glTF unit is one Qt scene metre; there is no 100x import scale. Qt built-in
@@ -64,7 +67,11 @@ tests run with Blender's bundled Python (which supplies NumPy):
 `<blender-dir>/5.2/python/bin/python3.13 -m unittest discover -s tools/blender`.
 
 `probes.py` validates Qt's exact KTX layout before independently box-reducing
-every mip. Simply dropping large mips would relabel roughness and is wrong.
+every mip. The little-endian RGBA16F 512-square, six-face/six-level layout,
+version-1 Qt baker metadata and complete payload length are pinned explicitly;
+new baker output requires review. All supported face sizes are four-byte aligned,
+so KTX1 face/mip padding is zero. Simply dropping large mips would relabel
+roughness and is wrong. See the source-first closeout in `docs/blender-audit.md`.
 Runtime loads the prefiltered KTX directly. PNG normal maps are uncompressed
 glTF-compatible inputs; Draco, meshopt and KTX2 are not used.
 

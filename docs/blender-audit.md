@@ -135,3 +135,114 @@ detail remains too regular/directional and has no physical wake/foam, and the
 shell/oars are retained meshes with new materials rather than a Phase 2 rebuild.
 These are visible limitations, not a claim to have reproduced Blender photorealism.
 Mac/Metal and a hardware iGPU performance run remain unverified.
+
+
+## Source-first closeout (2026-09-26)
+
+Audited the PR diff against its merge base, including generated QML/resources,
+material lifetimes, sport/scheme transitions, tier branches and generator inputs.
+No camera, rig, replay-position or per-frame Rust changes are in this PR. Sky
+replacement clears the alternate texture source and destroys the old dynamically
+owned sky object; rowing materials are scene-owned. Rowing fog/water/course and
+key-light overrides are sport-gated; venue colour/overlay overrides match only
+rower names. The importer probe's transmission/IOR checks are compatibility
+probes, not claims that the runtime uses those effects: runtime clearcoat and
+normals are explicit PrincipledMaterial properties.
+
+Two demonstrated generator acceptance holes were corrected, without regenerating
+assets or changing runtime QML:
+
+- An index view overlapping a vertex view was accepted and canonicalisation
+  changed vertex bytes. The narrow buoy contract now rejects overlapping/shared
+  index storage, out-of-view indices, external buffers and multi-primitive or
+  extended materials (including transmission with alphaMode OPAQUE). Sorting
+  remains within one opaque primitive and only uses cyclic rotations, never
+  reversed winding. The committed buoy is byte-identical after canonicalisation.
+- KTX headers were checked but baker metadata was copied unchecked. Missing or
+  changed metadata was accepted even though Qt uses the marker to select its
+  prebaked path. The version-1 metadata and exact payload length now fail closed,
+  as do unsupported headers, truncated faces and trailing bytes. Tests preserve
+  the destination on rejection and check nonuniform 4x4 box averages.
+
+### KTX/IBL contract
+
+Checked Qt **v6.11.2** sources:
+[qssgiblbaker.cpp](https://github.com/qt/qtquick3d/blob/v6.11.2/src/iblbaker/qssgiblbaker.cpp),
+[qssgrenderbuffermanager.cpp](https://github.com/qt/qtquick3d/blob/v6.11.2/src/runtimerender/resourcemanager/qssgrenderbuffermanager.cpp)
+and [material shader generator](https://github.com/qt/qtquick3d/blob/v6.11.2/src/runtimerender/qssgrenderdefaultmaterialshadergenerator.cpp),
+against the [KTX1 specification](https://registry.khronos.org/KTX/specs/1.0/ktxspec.v1.html).
+Qt bakes levels 0–4 at roughness 0, .25, .5, .75, 1 and level 5 as diffuse
+irradiance. Each is already filtered linear radiance, so spatial box reduction
+within each level preserves its roughness identity; it is a quality reduction,
+not an equivalent re-bake. The diffuse face becomes 4x4 (Qt comments prefer at
+least 16x16), so directional detail is reduced and visual acceptance remains open.
+
+512/256/128/64/32/16 faces become 128/64/32/16/8/4. For RGBA16F each pixel is
+eight bytes; imageSize is one face, not six faces, and divides by 16 after 4x4
+reduction. Every row, face and mip payload is four-byte aligned, requiring zero
+cube/mip padding. The 64-byte header is followed by exactly 28 metadata bytes,
+including its size field and padding. Little-endian half floats and header words
+are intentional; big-endian or other formats are rejected. Qt loads all six
+levels, records the file's level count and passes max level 5 to its shaders;
+it does not infer roughness count from the new base size. Thus the unused 2x2
+and 1x1 storage levels do not replace the diffuse level. There is no identified
+Metal-specific layout error. Both source HDRs successfully baked and compacted
+with local Qt 6.11.2 / Apple M5 Metal, producing 1,048,436-byte files; these
+scratch outputs were not committed and do not establish app visual acceptance.
+The initial sandboxed bake could not access MTLDevice; the unsandboxed bake passed.
+
+### Buoy and resource cost
+
+Local balsam output contains exactly one Model, sourcing one
+`meshes/sphere_mesh.mesh`. `RowingCourse.qml` assigns its `instancing` to the
+single `CourseInstances` InstanceList once at Component.onCompleted. That list
+has 256 InstanceListEntry records, not 256 Models or geometry copies.
+`build.rs` parses course.json at build time and emits this static component;
+there is no runtime JSON parsing or per-frame placement work. Materials and
+instance data have static QML ownership. Only authored KTX/PNG files enter the
+environment resource pack; source HDRs, GLB, placement JSON and manifest are
+excluded. The separately converted buoy mesh/QML and instance QML are embedded.
+
+### 53.09 ms investigation
+
+The gate is `rowplay-viewmodel/tests/perf_5k.rs`'s
+`filtering_a_5000_workout_library_stays_under_50ms`: each of five queries measures
+the median of seven `filter_and_sort_workouts` calls over 5,000 synthetic records.
+It measures existing CPU filtering/sorting, not this PR's rendering, asset loading
+or build-time generation. The original Linux log naming the failing query was
+not available in this checkout; 53.09 ms is the earlier recorded observation,
+not a newly recovered raw measurement. The test and query implementation are
+identical on the PR and current main.
+
+On this Mac (Apple M5, arm64, Rust 1.98.1 debug), 30 isolated processes per branch,
+one test thread, without audit render work, all passed. One validation worktree
+was switched between PR and main, with a rebuild before each batch. Main was
+`23fdee4`; PR was the handed-off head. Values below are min/median/max of the
+30 reported seven-sample medians, in milliseconds; they are not raw-call tails.
+
+| Query | PR | main |
+| --- | --- | --- |
+| Default/date descending | 2.393 / 2.440 / 4.639 | 2.420 / 2.503 / 4.702 |
+| Sport | 0.744 / 0.762 / 1.108 | 0.754 / 0.785 / 1.028 |
+| Free text | 1.259 / 1.297 / 1.717 | 1.284 / 1.315 / 1.718 |
+| Pace ascending | 2.328 / 2.367 / 3.038 | 2.343 / 2.447 / 3.194 |
+| Date range/distance | 1.189 / 1.222 / 1.336 | 1.222 / 1.257 / 2.025 |
+
+No material regression was observed. Neither branch reproduced a 50 ms tail;
+this does **not** establish a shared noisy timing gate or prove interference on
+the original Linux host. That historical miss remains unexplained, not a flake.
+The threshold is unchanged. Hardware-iGPU interactive performance and macOS/Metal
+app visual acceptance remain external gates; the PR stays draft.
+
+
+Closeout validation on macOS: six Python tests pass; fmt and diff whitespace
+checks pass; workspace/all-target clippy with warnings denied passes; app builds;
+Qt-free tests report 573 passed / two existing ignored; app tests report 24 passed,
+including the full offscreen runtime-error walk (24.8 s). The opt-in screenshot
+test returns early without ROWPLAY_QT_SMOKE, so that count is not 24 rendered
+checks and no app visual assertion result is claimed. Initial sandboxed HTTP
+mock tests failed on denied loopback binds; the unsandboxed suite passed. The
+material importer probe also passes. No Blender full regeneration was performed
+in closeout; assets remain exactly those reviewed in the original Linux evidence.
+`issue-44-local` and the primary checkout were not modified. No Phase 2 work,
+ready-for-review transition or merge was performed.

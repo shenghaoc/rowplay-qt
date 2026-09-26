@@ -45,6 +45,11 @@ runtime capture script samples demo 1001 at 208.829 s and subsequent real-time
 quarter-second intervals. Full visual acceptance and macOS verification remain
 tracked in `.kiro/specs/blender-01-pipeline/tasks.md`.
 
+Source-first closeout tightened only the GLB/KTX generator input contracts;
+committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
+Qt source tracing and the isolated filter timing comparison. Both hardware
+acceptance gates remain open.
+
 ## Phase 1 — core parity foundation
 
 | Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |
