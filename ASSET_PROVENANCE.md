@@ -19,7 +19,9 @@ GPL-3.0-or-later. No external image, logo, branded equipment design or HDRI is
 an input. `MANIFEST.json` records the complete output inventory, byte sizes,
 SHA-256 pins, Blender version and seed. The asset tests verify those pins and
 reject unlisted files. Regenerate with `make blender-assets` (see the pipeline
-README). Generated binaries remain in plain Git under ADR 0011.
+README). Generated binaries remain in plain Git under ADR 0011. All of them are
+procedural assets under ADR 0016's source rule: the scripts are their source,
+and no `.blend` file is committed for them.
 
 - `overcast.hdr`, `blue-hour.hdr`: linear equirectangular radiance from Blender
   Cycles world nodes, independently authored daytime and blue-hour palettes.

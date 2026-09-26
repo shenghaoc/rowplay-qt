@@ -37,3 +37,4 @@ Before shell/oar work, refine ADR 0016's broad script-only source wording:
 procedural assets use reviewed generation scripts; artistically modeled assets
 use reviewed `.blend` sources plus deterministic export/validation scripts.
 This follow-up is not a Python CAD framework or work included in Phase 1.
+Done as Phase 2's opening commit, which amends ADR 0016 in place.
