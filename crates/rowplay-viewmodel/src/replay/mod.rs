@@ -5,7 +5,8 @@
 //! equipment anchor table from the asset README ([`anchors`]). Phase 6a adds
 //! the baked-venue reader and contract validator ([`venue`]); Blender Phase 2
 //! the authored rowing shell's gate against the V3 contract
-//! ([`rowing_shell`]).
+//! ([`rowing_shell`]); Blender Phase 3 the authored rowing environment's
+//! gate ([`environment`]).
 //!
 //! Everything here is Qt-free data and validation: the app crate's `Replay`
 //! singleton adapts it to QML, and no hex colour or anchor coordinate is
@@ -15,6 +16,7 @@ pub mod anchors;
 pub mod athlete;
 pub mod camera;
 pub mod course;
+pub mod environment;
 pub mod equipment;
 pub mod frame;
 pub mod glb;

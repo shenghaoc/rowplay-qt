@@ -50,7 +50,7 @@ fn is_rowing(role: &MeshNodeRole) -> bool {
 }
 
 /// Triangles in one mesh (every primitive must be a triangle list).
-fn mesh_triangles(json: &Value, mesh: usize, owner: &str) -> Result<u64, AssetError> {
+pub(crate) fn mesh_triangles(json: &Value, mesh: usize, owner: &str) -> Result<u64, AssetError> {
     let geometry = |reason: String| AssetError::Geometry {
         node: owner.to_owned(),
         reason,

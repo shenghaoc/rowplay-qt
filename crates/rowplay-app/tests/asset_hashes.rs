@@ -485,18 +485,14 @@ fn authored_assets_match_manifest_and_budgets() {
 
 /// Blender Phase 3: the environment is exported from the committed `.blend`
 /// (`tools/blender/export_environment.py`). The manifest records which source
-/// the GLB and the placements came from, and their budgets; the placements
-/// keep the invariants the scene relies on.
+/// the GLB and the placements came from, and their budgets; the triangle
+/// counts are recounted from the GLB, every budget is pinned here, and the
+/// placements keep the invariants the scene relies on.
 #[test]
 fn the_environment_matches_its_source_and_budgets() {
-    const VARIANTS: [&str; 6] = [
-        "tree-broadleaf-a",
-        "tree-broadleaf-b",
-        "tree-conifer",
-        "tree-poplar",
-        "shrub",
-        "reeds",
-    ];
+    use rowplay_viewmodel::replay::environment::{
+        ENVIRONMENT_VARIANTS as VARIANTS, validate_environment,
+    };
     let dir = assets_dir().join("authored");
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(dir.join("MANIFEST.json")).unwrap()).unwrap();
@@ -514,6 +510,17 @@ fn the_environment_matches_its_source_and_budgets() {
     );
     let budget = &environment["budget"];
     let triangles = environment["triangles"].as_object().unwrap();
+    // The exporter's counts, checked against the GLB's own accessors.
+    let recount = validate_environment(&std::fs::read(dir.join("rowing-environment.glb")).unwrap())
+        .expect("the environment GLB honours its contract");
+    assert_eq!(triangles.len(), recount.triangles.len());
+    for (part, count) in &recount.triangles {
+        assert_eq!(
+            triangles[part.as_str()].as_u64(),
+            Some(*count),
+            "{part}: the manifest's triangle count is not the GLB's"
+        );
+    }
     for part in ["terrain", "far-bank", "woodland"] {
         assert!(
             triangles[part].as_u64().unwrap() <= budget[part].as_u64().unwrap(),
@@ -534,6 +541,21 @@ fn the_environment_matches_its_source_and_budgets() {
             budget[key].as_u64(),
             Some(limit),
             "the {key} budget moved; update docs/blender-audit.md"
+        );
+    }
+    for (key, limits) in [
+        ("instances", [100, 200, 300, 400]),
+        ("drawn", [60_000, 90_000, 120_000, 150_000]),
+    ] {
+        let pinned: serde_json::Map<String, serde_json::Value> = ["low", "medium", "high", "ultra"]
+            .into_iter()
+            .zip(limits)
+            .map(|(tier, limit)| (tier.to_owned(), serde_json::Value::from(limit)))
+            .collect();
+        assert_eq!(
+            budget[key].as_object(),
+            Some(&pinned),
+            "the {key} budgets moved; update docs/blender-audit.md"
         );
     }
 
