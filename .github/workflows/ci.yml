@@ -23,13 +23,13 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # Docs-only pull requests skip the app builds (AGENTS.md, "Continuous
-  # integration"). "Docs" is an allow-list of paths no test reads: docs/,
-  # the .kiro specs, the licences, the pull request template and the
-  # repository-root *.md files. A .md anywhere else counts as code, since
-  # the asset and fixture manifests police those directories. Pushes and
-  # dispatches always build. The App jobs still run, and still report
-  # their required check names; only their steps are skipped.
+  # Docs-only pull requests compile and test nothing (AGENTS.md, "Continuous
+  # integration"). tools/ci/change-scope.sh holds the allow-list of paths no
+  # build, test or tool reads, and tools/ci/test-change-scope.sh pins it
+  # case by case; both run here. Pushes and dispatches always build. The
+  # five required jobs still run on a docs-only pull request and report
+  # their check names: the Qt-free job checks whitespace and conflict
+  # markers, and the rest print a notice. Only their heavy steps are skipped.
   changes:
     name: Change scope
     runs-on: ubuntu-24.04
@@ -39,38 +39,51 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Change scope cases
+        run: tools/ci/test-change-scope.sh
       - id: scope
         name: Code or docs-only?
         shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # --no-renames: a rename must count its old path too. With rename
-          # detection, moving a code file under docs/ lists only the new
-          # path and would pass as docs-only.
-          changed=$(git diff --no-renames --name-only "origin/${{ github.base_ref }}...HEAD")
-          printf '%s\n' "$changed"
-          docs='^(docs/|\.kiro/|LICENSES/|LICENSE$|[^/]+\.md$|\.github/pull_request_template\.md$)'
-          if [ -n "$changed" ] && ! grep -qvE "$docs" <<< "$changed"; then
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          fi
+          tools/ci/change-scope.sh --diff "origin/$BASE_REF" >> "$GITHUB_OUTPUT"
 
   core:
     name: Qt-free crates (fmt, clippy, test)
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
+    env:
+      # 'false' only for a docs-only pull request (the changes job); any
+      # other value, an empty one included, runs every step.
+      RUN_CODE: ${{ github.event_name != 'pull_request' && 'true' || needs.changes.outputs.code }}
     steps:
+      # A required job skipped because a job it needs failed would report
+      # success, so this job runs whatever Change scope did and fails here.
+      - name: Change scope succeeded
+        if: needs.changes.result != 'success'
+        run: |
+          echo "::error::Change scope did not succeed (${{ needs.changes.result }}); nothing was checked"
+          exit 1
+      - name: Docs-only change, Rust build and tests skipped
+        if: env.RUN_CODE == 'false'
+        run: echo "::notice::Docs-only change; fmt, clippy and the Qt-free tests were skipped, whitespace and conflict markers are still checked"
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.98.1
+        if: env.RUN_CODE != 'false'
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        if: env.RUN_CODE != 'false'
       - name: Secret Service build dependency for keyring (Linux)
+        if: env.RUN_CODE != 'false'
         # keyring's sync-secret-service backend links libdbus-1 through
         # libdbus-sys. ROWPLAY_KEYRING_TESTS stays unset: CI has no Secret
         # Service, so those tests skip and only the in-memory store is used.
@@ -78,10 +91,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
       - name: Format
+        if: env.RUN_CODE != 'false'
         run: cargo fmt --all -- --check
       - name: Clippy
+        if: env.RUN_CODE != 'false'
         run: cargo clippy -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures --all-targets -- -D warnings
       - name: Test
+        if: env.RUN_CODE != 'false'
         run: cargo test -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures
       - name: Whitespace and conflict markers (pull request)
         if: github.event_name == 'pull_request'
@@ -94,23 +110,44 @@ jobs:
     # A required check (AGENTS.md, "Continuous integration"). Its name
     # carries no version, so raising the minimum renames no required check.
     name: MSRV (Qt-free crates)
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     env:
       # Overrides rust-toolchain.toml, which pins the newer CI toolchain.
       # The minimum itself: Cargo.toml's rust-version. Bump them together.
       RUSTUP_TOOLCHAIN: 1.88.0
+      # 'false' only for a docs-only pull request (the changes job); any
+      # other value, an empty one included, runs every step.
+      RUN_CODE: ${{ github.event_name != 'pull_request' && 'true' || needs.changes.outputs.code }}
     steps:
+      # A required job skipped because a job it needs failed would report
+      # success, so this job runs whatever Change scope did and fails here.
+      - name: Change scope succeeded
+        if: needs.changes.result != 'success'
+        run: |
+          echo "::error::Change scope did not succeed (${{ needs.changes.result }}); nothing was checked"
+          exit 1
+      - name: Docs-only change, MSRV check skipped
+        if: env.RUN_CODE == 'false'
+        run: echo "::notice::Docs-only change; the MSRV cargo check was skipped"
       - uses: actions/checkout@v7
+        if: env.RUN_CODE != 'false'
       - uses: dtolnay/rust-toolchain@1.88
+        if: env.RUN_CODE != 'false'
       - uses: Swatinem/rust-cache@v2
+        if: env.RUN_CODE != 'false'
       - name: Secret Service build dependency for keyring (Linux)
+        if: env.RUN_CODE != 'false'
         # keyring's sync-secret-service backend links libdbus-1 through
         # libdbus-sys. ROWPLAY_KEYRING_TESTS stays unset: CI has no Secret
         # Service, so those tests skip and only the in-memory store is used.
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
-      - run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures --all-targets
+      - name: MSRV cargo check
+        if: env.RUN_CODE != 'false'
+        run: cargo check -p rowplay-core -p rowplay-platform -p rowplay-viewmodel -p rowplay-fixtures --all-targets
 
   app:
     name: App (${{ matrix.os }})
@@ -131,22 +168,23 @@ jobs:
             aqt-source: git+https://github.com/miurahr/aqtinstall@8c3695d4a4e1ceabf6a74dc6c79681656dc6b74b
     runs-on: ${{ matrix.os }}
     env:
-      # 'false' only for a docs-only pull request (the changes job).
-      RUN_APP: ${{ needs.changes.outputs.code }}
+      # 'false' only for a docs-only pull request (the changes job); any
+      # other value, an empty one included, runs every step.
+      RUN_APP: ${{ github.event_name != 'pull_request' && 'true' || needs.changes.outputs.code }}
     steps:
       - name: Docs-only change, app build and tests skipped
-        if: env.RUN_APP != 'true'
+        if: env.RUN_APP == 'false'
         run: echo "::notice::Docs-only change; the app build and tests were skipped"
       - uses: actions/checkout@v7
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
       - uses: dtolnay/rust-toolchain@1.98.1
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
       - name: Install Qt 6.11
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
         uses: jurplel/install-qt-action@v4
         with:
           # Pinned to the patch release the repository is built and packaged
@@ -163,7 +201,7 @@ jobs:
           modules: 'qtquick3d qtshadertools qtquicktimeline qtgraphs'
           cache: true
       - name: Linux GL and X11 runtime for the headless smoke test
-        if: env.RUN_APP == 'true' && runner.os == 'Linux'
+        if: env.RUN_APP != 'false' && runner.os == 'Linux'
         run: |
           sudo apt-get update
           # The six-locale HUD gate must measure real CJK glyphs, not missing-glyph boxes.
@@ -173,7 +211,7 @@ jobs:
             libxcb-xinerama0 libxcb-xfixes0 libxcb-xkb1 libfontconfig1 \
             libdbus-1-dev pkg-config fonts-noto-cjk
       - name: Toolchain report
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
         shell: bash
         run: |
           rustc --version
@@ -191,7 +229,7 @@ jobs:
       # resolution of the committed lockfile is read and printed in full
       # before any verdict, and the step fails before the build.
       - name: Verify CXX generator alignment
-        if: env.RUN_APP == 'true' && runner.os == 'macOS'
+        if: env.RUN_APP != 'false' && runner.os == 'macOS'
         shell: bash
         run: |
           cargo metadata --locked --format-version 1 > "$RUNNER_TEMP/cargo-metadata.json"
@@ -274,13 +312,13 @@ jobs:
                 f"{revision['cxx']}; CXX-Qt {cxx_qt}.")
           EOF
       - name: Build app
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
         run: cargo build -p rowplay-app
       - name: Clippy app
-        if: env.RUN_APP == 'true'
+        if: env.RUN_APP != 'false'
         run: cargo clippy -p rowplay-app --all-targets -- -D warnings
       - name: Headless smoke screenshot and runtime-error gate (Xvfb + Mesa)
-        if: env.RUN_APP == 'true' && runner.os == 'Linux'
+        if: env.RUN_APP != 'false' && runner.os == 'Linux'
         env:
           ROWPLAY_QT_SMOKE: '1'
           ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts
@@ -304,7 +342,7 @@ jobs:
           LANG: C.UTF-8
         run: xvfb-run -a -s "-screen 0 1280x800x24" cargo test -p rowplay-app -- --nocapture
       - name: Smoke test binary starts (no display)
-        if: env.RUN_APP == 'true' && runner.os != 'Linux'
+        if: env.RUN_APP != 'false' && runner.os != 'Linux'
         # No DYLD_FALLBACK_FRAMEWORK_PATH any more: build.rs emits the Qt
         # lib dir as an LC_RPATH on macOS (docs/qt-bridges-notes.md note 10,
         # Phase 9). Running the tests without the variable is what keeps
@@ -320,7 +358,7 @@ jobs:
       # informational: a walk the runner cannot show is a finding, not a
       # blocked pull request.
       - name: Windows captures in a real window (informational)
-        if: env.RUN_APP == 'true' && runner.os == 'Windows'
+        if: env.RUN_APP != 'false' && runner.os == 'Windows'
         continue-on-error: true
         shell: bash
         env:
@@ -342,7 +380,7 @@ jobs:
           done
           exit $status
       - name: Upload the Windows captures
-        if: always() && env.RUN_APP == 'true' && runner.os == 'Windows'
+        if: always() && env.RUN_APP != 'false' && runner.os == 'Windows'
         uses: actions/upload-artifact@v7
         with:
           name: screenshots-windows
@@ -353,14 +391,14 @@ jobs:
       # The gate's timestamped app log (gate-log.txt), kept on failure too:
       # a slow or failing walk is only diagnosable from it.
       - name: Upload the gate log
-        if: always() && env.RUN_APP == 'true' && runner.os == 'Linux'
+        if: always() && env.RUN_APP != 'false' && runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: gate-log
           path: artifacts/gate-log.txt
           if-no-files-found: ignore
       - name: Upload smoke and shell screenshots
-        if: env.RUN_APP == 'true' && runner.os == 'Linux'
+        if: env.RUN_APP != 'false' && runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: screenshots
