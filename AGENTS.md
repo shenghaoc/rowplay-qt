@@ -359,9 +359,9 @@ USDZ (0003); procedural-sky IBL, no external HDRIs, with script-generated baked
 skies allowed (0004, 0016); authored assets from reviewed generation scripts
 or, for hand-modelled ones, a reviewed `.blend` plus a deterministic export and
 validation script (0016); bake venues rather than
-port `renderer3dEnvironment.ts` (0005), except the rowing land and vegetation
-round the basin (not the island), authored since Blender Phase 3 (0016); Rust
-core first (0006).
+port `renderer3dEnvironment.ts` (0005), except the rowing venue, whose land
+and vegetation (Blender Phase 3) and structures, furniture and island (Blender
+Phase 4) are authored (0016); Rust core first (0006).
 
 ## Parity is the test oracle
 

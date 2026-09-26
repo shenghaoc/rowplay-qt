@@ -3,7 +3,8 @@
 Status: accepted (2026-09-26, Direction C approval); the source rule is
 amended 2026-09-26, before the shell and oars (Blender Phase 2), and the
 licence of what it produces the same day (with ADR 0002); the rowing
-environment is added the same day (Blender Phase 3).
+environment is added the same day (Blender Phase 3), and the course dressing
+on 2026-09-27 (Blender Phase 4).
 
 ## Context
 
@@ -80,9 +81,9 @@ The rowing environment (amended 2026-09-26, Blender Phase 3):
   source under the rule above. For rowing they replace the land and
   vegetation of the venue baked from the web (ADR 0005) round the basin: its
   banks, horizon and ridge bands, woodland and reeds. The baked venue's
-  structures stay until they are authored too, and so does the island at the
-  course's centre, with its lawn, trees and shrubs. SkiErg and BikeErg keep
-  their baked venues whole.
+  structures and the island at the course's centre stayed until Blender
+  Phase 4 authored them (below). SkiErg and BikeErg keep their baked venues
+  whole.
 - **It is drawn from build-time data.** `build.rs` turns the export into a
   declarative scene: one Model per mesh, one `InstanceList` per vegetation
   variant. No runtime walk touches it. The replaced baked nodes are hidden by
@@ -90,6 +91,31 @@ The rowing environment (amended 2026-09-26, Blender Phase 3):
 - **It follows the web's shadow roles.** The terrain receives the key light's
   shadow, as the web's banks do, and nothing in it casts, as the web's trees
   do not.
+
+The rowing course dressing (amended 2026-09-27, Blender Phase 4):
+
+- **It is authored, and replaces the baked structures and island.** The
+  finish tower, the start jetty, the launch and coaching pontoons, the course
+  bridge, the campus buildings, the wetland boardwalk and hide, the distance
+  boards and the island come from `rowing-dressing.blend`, a modelled source
+  under the rule above, with the furniture (bollards, benches, life rings,
+  flagpoles, slings, finish buoys) as instanced variants placed by tier.
+  For rowing they replace every structure of the venue baked from the web
+  (ADR 0005) and its island; nothing of that bake is drawn any more, and its
+  nodes are hidden by the existing venue walk's name list. It is generic:
+  no real venue, brand, logo or sponsor board is reproduced.
+- **It is drawn from build-time data.** `build.rs` turns the export into a
+  declarative scene: one Model per structure, its primitives split by
+  material class with one material each, and one `InstanceList` per
+  furniture variant. No runtime walk touches it.
+- **It stands on the Phase 3 terrain.** The export checks each structure
+  against the environment's terrain (land on the ground, floats on water,
+  the bridge clear of the lanes and landing on the bank), and the
+  environment's export keeps its plants out of the dressing's footprints,
+  with the island's lawn the one place inside the basin it may plant.
+- **Its shadow roles are recorded per structure.** The structures cast and
+  receive the key light's shadow at High and Ultra (the web's tower and
+  bridge cast); the island receives; the furniture casts none.
 
 ## Consequences
 
