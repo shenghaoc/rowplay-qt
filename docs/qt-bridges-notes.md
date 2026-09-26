@@ -1,7 +1,8 @@
 # Qt Bridges for Rust — feedback log
 
 Friction points, bugs and missing features met while building rowplay-qt with
-`qtbridge` 0.2.0 (Qt 6.11.2, Rust 1.98.1, Linux x86_64). Each entry has a
+`qtbridge` (original observations: 0.2.0, Qt 6.11.2, Rust 1.98.1, Linux
+x86_64; current version: 0.3.0, migration entry 21 below). Each entry has a
 minimal repro so it can be sent upstream
 (`https://codereview.qt-project.org/q/project:qt/qtbridge-rust`,
 bug tracker `https://qt-project.atlassian.net/browse/QTBRIDGES`).
@@ -464,6 +465,91 @@ reason in a comment.
 
 Suggestion: accept `&str` for string arguments (the call already holds the
 converted string), or allow an associated function as a slot.
+
+## 21. Migration to qtbridge 0.3.0 (2026-09-26)
+
+The workspace now pins `qtbridge = "=0.3.0"` with the existing `serde_json`
+feature and Rust MSRV 1.88. Qt remains 6.11.2 and the edition remains 2024.
+The source reviewed is upstream release commit
+[`d9a89bc1767a444f280e0548edddbd5b2023104c`](https://github.com/qt/qtbridge-rust/tree/d9a89bc1767a444f280e0548edddbd5b2023104c),
+alongside [Qt's 0.3 release notes](https://www.qt.io/blog/qt-bridge-for-rust-0.3-cxx-qt-compatibility-and-soundness).
+The earlier entries record 0.2 observations unless updated here.
+
+- **Registration (notes 1–2):** `QmlRegister` became `QmlElement`, re-exported
+  by `qtbridge`. `crates/qtbridge-runtime/src/qmlelement.rs` retains `URI`,
+  `ELEMENT_NAME`, `MAJOR_VERSION`, `MINOR_VERSION` and `IS_SINGLETON`.
+  The seven manual implementations still register Smoke, Library, Detail,
+  Settings, Sync, Live and Replay as `RowPlay` 1.0 singletons. The generator's
+  `qt_gen_impl/qml_element.rs` still derives the default URI from the package
+  name. Keep `NoQmlElement`; do not enable `linkme` or change ownership.
+- **Instances and workers (note 13):** `QmlObject` now supplies
+  `get_qml_method_invoker` (and the attachment helpers), as shown by upstream
+  `apps/color_palette/src/basic_login.rs`. Sync and Live import this public
+  trait. Their channel, worker threads, queued `pumpEvents` calls and timer
+  fallback remain unchanged. `qml_method_invoker.rs` still documents Qt-thread
+  dispatch and the mutable-borrow restriction.
+- **Attachment guards (note 14):** the historical panic description no longer
+  applies to `QListModelBase::reset`: 0.3's
+  `crates/qtbridge-interfaces/src/qlist_model/proxy_rust.rs` calls
+  `reset_unnotified` when unattached. Its adapter's `index`, `set_data`,
+  `remove_rows` and `sibling` paths still contain `expect("No proxy")`.
+  Generated signals (`qt_gen_impl/qt_meta_gen/qsignal_info.rs`) now return
+  early without a proxy. Library's reset guard and Replay's notification
+  guard remain as conservative data-only/attached boundaries, not as a
+  claim that 0.3 reset or signals still panic. The hidden `QObjectHolder`
+  import is local to each guard; it is not used for public instance APIs.
+- **Models and resources:** `QModelItem` now qualifies its own `HashMap`, so
+  Library no longer needs that import. `QListModel`, the model roles,
+  `QApp`, the four binary qresource bundles, `serde_json` properties and the
+  per-frame payload retain their existing interfaces. No QML or workaround
+  architecture is rewritten. Older resource-macro limitations in note 3
+  are historical; this upgrade does not adopt `include_bytes_qml!`.
+- **Lockfile/linker friction:** the targeted update selected `cxx-gen`
+  0.7.202 beside the existing CXX 1.0.198 family. A fresh macOS build failed
+  with missing `cxxbridge1$198$…` symbols; the generated CXX-Qt sources
+  exported `$202$…`. `cargo update -p cxx-gen --precise 0.7.198` aligns the
+  generator ABI without upgrading existing CXX packages. Only affected
+  CXX-Qt artifacts were cleaned; `Cargo.lock` was not deleted. All seven
+  qtbridge packages are 0.3.0; CXX-Qt's five packages are 0.10.0. The other
+  additions/removals belong to that graph (including removal of mandatory
+  `linkme`), not unrelated dependency updates.
+- **MSRV and checks:** README, workspace metadata and CI now use Rust 1.88.
+  The MSRV job retains its historical required-check name, `MSRV 1.87
+  (Qt-free crates)`, to keep the main ruleset satisfied; its compiler is
+  1.88.0. The regular compiler stays at 1.98.1. Raising the MSRV enabled
+  `collapsible_if` let-chain and `chunks_exact_to_as_chunks` suggestions;
+  both are explicitly allowed at workspace level to preserve existing port
+  structure instead of mixing a style rewrite into the bridge migration.
+
+Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
+
+- `cargo test`: 581 passed, two existing ignored tests.
+- `cargo fmt --all -- --check` and workspace/all-target clippy with
+  `-D warnings`: passed.
+- `cargo build -p rowplay-app`: passed after generator alignment. The
+  affected CXX-Qt rebuild took 51.49 s; this is not a controlled 0.2/0.3
+  compile-time comparison.
+- `cargo test -p rowplay-app -- --nocapture` with `QT_QPA_PLATFORM=cocoa`,
+  `QSG_RHI_BACKEND=metal`, `ROWPLAY_QT_SMOKE=1`, `ROWPLAY_PHASE_SHOTS=1`,
+  `ROWPLAY_PHASE_CLOSEUPS=1` and both artifact directories set: 23 passed.
+  The full runtime walk logged 97.3 s and covered all singleton members,
+  Library resets, three mock syncs, languages, all sports, ghost and frame
+  traffic. The shadow assertion measured 1.62% affected pixels and 11.36%
+  darkening; the separate smoke capture contained 12,909 colors. These are
+  automated checks, supplemented by inspecting the rower capture.
+- A temporary example loaded the real Settings, Library, Live and Sync
+  backends into a minimal QML engine. With isolated `ROWPLAY_DATA_DIR`,
+  `ROWPLAY_SYNC_MOCK=1` and **no polling fallback**, Live's existing demo
+  worker returned `liveMode.notImplemented`, Sync completed, and Library
+  reloaded 17 rows. Both completions were observed through signals after
+  queued `pumpEvents`. The probe was removed from the repository; no
+  production QML or worker logic changed. The scratch example needed an
+  explicit Qt framework path because the app's existing rpath applies to
+  its named binary, not examples.
+- `cargo tree --locked` / metadata and the lockfile diff confirm the 0.3
+  family, CXX-Qt 0.10.0 and CXX 1.0.198 with generator 0.7.198. No unrelated
+  existing package version changed. CI supplies the Linux/macOS/Windows
+  app matrix and package/launch checks required by ADR 0012.
 
 ## What worked
 

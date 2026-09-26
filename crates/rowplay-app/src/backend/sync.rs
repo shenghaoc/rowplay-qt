@@ -15,7 +15,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::{QObjectHolder, QmlMethodInvoker, QmlRegister};
+use qtbridge::{QmlElement, QmlMethodInvoker, QmlObject};
 use rowplay_core::privacy::redact;
 use rowplay_platform::concept2::MockConcept2Client;
 use rowplay_platform::concept2::http::Concept2HttpClient;
@@ -471,7 +471,7 @@ fn progress_text(progress: SyncProgress, elapsed_secs: f64) -> String {
 }
 
 // Manual registration keeps the `RowPlay` URI (qt-bridges-notes #1).
-impl QmlRegister for SyncBackend {
+impl QmlElement for SyncBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Sync";
     const MAJOR_VERSION: u8 = 1;

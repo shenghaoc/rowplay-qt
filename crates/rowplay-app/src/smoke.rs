@@ -4,8 +4,8 @@
 //! QML drives one `tick(dt)` slot per frame from a `FrameAnimation` and reads
 //! the results back as plain properties (one crossing per frame each way).
 
+use qtbridge::QmlElement;
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::demo::mock_workouts;
 use rowplay_core::formatting::fmt_pace;
 
@@ -79,8 +79,8 @@ impl SmokeBackend {
 }
 
 // qtbridge derives the module URI from the Cargo package name (`rowplay_app`);
-// implementing `QmlRegister` by hand keeps the QML-facing name `RowPlay`.
-impl QmlRegister for SmokeBackend {
+// implementing `QmlElement` by hand keeps the QML-facing name `RowPlay`.
+impl QmlElement for SmokeBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Smoke";
     const MAJOR_VERSION: u8 = 1;

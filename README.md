@@ -111,7 +111,7 @@ come back when the pointer moves:
 
 ## Requirements
 
-- Rust ≥ 1.87 (stable toolchain with `rustfmt` and `clippy`).
+- Rust ≥ 1.88 (stable toolchain with `rustfmt` and `clippy`).
 - Linux only, for the keyring Secret Service backend, the `libdbus-1` headers
   at build time: `libdbus-1-dev` and `pkg-config` on Debian/Ubuntu, `dbus-devel`
   and `pkgconf` on RHEL/Fedora. macOS (Keychain) and Windows (Credential

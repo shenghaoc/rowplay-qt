@@ -7,8 +7,8 @@
 //! arrives as a slot argument and is dropped here — it is never stored in a
 //! QML-readable property, echoed back, or logged.
 
+use qtbridge::QmlElement;
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::models::DistanceUnit;
 use rowplay_platform::token_store::SecretToken;
 use rowplay_viewmodel::settings::{Language, timezone_matches, timezone_options, unit_options};
@@ -419,7 +419,7 @@ impl SettingsBackend {
 
 // qtbridge derives the module URI from the Cargo package name; the manual
 // impl keeps the QML-facing name `RowPlay` (qt-bridges-notes #1).
-impl QmlRegister for SettingsBackend {
+impl QmlElement for SettingsBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Settings";
     const MAJOR_VERSION: u8 = 1;

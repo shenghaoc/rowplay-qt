@@ -15,7 +15,8 @@ left the external crates open. The constraints were:
   host over a redirect;
 - `rowplay-core` stays dependency-light (its parsers only need `serde`, which
   it already has);
-- the MSRV in `rust-toolchain.toml` and CI is 1.87, and CI runs Ubuntu, macOS
+- the MSRV when this decision was made was 1.87 (now 1.88 for qtbridge
+  0.3), and CI runs Ubuntu, macOS
   and Windows plus an MSRV job.
 
 ## Decision
@@ -25,7 +26,7 @@ Four crates, all in `rowplay-platform` only:
 | Crate | Version | Role | Why this one |
 | --- | --- | --- | --- |
 | `ureq` | `3.4.1`, `default-features = false`, `features = ["rustls"]` | blocking Concept2 client | Blocking I/O is what a Qt worker thread wants; `rustls` avoids an OpenSSL build dependency on every platform; `cookies`, `json`, `charset` and the proxy features stay off because the client needs none of them. Its `max_redirects(0)` plus a hand-written policy is what makes the token-leak rules ours. |
-| `keyring` | `3.6.3`, `default-features = false`, features `apple-native`, `windows-native`, `sync-secret-service`, `crypto-rust` | Concept2 token store | keyring 4 requires Rust 1.88, above the pinned MSRV. keyring 3's backends are `cfg`-gated dependencies, so naming all three in one declaration is safe on every target. It has **no default features**: without one it silently substitutes an in-memory mock store, which would lose the token on quit, so `the_default_credential_store_is_not_the_mock` fails the build's tests if the features are ever dropped. `crypto-rust` encrypts secrets in transit over the session bus without pulling OpenSSL. |
+| `keyring` | `3.6.3`, `default-features = false`, features `apple-native`, `windows-native`, `sync-secret-service`, `crypto-rust` | Concept2 token store | keyring 4 requires Rust 1.88, above the MSRV at the time of this decision. The later qtbridge 0.3 MSRV increase does not upgrade keyring. keyring 3's backends are `cfg`-gated dependencies, so naming all three in one declaration is safe on every target. It has **no default features**: without one it silently substitutes an in-memory mock store, which would lose the token on quit, so `the_default_credential_store_is_not_the_mock` fails the build's tests if the features are ever dropped. `crypto-rust` encrypts secrets in transit over the session bus without pulling OpenSSL. |
 | `rusqlite` | `0.40.2`, `features = ["bundled"]` | workout cache | The only mature Rust SQLite binding, and `bundled` compiles SQLite itself so Windows and macOS CI need no system library or `sqlite3` headers. |
 | `directories` | `6.0.0` | data/config paths | Follows each platform's convention (XDG, `Library/Application Support`, `%APPDATA%`) instead of hard-coding one. |
 

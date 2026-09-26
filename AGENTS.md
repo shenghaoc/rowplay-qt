@@ -265,7 +265,9 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
 `.github/workflows/ci.yml` gates every pull request. The ruleset on `main`
 requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV 1.87
 (Qt-free crates)` and `App (ubuntu-24.04)`, `App (macos-26)`,
-`App (windows-2025)`. The step-529 job is informational. Rules:
+`App (windows-2025)`. The MSRV check retains its historical required-check
+name but tests Rust 1.88; rename it only together with the ruleset. The
+step-529 job is informational. Rules:
 
 - A newer push to a pull request cancels the run it supersedes. Runs on
   `main` are never cancelled. A re-run of an older run cancels nothing: it
@@ -439,7 +441,7 @@ Concept2 token. Cache failures never silently fall back to demo data.
 
 ## Coding style
 
-- Rust 2024 edition, MSRV 1.87; `cargo fmt`; clippy pedantic with the
+- Rust 2024 edition, MSRV 1.88; `cargo fmt`; clippy pedantic with the
   workspace allow-list in `Cargo.toml`; `#![forbid(unsafe_code)]`;
   `thiserror` for library errors; `must_use` on pure functions.
 - The Rust toolchain is pinned in `rust-toolchain.toml` and CI; it is bumped

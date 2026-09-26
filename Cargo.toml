@@ -21,7 +21,7 @@ default-members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.88"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/shenghaoc/rowplay-qt"
 authors = ["shenghaoc"]
@@ -56,7 +56,7 @@ regex = "1.11"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 chrono-tz = "0.10"
 # Qt Bridges for Rust (public beta). Pinned exactly: the API is still moving.
-qtbridge = "=0.2.0"
+qtbridge = "=0.3.0"
 # Platform services (Phase 3). Each backend is target-gated inside its crate, so
 # one declaration covers every target; see docs/decisions/0007-platform-libraries.md.
 # ureq: blocking HTTP over rustls. The `cookies`, `json`, `charset` and proxy
@@ -101,3 +101,8 @@ cast_possible_wrap = "allow"
 too_many_arguments = "allow"
 # The ports keep the web app's exact arithmetic (`(a + b) / 2`, not `midpoint`).
 manual_midpoint = "allow"
+
+# Raising MSRV to 1.88 enables let-chain and array-chunk style suggestions.
+# Keep the existing port structure during the qtbridge API migration.
+collapsible_if = "allow"
+chunks_exact_to_as_chunks = "allow"

@@ -19,6 +19,15 @@ Swift column; the rows below extend it with the Rust target. The golden
 fixtures in `tests/fixtures/` come from Studio at the commit above
 (`tests/fixtures/PROVENANCE.md`).
 
+## Bridge API maintenance
+
+The qtbridge 0.3.0 migration changes only the adapter API: manual
+`QmlElement` registration keeps `RowPlay` 1.0, and Sync/Live use
+`QmlObject` for queued worker notifications. No ported helper, frame payload
+or web/Studio behavior changes. The reference pins above remain unchanged;
+[bridge notes, entry 21](qt-bridges-notes.md#21-migration-to-qtbridge-030-2026-09-26)
+records the upstream release source and validation.
+
 ## Phase 1 — core parity foundation
 
 | Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |

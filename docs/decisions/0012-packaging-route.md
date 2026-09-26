@@ -17,7 +17,7 @@ Constraints that shaped the choice:
 
 - **No hand-written C++ and no new Rust dependencies** (ADR 0001, 0007). The
   packaging has to be tooling, not code.
-- **The pinned Qt is the only Qt.** qtbridge 0.2.0 is pinned exactly and CI
+- **The pinned Qt is the only Qt.** qtbridge 0.3.0 is pinned exactly and CI
   builds against aqt's Qt 6.11.2 archives on all three OSes (ci.yml). A
   package built against any other Qt build is untested.
 - **Release builds carry no test hooks** (`backend::test_env` is compiled

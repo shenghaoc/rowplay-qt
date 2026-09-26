@@ -8,6 +8,14 @@ the second reference for layering and golden parity fixtures.
 Each phase lands as its own pull request from its own session. Phases 0 and 1
 were delivered together as the bootstrap PR.
 
+## Bridge maintenance (2026-09-26)
+
+Qt Bridge for Rust is pinned to 0.3.0; Rust MSRV is 1.88. Manual `RowPlay`
+1.0 singleton registration and the existing worker/frame paths are retained.
+See [bridge migration notes](qt-bridges-notes.md#21-migration-to-qtbridge-030-2026-09-26)
+for source references, lockfile alignment and validation. The phase records
+below retain their original toolchain history.
+
 ## Phase 0 — Bootstrap
 
 Status: delivered (this PR).

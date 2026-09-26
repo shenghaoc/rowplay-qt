@@ -7,8 +7,8 @@
 //! bridge types. Stroke series are flat `[x0,y0,…]` vectors so Qt Graphs
 //! loads them with one `replace` — never point by point.
 
+use qtbridge::QmlElement;
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::models::WorkoutDetail;
 use rowplay_viewmodel::dashboard::pace_axis_labels;
 use rowplay_viewmodel::detail::{
@@ -440,7 +440,7 @@ impl DetailBackend {
 }
 
 // Manual registration keeps the `RowPlay` URI (qt-bridges-notes #1).
-impl QmlRegister for DetailBackend {
+impl QmlElement for DetailBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Detail";
     const MAJOR_VERSION: u8 = 1;
