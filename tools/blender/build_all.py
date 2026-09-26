@@ -118,6 +118,12 @@ def placements():
     return result
 
 
+def course_json(entries):
+    """One buoy per line, so a moved buoy is a one-line diff."""
+    lines = (json.dumps(entry, separators=(", ", ": ")) for entry in entries)
+    return "[\n" + ",\n".join("  " + line for line in lines) + "\n]\n"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=ROOT / "assets/replay/authored")
@@ -133,7 +139,7 @@ def main():
              ROOT / "build/blender-probes")
     water(args.output / "water-normal.png")
     triangles = buoy(args.output / "buoy.glb", args.previews)
-    (args.output / "course.json").write_text(json.dumps(placements(), indent=2) + "\n")
+    (args.output / "course.json").write_text(course_json(placements()))
     files = {}
     for path in sorted(args.output.iterdir()):
         if path.name == "MANIFEST.json" or not path.is_file():

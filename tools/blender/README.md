@@ -43,7 +43,7 @@ Rectangle is 100 units wide, explicitly accounted for by `RowingWater.qml`.
 ## Outputs and budgets
 
 Committed build outputs live in `assets/replay/authored/`, with their hashes in
-`MANIFEST.json`. Previews and Qt's full-resolution intermediate probes go under
+`MANIFEST.json`; `course.json` holds one buoy per line. Previews and Qt's full-resolution intermediate probes go under
 gitignored `build/`. No blend file, downloaded texture or third-party logo is
 required. Generated source provenance is in `ASSET_PROVENANCE.md`.
 

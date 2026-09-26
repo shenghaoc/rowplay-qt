@@ -358,3 +358,21 @@ have a reviewed generation script, while an artistically modeled asset should
 have a reviewed `.blend` source plus deterministic export and validation scripts.
 Refine that scope before shell/oar work. This integration preserves the accepted
 Phase 1 decision and does not design a Python CAD framework or begin Phase 2.
+
+## Review follow-up (2026-09-26)
+
+`build_all.py` now writes `course.json` with one buoy per line, so a moved
+buoy is a one-line diff; the asset test fails if the file goes back to one
+value per line. Only the layout changed. The regenerated file parses to the
+same 256 placements with the same number literals, in order, and
+`MANIFEST.json` re-pins it at 16,145 bytes. The other six assets are not
+touched.
+
+Two independent full generations (`build_all.py` under Blender 5.2.2 LTS,
+build d13f752e3b9c, on the Apple M5 above with Qt 6.11.2 balsam), each into
+a fresh directory, were byte-identical across all eight outputs. Against the
+committed Linux pack (Blender 5.2.1), `water-normal.png` matched byte for
+byte. The skies, probes and buoy did not match, which the pipeline README
+anticipates for another Blender build and baker backend. The buoy's positions,
+normals and indices were identical; 34 of its 302 texture-coordinate floats
+differed by at most 6e-8. None of those outputs was committed.

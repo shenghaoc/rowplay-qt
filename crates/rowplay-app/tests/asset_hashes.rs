@@ -447,9 +447,16 @@ fn authored_assets_match_manifest_and_budgets() {
     assert!(total <= 4 * 1024 * 1024, "authored pack exceeds 4 MiB");
     assert!(manifest["buoyTriangles"].as_u64().unwrap() <= 5000);
     assert!(manifest["textureMax"].as_u64().unwrap() <= 1024);
-    let course: Vec<serde_json::Value> =
-        serde_json::from_slice(&std::fs::read(dir.join("course.json")).unwrap()).unwrap();
+    let course_text = std::fs::read_to_string(dir.join("course.json")).unwrap();
+    let course: Vec<serde_json::Value> = serde_json::from_str(&course_text).unwrap();
     assert_eq!(course.len(), 256);
+    // tools/blender/build_all.py writes one buoy per line, so a moved buoy
+    // is a one-line diff.
+    assert_eq!(
+        course_text.lines().count(),
+        course.len() + 2,
+        "one buoy per line"
+    );
     for entry in course {
         let p = entry["position"].as_array().unwrap();
         assert_eq!(p.len(), 3);
