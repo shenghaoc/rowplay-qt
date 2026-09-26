@@ -2,7 +2,8 @@
 
 Status: accepted (2026-09-26, Direction C approval); the source rule is
 amended 2026-09-26, before the shell and oars (Blender Phase 2), and the
-licence of what it produces the same day (with ADR 0002).
+licence of what it produces the same day (with ADR 0002); the rowing
+environment is added the same day (Blender Phase 3).
 
 ## Context
 
@@ -71,6 +72,22 @@ world-space course references, with instancing, and world-fixed water detail.
 Do not compensate for the compressed course-distance mapping by speeding up
 water texture motion. Any later change to that mapping requires its own decision
 and replay-data validation.
+
+The rowing environment (amended 2026-09-26, Blender Phase 3):
+
+- **It is authored, and replaces the baked land.** The banks, woodland and far
+  bank around the basin come from `rowing-environment.blend`, a modelled
+  source under the rule above. For rowing they replace the land and
+  vegetation of the venue baked from the web (ADR 0005): its banks, horizon
+  and ridge bands, woodland and reeds. The baked venue's structures stay until
+  they are authored too. SkiErg and BikeErg keep their baked venues whole.
+- **It is drawn from build-time data.** `build.rs` turns the export into a
+  declarative scene: one Model per mesh, one `InstanceList` per vegetation
+  variant. No runtime walk touches it. The replaced baked nodes are hidden by
+  the existing venue walk's name list.
+- **It follows the web's shadow roles.** The terrain receives the key light's
+  shadow, as the web's banks do, and nothing in it casts, as the web's trees
+  do not.
 
 ## Consequences
 
