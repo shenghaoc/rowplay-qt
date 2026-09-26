@@ -34,8 +34,8 @@
       "sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d"
     },
     "water-normal.png": {
-      "bytes": 129901,
-      "sha256": "bd620dbb1857decd46352295a1e73aa7fcf855d2f3560e4c3dd7c291548bd601"
+      "bytes": 297417,
+      "sha256": "00923d3f34b503e9a90d77dd7ec6815799b1b9097dc9612ed995f7b8ee5651e8"
     }
   },
   "shell": {
@@ -48,5 +48,28 @@
       "rendered": 46164
     },
     "budget": 60000
+  },
+  "water": {
+    "tile": 8.0,
+    "size": 512,
+    "components": 360,
+    "wavelength": [
+      0.06,
+      2.8
+    ],
+    "wind": 28.0,
+    "spread": 6.0,
+    "second": {
+      "share": 0.28,
+      "offset": 74.0,
+      "slope": 0.55
+    },
+    "tilt": 0.45,
+    "gust": 0.18,
+    "rmsSlope": 0.11,
+    "wavelengthDrawn": [
+      0.0607,
+      2.8284
+    ]
   }
 }

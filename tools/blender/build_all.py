@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import contact_sheet, export, linear, material, reset
 from probes import bake
 import shell
+from water import normals as water_field
 
 SEED = 20260926
 ROOT = Path(__file__).resolve().parents[2]
@@ -65,20 +66,9 @@ def sky(output, dark):
 
 
 def water(output):
-    """Periodic analytic wave derivatives, tangent-space +Y normal, 4 m tile."""
-    size = 512
-    rng = np.random.default_rng(SEED)
-    v, u = np.mgrid[:size, :size] / size * (2 * math.pi)
-    dx, dy = np.zeros_like(u), np.zeros_like(v)
-    for _ in range(16):
-        kx, ky = int(rng.integers(2, 15)), int(rng.integers(1, 5))
-        phase = rng.uniform(0, 2 * math.pi)
-        amplitude = 0.028 / math.sqrt(kx * kx + ky * ky)
-        slope = amplitude * np.cos(kx * u + ky * v + phase)
-        dx += kx * slope
-        dy += ky * slope
-    normals = np.stack((-dx, -dy, np.ones_like(dx)), -1)
-    normals /= np.linalg.norm(normals, axis=-1, keepdims=True)
+    """The Phase 3 water normal (water.py), written through Blender's image API."""
+    normals, record = water_field()
+    size = record["size"]
     pixels = np.ones((size, size, 4), dtype=np.float32)
     pixels[:, :, :3] = normals * 0.5 + 0.5
     img = bpy.data.images.new("water-normal", size, size)
@@ -87,6 +77,7 @@ def water(output):
     img.filepath_raw = str(output)
     img.file_format = "PNG"
     img.save()
+    return record
 
 
 def buoy(output, previews):
@@ -146,17 +137,23 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "assets/replay/authored")
     parser.add_argument("--previews", type=Path, default=ROOT / "build/previews")
     parser.add_argument("--balsam", default=os.environ.get("ROWPLAY_BALSAM", "balsam"))
-    parser.add_argument("--only", choices=("all", "shell"), default="all",
-                        help="shell: rebuild the shell pack alone and re-pin it in MANIFEST.json")
+    parser.add_argument("--only", choices=("all", "shell", "water"), default="all",
+                        help="rebuild one part alone and re-pin it in MANIFEST.json: shell (Phase 2) "
+                             "or water (Phase 3)")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     args.output.mkdir(parents=True, exist_ok=True)
     print("Blender", bpy.app.version_string, "seed", SEED)
-    if args.only == "shell":
-        manifest_path = args.output / "MANIFEST.json"
-        report = json.loads(manifest_path.read_text())
-        report["shell"] = rowing_shell(args.output / "rowing-shell.glb", args.previews)
-        data = (args.output / "rowing-shell.glb").read_bytes()
-        report["files"]["rowing-shell.glb"] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    if args.only != "all":
+        report = json.loads((args.output / "MANIFEST.json").read_text())
+        if args.only == "shell":
+            report["shell"] = rowing_shell(args.output / "rowing-shell.glb", args.previews)
+            pinned = ["rowing-shell.glb"]
+        else:
+            report["water"] = water(args.output / "water-normal.png")
+            pinned = ["water-normal.png"]
+        for name in pinned:
+            data = (args.output / name).read_bytes()
+            report["files"][name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
         report["files"] = dict(sorted(report["files"].items()))
         write_manifest(args.output, report)
         return
@@ -165,7 +162,7 @@ def main():
     for name in ("overcast", "blue-hour"):
         bake(args.output / f"{name}.hdr", args.output / f"{name}.ktx", args.balsam,
              ROOT / "build/blender-probes")
-    water(args.output / "water-normal.png")
+    water_report = water(args.output / "water-normal.png")
     triangles = buoy(args.output / "buoy.glb", args.previews)
     (args.output / "course.json").write_text(course_json(placements()))
     shell_report = rowing_shell(args.output / "rowing-shell.glb", args.previews)
@@ -177,7 +174,7 @@ def main():
         files[path.name] = {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
     report = {"blender": bpy.app.version_string, "seed": SEED,
               "buoyTriangles": triangles, "buoyInstances": 256,
-              "textureMax": 512, "shell": shell_report, "files": files}
+              "textureMax": 512, "shell": shell_report, "water": water_report, "files": files}
     write_manifest(args.output, report)
 
 
