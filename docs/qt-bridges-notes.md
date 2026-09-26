@@ -513,6 +513,25 @@ The earlier entries record 0.2 observations unless updated here.
   qtbridge packages are 0.3.0; CXX-Qt's five packages are 0.10.0. The other
   additions/removals belong to that graph (including removal of mandatory
   `linkme`), not unrelated dependency updates.
+- **Generator alignment guard:** Cargo allowed the split because `cxx-gen`
+  and CXX-Qt are new in this graph, and `cxx-qt-build`/`cxx-qt-gen` 0.10.0
+  ask only for `cxx-gen` `0.7.176`, a caret range; the targeted update took
+  the newest 0.7 beside the existing `cxx` 1.0.198. `cxx` keeps the rest of
+  its family in lockstep: it pins `cxxbridge-macro` and `cxxbridge-flags`
+  exactly, and `cxx-build` and `cxxbridge-cmd` through a never-true
+  `cfg(any())` build-dependency that Cargo resolves (`Cargo.lock` lists the
+  CLI) but never builds. `cxx-gen` is only its dev-dependency, which a
+  dependent's resolution ignores, so nothing ties `cxx-gen` to `cxx`. Yet
+  CXX's macro and each generator write their own `CARGO_PKG_VERSION_PATCH`
+  into every bridge symbol (`cxxbridge1$<patch>$…`, `src/syntax/mangle.rs`
+  in `cxx-gen` and `cxxbridge-macro`), so their patch numbers must agree.
+  Upstream, `cxx-gen` among `cxx`'s own lockstep pins would close the gap:
+  the resolver would then unify it with CXX-Qt's range. The macOS App job
+  checks that before it builds (`ci.yml`, "Verify CXX generator
+  alignment"): it reads `cargo metadata --locked`, prints every CXX,
+  `cxx-gen`, CXX-Qt and qtbridge version, and fails on a package resolved
+  twice, a CXX or CXX-Qt family split across versions, or a `cxx-gen`
+  patch that differs from `cxx`'s.
 - **MSRV and checks:** README, workspace metadata and CI now use Rust 1.88.
   The MSRV job's check is named `MSRV (Qt-free crates)`, with no version,
   so this and later bumps rename no required check; it was `MSRV 1.87
