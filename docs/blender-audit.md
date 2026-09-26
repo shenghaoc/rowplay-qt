@@ -582,9 +582,10 @@ for the land (terrain, far bank, woodland), the six variants and one per tier.
 The instances are linked duplicates, tinted by their object colour. Moving a
 tree or reshaping a bank is an edit in Blender, then `make
 blender-environment`. The export refuses a file that breaks the contract:
-names, identity transforms, yaw-only instances, budgets, a waterline no
-closer than 36.2 m, nothing planted in a retained structure, and a Low
-instance for every variant.
+names, identity world transforms (delta transforms and constraints count),
+yaw-only instances written where Blender shows them, budgets, no land at or
+above the water inside 36.2 m on any triangle, nothing planted in a retained
+structure, and a Low instance for every variant.
 
 The land uses follow the web's sectors: the campus near 8-56 degrees (tower,
 dock, pavilion, boathouse), the open vista near 300-358 degrees (wetland,
@@ -615,7 +616,10 @@ show neither that repeat nor a lattice.
 
 ### In Qt
 
-`build.rs` runs balsam on `rowing-environment.glb` for its meshes only. It
+`build.rs` runs balsam on `rowing-environment.glb` for its meshes only, so it
+first checks the GLB (`replay::environment::validate_environment`): the nine
+meshes, each drawn by one flat node with no transform, which balsam's mesh
+files would drop, triangle lists with vertex colours, and no materials. It
 checks balsam's mesh file names and the placement invariants, then generates
 `EnvironmentScene.qml`: the three land Models and six instanced Models, whose
 `InstanceList`s come from `vegetation.json`. The file is sorted by variant and
@@ -628,12 +632,15 @@ environment.
 The web rower venue's land and vegetation (banks, horizon and ridge bands,
 woodland, reeds, the campus path) are hidden through the venue walk that
 already hid Phase 1's painted overlays: the name list grew, and no walker was
-added. Its structures stay until Phase 4: the finish tower, pontoons,
-pavilion, boathouse, timing tower, course bridge, boardwalk, hide and island.
-Bucket clones now inherit their archetype's visibility. The island shows only
-when the comparison camera pulls back with a ghost. `RowingStyle`'s grass and
-lawn colour now reaches only the island, so its lawn takes the authored lawn
-tone and no longer reads as a bright green disc beside the new banks.
+added. Its structures stay until Phase 4: the finish tower, pontoons, launch
+dock, distance posts, pavilion, boathouse, timing tower, course bridge,
+boardwalk and hide. So does the island at the course's centre, with its lawn,
+trees and shrubs. Bucket clones now inherit their archetype's visibility. The
+island shows only when the comparison camera pulls back with a ghost.
+`RowingStyle` gives grass, lawn, canopy, shrubs and reeds one green, which now
+reaches only the island. Its lawn, trees and shrubs, which have shared that
+green since Phase 1, take the authored lawn tone and no longer read as a
+bright green disc beside the new banks.
 
 **Shadows.** The High shadow check first dropped from Phase 2's 41,342 px
 (1.07 %) / 5.42 % to 38,877 px (1.01 %) / 5.16 %, still passing. Bounds
@@ -659,8 +666,8 @@ match exactly in light and in blue hour. The same replay state, grabbed at two
 wall-clock times (`style-medium` and `motion-000`), renders 0 differing pixels
 before and after, in both schemes. Nothing in the water or the environment
 moves on its own clock. The only motion is the replay's own camera, whose
-frames are unchanged. `compare.py` now asserts this, and reads pixels with
-Pillow where ImageMagick is missing.
+frames are unchanged. `compare.py` now asserts this on either pixel path:
+Pillow and numpy where they are installed, FFmpeg otherwise.
 
 Phase 1's "water band" patch at (0, 420) lies across the far bank and the sky
 in the current layout, so it now sits on near water at (0, 1150). Its
@@ -736,14 +743,25 @@ also matches the numpy prototype judged in Qt to within one 8-bit level. The
 
 ### Validation
 
-- 19 pipeline tests with Blender's Python (`test_canonical`, `test_probes`,
+- 21 pipeline tests with Blender's Python (`test_canonical`, `test_probes`,
   `test_water`, `test_export_environment`).
 - `cargo fmt --all -- --check`.
 - `cargo clippy --workspace --all-targets -- -D warnings`.
-- Qt-free tests: 591 passed, 2 existing ignores.
-- The asset tests: the new ones check the manifest's source hash and budgets,
-  the placement invariants, and the water tile against `RowingWater.qml`. The
-  tile check fails, as it should, with the old 1500 repeat put back.
+- Qt-free tests: 594 passed, 2 existing ignores.
+- The asset tests: the new ones check the manifest's source hash, its
+  triangle counts against a recount from the GLB, every budget against a
+  pinned value, the placement invariants, and the water tile against
+  `RowingWater.qml`. The tile check fails, as it should, with the old 1500
+  repeat put back.
+- The export's refusals, on the committed `.blend` mutated in memory: a delta
+  transform, a quaternion turn and a constraint on a land part or variant; a
+  delta location, a delta rotation and a constraint on an instance; a terrain
+  face that surfaces at 35.75 m between vertices; an Empty in a variant's
+  place. The first exporter accepted the first seven and crashed on the
+  eighth. This one refuses all eight by name, and the committed file still
+  exports byte for byte.
+- `build.rs` refuses a GLB with a moved node, or a truncated one, naming the
+  file; `validate_environment`'s unit tests refuse ten drifts by name.
 - Both native app suites; `git diff --check`.
 
 ### Limitations

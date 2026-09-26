@@ -78,9 +78,11 @@ The rowing environment (amended 2026-09-26, Blender Phase 3):
 - **It is authored, and replaces the baked land.** The banks, woodland and far
   bank around the basin come from `rowing-environment.blend`, a modelled
   source under the rule above. For rowing they replace the land and
-  vegetation of the venue baked from the web (ADR 0005): its banks, horizon
-  and ridge bands, woodland and reeds. The baked venue's structures stay until
-  they are authored too. SkiErg and BikeErg keep their baked venues whole.
+  vegetation of the venue baked from the web (ADR 0005) round the basin: its
+  banks, horizon and ridge bands, woodland and reeds. The baked venue's
+  structures stay until they are authored too, and so does the island at the
+  course's centre, with its lawn, trees and shrubs. SkiErg and BikeErg keep
+  their baked venues whole.
 - **It is drawn from build-time data.** `build.rs` turns the export into a
   declarative scene: one Model per mesh, one `InstanceList` per vegetation
   variant. No runtime walk touches it. The replaced baked nodes are hidden by

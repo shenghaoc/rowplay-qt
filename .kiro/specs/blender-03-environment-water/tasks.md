@@ -59,6 +59,12 @@ infrastructure), wake and foam, the athlete, and the ReplayScene refactor.
   export helpers.
 - [x] Records: this file, `docs/blender-audit.md`, the roadmap, the source map,
   the bridge notes, `tools/blender/README.md`, `ASSET_PROVENANCE.md`, ADR 0016.
+- [x] Review round: the export checks world transforms (delta transforms,
+  constraints, every rotation mode) and the waterline on every triangle, and
+  names a part that is not a mesh instead of crashing; `build.rs` gates the
+  GLB through `replay::environment::validate_environment`; the asset test
+  recounts the triangles and pins every budget; `compare.py`'s same-state
+  check runs without numpy too; the docs name the retained island.
 
 Found and left alone: the phase-correlation parallax measure did not separate
 depths in this framing and is not used; GPU time was not measured (the Metal
