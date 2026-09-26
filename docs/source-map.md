@@ -26,11 +26,15 @@ both remain unchanged. No source, asset or fixture was copied or regenerated.
 ## Blender roadmap revision (2026-09-27; planned work only)
 
 Blender Phases 1–4 are merged and complete. Their source mappings and evidence
-below retain the delivered history. [ADR 0016](decisions/0016-authored-overcast-lighting.md)
+below retain the delivered history. [ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md)
 explicitly supersedes the dropped replacement-rower phase and athlete-budget
 exemption; refinement/replacement is an intentional visual divergence from the
 web V4 athlete, conditional on the Phase 5 audit and owner's route decision.
 Current V4 remains the baseline; no replay behavior changes in this revision.
+ADR 0017 governs the Phase 5–7 sequence; ADR 0016 continues to govern Blender
+procedural/modelled source policy and Direction C; ADR 0002 governs licensing
+and provenance. ADR 0016's prior amendments remain historical; this new
+superseding decision receives its own number under the unchanged index rule.
 
 | Phase | Ownership and evidence boundary |
 | --- | --- |
@@ -72,7 +76,8 @@ Pose, camera, oar pivots, shell dimensions, athlete and distance-to-loop mapping
 remain inherited unchanged. Dark mode uses independently authored blue-hour
 ambient colours rather than exposure scaling. No bridge API was added.
 
-The owner dropped the replacement-rower phase and requires stationary course
+At the time of Phase 1, the owner dropped the replacement-rower phase (that
+consequence is now superseded by ADR 0017). Direction C requires stationary course
 references, not accelerated water scrolling, to make motion readable. The
 runtime capture script samples demo 1001 at 208.829 s and subsequent real-time
 quarter-second intervals. Both acceptance gates passed on an Apple M5 under

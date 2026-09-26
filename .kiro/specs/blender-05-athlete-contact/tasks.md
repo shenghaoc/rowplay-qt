@@ -1,8 +1,15 @@
 # Blender Phase 5 — seat/pelvis, contact truth and athlete
 
+Authority: [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md)
+restores the athlete to Phase 5 and defines the contact/hero-fit/water sequence.
+[ADR 0016](../../../docs/decisions/0016-authored-overcast-lighting.md) governs
+procedural versus modelled Blender source of truth;
+[ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
+governs licensing and provenance.
+
 Status: planned; not started. Blender Phases 1–4 are merged and complete.
 This is the Blender roadmap, separate from the original implementation phases.
-[ADR 0016](../../../docs/decisions/0016-authored-overcast-lighting.md) brings
+[ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md) brings
 athlete refinement/replacement back into scope as an intentional visual
 divergence from the web V4 athlete. V4 remains the baseline until this audit
 is complete and the owner chooses a route. This spec authorizes no automatic

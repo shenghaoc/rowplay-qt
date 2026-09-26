@@ -1,9 +1,7 @@
 # Architecture decision records
 
 Numbered, immutable once accepted. A superseding decision gets a new number and
-links back. The owner-directed in-place amendments to ADRs 0002 and 0016
-retain their historical decisions and explicitly date what is superseded.
-Format: context, decision, consequences.
+links back. Format: context, decision, consequences.
 
 | ADR | Decision |
 | --- | --- |
@@ -22,4 +20,5 @@ Format: context, decision, consequences.
 | [0013](0013-cross-platform-design-system.md) | One design system of our own on every OS, on Qt Quick Controls Basic and `Theme.qml` tokens (neutral AA ramps, system-font scale, system accent, high-contrast variant), plus a thin platform-behaviour layer (StandardKey shortcuts, native macOS menu bar, platform dialog order) |
 | [0014](0014-distribution-on-linux-macos-and-windows.md) | Distribution on Linux, macOS and Windows (supersedes the Linux-only policy recorded after 0012); Windows ships CI-verified only; signing and notarisation are open decisions |
 | [0015](0015-native-qt-styles.md) | Native Qt styles for standard controls (macOS, Windows, Fusion; no forced style), our identity in the content (charts, metric colours, tiles, replay and HUD); surfaces and text from the system palette, fitted to the contrast floors (supersedes 0013's control layer) |
-| [0016](0016-authored-overcast-lighting.md) | Script-generated, prefiltered skies permitted; Direction C rowing and blue-hour companion; stationary course cues, unchanged replay mechanics; procedural assets from reviewed scripts, modelled assets from a reviewed `.blend` plus a deterministic export and validation script; outputs and `.blend` sources MIT, tooling GPL; the authored rowing environment replaces the baked venue's rowing land and vegetation round the basin, and the authored course dressing its structures and island; restores the athlete to Blender Phase 5 (seat/pelvis, contact truth, audit and owner decision), followed by hero fit and water polish; supersedes the dropped-rower/budget-exemption decision (amended) |
+| [0016](0016-authored-overcast-lighting.md) | Script-generated, prefiltered skies permitted; Direction C rowing and blue-hour companion; stationary course cues, unchanged replay mechanics; procedural assets from reviewed scripts, modelled assets from a reviewed `.blend` plus a deterministic export and validation script; outputs and `.blend` sources MIT, tooling GPL; the authored rowing environment replaces the baked venue's rowing land and vegetation round the basin, and the authored course dressing its structures and island (amended) |
+| [0017](0017-athlete-contact-truth-and-hero-fit.md) | Athlete restored to Blender Phase 5: #130 first, contact-truth audit, owner decision before refinement/replacement; Phase 6 hero fit, Phase 7 water polish (supersedes only ADR 0016’s dropped-rower and budget-exemption consequence) |

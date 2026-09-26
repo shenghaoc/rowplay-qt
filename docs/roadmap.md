@@ -6,8 +6,10 @@ The owner-approved art direction adds script-generated overcast lighting,
 silver rippled water, fixed course references and a blue-hour companion to the
 existing rowing replay. ADR 0016 permits repository-generated sky probes.
 Blender Phases 1–4 are merged and complete. Their delivered scope and evidence
-below remain historical; the revised remaining plan (2026-09-27) supersedes
-the old decision to drop replacement-rower work. The current V4 athlete remains
+below remain historical; [ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md)
+records the revised remaining plan (2026-09-27), superseding ADR 0016's
+consequence that dropped replacement-rower work and exempted its budget.
+The current V4 athlete remains
 the baseline pending Phase 5's audit and owner route decision. The 7.8 m shell
 contract, chase camera and loop remain the baseline too.
 See `docs/blender-audit.md` and `tools/blender/README.md` for completed work.
@@ -85,6 +87,13 @@ Scope, the audit, budgets, evidence and measurements are in
 `.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
 
 ### Blender Phase 5: seat/pelvis, contact truth and athlete (planned)
+
+ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
+continues to govern procedural versus modelled Blender source of truth;
+ADR 0002 governs common-asset licensing and provenance.
+The existing-athlete/40k-budget note in `tools/blender/README.md` describes
+the delivered Phase 1–4 pipeline. It does not exempt future athlete work:
+ADR 0017 requires a fresh explicit budget before substantial modeling.
 
 [Phase 5's spec](../.kiro/specs/blender-05-athlete-contact/tasks.md) starts
 with **5.0: correct #130 and freeze the seat/pelvis reference**. Then 5.1

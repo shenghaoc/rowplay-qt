@@ -427,7 +427,9 @@ Phase 4) are authored (0016); Rust core first (0006).
 
 ## Blender athlete and contact work
 
-Blender Phases 1–4 are complete. Follow
+Blender Phases 1–4 are complete. ADR 0017 governs the athlete/contact and
+Phase 5–7 sequence; ADR 0016 governs Blender asset sources; ADR 0002 governs
+licensing/provenance. Follow
 `.kiro/specs/blender-05-athlete-contact/tasks.md`: first correct the seat/pelvis
 reference tracked in #130, then audit the full equipment → target → bones/
 helpers → skinned hand → Qt contact chain, then audit V4 and run its
@@ -605,6 +607,8 @@ as needed, and land it with `gh stack merge` when merging is authorized.
 `gh stack push` is not itself atomic. For direct stack landing, `gh stack merge`
 uses GitHub's atomic stack merge: all selected PRs merge or none do (see the
 [GitHub stack reference](https://docs.github.com/en/pull-requests/reference/stacked-pull-requests)).
+Branch protections, required reviews and required checks still apply to each
+selected PR against the stack base.
 Do not repeat the manual merge-parent → rebase-child → wait-for-CI →
 merge-child cycle when a genuine GitHub stack is appropriate. Ordinary changes
 with two commits need not become a stack; this applies to intentionally
