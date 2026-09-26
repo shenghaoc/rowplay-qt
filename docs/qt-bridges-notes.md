@@ -641,6 +641,29 @@ stopped and no images from that run were used. An overlay name filter also
 matched material objects; it now requires a `visible` property before hiding
 the obsolete painted water overlays. Neither fault was silently ignored.
 
+### Blender Phase 2: shell and oars (2026-09-26)
+
+These come from the Qt 6.11.2 sources (`qssgvertexpipelineimpl_p.h`,
+`qssgrenderdefaultmaterialshadergenerator.cpp`), and each was then seen in a
+native Metal capture:
+
+- **Vertex-colour masks need the attribute.** Masks
+  (`vertexColorsMaskEnabled`, `vertexColorRedMask`, ...) switch on only for a
+  mesh that carries a colour attribute. Other meshes get a mask of 1. So one
+  material can carry the hull's wet band while the other parts sharing it are
+  untouched. balsam keeps glTF `COLOR_0` as `attr_color`.
+- **A negative scale does not flip the winding.** A reflected model's front
+  faces are culled under the default back-face culling. `NoCulling` makes the
+  material double-sided, and the shader then multiplies the normal by
+  `gl_FrontFacing ? 1 : -1`, which inverts a reflected model's lighting. The
+  left blade (reflected in its own z) therefore uses a copy of its material
+  with `cullMode: Material.FrontFaceCulling`.
+- **Blender's glTF exporter writes min/max only for POSITION.** The V3 asset
+  rules require finite bounds on every attribute. `canonical.bound_attributes`
+  adds them, and fails on any non-finite value.
+
+### Platforms and tooling
+
 - The `offscreen` QPA platform falls back to the software scene graph, where
   Qt Quick 3D refuses to render (`QSGRendererInterface::isApiRhiBased`). Headless
   rendering needs Xvfb with `xcb` (`libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1

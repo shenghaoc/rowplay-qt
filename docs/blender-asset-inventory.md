@@ -7,6 +7,7 @@
 | `assets/replay/authored/buoy.glb` | 7,404 | 224 mesh triangles; 0 embedded images |
 | `assets/replay/authored/overcast.hdr` | 30,984 | generated environment radiance |
 | `assets/replay/authored/overcast.ktx` | 1,048,436 | prefiltered IBL |
+| `assets/replay/authored/rowing-shell.glb` | 912,596 | 39,926 mesh triangles; 0 embedded images |
 | `assets/replay/authored/water-normal.png` | 129,901 | texture |
 | `assets/replay/environments/aerial-grass-rock/aerial-grass-rock-diffuse-512.jpg` | 99,466 | texture |
 | `assets/replay/environments/aerial-grass-rock/aerial-grass-rock-normal-gl-512.jpg` | 105,694 | texture |

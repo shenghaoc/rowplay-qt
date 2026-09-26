@@ -51,6 +51,22 @@ Source-first closeout tightened only the GLB/KTX generator input contracts;
 committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
 Qt source tracing and the isolated filter timing comparison.
 
+### Blender Phase 2: shell and oars
+
+`tools/blender/shell.py` generates `assets/replay/authored/rowing-shell.glb`.
+The single scull and its sculls replace the V3 pack's rowing templates and
+blade leaf in the scene:
+
+- **Contract.** The shell keeps the same node names, material roles and
+  composite rules, checked against the vendored pack at build time
+  (`rowing_shell.rs`). The anchors, the oarlock pivots, the 7.8 m length, the
+  grip and the frame bundle are unchanged, as are the rig tests.
+- **Scene.** `ReplayScene.qml` hides the V3 rowing nodes and walks four
+  `RowingRig` instances: player, mirror, ghost and ghost mirror.
+- **Source kind.** The shell is a procedural asset under the amended ADR 0016.
+
+The divergences it adds are in the table below.
+
 ## Phase 1 — core parity foundation
 
 | Web source | Swift (rowplay-studio) | Rust (rowplay-qt) | Notes |
@@ -236,6 +252,10 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Area | Web | Swift | Rust | Rationale |
 | --- | --- | --- | --- | --- |
 | Concept2 mapper defaults | absent `workout_type` / `verified` stay `undefined` | `JustRow`, `verified = true` | web | The web keeps the API's `undefined`; Studio's defaults are undocumented. |
+| Rowing shell and sculls (Blender Phase 2) | the V3 rig pack's rowing templates: an open-U shell with strut riggers and a spoon blade | the same templates, converted (`convert_rowplay_equipment.py`) | `authored/rowing-shell.glb` in the scene, under the V3 names, roles and composite rules | The Direction C art pass (ADR 0016). The V3 pack stays vendored and pinned. `rowing_shell::validate_rowing_shell` holds the authored pack to its rowing names and roles and to the 60,000-triangle budget as drawn. Tests pin the pins to `OARLOCK_PIVOT` and the grip to the hand-contact constants. |
+| Seat and stretcher fit | seat carriage group at `(0, 0.29, −0.14)` in the moving rower group; pelvis target 0.376 m | — | the authored seat, floor and stretcher fit the athlete the port draws: pad top 0.118, 0.09 aft of the seat origin; heels on the floor at the finish | The port's anchor puts the seat template at the group origin, and its pelvis target is 0.30, so the V3 seat rendered 0.29 m low, inside the hull. The fit comes from skinning the V4 athlete with the replay's own frames (`docs/blender-audit.md`, "Phase 2"). Anchor and pelvis target are unchanged; #130 tracks the question. |
+| Left blade | the blade leaf at `side · 1.82` with the same roll on both sides; the V3 spoon is near-symmetric | same | the left leaf is reflected in its own z (scale `(1, 1, −1)`), with a front-face-culled copy of its material | A hatchet blade has a handedness that the port's π turn of the left oar cannot give. Culling front faces keeps the reflected leaf's normals and lighting right; see the Qt notes. |
+| Hull wet band | none | none | vertex-colour masks on the hull scale roughness and clearcoat roughness toward the waterline | A Direction C addition. There is no texture and no UV set, and parts without the attribute are unaffected. |
 | Concept2 `is_interval` | set by `getWorkout` from a non-empty `workout.intervals`; summaries have none | set in `mapWorkout` from `workout_type` containing "interval" **or** non-empty intervals | web | One rule (the intervals array) for summaries and detail alike; the API's `workout_type` values are not documented as an interval signal. |
 | Detail assembly without per-stroke rows | synthesises a split-derived timeline and clears `hasStrokeData` | returns empty strokes, keeps `hasStrokeData` | web | `hasStrokeData` must go false when the timeline is synthesised, or the pose model renders one cycle per synthesised point (≈4 catches across a 2K instead of ≈221). |
 | Concept2 status mapping | throws a message with the status, no typed cases | `unauthorized` / `forbidden` / `rateLimited` / `httpError(statusCode)` | web's statuses with Studio's typed cases, plus `NotFound(id)` for the in-memory mock only | A 404 from the API maps to `Http { status: 404 }` (the transport's job); `NotFound(id)` stays the mock's domain error. `RateLimited` also carries `Retry-After` seconds when the header is a plain integer (no reference parses it). |
