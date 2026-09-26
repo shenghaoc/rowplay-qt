@@ -20,9 +20,18 @@ same runtime frame truth, existing athlete retained. No new straight course.
   inspect the pixel-validated Qt replay stills and motion sequence on Linux.
 - [x] Source-first closeout: reject unsafe GLB layouts and unexpected KTX metadata;
   confirm real instancing and compare isolated filter timings against main.
-- [ ] Obtain macOS/Metal visual verification (this session is Linux).
-- [ ] Verify interactive replay and performance on a hardware iGPU.
+- [x] Obtain macOS/Metal visual verification on Apple M5 (light/dark, all tiers).
+- [x] Verify interactive replay and performance on Apple M5 hardware iGPU.
 - [x] Prepare one Phase 1 draft PR with actual Qt and Blender evidence.
+- [x] Integrate current main: preserve qtbridge 0.3.0/MSRV 1.88/native controls,
+  retain native styles as ADR 0015 and renumber Blender lighting to ADR 0016.
+- [x] Recheck fixed-state parity, native Metal light/dark/tier visuals, instancing,
+  short interactive playback, fmt/clippy/build and Qt-free/full app tests.
 
 Phase 2 remains the shell/oar rebuild inside the existing 7.8 m rig contract.
 Replacement anatomy/rigging is explicitly out of scope.
+
+Before shell/oar work, refine ADR 0016's broad script-only source wording:
+procedural assets use reviewed generation scripts; artistically modeled assets
+use reviewed `.blend` sources plus deterministic export/validation scripts.
+This follow-up is not a Python CAD framework or work included in Phase 1.

@@ -14,7 +14,8 @@ tracked separately in #121. Do not claim macOS verification from Linux captures.
 Source-first closeout tightened only the GLB/KTX generator input contracts;
 committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
 Qt source tracing and the isolated filter timing comparison. Both hardware
-acceptance gates remain open.
+acceptance gates passed on Apple M5/Metal at the audited head; see the
+acceptance and current-main integration records in `docs/blender-audit.md`.
 
 ## Original implementation roadmap
 

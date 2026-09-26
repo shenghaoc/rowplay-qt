@@ -134,7 +134,8 @@ Remaining compromises: the bank is still geometrically sparse (#121), water
 detail remains too regular/directional and has no physical wake/foam, and the
 shell/oars are retained meshes with new materials rather than a Phase 2 rebuild.
 These are visible limitations, not a claim to have reproduced Blender photorealism.
-Mac/Metal and a hardware iGPU performance run remain unverified.
+At this original Linux stage, Mac/Metal and hardware-iGPU performance were
+unverified; the subsequent acceptance record below closes those gates.
 
 
 ## Source-first closeout (2026-09-26)
@@ -175,7 +176,8 @@ Qt bakes levels 0–4 at roughness 0, .25, .5, .75, 1 and level 5 as diffuse
 irradiance. Each is already filtered linear radiance, so spatial box reduction
 within each level preserves its roughness identity; it is a quality reduction,
 not an equivalent re-bake. The diffuse face becomes 4x4 (Qt comments prefer at
-least 16x16), so directional detail is reduced and visual acceptance remains open.
+least 16x16), so directional detail is reduced. Visual acceptance was still open
+at this source-audit stage; it subsequently passed on Apple M5/Metal below.
 
 512/256/128/64/32/16 faces become 128/64/32/16/8/4. For RGBA16F each pixel is
 eight bytes; imageSize is one face, not six faces, and divides by 16 after 4x4
@@ -232,7 +234,8 @@ No material regression was observed. Neither branch reproduced a 50 ms tail;
 this does **not** establish a shared noisy timing gate or prove interference on
 the original Linux host. That historical miss remains unexplained, not a flake.
 The threshold is unchanged. Hardware-iGPU interactive performance and macOS/Metal
-app visual acceptance remain external gates; the PR stays draft.
+app visual acceptance were still external gates at this stage; see the
+subsequent acceptance record below.
 
 
 Closeout validation on macOS: six Python tests pass; fmt and diff whitespace
@@ -246,3 +249,112 @@ material importer probe also passes. No Blender full regeneration was performed
 in closeout; assets remain exactly those reviewed in the original Linux evidence.
 `issue-44-local` and the primary checkout were not modified. No Phase 2 work,
 ready-for-review transition or merge was performed.
+
+
+## Apple M5 acceptance before integration (2026-09-26)
+
+Accepted head: `2528da10bc894a771296eea89e33c719347d9e74`.
+MacBook Pro (Mac17,2), Apple M5, 10-core integrated GPU, 16 GB RAM;
+macOS 27.0 (26A428), Qt 6.11.2, Rust 1.98.1. Native Cocoa/QRhi logs identify
+Metal and Apple M5. No code or asset changed during this acceptance pass.
+
+Demo 1001 at 208.829 s, mid-drive, was captured in both schemes and all four
+tiers. Light retained subdued silver water and restrained clearcoat; blue hour
+had its own cool environment while retaining readable water, sky and equipment.
+The 4x4 diffuse faces caused no objectionable seams, lighting banding or broad
+specular/diffuse mismatch in the inspected views. Low/Medium remained intentionally
+shadowless; High/Ultra shadows and materials behaved normally. All 18 controlled
+pose/grip/tier states per scheme matched the predecessor scene after excluding
+only the sequence counter. The predecessor comparison substituted its ReplayScene
+in the otherwise identical app; it was not a complete historical executable.
+
+Actual interactive Medium light/dark and High/Ultra light playback exercised
+several strokes and changing buoy positions. Water stayed world-fixed and buoys
+provided translation cues. Five 24-second steady windows (including predecessor
+Medium light) showed 8 ms median / 9 ms p95 GUI intervals, approximately 2880
+intervals each. Current maxima were 11–15 ms, predecessor 10 ms, with none over
+50 ms inside those windows. These are GUI cadence samples, not GPU completion
+timings or utilization measurements. Initial renderer preparation reached
+0.97 s Medium light, 0.21 s Medium dark, 1.59 s High and 0.48 s Ultra; predecessor
+Medium light was 0.70 s. Differing cache histories prevent a cold-start regression
+claim. One isolated 70 ms interval occurred outside the steady windows; no
+recurring hitch was observed. Short ps samples showed no pathological memory
+growth or practical CPU issue from the 256 instances; they are not a leak test.
+Both gates are accepted on this M5, not on every GPU.
+
+All 24 app tests passed in each native scheme with screenshot smoke, full gate,
+phase shots and closeups enabled. Shadow assertions passed unchanged: light
+1.30% area / 5.93% darkening; dark 1.35% / 6.75%. The exact accepted head's
+[direct CI](https://github.com/shenghaoc/rowplay-qt/actions/runs/36227418359) passed.
+Local evidence is retained under
+`/private/tmp/rowplay-pr123-audit/build/mac-acceptance/` (ACCEPTANCE.md, light/dark
+and predecessor captures, gate logs, interactive timing/resource logs); it has
+not been uploaded. Historical Linux evidence and its limitations remain above.
+
+## Current-main integration (2026-09-26)
+
+Rebased the two Phase 1 commits onto current main
+`23fdee4962adf6772ae97a74382e0820369f9828`. Only two conflicts occurred:
+`docs/decisions/README.md` and `docs/source-map.md`. Main's native-style ADR remains
+0015; Blender lighting is renumbered to 0016, with its index and cross-references
+updated. Main's source-map structure and bridge-maintenance section are retained,
+with the Blender entries reapplied alongside them. Both reference repositories
+were refreshed at main and still match the recorded pins.
+
+Cargo manifests/lockfile, the complete Rust app/core/viewmodel sources and CI
+workflow match main. Thus qtbridge 0.3.0, MSRV 1.88, QmlElement, public QmlObject
+worker APIs, local attachment guards and macOS CXX/cxx-gen alignment protections
+are preserved. Main's native HUD and ghost-clock fixes are intentionally retained;
+the integration does not claim to revert those behaviors to the old branch.
+The 225-float contract and solo rowing truth remain the acceptance comparison.
+No new compatibility shim or scene walker was added. Authored assets and the
+Phase 1 build integration, RowingCourse, RowingStyle and RowingWater are unchanged
+from the accepted head. Normal builds consume committed assets without Blender.
+
+### Integration verification
+
+Both scheme captures use the existing fixed-state harness on Cocoa/Metal.
+All 18 controlled states per scheme match the accepted head exactly for the
+225-float payload (excluding its sequence counter), grip and tier. That includes
+the packed camera, course, athlete and oar data. In all four tiers and both
+schemes, the common unobscured scene rectangle (2400x1600 captures, rows 110–1299,
+all columns) is pixel-identical to the accepted captures. Main's newer HUD lies
+outside that rectangle and is intentionally different. Medium light, Medium
+blue hour and High were also inspected: IBL, normals, clearcoat and materials
+remain intact. The approved art direction was not changed.
+
+Generated balsam output contains one buoy Model and one mesh source; generated
+CourseInstances contains exactly 256 entries, matching the placement JSON.
+RowingCourse assigns them only in Component.onCompleted, unchanged. The placement
+JSON remains build-time input. All seven authored assets and the build integration
+are byte-identical to the accepted head.
+
+Main's exact CXX alignment script passed locally: CXX 1.0.198, cxx-gen 0.7.198
+(ABI revision 198), CXX-Qt 0.10.0 and all qtbridge packages 0.3.0. Formatting,
+workspace/all-target clippy with warnings denied, app build, six Python pipeline
+tests and Qt-free tests (585 passed, two existing ignores) passed.
+Both native Cocoa/Metal full app runs passed all 29 tests (zero failures or
+ignores), with screenshot smoke, phase shots and closeups enabled. Light/dark
+walks logged 107.0/106.9 s; first replay frame was 0.2 s in both. Unchanged
+High shadow assertions passed: light 1.23% area / 5.97% darkening, dark 1.29% /
+6.78%. The count includes main's new ghost-clock and race-gap tests.
+
+A short real interactive Medium replay ran from about 3:30 to 4:19, through
+several strokes and changing world-relative buoy positions. Water remained
+world-fixed; no new recurring hitch appeared. A 24-second steady excerpt of
+Qt's existing timing log had 2881 GUI intervals, median 8 ms, p95 9 ms, maximum
+12 ms and none over 50 ms. This is a smoke check, not a repeated hardware
+benchmark or GPU completion measurement. The app exited normally.
+Local post-integration evidence is under
+`/private/tmp/rowplay-pr123-audit/build/integration/`: light/dark captures,
+comparison.json, instancing.json, invariants.json, full app logs and captures,
+CXX alignment output and interactive logs. No real-user data was captured.
+
+### Source-policy follow-up before shell/oar work
+
+ADR 0016 says “The scripts, not a hand-edited blend file, are the source of truth.”
+That is broader than the intended future distinction: a procedural asset should
+have a reviewed generation script, while an artistically modeled asset should
+have a reviewed `.blend` source plus deterministic export and validation scripts.
+Refine that scope before shell/oar work. This integration preserves the accepted
+Phase 1 decision and does not design a Python CAD framework or begin Phase 2.
