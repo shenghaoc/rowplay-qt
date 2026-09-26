@@ -9,3 +9,12 @@
 - [x] CI: Qt-free lint/test job, MSRV check, three-OS app matrix with `jurplel/install-qt-action`, Linux screenshot artifact.
 - [x] Docs: README, ADRs 0001–0006, roadmap, source map, Qt Bridges notes, asset provenance, PR template, `AGENTS.md`.
 - [x] `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --workspace`, `git diff --check`.
+
+## Post-bootstrap maintenance — 2026-09-26
+
+- [x] Add weekly Dependabot checks for the complete root Cargo workspace and
+  shared lockfile, and for GitHub Actions across `.github/workflows/`.
+  Exclude only `dtolnay/rust-toolchain` from Actions updates because its refs
+  select the manually synchronized Rust toolchains, including MSRV. This
+  automation was added after bootstrap; the completed bootstrap tasks above
+  retain their original history.
