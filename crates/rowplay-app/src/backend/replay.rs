@@ -12,8 +12,8 @@
 //! `onFrameChanged` handler — exactly one bridge crossing per frame (spec
 //! R1.3), counted at the single emission site.
 
+use qtbridge::QmlElement;
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::{QObjectHolder, QmlRegister};
 use rowplay_core::demo::DEFAULT_WORKOUT_ID;
 use rowplay_core::models::Sport;
 use rowplay_core::replay::engine::{ReplaySpeed, ReplayState};
@@ -1117,6 +1117,9 @@ impl ReplayBackend {
     /// generated `expect("No proxy")`), so every emission goes through a
     /// guard; the unit tests drive the object unattached.
     fn attached(&self) -> bool {
+        // Keep the data-only replay path free of bridge notifications. In 0.3
+        // generated signals also guard attachment; this preserves our policy.
+        use qtbridge::QObjectHolder;
         self.try_get_rust_proxy_ptr().is_some()
     }
 
@@ -1604,7 +1607,7 @@ fn write_vec3(frame: &mut [f32], at: usize, v: [f64; 3]) {
 
 // qtbridge derives the module URI from the Cargo package name; the manual
 // impl keeps the QML-facing name `RowPlay` (qt-bridges-notes #1).
-impl QmlRegister for ReplayBackend {
+impl QmlElement for ReplayBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Replay";
     const MAJOR_VERSION: u8 = 1;

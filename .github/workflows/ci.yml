@@ -91,14 +91,16 @@ jobs:
         run: git diff --check HEAD~1 HEAD
 
   msrv:
+    # Keep the required-check name stable; the actual minimum is now 1.88.
+    # Rename only together with the main ruleset.
     name: MSRV 1.87 (Qt-free crates)
     runs-on: ubuntu-24.04
     env:
       # Overrides rust-toolchain.toml, which pins the newer CI toolchain.
-      RUSTUP_TOOLCHAIN: 1.87.0
+      RUSTUP_TOOLCHAIN: 1.88.0
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.87
+      - uses: dtolnay/rust-toolchain@1.88
       - uses: Swatinem/rust-cache@v2
       - name: Secret Service build dependency for keyring (Linux)
         # keyring's sync-secret-service backend links libdbus-1 through

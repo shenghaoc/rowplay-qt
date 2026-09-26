@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use qtbridge::qobject;
-use qtbridge::qtbridge_runtime::{QObjectHolder, QmlMethodInvoker, QmlRegister};
+use qtbridge::{QmlElement, QmlMethodInvoker, QmlObject};
 use rowplay_platform::concept2::http::Concept2HttpClient;
 use rowplay_platform::live::{LivePollError, LivePollResult, poll_recent};
 use rowplay_platform::token_store::SecretToken;
@@ -460,7 +460,7 @@ fn run_live_poll(
 }
 
 // Manual registration keeps the `RowPlay` URI (qt-bridges-notes #1).
-impl QmlRegister for LiveBackend {
+impl QmlElement for LiveBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Live";
     const MAJOR_VERSION: u8 = 1;

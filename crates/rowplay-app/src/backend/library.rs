@@ -8,12 +8,12 @@
 //! rule 4). All display strings and derivations come from
 //! `rowplay_viewmodel`; this adapter only shapes them into bridge types.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 
 use qtbridge::QModelItem;
+use qtbridge::QmlElement;
 use qtbridge::qobject;
 use qtbridge::qtbridge_interfaces::{QListModel, QListModelBase};
-use qtbridge::qtbridge_runtime::QmlRegister;
 use rowplay_core::analytics::dashboard_summary;
 use rowplay_core::models::{Sport, Workout, WorkoutDetail};
 use rowplay_core::workout_query::{
@@ -604,9 +604,9 @@ impl LibraryBackend {
         self.pace_axis_labels = axis.into_iter().map(|(_, label)| label).collect();
     }
 
-    /// `reset()` panics when the QObject is not attached yet (the singleton
-    /// is constructed during QML type resolution, before any view binds);
-    /// data-only rebuilds skip the notification then.
+    /// Data-only rebuilds skip Qt notification before singleton attachment.
+    /// 0.3 `reset()` also guards attachment, but other model adapter paths
+    /// still require a proxy. Retain this boundary (bridge notes, 0.3 migration).
     fn notify_model_reset(&mut self) {
         use qtbridge::QObjectHolder;
         if self.try_get_rust_proxy_ptr().is_some() {
@@ -633,7 +633,7 @@ impl LibraryBackend {
 }
 
 // Manual registration keeps the `RowPlay` URI (qt-bridges-notes #1).
-impl QmlRegister for LibraryBackend {
+impl QmlElement for LibraryBackend {
     const URI: &str = "RowPlay";
     const ELEMENT_NAME: &str = "Library";
     const MAJOR_VERSION: u8 = 1;
