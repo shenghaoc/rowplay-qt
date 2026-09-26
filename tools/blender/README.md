@@ -20,7 +20,8 @@ The pre-existing vendored athlete/equipment/venues remain governed by their
 existing vendor scripts; this target does not silently replace them.
 
 Blender tested here: 5.2.1 LTS, Linux, build `9e2066aef7ef`. Qt/balsam: 6.11.2.
-This session has not run on macOS. Randomness uses seed 20260926; CPU Cycles
+The original generation run was Linux; subsequent native Mac runtime acceptance
+is recorded in `docs/blender-audit.md` (no Blender regeneration on the Mac). Randomness uses seed 20260926; CPU Cycles
 and one render thread bound preview variability. Cross-version byte identity
 is not assumed: changing Blender, Qt or the probe baker's GPU/backend requires
 regeneration and review. The reproducibility check here uses llvmpipe for both
@@ -79,7 +80,8 @@ Low/Medium use key strengths 0.85 (light) / 0.5 (blue hour) with no shadows.
 High/Ultra use 1.2 / 1.4 so the shadow signal remains readable above the
 unchanged gate floor under the brighter IBL. Exposure and sky assets do not
 change across tiers. This is an intentional tier approximation, not a different
-time of day; its cross-renderer appearance still needs macOS verification.
+time of day; subsequent Apple M5/Metal acceptance is recorded in
+`docs/blender-audit.md`.
 
 ## Importer compatibility
 
