@@ -3,7 +3,8 @@
 """Verify runtime frame equality, measure pixels and compose local evidence.
 
 Pixels are read with Pillow and numpy when they are installed, and with
-ImageMagick (`magick`) otherwise; the clip needs FFmpeg either way.
+ImageMagick (`magick`) otherwise; the same-state check then decodes through
+FFmpeg, which the clip needs either way.
 """
 
 import argparse
@@ -60,8 +61,23 @@ def band_difference(first, last):
     return float(np.abs(a - b)[y:y + h, x:x + w, :3].mean() / 255)
 
 
+def rgb(path):
+    """8-bit RGB bytes of a capture, decoded by FFmpeg (no numpy needed)."""
+    return subprocess.check_output(["ffmpeg", "-v", "error", "-i", str(path), "-f", "rawvideo",
+                                    "-pix_fmt", "rgb24", "-"])
+
+
 def differing(first, second):
     """(pixels that differ, largest channel delta) between two captures."""
+    if np is None:
+        a, b = rgb(first), rgb(second)
+        if len(a) != len(b):
+            raise ValueError(f"{first} and {second} differ in size")
+        if a == b:
+            return 0, 0
+        deltas = [max(abs(a[i] - b[i]), abs(a[i + 1] - b[i + 1]), abs(a[i + 2] - b[i + 2]))
+                  for i in range(0, len(a), 3)]
+        return sum(1 for d in deltas if d), max(deltas)
     a, b = pixels(first)[..., :3], pixels(second)[..., :3]
     delta = np.abs(a - b).max(-1)
     return int((delta > 0).sum()), int(delta.max())
@@ -113,12 +129,11 @@ def main():
         # as a scrolling texture, would make them differ.
         if recorded["style-medium"]["frame"][1:] != recorded["motion-000"]["frame"][1:]:
             raise ValueError(f"{label}: style-medium and motion-000 are not the same state")
-        if np is not None:
-            count, delta = differing(directory / "style-medium.png", directory / "motion-000.png")
-            if count:
-                raise ValueError(f"{label}: the same replay state rendered {count} different pixels "
-                                 f"(delta {delta}); something moves on its own clock")
-            report["sameStateCaptures"][label] = {"differingPixels": count, "maxDelta": delta}
+        count, delta = differing(directory / "style-medium.png", directory / "motion-000.png")
+        if count:
+            raise ValueError(f"{label}: the same replay state rendered {count} different pixels "
+                             f"(delta {delta}); something moves on its own clock")
+        report["sameStateCaptures"][label] = {"differingPixels": count, "maxDelta": delta}
     for name in names[:5]:
         side_by_side(args.before / f"{name}.png", args.after / f"{name}.png", args.output / f"{name}.png")
     subprocess.run(["ffmpeg", "-v", "error", "-framerate", "4", "-i",
