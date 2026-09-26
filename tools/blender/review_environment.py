@@ -8,8 +8,9 @@ through the export and the Qt capture:
 
 - the Phase 2 shell (built by `shell.py`) at the approved moment, demo 1001 at
   208.829 s, and the course buoys from `course.json`;
-- the web rower venue's structures, with the nodes the app hides removed (the
-  same list as `ReplayScene.qml`'s `replacedVenueNode`);
+- the course dressing from the committed `rowing-dressing.blend` (Blender
+  Phase 4), in place of the web rower venue's structures, which the app
+  hides since that phase;
 - the water plane with the committed normal map on its 8 m tile;
 - the authored sky as the world, the key light from `SUN_OFFSETS` at the
   Medium strength, and Qt 6.11.2's depth fog reproduced in every material:
@@ -20,8 +21,10 @@ through the export and the Qt capture:
         --output build/previews/environment --scheme light
 
 Views: `chase` (the approved camera), `lap` (eight chase views round the
-loop), `wide`, `top`, `bank` (near-bank and wetland close-ups) and `water` (a
-low view along the water). Each output directory must be new.
+loop), `wide`, `top`, `bank` (near-bank and wetland close-ups), `water` (a
+low view along the water), `zones` (chase views into the launch, finish,
+bridge, far-bank, coaching-pontoon and wetland zones) and `dressing`
+(close-ups of the structures). Each output directory must be new.
 """
 
 import argparse
@@ -57,8 +60,9 @@ VENUE_COLOURS = {  # RowingStyle.venueColor: (light, dark)
     "earth|beach|pontoon|path|trunk": ("#979e99", "#657077"),
     "grass|lawn|canopy|shrub|reed": ("#667d6b", "#485e5d"),
 }
-REPLACED = ("apron", "ripple", "reflection", "sun-glint", "mist-band", "shoreline", "horizon-far",
-            "horizon-mid", "valley-ridges", "pines", "pine-trunks", "broadleaves", "campus-path")
+# RowingDressing.qml's class materials: (roughness, specular, metalness).
+DRESSING_CLASSES = {"paint": (0.6, 0.35, 0.0), "timber": (0.85, 0.2, 0.0), "metal": (0.42, 0.6, 0.45),
+                    "glass": (0.12, 1.0, 0.0), "float": (0.7, 0.2, 0.0), "ground": (0.95, 0.2, 0.0)}
 
 
 def gl(p):
@@ -157,52 +161,23 @@ def chase(metres):
     return eye, (fx + 0.88 * tx, 0.84, fz + 0.88 * tz)
 
 
-def venue(scheme):
-    before = set(bpy.data.objects)
-    bpy.ops.import_scene.gltf(filepath=str(ROOT / "assets/replay/venues/rowplay-venue-rower-ultra.glb"))
-    new = [o for o in bpy.data.objects if o not in before]
-    contract = json.loads((ROOT / "assets/replay/venues/rowplay-venue-rower-ultra.json").read_text())
-
-    def replaced(obj):
-        while obj is not None:
-            if any(f"environment:rower:{name}" in obj.name for name in REPLACED):
-                return True
-            obj = obj.parent
-        return False
-
-    # Decide first: deleting a group first would orphan its children.
-    for obj in [o for o in new if replaced(o)]:
-        bpy.data.objects.remove(obj, do_unlink=True)
-    for mat in {s.material for o in bpy.data.objects if o.type == "MESH" and o.name.startswith("environment:rower")
-                for s in o.material_slots if s.material}:
-        spec = contract["materials"].get(mat.name, {})
-        colour = spec.get("colorDark" if scheme == "dark" else "colorLight", "#999999")
-        for pattern, (light, dark) in VENUE_COLOURS.items():
-            if any(p in mat.name for p in pattern.split("|")):
-                colour = dark if scheme == "dark" else light
-        bsdf = mat.node_tree.nodes.get("Principled BSDF")
-        if bsdf is None:
-            continue
-        for link in list(bsdf.inputs["Base Color"].links):
-            mat.node_tree.links.remove(link)
-        bsdf.inputs["Base Color"].default_value = linear(colour)
-        bsdf.inputs["Roughness"].default_value = spec.get("roughness", 0.8)
-        fogged(mat, scheme)
-    # The retained instanced groups (island trees and shrubs, distance posts).
-    to_blender = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
-    for name, entries in contract["instancing"].items():
-        archetype = bpy.data.objects.get(name)
-        if archetype is None:
-            continue
-        archetype.hide_render = True
-        for e in entries:
-            q = e["q"]
-            m = Matrix.LocRotScale(Vector(e["p"]), Quaternion((q[3], q[0], q[1], q[2])), Vector(e["s"]))
-            copy = archetype.copy()
-            copy.parent = None
-            copy.matrix_world = to_blender @ m @ to_blender.inverted()
-            copy.hide_render = False
-            bpy.context.scene.collection.objects.link(copy)
+def dressing(scheme):
+    """Append the committed dressing's collections and give them the QML materials."""
+    with bpy.data.libraries.load(str(AUTHORED / "rowing-dressing.blend"), link=False) as (src, dst):
+        dst.collections = ["rowplay-dressing"]
+    root = dst.collections[0]
+    bpy.context.scene.collection.children.link(root)
+    bpy.data.collections["furniture-variants"].hide_render = True
+    materials = {}
+    for cls, (roughness, specular, metalness) in DRESSING_CLASSES.items():
+        mat = vertex_colour_material(f"review-{cls}", scheme, roughness, specular, False)
+        mat.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = metalness
+        materials[cls] = mat
+    for obj in root.all_objects:
+        if obj.type == "MESH":
+            for slot in obj.material_slots:
+                if slot.material and slot.material.name in materials:
+                    slot.material = materials[slot.material.name]
 
 
 def buoys_and_water(scheme):
@@ -314,7 +289,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--scheme", choices=("light", "dark"), default="light")
-    parser.add_argument("--views", default="chase,lap,wide,top,bank,water")
+    parser.add_argument("--views", default="chase,lap,wide,top,bank,water,zones,dressing")
     parser.add_argument("--engine", choices=("BLENDER_EEVEE", "CYCLES"), default="BLENDER_EEVEE")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     args.output.mkdir(parents=True, exist_ok=False)
@@ -322,7 +297,7 @@ def main():
     scene = bpy.context.scene
     rig = place_shell(args.scheme)
     place_rig(rig, FRAME_METRES)
-    venue(args.scheme)
+    dressing(args.scheme)
     buoys_and_water(args.scheme)
     environment(args.scheme)
     lighting(args.scheme)
@@ -362,6 +337,31 @@ def main():
     if "water" in views:
         camera("water", (0.0, 1.2, 29.0), (12.0, 0.0, 26.0), (1600, 998), fov=30)
         render(args.output / f"{s}-water.png")
+    if "zones" in views:
+        for name, degrees in (("launch", 15), ("finish", 25), ("finish-near", 40), ("bridge", 130),
+                              ("farbank", 215), ("coaching", 250), ("wetland-a", 290), ("wetland-b", 320)):
+            metres = 1000 * degrees / 360
+            place_rig(rig, metres)
+            camera(f"zone-{name}", *chase(metres), (1200, 750))
+            render(args.output / f"{s}-zone-{name}.png")
+        place_rig(rig, FRAME_METRES)
+    if "dressing" in views:
+        def on_loop(angle, radius, height):
+            a = math.radians(angle)
+            return (radius * math.sin(a), height, radius * math.cos(a))
+        for name, eye, target in (
+                ("tower", on_loop(44, 30, 2.5), on_loop(52, 38, 5.0)),
+                ("jetty", on_loop(44, 20, 2.2), on_loop(52, 19, 0.5)),
+                ("launch-pontoon", on_loop(24, 31, 2.6), on_loop(31, 36, 0.4)),
+                ("campus", on_loop(30, 44, 3.0), on_loop(30, 68, 2.5)),
+                ("bridge", on_loop(139, 27, 2.4), on_loop(148, 29, 3.5)),
+                ("coaching", on_loop(256, 31, 2.2), on_loop(264, 36.5, 0.5)),
+                ("boardwalk", on_loop(318, 33.5, 2.4), on_loop(332, 40.5, 0.8)),
+                ("hide", on_loop(328, 37, 2.6), on_loop(335, 42.4, 1.5)),
+                ("board-250", on_loop(136, 33, 1.9), on_loop(142, 38.6, 2.0)),
+                ("island", on_loop(120, 22, 4.0), on_loop(60, 6, 0.5))):
+            camera(f"close-{name}", eye, target, (1000, 625), fov=42)
+            render(args.output / f"{s}-close-{name}.png")
 
 
 if __name__ == "__main__":
