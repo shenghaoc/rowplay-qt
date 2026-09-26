@@ -91,9 +91,10 @@ Scope, the audit, budgets, evidence and measurements are in
 ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
 continues to govern procedural versus modelled Blender source of truth;
 ADR 0002 governs common-asset licensing and provenance.
-The existing-athlete/40k-budget note in `tools/blender/README.md` describes
-the delivered Phase 1–4 pipeline. It does not exempt future athlete work:
-ADR 0017 requires a fresh explicit budget before substantial modeling.
+The [Blender tooling guide](../tools/blender/README.md) follows ADR 0017:
+V4 remains the audit baseline, and Phase 5 establishes a fresh measured
+athlete triangle budget before substantial modeling. The old 40k proposal
+is historical, not an active budget.
 
 [Phase 5's spec](../.kiro/specs/blender-05-athlete-contact/tasks.md) starts
 with **5.0: correct #130 and freeze the seat/pelvis reference**. Then 5.1

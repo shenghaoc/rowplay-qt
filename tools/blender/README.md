@@ -252,8 +252,19 @@ the two `.blend` files are the environment's and the dressing's own sources. Gen
 | Entire authored pack | 8 MiB (4 MiB before Phase 3, 6 MiB before Phase 4) |
 | Entire replay inventory | 100 MiB (ADR 0011) |
 
-The existing athlete is retained, not rebuilt; the discarded Phase 5's 40k
-budget does not apply. Export checks mesh triangles; generation enforces the
+The earlier retained-athlete / dropped-replacement decision is historical:
+[ADR 0017](../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md)
+supersedes it and restores athlete/contact work as Blender Phase 5. V4 remains
+the baseline until the audit and owner checkpoint. Phase 5 must establish a
+fresh measured athlete triangle budget before substantial modelling; the old
+40k proposal is not an active budget. Follow the
+[Phase 5 work order](../../.kiro/specs/blender-05-athlete-contact/tasks.md).
+[ADR 0016](../../docs/decisions/0016-authored-overcast-lighting.md) still governs
+Blender source-of-truth rules;
+[ADR 0002](../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
+governs asset licensing and provenance.
+
+Export checks mesh triangles; generation enforces the
 pack size; Rust tests verify hashes, inventory, placement radii and budgets.
 The course buoys are 256 instances of one shared mesh, not a combined mesh,
 and the furniture 24 instances of six.
