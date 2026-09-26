@@ -358,6 +358,7 @@ have a reviewed generation script, while an artistically modeled asset should
 have a reviewed `.blend` source plus deterministic export and validation scripts.
 Refine that scope before shell/oar work. This integration preserves the accepted
 Phase 1 decision and does not design a Python CAD framework or begin Phase 2.
+Phase 2's opening commit amends ADR 0016 accordingly.
 
 ## Review follow-up (2026-09-26)
 

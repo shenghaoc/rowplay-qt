@@ -1,6 +1,7 @@
 # ADR 0016 - Script-authored overcast lighting
 
-Status: accepted (2026-09-26, Direction C approval)
+Status: accepted (2026-09-26, Direction C approval); the source rule is
+amended 2026-09-26, before the shell and oars (Blender Phase 2).
 
 ## Context
 
@@ -20,10 +21,24 @@ The runtime uses the same probe for sky and lighting. Keep all roughness levels
 when reducing face resolution, including Qt's final diffuse level.
 
 Start with rowing. Skiing and cycling retain their existing procedural skies.
-The scripts, not a hand-edited blend file, are the source of truth. Record
-generated outputs in ASSET_PROVENANCE.md and enforce the plain-Git budget from
-ADR 0011. Ordinary application builds consume committed outputs and do not
-require Blender or run the sky baker.
+Record generated outputs in ASSET_PROVENANCE.md and enforce the plain-Git
+budget from ADR 0011. Ordinary application builds consume committed outputs and
+do not require Blender or run the sky baker.
+
+Sources of truth (amended 2026-09-26). The decision first said "The scripts, not
+a hand-edited blend file, are the source of truth." That is too broad: it rules
+out every asset a person shapes by hand. It now reads:
+
+- **Procedural assets keep reviewed generation scripts.** An asset derived from
+  parameters, seeds and code (the skies, the water normals, the course buoy)
+  has its script as the source, and no `.blend` file is committed for it.
+- **Modelled assets may use a reviewed `.blend` source**, committed with them,
+  plus a deterministic script that exports and validates it: fixed export
+  settings, the pipeline's canonicalisation, the budget and contract checks,
+  and a rebuild that reproduces the committed output byte for byte.
+
+Either way, every committed output is rebuilt from what the repository holds,
+and the asset's provenance entry says which kind it is.
 
 Use independently authored light and blue-hour sky and fill palettes. Water
 keeps its underlying albedo and takes its later-ambient appearance from the
