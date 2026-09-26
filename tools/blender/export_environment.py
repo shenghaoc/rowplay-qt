@@ -19,10 +19,14 @@ The contract of the source file:
 - `land`: exactly `environment:row:terrain`, `environment:row:far-bank` and
   `environment:row:woodland` (the continuous canopy behind the woodland edges);
 - `vegetation-variants`: exactly the names in VARIANTS;
-- every mesh named like its object, at the origin with no rotation or scale,
-  with a point colour attribute `Col` and no modifiers;
+- every mesh named like its object, unparented, with an identity world
+  transform (the exporter writes it onto the node, and balsam's mesh files,
+  all the scene reads, drop it), a point colour attribute `Col` and no
+  modifiers;
 - every instance a linked duplicate of one variant, turned about +Z only,
-  scaled uniformly, tinted by its object colour, in exactly one tier.
+  scaled uniformly, tinted by its object colour, in exactly one tier, and
+  where its own transform channels put it (the placements are read from
+  those, so a parent, constraint or delta transform must not move it).
 
 Blender axes are converted to glTF / Qt axes: (x, y, z) -> (x, z, -y), and a
 turn about Blender +Z is the same turn about Qt +Y.
@@ -36,7 +40,7 @@ import struct
 
 try:
     import bpy
-    from mathutils import Vector
+    from mathutils import Euler, Matrix, Vector
     from mathutils.bvhtree import BVHTree
 except ImportError:  # test_export_environment.py checks the pure helpers without Blender
     bpy = None
@@ -93,8 +97,9 @@ def _triangles(obj):
 
 
 def _is_identity(obj):
-    return (obj.location.length < 1e-6 and max(abs(v) for v in obj.rotation_euler) < 1e-6
-            and max(abs(v - 1.0) for v in obj.scale) < 1e-6)
+    """The world matrix covers delta transforms, constraints and every rotation mode."""
+    m = obj.matrix_world
+    return all(abs(m[i][j] - (1.0 if i == j else 0.0)) < 1e-6 for i in range(4) for j in range(4))
 
 
 def _check_mesh(obj, problems):
@@ -104,7 +109,7 @@ def _check_mesh(obj, problems):
     if obj.data.name != obj.name:
         problems.append(f"{obj.name}: mesh data is named {obj.data.name!r}")
     if not _is_identity(obj) or obj.parent is not None:
-        problems.append(f"{obj.name} must sit at the origin, unparented, unrotated and unscaled")
+        problems.append(f"{obj.name} must be unparented with an identity world transform")
     if obj.modifiers:
         problems.append(f"{obj.name} carries modifiers; apply them in the source")
     colour = obj.data.color_attributes.get("Col")
@@ -177,6 +182,41 @@ def _inside(footprint, x, z, margin):
     return r0 - margin <= r <= r1 + margin and a0 - slack <= a <= a1 + slack
 
 
+def _distance_to_axis(polygon):
+    """Horizontal distance from the basin centre to a convex polygon of (x, y)."""
+    edges = list(zip(polygon, polygon[1:] + polygon[:1]))
+    crosses = [p[0] * q[1] - q[0] * p[1] for p, q in edges]
+    # Twice the signed area: a polygon collapsed to a point or a segment
+    # cannot contain the centre, whatever the signs say.
+    if abs(sum(crosses)) > 1e-12 and (min(crosses) >= 0.0 or max(crosses) <= 0.0):
+        return 0.0
+
+    def to_segment(p, q):
+        dx, dy = q[0] - p[0], q[1] - p[1]
+        length2 = dx * dx + dy * dy
+        t = 0.0 if length2 == 0.0 else max(0.0, min(1.0, -(p[0] * dx + p[1] * dy) / length2))
+        return math.hypot(p[0] + t * dx, p[1] + t * dy)
+
+    return min(to_segment(p, q) for p, q in edges)
+
+
+def _above_water_within(triangle, radius):
+    """Whether any point of a land triangle ((x, y, z) in Blender axes) is at
+    or above the water, z >= 0, closer than `radius` to the basin centre.
+
+    The triangle is flat, so its part at or above the water is the triangle
+    clipped by z >= 0, a convex polygon. Vertices alone miss an edge that
+    surfaces between a sunken vertex inside the radius and a dry one outside."""
+    clipped = []
+    for a, b in zip(triangle, triangle[1:] + triangle[:1]):
+        if a[2] >= 0.0:
+            clipped.append((a[0], a[1]))
+        if (a[2] >= 0.0) != (b[2] >= 0.0):
+            t = a[2] / (a[2] - b[2])
+            clipped.append((a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])))
+    return bool(clipped) and _distance_to_axis(clipped) < radius
+
+
 def _terrain_height(bvh, x, z):
     """Height of the terrain under the Qt point (x, z), by a downward ray."""
     hit = bvh.ray_cast(Vector((x, -z, 500.0)), Vector((0.0, 0.0, -1.0)))
@@ -185,6 +225,8 @@ def _terrain_height(bvh, x, z):
 
 def validate(assets):
     """Check the open file against the contract; return the export plan."""
+    # World matrices as the file now stands: deltas and constraints included.
+    bpy.context.view_layer.update()
     problems = []
     root = bpy.data.collections.get("rowplay-environment")
     if root is None:
@@ -201,7 +243,9 @@ def validate(assets):
         problems.append(f"vegetation-variants holds {sorted(variants)}")
     for obj in [*land.values(), *variants.values()]:
         _check_mesh(obj, problems)
-    triangles = {name: _triangles(obj) for name, obj in [*land.items(), *variants.items()]}
+    # A part that is not a mesh is already a problem; it has no triangles to count.
+    triangles = {name: _triangles(obj) for name, obj in [*land.items(), *variants.items()]
+                 if obj.type == "MESH"}
     for name, count in triangles.items():
         part = name[len(PREFIX):]
         limit = BUDGET.get(part, BUDGET["variant"])
@@ -210,12 +254,15 @@ def validate(assets):
     if problems:
         raise ContractError("; ".join(problems))
 
-    # The waterline: nothing of the terrain above the water inside SHORE_MIN.
+    # The waterline: no land at or above the water inside SHORE_MIN, anywhere
+    # on its surface (the loop triangles were computed with the counts).
+    for name in LAND:
+        vertices = land[name].data.vertices
+        wet = sum(1 for tri in land[name].data.loop_triangles
+                  if _above_water_within([tuple(vertices[i].co) for i in tri.vertices], SHORE_MIN))
+        if wet:
+            problems.append(f"{name} is at or above the water inside {SHORE_MIN} m in {wet} triangles")
     terrain = land[LAND[0]]
-    high = [v.co for v in terrain.data.vertices
-            if math.hypot(v.co.x, v.co.y) < SHORE_MIN and v.co.z >= 0.0]
-    if high:
-        problems.append(f"the terrain rises above the water at {len(high)} vertices inside {SHORE_MIN} m")
     bvh = BVHTree.FromObject(terrain, bpy.context.evaluated_depsgraph_get())
 
     footprints = _venue_footprints(assets)
@@ -258,12 +305,21 @@ def validate(assets):
                 if _inside(footprint, x, z, margin):
                     problems.append(f"{obj.name} stands in the {name}")
             yaw = math.degrees(obj.rotation_euler.z) % 360.0
-            instances.append({
+            entry = {
                 "variant": variant, "tier": tier, "name": obj.name,
                 "position": [round(x, 4), round(y, 4), round(z, 4)],
                 "yaw": round(yaw, 3), "scale": round(s.x, 4),
                 "color": "#" + "".join(f"{round(_srgb(c) * 255):02x}" for c in colour[:3]),
-            })
+            }
+            # What is written must be where Blender shows the object, to 1 mm:
+            # a delta transform or a constraint moves it without touching the
+            # channels read above.
+            px, py, pz = entry["position"]
+            written = Matrix.LocRotScale(Vector((px, -pz, py)), Euler((0.0, 0.0, math.radians(entry["yaw"]))),
+                                         Vector((entry["scale"],) * 3))
+            if max(abs(a - b) for row, other in zip(obj.matrix_world, written) for a, b in zip(row, other)) > 1e-3:
+                problems.append(f"{obj.name}: its world transform differs from its location, rotation and scale")
+            instances.append(entry)
     instanced = {o.name for o in bpy.data.objects if o.type == "MESH" and o.data.name.startswith(PREFIX)
                  and o.data.name[len(PREFIX):] in VARIANTS and o.name not in variants}
     stray = sorted(instanced - set(seen))
