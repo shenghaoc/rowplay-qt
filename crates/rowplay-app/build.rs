@@ -495,6 +495,13 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
         .expect("write course instances");
     qmldir.push_str("CourseInstances 1.0 CourseInstances.qml\n");
     qrc_entries.push("        <file alias=\"RowPlay/ReplayAssets/CourseInstances.qml\">replay-balsam/CourseInstances.qml</file>".to_owned());
+    build_environment(
+        &balsam,
+        &assets,
+        &module_root,
+        &mut qmldir,
+        &mut qrc_entries,
+    );
     std::fs::write(module_root.join("qmldir"), qmldir).expect("write ReplayAssets qmldir");
     qrc_entries.insert(
         0,
@@ -514,6 +521,217 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
     )
     .expect("write rowplay_replay.qrc");
     rcc_binary(rcc, &qrc, &out_dir.join("rowplay_replay.rcc"));
+}
+
+/// Blender Phase 3: the rowing environment, exported from its reviewed source
+/// file (`authored/rowing-environment.blend`) by
+/// `tools/blender/export_environment.py`.
+///
+/// balsam converts `authored/rowing-environment.glb` for its meshes only: the
+/// component it writes carries placeholder materials and is not registered.
+/// Instead a generated `EnvironmentScene.qml` declares the Models: the
+/// terrain, the far bank, and one instanced Model per vegetation variant whose
+/// `InstanceList` comes from `authored/vegetation.json`. That file is sorted by
+/// variant and then by tier, so each tier's instances are a prefix of its
+/// variant's list and `instanceCountOverride` selects the prefix: a tier
+/// change uploads nothing. The scene passes the materials in; no runtime walk
+/// touches the environment.
+fn build_environment(
+    balsam: &Path,
+    assets: &Path,
+    module_root: &Path,
+    qmldir: &mut String,
+    qrc_entries: &mut Vec<String>,
+) {
+    // (mesh, material property, receives the key light's shadow): the land
+    // parts, then the vegetation variants. The terrain takes over the web
+    // venue's banks, which the web flags as receivers (venue_shadow_flags),
+    // so the retained finish tower still shadows the quay at High and Ultra;
+    // nothing here casts, as the web's trees and horizon do not.
+    const LAND: [(&str, &str, bool); 3] = [
+        ("terrain", "land", true),
+        ("far-bank", "far", false),
+        ("woodland", "canopy", false),
+    ];
+    const VARIANTS: [(&str, &str); 6] = [
+        ("tree-broadleaf-a", "canopy"),
+        ("tree-broadleaf-b", "canopy"),
+        ("tree-conifer", "canopy"),
+        ("tree-poplar", "canopy"),
+        ("shrub", "canopy"),
+        ("reeds", "reeds"),
+    ];
+    const TIERS: usize = 4;
+    const PREFIX: &str = "environment:row:";
+    // balsam names a mesh file after its glTF mesh: lower case, every other
+    // character an underscore, then `_mesh.mesh` (the buoy's `Sphere` became
+    // `sphere_mesh.mesh`). Checked below on the files it wrote.
+    let mesh_file = |name: &str| {
+        let stem: String = format!("{PREFIX}{name}")
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() {
+                    c.to_ascii_lowercase()
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        format!("{stem}_mesh.mesh")
+    };
+
+    let glb = assets.join("authored").join("rowing-environment.glb");
+    println!("cargo::rerun-if-changed={}", glb.display());
+    let bytes =
+        std::fs::read(&glb).unwrap_or_else(|error| panic!("read {}: {error}", glb.display()));
+    let json_len = u32::from_le_bytes(bytes[12..16].try_into().expect("GLB header")) as usize;
+    let doc: serde_json::Value =
+        serde_json::from_slice(&bytes[20..20 + json_len]).expect("environment GLB JSON");
+    let mut meshes: Vec<String> = doc["meshes"]
+        .as_array()
+        .expect("environment meshes")
+        .iter()
+        .map(|mesh| mesh["name"].as_str().expect("mesh name").to_owned())
+        .collect();
+    meshes.sort();
+    let mut expected: Vec<String> = LAND
+        .iter()
+        .map(|(name, _, _)| *name)
+        .chain(VARIANTS.iter().map(|(name, _)| *name))
+        .map(|name| format!("{PREFIX}{name}"))
+        .collect();
+    expected.sort();
+    assert_eq!(
+        meshes, expected,
+        "authored/rowing-environment.glb must hold exactly the land parts and the \
+         vegetation variants; re-export it with `make blender-environment`"
+    );
+
+    let out = module_root.join("environment");
+    std::fs::create_dir_all(&out).expect("create environment dir");
+    let status = Command::new(balsam)
+        .env("QT_QPA_PLATFORM", "offscreen")
+        .arg("--removeComponentAnimations")
+        .arg("-o")
+        .arg(&out)
+        .arg(&glb)
+        .status()
+        .unwrap_or_else(|error| panic!("run balsam on the environment: {error}"));
+    assert!(
+        status.success(),
+        "balsam failed on authored/rowing-environment.glb"
+    );
+    for name in LAND
+        .iter()
+        .map(|(name, _, _)| *name)
+        .chain(VARIANTS.iter().map(|(name, _)| *name))
+    {
+        let file = mesh_file(name);
+        assert!(
+            out.join("meshes").join(&file).is_file(),
+            "balsam wrote no meshes/{file} for {PREFIX}{name}; its mesh naming changed"
+        );
+        qrc_entries.push(format!(
+            "        <file alias=\"RowPlay/ReplayAssets/environment/meshes/{file}\">replay-balsam/environment/meshes/{file}</file>"
+        ));
+    }
+
+    let placements_path = assets.join("authored").join("vegetation.json");
+    println!("cargo::rerun-if-changed={}", placements_path.display());
+    let placements: Vec<serde_json::Value> =
+        serde_json::from_slice(&std::fs::read(&placements_path).expect("read authored vegetation"))
+            .expect("parse authored vegetation");
+
+    let mut qml = String::from(
+        "// SPDX-License-Identifier: GPL-3.0-or-later\n\
+         // Generated by build.rs from authored/rowing-environment.glb and\n\
+         // authored/vegetation.json (Blender Phase 3). Do not edit.\n\
+         import QtQuick3D\n\n\
+         Node {\n    id: environment\n    required property int tier\n\
+         \x20   required property Material land\n    required property Material far\n\
+         \x20   required property Material canopy\n    required property Material reeds\n\
+         \x20   readonly property int tierIndex: Math.max(0, Math.min(3, tier))\n",
+    );
+    for (name, material, receives) in LAND {
+        writeln!(
+            qml,
+            "    Model {{\n        objectName: \"{PREFIX}{name}\"\n        source: \"environment/meshes/{}\"\n\
+             \x20       materials: [environment.{material}]\n        castsShadows: false\n        receivesShadows: {receives}\n    }}",
+            mesh_file(name)
+        )
+        .expect("format land model");
+    }
+    for (index, (name, material)) in VARIANTS.iter().enumerate() {
+        let mut counts = [0_usize; TIERS];
+        let mut entries = String::new();
+        let mut last_tier = 0;
+        for entry in placements.iter().filter(|entry| entry["variant"] == *name) {
+            let tier = usize::try_from(entry["tier"].as_u64().expect("vegetation tier"))
+                .expect("tier fits");
+            assert!(tier < TIERS, "{name}: tier {tier} out of range");
+            assert!(
+                tier >= last_tier,
+                "authored/vegetation.json must list each variant's instances by tier"
+            );
+            last_tier = tier;
+            for count in &mut counts[tier..] {
+                *count += 1;
+            }
+            let p = entry["position"].as_array().expect("vegetation position");
+            assert_eq!(p.len(), 3);
+            let [x, y, z] = [0, 1, 2].map(|i| p[i].as_f64().expect("coordinate"));
+            let yaw = entry["yaw"].as_f64().expect("vegetation yaw");
+            let scale = entry["scale"].as_f64().expect("vegetation scale");
+            assert!(
+                [x, y, z, yaw, scale].iter().all(|v| v.is_finite()) && scale > 0.0,
+                "{name}: invalid transform"
+            );
+            let color = entry["color"].as_str().expect("vegetation color");
+            assert!(
+                color.len() == 7
+                    && color.starts_with('#')
+                    && color[1..].bytes().all(|c| c.is_ascii_hexdigit())
+            );
+            writeln!(
+                entries,
+                "                InstanceListEntry {{ position: Qt.vector3d({x}, {y}, {z}); eulerRotation: Qt.vector3d(0, {yaw}, 0); scale: Qt.vector3d({scale}, {scale}, {scale}); color: \"{color}\" }},"
+            )
+            .expect("format vegetation instance");
+        }
+        assert!(
+            counts[0] > 0,
+            "{name} has no Low instance: an empty instance table is not drawn"
+        );
+        writeln!(
+            qml,
+            "    Model {{\n        id: variant{index}\n        objectName: \"{PREFIX}{name}\"\n\
+             \x20       source: \"environment/meshes/{}\"\n        materials: [environment.{material}]\n\
+             \x20       castsShadows: false\n        receivesShadows: false\n\
+             \x20       readonly property var tierCounts: [{}]\n\
+             \x20       instancing: InstanceList {{\n\
+             \x20           instanceCountOverride: variant{index}.tierCounts[environment.tierIndex]\n\
+             \x20           instances: [\n{entries}            ]\n        }}\n    }}",
+            mesh_file(name),
+            counts.map(|c| c.to_string()).join(", ")
+        )
+        .expect("format vegetation model");
+    }
+    let listed: usize = VARIANTS
+        .iter()
+        .map(|(name, _)| placements.iter().filter(|e| e["variant"] == *name).count())
+        .sum();
+    assert_eq!(
+        listed,
+        placements.len(),
+        "authored/vegetation.json names a variant the environment does not have"
+    );
+    qml.push_str("}\n");
+    std::fs::write(module_root.join("EnvironmentScene.qml"), qml).expect("write environment scene");
+    qmldir.push_str("EnvironmentScene 1.0 EnvironmentScene.qml\n");
+    qrc_entries.push(
+        "        <file alias=\"RowPlay/ReplayAssets/EnvironmentScene.qml\">replay-balsam/EnvironmentScene.qml</file>"
+            .to_owned(),
+    );
 }
 
 fn main() {

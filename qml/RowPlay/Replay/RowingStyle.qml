@@ -14,12 +14,18 @@ QtObject {
     readonly property color carbon: "#24282d"
     readonly property color metal: "#a0a5aa"
     readonly property color blade: "#edeee9"
+    // Blender Phase 3: the environment's albedo lives in its vertex colours;
+    // blue hour tints it cooler and darker, as the venue colours below do.
+    readonly property color landTint: dark ? "#b3bfde" : "#ffffff"
+    readonly property color farTint: dark ? "#b3bfde" : "#ffffff"
+    readonly property color foliageTint: dark ? "#b3bfde" : "#ffffff"
 
     function venueColor(name, fallback) {
         if (name.indexOf("environment:rower:") !== 0) return fallback
-        if (/horizon-far|ridge-far/.test(name)) return dark ? "#68788b" : "#95a3a4"
-        if (/horizon-mid|ridge-mid/.test(name)) return dark ? "#455b68" : "#6f8580"
-        if (/grass|lawn|canopy|shrub|reed/.test(name)) return dark ? "#485e5d" : "#667d6b"
+        // Since Blender Phase 3 this reaches only the retained island: its
+        // lawn takes the authored environment's mown-lawn tone (blue hour:
+        // the same albedo under the environment's tint).
+        if (/grass|lawn|canopy|shrub|reed/.test(name)) return dark ? "#3d4b45" : "#5a6751"
         if (/earth|beach|pontoon|path|trunk/.test(name)) return dark ? "#657077" : "#979e99"
         if (/tower-accent/.test(name)) return dark ? "#778593" : "#8f9b9e"
         if (/tower-material|pavilion-body/.test(name)) return dark ? "#a5b2c2" : "#cbd0d0"

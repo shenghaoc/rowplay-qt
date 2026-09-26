@@ -34,6 +34,7 @@
         <file>RowPlay/Replay/RowingStyle.qml</file>
         <file>RowPlay/Replay/RowingWater.qml</file>
         <file>RowPlay/Replay/RowingCourse.qml</file>
+        <file>RowPlay/Replay/RowingEnvironment.qml</file>
         <!-- The vendored replay packs (assets/replay/) are validated against
              their V3 contract and converted to QML components by build.rs
              (balsam) into the generated RowPlay.ReplayAssets module, bundled
