@@ -18,6 +18,8 @@ same runtime frame truth, existing athlete retained. No new straight course.
   features used. Optional extensions remain unverified and prohibited inputs.
 - [x] Run fmt, workspace clippy, Qt-free/app tests and full light/dark gates;
   inspect the pixel-validated Qt replay stills and motion sequence on Linux.
+- [x] Source-first closeout: reject unsafe GLB layouts and unexpected KTX metadata;
+  confirm real instancing and compare isolated filter timings against main.
 - [ ] Obtain macOS/Metal visual verification (this session is Linux).
 - [ ] Verify interactive replay and performance on a hardware iGPU.
 - [x] Prepare one Phase 1 draft PR with actual Qt and Blender evidence.

@@ -11,6 +11,11 @@ See `docs/blender-audit.md`, `tools/blender/README.md` and
 The replacement-rower phase is dropped. Missing baseline venue furniture is
 tracked separately in #121. Do not claim macOS verification from Linux captures.
 
+Source-first closeout tightened only the GLB/KTX generator input contracts;
+committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
+Qt source tracing and the isolated filter timing comparison. Both hardware
+acceptance gates remain open.
+
 ## Original implementation roadmap
 
 rowplay-qt ports rowplay (SvelteKit + three.js, canonical) to a cross-platform
