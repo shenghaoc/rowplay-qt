@@ -472,6 +472,45 @@ fn authored_assets_match_manifest_and_budgets() {
     }
 }
 
+/// ADR 0002: the common assets authored here are MIT, whatever the licence of
+/// the repository or of the scripts that generate them. Every file in the
+/// authored pack needs its own MIT row in ASSET_PROVENANCE.md, and no row may
+/// name a file the pack does not have.
+#[test]
+fn every_authored_asset_has_an_mit_provenance_row() {
+    let provenance = std::fs::read_to_string(assets_dir().join("../../ASSET_PROVENANCE.md"))
+        .expect("read ASSET_PROVENANCE.md");
+    let mut rows = std::collections::BTreeMap::new();
+    for line in provenance.lines() {
+        let cells: Vec<&str> = line.split('|').map(str::trim).collect();
+        if let Some(path) = cells.get(1).and_then(|cell| {
+            cell.strip_prefix("`assets/replay/")
+                .and_then(|rest| rest.strip_suffix('`'))
+                .filter(|rel| rel.starts_with("authored/"))
+        }) {
+            let licence = cells.get(2).copied().unwrap_or_default().to_owned();
+            assert!(
+                rows.insert(path.to_owned(), licence).is_none(),
+                "{path} has two provenance rows"
+            );
+        }
+    }
+    for rel in AUTHORED {
+        let licence = rows
+            .get(*rel)
+            .unwrap_or_else(|| panic!("assets/replay/{rel} has no row in ASSET_PROVENANCE.md"));
+        assert_eq!(licence, "MIT", "assets/replay/{rel} must be MIT (ADR 0002)");
+    }
+    let listed: Vec<_> = rows
+        .keys()
+        .filter(|rel| !AUTHORED.contains(&rel.as_str()))
+        .collect();
+    assert!(
+        listed.is_empty(),
+        "provenance rows for missing files: {listed:?}"
+    );
+}
+
 fn walk(dir: &Path, prefix: &str, out: &mut Vec<String>) {
     for entry in std::fs::read_dir(dir).expect("read assets/replay") {
         let path = entry.expect("dir entry").path();

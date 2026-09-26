@@ -1,7 +1,8 @@
 # ADR 0016 - Script-authored overcast lighting
 
 Status: accepted (2026-09-26, Direction C approval); the source rule is
-amended 2026-09-26, before the shell and oars (Blender Phase 2).
+amended 2026-09-26, before the shell and oars (Blender Phase 2), and the
+licence of what it produces the same day (with ADR 0002).
 
 ## Context
 
@@ -43,6 +44,19 @@ out every asset a person shapes by hand. It now reads:
 
 Either way, every committed output is rebuilt from what the repository holds,
 and the asset's provenance entry says which kind it is.
+
+Licences (amended 2026-09-26, with ADR 0002):
+
+- **The assets are MIT.** What either route produces is a common
+  RowPlay-family asset under MIT when we own it, and so is a modelled asset's
+  `.blend` source.
+- **The tooling stays GPL.** The generation, export and validation scripts
+  are application tooling and stay GPL-3.0-or-later.
+- **Neither rule implies the other.** An MIT asset need not be generated
+  vertex by vertex in code, and a GPL script does not make its output GPL.
+
+Downloaded, imported and scanned HDRIs remain prohibited, whatever their
+licence.
 
 Use independently authored light and blue-hour sky and fill palettes. Water
 keeps its underlying albedo and takes its later-ambient appearance from the
