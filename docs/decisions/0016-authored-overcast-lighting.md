@@ -32,6 +32,10 @@ out every asset a person shapes by hand. It now reads:
 - **Procedural assets keep reviewed generation scripts.** An asset derived from
   parameters, seeds and code (the skies, the water normals, the course buoy)
   has its script as the source, and no `.blend` file is committed for it.
+  The Blender Phase 2 shell and oars are procedural as a one-off: their mesh
+  helpers stay local to `tools/blender/shell.py` rather than becoming a shared
+  modelling library, and a future hero asset takes the `.blend` route below,
+  not a script on Phase 2's precedent.
 - **Modelled assets may use a reviewed `.blend` source**, committed with them,
   plus a deterministic script that exports and validates it: fixed export
   settings, the pipeline's canonicalisation, the budget and contract checks,
