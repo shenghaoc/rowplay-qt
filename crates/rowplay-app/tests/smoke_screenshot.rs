@@ -61,7 +61,12 @@ fn renders_the_smoke_scene_headlessly() {
         "unexpected size {width}x{height}"
     );
     assert!(pixels.len() >= width * height * 3);
-    let colours: HashSet<[u8; 3]> = pixels.chunks_exact(3).map(|p| [p[0], p[1], p[2]]).collect();
+    let colours: HashSet<[u8; 3]> = pixels
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .map(|p| [p[0], p[1], p[2]])
+        .collect();
     assert!(
         colours.len() >= 256,
         "only {} distinct colours: the 3D scene did not render",
