@@ -245,6 +245,13 @@ Item {
 
         RowingWater { visible: Replay.sportIndex === 0; tier: Replay.effectiveQuality }
         RowingCourse { visible: Replay.sportIndex === 0 && Replay.loadState !== "error" }
+        // Blender Phase 3: the banks, woodland and far bank around the basin.
+        // They replace the web venue's land and vegetation (walkVenue hides
+        // those); the venue's structures stay.
+        RowingEnvironment {
+            visible: Replay.sportIndex === 0 && Replay.loadState !== "error"
+            tier: Replay.effectiveQuality
+        }
         PrincipledMaterial {
             id: rowingPaint
             baseColor: RowingStyle.hull
@@ -1407,6 +1414,10 @@ Item {
     // InstanceLists, tier-gated textures — on first show; the walk registries
     // live for the whole session (bounded: ~350 materials and ~70 instance
     // lists across all twelve variants, textures shared by source).
+    // The web rower venue's nodes the authored rowing assets replace: the
+    // painted water overlays (Phase 1) and the land and vegetation (Phase 3).
+    readonly property var replacedVenueNode:
+        /:(apron|ripple|reflection|sun-glint|mist-band|shoreline|horizon-far|horizon-mid|valley-ridges|pines|pine-trunks|broadleaves|campus-path)/
     property var venueMaterials: ({})
     property var venueTextureCache: ({})
     property var venueWalked: ({})
@@ -1571,6 +1582,8 @@ Item {
                 target.source = node.source
                 target.castsShadows = node.castsShadows
                 target.receivesShadows = node.receivesShadows
+                // A sibling, not a child: a hidden archetype hides its clones.
+                target.visible = node.visible
             }
             target.instancing = list
             target.materials = [built.material]
@@ -1586,10 +1599,14 @@ Item {
         var applied = 0
         for (var i = 0; children && i < children.length; ++i) {
             var child = children[i]
-            // The continuous water surface replaces the old painted overlays.
+            // The continuous water surface replaces the old painted overlays,
+            // and RowingEnvironment (Blender Phase 3) the land and vegetation:
+            // the banks, the horizon and ridge bands, the woodland and reeds.
+            // The structures (tower, pontoons, buildings, bridge, boardwalk)
+            // and the island stay.
             if (child.visible !== undefined && child.objectName
                     && child.objectName.indexOf("environment:rower:") === 0
-                    && /:(apron|ripple|reflection|sun-glint|mist-band)/.test(child.objectName))
+                    && replacedVenueNode.test(child.objectName))
                 child.visible = false
             if (child.instancing !== undefined && child.source !== undefined) {
                 // The web's shadow flags, before an instance group copies
