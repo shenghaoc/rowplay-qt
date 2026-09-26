@@ -1,0 +1,52 @@
+{
+  "structures": [
+    {"name": "finish-tower", "kind": "land", "classes": ["paint", "timber", "metal", "glass"], "casts": true, "receives": true, "triangles": 2184, "footprint": [30.18, 41.841, 47.974, 56.743]},
+    {"name": "start-jetty", "kind": "water", "classes": ["paint", "timber", "metal", "float"], "casts": true, "receives": true, "triangles": 280, "footprint": [13.913, 21.619, 47.94, 55.47]},
+    {"name": "launch-pontoon", "kind": "water", "classes": ["timber", "metal", "float"], "casts": true, "receives": true, "triangles": 252, "footprint": [33.777, 37.357, 24.221, 37.779]},
+    {"name": "coaching-pontoon", "kind": "water", "classes": ["paint", "timber", "metal", "glass", "float"], "casts": true, "receives": true, "triangles": 828, "footprint": [33.984, 38.805, 258.943, 277.592]},
+    {"name": "course-bridge", "kind": "span", "classes": ["timber", "metal"], "casts": true, "receives": true, "triangles": 1236, "footprint": [13.883, 41.246, 143.871, 152.129]},
+    {"name": "boathouse", "kind": "land", "classes": ["paint"], "casts": true, "receives": true, "triangles": 132, "footprint": [57.601, 70.949, 23.715, 40.285]},
+    {"name": "clubhouse", "kind": "land", "classes": ["paint", "metal", "glass"], "casts": true, "receives": true, "triangles": 456, "footprint": [63.275, 74.177, 11.381, 22.619]},
+    {"name": "regatta-office", "kind": "land", "classes": ["paint", "metal", "glass"], "casts": true, "receives": true, "triangles": 192, "footprint": [63.884, 70.989, 39.879, 46.121]},
+    {"name": "wetland-boardwalk", "kind": "land", "classes": ["timber"], "casts": true, "receives": true, "triangles": 1708, "footprint": [38.601, 41.006, 303.133, 351.867]},
+    {"name": "wetland-hide", "kind": "land", "classes": ["paint", "timber"], "casts": true, "receives": true, "triangles": 120, "footprint": [40.615, 44.305, 330.693, 339.307]},
+    {"name": "distance-board-250", "kind": "land", "classes": ["paint", "timber"], "casts": true, "receives": false, "triangles": 240, "footprint": [38.376, 39.429, 141.373, 142.114]},
+    {"name": "distance-board-500", "kind": "land", "classes": ["paint", "timber"], "casts": true, "receives": false, "triangles": 252, "footprint": [38.376, 39.429, 231.373, 232.114]},
+    {"name": "distance-board-750", "kind": "land", "classes": ["paint", "timber"], "casts": true, "receives": false, "triangles": 216, "footprint": [38.976, 40.029, 321.383, 322.113]},
+    {"name": "island", "kind": "island", "classes": ["ground"], "casts": false, "receives": true, "triangles": 720, "footprint": [0.0, 16.5, 0.0, 360.0]}
+  ],
+  "variants": [
+    {"name": "bollard", "classes": ["metal"], "triangles": 88},
+    {"name": "bench", "classes": ["timber", "metal"], "triangles": 108},
+    {"name": "life-ring", "classes": ["paint", "timber"], "triangles": 168},
+    {"name": "flagpole", "classes": ["paint", "metal"], "triangles": 120},
+    {"name": "trestle-hull", "classes": ["paint", "timber", "metal"], "triangles": 440},
+    {"name": "finish-buoy", "classes": ["paint", "metal", "float"], "triangles": 144}
+  ],
+  "instances": [
+    {"variant": "bench", "tier": 2, "position": [17.9326, 0.19, 35.1948], "yaw": 27.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bench", "tier": 2, "position": [22.6563, 0.19, 32.3565], "yaw": 35.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bench", "tier": 2, "position": [-17.5809, 0.093, 37.7024], "yaw": 155.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bench", "tier": 3, "position": [6.3041, 0.5605, 4.9253], "yaw": 142.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bench", "tier": 3, "position": [21.7817, 0.2561, 71.2447], "yaw": 17.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bench", "tier": 3, "position": [20.535, 0.2561, 71.614], "yaw": 16.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 1, "position": [14.9272, 0.18, 33.5271], "yaw": 24.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 1, "position": [18.9019, 0.18, 31.458], "yaw": 31.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 1, "position": [22.5948, 0.18, 28.92], "yaw": 38.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 1, "position": [11.8202, 0.06, 9.2349], "yaw": 52.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 2, "position": [-37.7292, 0.1591, -5.3025], "yaw": 262.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 2, "position": [-38.0072, 0.2003, -2.6577], "yaw": 266.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 3, "position": [25.9508, 0.18, 25.9508], "yaw": 45.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "bollard", "tier": 3, "position": [10.73, 0.18, 35.0964], "yaw": 17.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "finish-buoy", "tier": 0, "position": [17.5332, 0.0, 13.6985], "yaw": 52.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "finish-buoy", "tier": 0, "position": [26.95, 0.0, 21.0556], "yaw": 52.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "flagpole", "tier": 1, "position": [14.9992, 0.231, 60.1583], "yaw": 14.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "flagpole", "tier": 1, "position": [21.7129, 0.2311, 58.0737], "yaw": 20.5, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "life-ring", "tier": 1, "position": [17.3235, 0.18, 32.5808], "yaw": 28.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "life-ring", "tier": 2, "position": [12.7658, 0.06, 9.9737], "yaw": 142.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "life-ring", "tier": 2, "position": [-30.0974, 0.0768, 27.0998], "yaw": 312.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "life-ring", "tier": 3, "position": [-37.9907, 0.2131, -3.993], "yaw": 264.0, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "trestle-hull", "tier": 1, "position": [23.5185, 0.19, 32.9717], "yaw": 43.5, "scale": 1.0, "color": "#ffffff"},
+    {"variant": "trestle-hull", "tier": 2, "position": [24.5057, 0.19, 34.3557], "yaw": 43.5, "scale": 1.0, "color": "#ffffff"}
+  ]
+}

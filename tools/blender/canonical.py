@@ -99,11 +99,15 @@ def canonicalize(path):
 
 
 def canonicalize_pack(path):
-    """Every primitive of an opaque, unextended multi-mesh pack (the shell).
+    """Every primitive of an opaque, unextended multi-mesh pack (the shell,
+    the environment, the dressing).
 
-    The buoy's layout contract, per primitive: each index accessor owns its
-    buffer view, nothing is sparse or extended, and every material is opaque,
-    so reordering triangles cannot change what is drawn.
+    The buoy's layout contract, per primitive: nothing is sparse or extended,
+    and every material is opaque, so reordering triangles cannot change what
+    is drawn. Blender's exporter writes one index accessor for primitives of
+    identical topology (the dressing's boxes and posts, whatever their
+    vertices), so a shared index accessor is sorted once, and every
+    primitive sharing it must hold the vertex count it addresses.
     """
     data, doc, binary_start, binary_size = _read(path)
     if doc.get("extensionsUsed") or doc.get("extensionsRequired"):
@@ -112,16 +116,20 @@ def canonicalize_pack(path):
         if material.get("alphaMode", "OPAQUE") != "OPAQUE" or material.get("extensions"):
             raise ValueError("canonical export requires unextended opaque triangles")
     primitives = [p for mesh in doc["meshes"] for p in mesh["primitives"]]
-    seen = set()
+    vertex_counts = {}
     for primitive in primitives:
         if (primitive.get("mode", 4) != 4 or "indices" not in primitive
                 or primitive.get("extensions") or primitive.get("targets")):
             raise ValueError("canonical export requires unextended opaque triangles")
-        if primitive["indices"] in seen:
-            raise ValueError("index accessors must not be shared between primitives")
-        seen.add(primitive["indices"])
+        count = doc["accessors"][primitive["attributes"]["POSITION"]]["count"]
+        if vertex_counts.setdefault(primitive["indices"], count) != count:
+            raise ValueError("primitives sharing an index accessor must share a vertex count")
     ranges = _views(doc, binary_size)
+    sorted_accessors = set()
     for primitive in primitives:
+        if primitive["indices"] in sorted_accessors:
+            continue
+        sorted_accessors.add(primitive["indices"])
         _sort(data, doc, binary_start, ranges, primitive)
     path.write_bytes(data)
 

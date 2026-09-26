@@ -87,8 +87,11 @@ class CanonicalTests(unittest.TestCase):
             self.assertEqual(path.read_bytes(), source.read_bytes())
 
 
-def pack(first, second, normal=(0.0, 1.0, 0.0), alpha="OPAQUE"):
-    """Two single-primitive meshes, each with its own index view."""
+def pack(first, second, normal=(0.0, 1.0, 0.0), alpha="OPAQUE", shared=False, second_positions=0):
+    """Two single-primitive meshes, each with its own index view, or (shared)
+    both drawing the first index accessor, as Blender writes primitives of
+    identical topology; `second_positions` picks the second mesh's POSITION
+    accessor."""
     vertices = struct.pack("<12f", *([0.0] * 12))
     normals = struct.pack("<12f", *(normal * 4))
     a = struct.pack(f"<{len(first)}H", *first)
@@ -96,11 +99,13 @@ def pack(first, second, normal=(0.0, 1.0, 0.0), alpha="OPAQUE"):
     binary = vertices + normals + a + b
     doc = {"asset": {"version": "2.0"}, "materials": [{"alphaMode": alpha}],
            "meshes": [{"primitives": [{"indices": 2, "material": 0, "attributes": {"POSITION": 0, "NORMAL": 1}}]},
-                      {"primitives": [{"indices": 3, "material": 0, "attributes": {"POSITION": 0, "NORMAL": 1}}]}],
+                      {"primitives": [{"indices": 2 if shared else 3, "material": 0,
+                                       "attributes": {"POSITION": second_positions, "NORMAL": 1}}]}],
            "accessors": [{"bufferView": 0, "type": "VEC3", "componentType": 5126, "count": 4},
                          {"bufferView": 1, "type": "VEC3", "componentType": 5126, "count": 4},
                          {"bufferView": 2, "type": "SCALAR", "componentType": 5123, "count": len(first)},
-                         {"bufferView": 3, "type": "SCALAR", "componentType": 5123, "count": len(second)}],
+                         {"bufferView": 3, "type": "SCALAR", "componentType": 5123, "count": len(second)},
+                         {"bufferView": 0, "type": "VEC3", "componentType": 5126, "count": 3}],
            "bufferViews": [{"buffer": 0, "byteLength": 48}, {"buffer": 0, "byteOffset": 48, "byteLength": 48},
                            {"buffer": 0, "byteOffset": 96, "byteLength": len(a)},
                            {"buffer": 0, "byteOffset": 96 + len(a), "byteLength": len(b)}],
@@ -125,6 +130,25 @@ class PackTests(unittest.TestCase):
             b.write_bytes(pack([2, 0, 1, 3, 2, 1], [1, 3, 2]))
             canonicalize_pack(b)
             self.assertNotEqual(a.read_bytes(), b.read_bytes())
+
+    def test_a_shared_index_accessor_is_sorted_once(self):
+        # Blender Phase 4: primitives of identical topology share one index
+        # accessor. Sorting it once canonicalises both, and the result is
+        # the pack whose shared indices were written sorted.
+        with tempfile.TemporaryDirectory() as directory:
+            a, b = Path(directory) / "a.glb", Path(directory) / "b.glb"
+            a.write_bytes(pack([2, 0, 1, 3, 2, 1], [1, 2, 3], shared=True))
+            b.write_bytes(pack([0, 1, 2, 1, 3, 2], [1, 2, 3], shared=True))
+            canonicalize_pack(a)
+            canonicalize_pack(b)
+            self.assertEqual(a.read_bytes(), b.read_bytes())
+            canonicalize_pack(a)
+            self.assertEqual(a.read_bytes(), b.read_bytes())
+            # Sharing indices between primitives of different vertex counts is refused.
+            c = Path(directory) / "c.glb"
+            c.write_bytes(pack([0, 1, 2], [0, 1, 2], shared=True, second_positions=4))
+            with self.assertRaisesRegex(ValueError, "vertex count"):
+                canonicalize_pack(c)
 
     def test_translucent_packs_are_refused(self):
         with tempfile.TemporaryDirectory() as directory:

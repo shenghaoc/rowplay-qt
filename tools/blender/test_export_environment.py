@@ -12,25 +12,30 @@ ASSETS = Path(__file__).resolve().parents[2] / "assets/replay"
 
 
 class ExportEnvironmentTest(unittest.TestCase):
-    def test_structure_footprints_come_from_the_venue(self):
-        footprints = ee._venue_footprints(ASSETS)
-        self.assertEqual(set(footprints), set(ee.STRUCTURES))
-        r0, r1, a0, a1 = footprints["wetland-boardwalk-deck"]
-        self.assertAlmostEqual(r0, 38.6, delta=0.05)
-        self.assertAlmostEqual(r1, 40.3, delta=0.05)
-        self.assertAlmostEqual(a0, 304.0, delta=0.5)
-        self.assertAlmostEqual(a1, 350.0, delta=0.5)
+    def test_structure_footprints_come_from_the_dressing(self):
+        footprints = ee._dressing_footprints(ASSETS)
+        self.assertIn("finish-tower", footprints)
+        self.assertIn("wetland-boardwalk", footprints)
+        r0, r1, a0, a1 = footprints["wetland-boardwalk"]
+        self.assertTrue(38.0 < r0 < 39.0 < 40.5 < r1 < 41.5)
+        self.assertTrue(302.0 < a0 < 304.0 and 351.0 < a1 < 353.0)
         # The finish tower stands at the quay, 52 degrees round the loop.
         r0, r1, a0, a1 = footprints["finish-tower"]
         self.assertTrue(r0 < 37.0 < r1 and a0 < 52.0 < a1)
+        # The island is a ring round the whole basin.
+        self.assertEqual(footprints["island"][2:], (0.0, 360.0))
 
     def test_footprints_keep_their_margin(self):
-        deck = ee._venue_footprints(ASSETS)["wetland-boardwalk-deck"]
-        inside = (39.4 * math.sin(math.radians(327)), 39.4 * math.cos(math.radians(327)))
+        deck = ee._dressing_footprints(ASSETS)["wetland-boardwalk"]
+        inside = (39.6 * math.sin(math.radians(327)), 39.6 * math.cos(math.radians(327)))
         beside = (37.7 * math.sin(math.radians(327)), 37.7 * math.cos(math.radians(327)))
         self.assertTrue(ee._inside(deck, *inside, 0.3))
         self.assertFalse(ee._inside(deck, *beside, 0.3))
         self.assertTrue(ee._inside(deck, *beside, 2.0))
+        # A sector past 360 degrees straddles the loop's 0.
+        self.assertTrue(ee._inside((39.0, 41.0, 350.0, 370.0), 40.0 * math.sin(math.radians(5.0)), 40.0 * math.cos(math.radians(5.0)), 0.3))
+        self.assertFalse(ee._inside((39.0, 41.0, 350.0, 370.0), 40.0 * math.sin(math.radians(20.0)), 40.0 * math.cos(math.radians(20.0)), 0.3))
+        self.assertTrue(ee._inside((0.0, 16.5, 0.0, 360.0), 3.0, -4.0, 0.3))
 
     def test_the_waterline_holds_between_vertices(self):
         # A sunken vertex inside 36.2 m joined to dry ones outside it: every
