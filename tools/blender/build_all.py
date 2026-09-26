@@ -15,6 +15,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import contact_sheet, export, linear, material, reset
 from probes import bake
+import export_dressing
 import export_environment
 import shell
 from water import normals as water_field
@@ -138,9 +139,9 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "assets/replay/authored")
     parser.add_argument("--previews", type=Path, default=ROOT / "build/previews")
     parser.add_argument("--balsam", default=os.environ.get("ROWPLAY_BALSAM", "balsam"))
-    parser.add_argument("--only", choices=("all", "shell", "water", "environment"), default="all",
+    parser.add_argument("--only", choices=("all", "shell", "water", "environment", "dressing"), default="all",
                         help="rebuild one part alone and re-pin it in MANIFEST.json: shell (Phase 2), "
-                             "water or environment (Phase 3)")
+                             "water or environment (Phase 3), dressing (Phase 4)")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
     args.output.mkdir(parents=True, exist_ok=True)
     print("Blender", bpy.app.version_string, "seed", SEED)
@@ -152,6 +153,9 @@ def main():
         elif args.only == "water":
             report["water"] = water(args.output / "water-normal.png")
             pinned = ["water-normal.png"]
+        elif args.only == "dressing":
+            report["dressing"] = export_dressing.build(args.output / "rowing-dressing.blend", args.output)
+            pinned = ["rowing-dressing.blend", "rowing-dressing.glb", "dressing.json"]
         else:
             report["environment"] = export_environment.build(
                 args.output / "rowing-environment.blend", args.output)
@@ -171,7 +175,9 @@ def main():
     triangles = buoy(args.output / "buoy.glb", args.previews)
     (args.output / "course.json").write_text(course_json(placements()))
     shell_report = rowing_shell(args.output / "rowing-shell.glb", args.previews)
-    # Last: it opens the environment's source file in place of the scene.
+    # Last: each opens its source file in place of the scene. The dressing
+    # goes first, since the environment's export reads its footprints.
+    dressing_report = export_dressing.build(args.output / "rowing-dressing.blend", args.output)
     environment_report = export_environment.build(args.output / "rowing-environment.blend", args.output)
     files = {}
     for path in sorted(args.output.iterdir()):
@@ -182,13 +188,14 @@ def main():
     report = {"blender": bpy.app.version_string, "seed": SEED,
               "buoyTriangles": triangles, "buoyInstances": 256,
               "textureMax": 512, "shell": shell_report, "water": water_report,
-              "environment": environment_report, "files": files}
+              "environment": environment_report, "dressing": dressing_report, "files": files}
     write_manifest(args.output, report)
 
 
 # The authored pack's plain-Git budget (ADR 0011). Blender Phase 3 raised it
-# from 4 to 6 MiB for the environment's source file and its outputs.
-PACK_BUDGET = 6 * 1024 * 1024
+# from 4 to 6 MiB for the environment's source file and its outputs, and
+# Phase 4 to 8 MiB for the dressing's.
+PACK_BUDGET = 8 * 1024 * 1024
 
 
 def write_manifest(output, report):

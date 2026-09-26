@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 BLENDER ?= blender
 
-.PHONY: blender-assets blender-shell blender-water blender-environment
+.PHONY: blender-assets blender-shell blender-water blender-environment blender-dressing
 blender-assets:
 	PYTHONHASHSEED=0 "$(BLENDER)" -b --factory-startup --python-exit-code 1 -P tools/blender/build_all.py
 
@@ -16,3 +16,7 @@ blender-water:
 
 blender-environment:
 	PYTHONHASHSEED=0 "$(BLENDER)" -b --factory-startup --python-exit-code 1 -P tools/blender/build_all.py -- --only environment
+
+# Blender Phase 4: the course dressing exported from its reviewed source file, rowing-dressing.blend.
+blender-dressing:
+	PYTHONHASHSEED=0 "$(BLENDER)" -b --factory-startup --python-exit-code 1 -P tools/blender/build_all.py -- --only dressing

@@ -65,19 +65,19 @@ BUDGET = {
 }
 # The water ring the environment must stay out of: the outer buoy ring is at
 # 33.3 m (course.json) and the oar blades reach about 33 m on the live lane.
-# The quay meets the web launch dock's front edge, at 36.27 m.
+# The quay meets the launch pontoon's gangway, at 36.27 m.
 SHORE_MIN = 36.2
-# Web venue structures that stay until Blender Phase 4, with the highest the
-# ground may stand at the middle of each: the buildings sink at most 0.45 m
-# into the terrain, the launch dock's deck (top 0.21 m) must stay above the
-# quay and the boardwalk's deck (0.32 m) above the marsh. Their footprints are
-# read from the vendored Ultra venue (it has them all) as annular sectors
-# (radius and loop angle ranges), which fit the compact buildings and the
-# curved boardwalk alike, and nothing is planted inside them.
-STRUCTURES = {"finish-tower": 0.45, "regatta-pavilion": 0.45, "boathouse": 0.45,
-              "timing-tower": 0.45, "course-bridge-leg-2": 0.45, "wetland-hide": 0.45,
-              "launch-dock": 0.19, "wetland-boardwalk-deck": 0.30}
-VENUE = "venues/rowplay-venue-rower-ultra.glb"
+# The island at the course's centre (Blender Phase 4, `dressing.json`): its
+# lawn may carry plants, its beach and skirt may not, and nothing else stands
+# inside the basin.
+ISLAND_LAWN = 12.4
+ISLAND_RADIUS = 16.5
+# The course dressing's structures (Blender Phase 4) read from its
+# placements as annular sectors (radius and loop angle ranges), which fit the
+# compact buildings, the radial bridge and the curved boardwalk alike;
+# nothing is planted inside them. The dressing's own export checks that they
+# stand on this terrain.
+DRESSING = "authored/dressing.json"
 
 
 class ContractError(ValueError):
@@ -117,69 +117,33 @@ def _check_mesh(obj, problems):
         problems.append(f"{obj.name} has no point colour attribute 'Col'")
 
 
-def _venue_footprints(assets):
-    """{structure: (r_min, r_max, a_min, a_max)} from the venue GLB's vertices.
+def _dressing_footprints(assets):
+    """{structure: (r_min, r_max, a_min, a_max)} from the dressing's placements.
 
     Radii in metres from the basin centre, angles in degrees round the loop
-    (atan2(x, z), as the course places the boat)."""
-    data = (assets / VENUE).read_bytes()
-    size = struct.unpack_from("<I", data, 12)[0]
-    doc = json.loads(data[20:20 + size])
-    start = 28 + size
-
-    def matrix(node):
-        t = node.get("translation", [0.0, 0.0, 0.0])
-        x, y, z, w = node.get("rotation", [0.0, 0.0, 0.0, 1.0])
-        s = node.get("scale", [1.0, 1.0, 1.0])
-        r = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-             [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-             [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
-        return [[r[i][j] * s[j] for j in range(3)] + [t[i]] for i in range(3)]
-
-    def compose(a, b):
-        return [[sum(a[i][k] * b[k][j] for k in range(3)) + (a[i][3] if j == 3 else 0.0)
-                 for j in range(4)] for i in range(3)]
-
+    (atan2(x, z), as the course places the boat); a footprint past 360
+    degrees straddles the loop's 0."""
+    placements = json.loads((assets / DRESSING).read_text())
     found = {}
-
-    def walk(index, parent, owner):
-        node = doc["nodes"][index]
-        m = compose(parent, matrix(node))
-        name = node.get("name", "")
-        if name.startswith(VENUE_PREFIX) and name[len(VENUE_PREFIX):] in STRUCTURES:
-            owner = name[len(VENUE_PREFIX):]
-        if "mesh" in node and owner:
-            for primitive in doc["meshes"][node["mesh"]]["primitives"]:
-                accessor = doc["accessors"][primitive["attributes"]["POSITION"]]
-                view = doc["bufferViews"][accessor["bufferView"]]
-                offset = start + view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
-                for i in range(accessor["count"]):
-                    p = struct.unpack_from("<3f", data, offset + 12 * i)
-                    x = sum(m[0][k] * p[k] for k in range(3)) + m[0][3]
-                    z = sum(m[2][k] * p[k] for k in range(3)) + m[2][3]
-                    r, a = math.hypot(x, z), math.degrees(math.atan2(x, z)) % 360.0
-                    lo = found.get(owner, (r, r, a, a))
-                    found[owner] = (min(lo[0], r), max(lo[1], r), min(lo[2], a), max(lo[3], a))
-        for child in node.get("children", []):
-            walk(child, m, owner)
-
-    identity = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
-    for root in doc["scenes"][0]["nodes"]:
-        walk(root, identity, None)
-    missing = [s for s in STRUCTURES if s not in found]
-    if missing:
-        raise ContractError(f"venue {VENUE} lost the structures {missing}")
-    wrapped = [s for s, (_, _, a0, a1) in found.items() if a1 - a0 > 180.0]
-    if wrapped:
-        raise ContractError(f"{wrapped} straddle the loop's 0 degrees; the footprint check does not handle that")
+    for entry in placements["structures"]:
+        r0, r1, a0, a1 = entry["footprint"]
+        if not 0.0 <= r0 <= r1 or not 0.0 <= a0 <= a1 <= 720.0:
+            raise ContractError(f"{entry['name']}: footprint {entry['footprint']} is not a sector")
+        found[entry["name"]] = (r0, r1, a0, a1)
+    if not found:
+        raise ContractError(f"{DRESSING} names no structures")
     return found
 
 
 def _inside(footprint, x, z, margin):
     r0, r1, a0, a1 = footprint
     r, a = math.hypot(x, z), math.degrees(math.atan2(x, z)) % 360.0
+    if not r0 - margin <= r <= r1 + margin:
+        return False
+    if a1 - a0 >= 360.0:
+        return True
     slack = math.degrees(margin / max(r, 1.0))
-    return r0 - margin <= r <= r1 + margin and a0 - slack <= a <= a1 + slack
+    return any(a0 - slack <= a + turn <= a1 + slack for turn in (0.0, 360.0))
 
 
 def _distance_to_axis(polygon):
@@ -265,13 +229,7 @@ def validate(assets):
     terrain = land[LAND[0]]
     bvh = BVHTree.FromObject(terrain, bpy.context.evaluated_depsgraph_get())
 
-    footprints = _venue_footprints(assets)
-    for name, (r0, r1, a0, a1) in footprints.items():
-        a_mid = math.radians((a0 + a1) / 2)
-        ground = _terrain_height(bvh, (r0 + r1) / 2 * math.sin(a_mid), (r0 + r1) / 2 * math.cos(a_mid))
-        if ground is None or not -0.1 <= ground <= STRUCTURES[name]:
-            problems.append(f"the terrain under the {name} is at {ground} m, "
-                            f"not -0.1 to {STRUCTURES[name]}")
+    footprints = _dressing_footprints(assets)
 
     seen = {}
     instances = []
@@ -298,10 +256,13 @@ def validate(assets):
                 problems.append(f"{obj.name} tint {tuple(colour)} is not an opaque colour")
             x, y, z = obj.location.x, obj.location.z, -obj.location.y
             radius = math.hypot(x, z)
-            if radius < (35.0 if variant == "reeds" else SHORE_MIN + 2.0):
+            on_island = radius <= ISLAND_LAWN
+            if radius < (35.0 if variant == "reeds" else SHORE_MIN + 2.0) and not on_island:
                 problems.append(f"{obj.name} stands in the course water (r {radius:.2f} m)")
             margin = 0.3 if variant == "reeds" else 2.0
             for name, footprint in footprints.items():
+                if name == "island":
+                    continue
                 if _inside(footprint, x, z, margin):
                     problems.append(f"{obj.name} stands in the {name}")
             yaw = math.degrees(obj.rotation_euler.z) % 360.0
