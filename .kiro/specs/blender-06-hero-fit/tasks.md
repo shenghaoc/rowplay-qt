@@ -1,5 +1,12 @@
 # Blender Phase 6 — hero-fit integration
 
+Authority: [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md)
+restores the athlete to Phase 5 and defines the contact/hero-fit/water sequence.
+[ADR 0016](../../../docs/decisions/0016-authored-overcast-lighting.md) governs
+procedural versus modelled Blender source of truth;
+[ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
+governs licensing and provenance.
+
 Status: planned; not started. Begins only after the
 [Phase 5](../blender-05-athlete-contact/tasks.md) athlete is chosen and
 implemented, including the corrected seat/pelvis reference and final hand

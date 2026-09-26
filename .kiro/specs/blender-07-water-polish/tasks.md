@@ -1,5 +1,12 @@
 # Blender Phase 7 — wake, foam, spray and final water polish
 
+Authority: [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md)
+restores the athlete to Phase 5 and defines the contact/hero-fit/water sequence.
+[ADR 0016](../../../docs/decisions/0016-authored-overcast-lighting.md) governs
+procedural versus modelled Blender source of truth;
+[ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
+governs licensing and provenance.
+
 Status: planned outline; not started. Depends on accepted
 [Phase 6 hero fit](../blender-06-hero-fit/tasks.md). Blender Phases 1–4 remain
 complete; this phase finishes water interaction after the athlete/equipment
