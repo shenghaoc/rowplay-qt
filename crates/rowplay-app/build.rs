@@ -502,6 +502,13 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
         &mut qmldir,
         &mut qrc_entries,
     );
+    build_dressing(
+        &balsam,
+        &assets,
+        &module_root,
+        &mut qmldir,
+        &mut qrc_entries,
+    );
     std::fs::write(module_root.join("qmldir"), qmldir).expect("write ReplayAssets qmldir");
     qrc_entries.insert(
         0,
@@ -565,22 +572,7 @@ fn build_environment(
     ];
     const TIERS: usize = 4;
     const PREFIX: &str = rowplay_viewmodel::replay::environment::ENVIRONMENT_PREFIX;
-    // balsam names a mesh file after its glTF mesh: lower case, every other
-    // character an underscore, then `_mesh.mesh` (the buoy's `Sphere` became
-    // `sphere_mesh.mesh`). Checked below on the files it wrote.
-    let mesh_file = |name: &str| {
-        let stem: String = format!("{PREFIX}{name}")
-            .chars()
-            .map(|c| {
-                if c.is_ascii_alphanumeric() {
-                    c.to_ascii_lowercase()
-                } else {
-                    '_'
-                }
-            })
-            .collect();
-        format!("{stem}_mesh.mesh")
-    };
+    let mesh_file = |name: &str| balsam_mesh_file(&format!("{PREFIX}{name}"));
 
     let glb = assets.join("authored").join("rowing-environment.glb");
     println!("cargo::rerun-if-changed={}", glb.display());
@@ -726,6 +718,215 @@ fn build_environment(
     qmldir.push_str("EnvironmentScene 1.0 EnvironmentScene.qml\n");
     qrc_entries.push(
         "        <file alias=\"RowPlay/ReplayAssets/EnvironmentScene.qml\">replay-balsam/EnvironmentScene.qml</file>"
+            .to_owned(),
+    );
+}
+
+/// balsam's mesh file name for a glTF mesh: lower case, every other
+/// character an underscore, then `_mesh.mesh` (the buoy's `Sphere` became
+/// `sphere_mesh.mesh`). Checked on the files balsam wrote.
+fn balsam_mesh_file(name: &str) -> String {
+    let stem: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    format!("{stem}_mesh.mesh")
+}
+
+/// Blender Phase 4: the rowing course dressing, exported from its reviewed
+/// source file (`authored/rowing-dressing.blend`) by
+/// `tools/blender/export_dressing.py`.
+///
+/// balsam converts `authored/rowing-dressing.glb` for its meshes only, as
+/// for the environment. `rowplay_viewmodel::replay::dressing::validate_dressing`
+/// checks the GLB against `authored/dressing.json` first: each mesh's
+/// primitives are split by material class, in the order that file records,
+/// and the generated `DressingScene.qml` passes one material per primitive.
+/// Every structure is one Model, modelled where it stands, with the shadow
+/// roles the exporter records; every furniture variant is one instanced
+/// Model whose `InstanceList` comes from the placements, sorted by tier so
+/// `instanceCountOverride` selects a prefix, as the vegetation does. No
+/// runtime walk touches the dressing.
+fn build_dressing(
+    balsam: &Path,
+    assets: &Path,
+    module_root: &Path,
+    qmldir: &mut String,
+    qrc_entries: &mut Vec<String>,
+) {
+    const TIERS: usize = 4;
+    const PREFIX: &str = rowplay_viewmodel::replay::dressing::DRESSING_PREFIX;
+
+    let glb = assets.join("authored").join("rowing-dressing.glb");
+    println!("cargo::rerun-if-changed={}", glb.display());
+    let placements_path = assets.join("authored").join("dressing.json");
+    println!("cargo::rerun-if-changed={}", placements_path.display());
+    let bytes =
+        std::fs::read(&glb).unwrap_or_else(|error| panic!("read {}: {error}", glb.display()));
+    let placements: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&placements_path).expect("read authored dressing"))
+            .expect("parse authored dressing");
+    let dressing = rowplay_viewmodel::replay::dressing::validate_dressing(&bytes, &placements)
+        .unwrap_or_else(|error| {
+            panic!(
+                "authored/rowing-dressing.glb fails its contract: {error}; \
+                 re-export it with `make blender-dressing`"
+            )
+        });
+
+    let out = module_root.join("dressing");
+    std::fs::create_dir_all(&out).expect("create dressing dir");
+    let status = Command::new(balsam)
+        .env("QT_QPA_PLATFORM", "offscreen")
+        .arg("--removeComponentAnimations")
+        .arg("-o")
+        .arg(&out)
+        .arg(&glb)
+        .status()
+        .unwrap_or_else(|error| panic!("run balsam on the dressing: {error}"));
+    assert!(
+        status.success(),
+        "balsam failed on authored/rowing-dressing.glb"
+    );
+    for mesh in dressing.structures.iter().chain(&dressing.variants) {
+        let file = balsam_mesh_file(&format!("{PREFIX}{}", mesh.name));
+        assert!(
+            out.join("meshes").join(&file).is_file(),
+            "balsam wrote no meshes/{file} for {PREFIX}{}; its mesh naming changed",
+            mesh.name
+        );
+        qrc_entries.push(format!(
+            "        <file alias=\"RowPlay/ReplayAssets/dressing/meshes/{file}\">replay-balsam/dressing/meshes/{file}</file>"
+        ));
+    }
+    // One material per primitive, in the exporter's class order.
+    let materials = |classes: &[String]| -> String {
+        classes
+            .iter()
+            .map(|class| format!("dressing.{class}Material"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+
+    let mut qml = String::from(
+        "// SPDX-License-Identifier: GPL-3.0-or-later\n\
+         // Generated by build.rs from authored/rowing-dressing.glb and\n\
+         // authored/dressing.json (Blender Phase 4). Do not edit.\n\
+         import QtQuick3D\n\n\
+         Node {\n    id: dressing\n    required property int tier\n",
+    );
+    for class in rowplay_viewmodel::replay::dressing::DRESSING_CLASSES {
+        writeln!(qml, "    required property Material {class}Material").expect("format class");
+    }
+    qml.push_str("    readonly property int tierIndex: Math.max(0, Math.min(3, tier))\n");
+    for structure in &dressing.structures {
+        writeln!(
+            qml,
+            "    Model {{\n        objectName: \"{PREFIX}{}\"\n        source: \"dressing/meshes/{}\"\n\
+             \x20       materials: [{}]\n        castsShadows: {}\n        receivesShadows: {}\n    }}",
+            structure.name,
+            balsam_mesh_file(&format!("{PREFIX}{}", structure.name)),
+            materials(&structure.classes),
+            structure.casts,
+            structure.receives
+        )
+        .expect("format structure model");
+    }
+    let instances = placements["instances"]
+        .as_array()
+        .expect("dressing instances");
+    for (index, variant) in dressing.variants.iter().enumerate() {
+        let mut counts = [0_usize; TIERS];
+        let mut entries = String::new();
+        let mut last_tier = 0;
+        for entry in instances
+            .iter()
+            .filter(|entry| entry["variant"] == variant.name.as_str())
+        {
+            let tier =
+                usize::try_from(entry["tier"].as_u64().expect("dressing tier")).expect("tier fits");
+            assert!(tier < TIERS, "{}: tier {tier} out of range", variant.name);
+            assert!(
+                tier >= last_tier,
+                "authored/dressing.json must list each variant's instances by tier"
+            );
+            last_tier = tier;
+            for count in &mut counts[tier..] {
+                *count += 1;
+            }
+            let p = entry["position"].as_array().expect("dressing position");
+            assert_eq!(p.len(), 3);
+            let [x, y, z] = [0, 1, 2].map(|i| p[i].as_f64().expect("coordinate"));
+            let yaw = entry["yaw"].as_f64().expect("dressing yaw");
+            let scale = entry["scale"].as_f64().expect("dressing scale");
+            assert!(
+                [x, y, z, yaw, scale].iter().all(|v| v.is_finite()) && scale > 0.0,
+                "{}: invalid transform",
+                variant.name
+            );
+            let color = entry["color"].as_str().expect("dressing color");
+            assert!(
+                color.len() == 7
+                    && color.starts_with('#')
+                    && color[1..].bytes().all(|c| c.is_ascii_hexdigit())
+            );
+            writeln!(
+                entries,
+                "                InstanceListEntry {{ position: Qt.vector3d({x}, {y}, {z}); eulerRotation: Qt.vector3d(0, {yaw}, 0); scale: Qt.vector3d({scale}, {scale}, {scale}); color: \"{color}\" }},"
+            )
+            .expect("format dressing instance");
+        }
+        // Furniture may be absent at a tier (Low keeps the finish buoys and
+        // little else): a variant with no instance at the tier is hidden by
+        // a binding rather than drawn with an empty table.
+        assert!(
+            counts[TIERS - 1] > 0,
+            "{} has no instance at any tier",
+            variant.name
+        );
+        writeln!(
+            qml,
+            "    Model {{\n        id: furniture{index}\n        objectName: \"{PREFIX}{}\"\n\
+             \x20       source: \"dressing/meshes/{}\"\n        materials: [{}]\n\
+             \x20       castsShadows: false\n        receivesShadows: false\n\
+             \x20       readonly property var tierCounts: [{}]\n\
+             \x20       visible: furniture{index}.tierCounts[dressing.tierIndex] > 0\n\
+             \x20       instancing: InstanceList {{\n\
+             \x20           instanceCountOverride: furniture{index}.tierCounts[dressing.tierIndex]\n\
+             \x20           instances: [\n{entries}            ]\n        }}\n    }}",
+            variant.name,
+            balsam_mesh_file(&format!("{PREFIX}{}", variant.name)),
+            materials(&variant.classes),
+            counts.map(|c| c.to_string()).join(", ")
+        )
+        .expect("format furniture model");
+    }
+    let listed: usize = dressing
+        .variants
+        .iter()
+        .map(|variant| {
+            instances
+                .iter()
+                .filter(|e| e["variant"] == variant.name.as_str())
+                .count()
+        })
+        .sum();
+    assert_eq!(
+        listed,
+        instances.len(),
+        "authored/dressing.json names a variant the dressing does not have"
+    );
+    qml.push_str("}\n");
+    std::fs::write(module_root.join("DressingScene.qml"), qml).expect("write dressing scene");
+    qmldir.push_str("DressingScene 1.0 DressingScene.qml\n");
+    qrc_entries.push(
+        "        <file alias=\"RowPlay/ReplayAssets/DressingScene.qml\">replay-balsam/DressingScene.qml</file>"
             .to_owned(),
     );
 }
