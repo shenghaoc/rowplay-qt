@@ -445,7 +445,7 @@ blue hour, before (Phase 1 head) and after.
 - All 18 runtime states per scheme match exactly (pose frame without its
   sequence counter, grip table and tier).
 - Every capture is opaque and non-blank.
-- 4.1–4.2 % of pixels change at Low and Medium, and 5.2–5.3 % at High and
+- 4.1–4.2 % of pixels change at Low and Medium, and 5.2 % at High and
   Ultra. Every change lies in the boat, oar and shadow region.
 
 A probe with the hull's vertex-colour masks switched off changed about 2,700
@@ -471,11 +471,14 @@ check passed unchanged limits:
 
 | Scheme | Shadow area | Darkening |
 | --- | ---: | ---: |
-| Light | 1.08 % | 5.42 % |
+| Light | 1.07 % | 5.42 % |
 | Dark | 1.13 % | 6.10 % |
 
-That is less margin than Phase 1's 1.23 % and 5.97 % (light): the old tall
-stretcher board and oarlock posts cast more shadow than the new parts.
+These figures are recomputed from the saved twin captures and truncated. The
+check prints them rounded, so its log reads 1.08 % for the light area (41,342
+of 3,840,000 pixels). That is less margin than Phase 1's 1.23 % and 5.97 %
+(light): the old tall stretcher board and oarlock posts cast more shadow than
+the new parts.
 
 The walks took about 160 s, against 106.5 s for a Phase 1 walk earlier the
 same day. Back-to-back full light walks show that gap is machine state, not
