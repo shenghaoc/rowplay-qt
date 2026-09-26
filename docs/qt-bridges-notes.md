@@ -514,12 +514,14 @@ The earlier entries record 0.2 observations unless updated here.
   additions/removals belong to that graph (including removal of mandatory
   `linkme`), not unrelated dependency updates.
 - **MSRV and checks:** README, workspace metadata and CI now use Rust 1.88.
-  The MSRV job retains its historical required-check name, `MSRV 1.87
-  (Qt-free crates)`, to keep the main ruleset satisfied; its compiler is
-  1.88.0. The regular compiler stays at 1.98.1. Raising the MSRV enabled
-  `collapsible_if` let-chain and `chunks_exact_to_as_chunks` suggestions;
-  both are explicitly allowed at workspace level to preserve existing port
-  structure instead of mixing a style rewrite into the bridge migration.
+  The MSRV job's check is named `MSRV (Qt-free crates)`, with no version,
+  so this and later bumps rename no required check; it was `MSRV 1.87
+  (Qt-free crates)`, and the `main` ruleset must require the new name
+  before this change merges. Its compiler is 1.88.0. The regular compiler
+  stays at 1.98.1. Raising the MSRV enabled `collapsible_if` let-chain and
+  `chunks_exact_to_as_chunks` suggestions; both are explicitly allowed at
+  workspace level to preserve existing port structure instead of mixing a
+  style rewrite into the bridge migration.
 
 Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
 

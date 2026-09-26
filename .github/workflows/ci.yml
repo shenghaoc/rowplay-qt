@@ -91,12 +91,13 @@ jobs:
         run: git diff --check HEAD~1 HEAD
 
   msrv:
-    # Keep the required-check name stable; the actual minimum is now 1.88.
-    # Rename only together with the main ruleset.
-    name: MSRV 1.87 (Qt-free crates)
+    # A required check (AGENTS.md, "Continuous integration"). Its name
+    # carries no version, so raising the minimum renames no required check.
+    name: MSRV (Qt-free crates)
     runs-on: ubuntu-24.04
     env:
       # Overrides rust-toolchain.toml, which pins the newer CI toolchain.
+      # The minimum itself: Cargo.toml's rust-version. Bump them together.
       RUSTUP_TOOLCHAIN: 1.88.0
     steps:
       - uses: actions/checkout@v7

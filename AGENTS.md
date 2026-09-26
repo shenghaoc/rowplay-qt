@@ -263,11 +263,11 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
 ## Continuous integration
 
 `.github/workflows/ci.yml` gates every pull request. The ruleset on `main`
-requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV 1.87
+requires five checks: `Qt-free crates (fmt, clippy, test)`, `MSRV
 (Qt-free crates)` and `App (ubuntu-24.04)`, `App (macos-26)`,
-`App (windows-2025)`. The MSRV check retains its historical required-check
-name but tests Rust 1.88; rename it only together with the ruleset. The
-step-529 job is informational. Rules:
+`App (windows-2025)`. The MSRV check's name carries no version: raising the
+minimum (`rust-version` in `Cargo.toml` and the job's toolchain, together)
+renames no required check. The step-529 job is informational. Rules:
 
 - A newer push to a pull request cancels the run it supersedes. Runs on
   `main` are never cancelled. A re-run of an older run cancels nothing: it
