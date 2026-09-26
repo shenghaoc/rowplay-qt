@@ -83,12 +83,31 @@ terrain receives the key light's shadow as the web's banks do
 loop and the frame bundle are unchanged. The divergences are in the table
 below.
 
+### Blender Phase 4: course dressing and venue furniture
+
+Rowing only. `assets/replay/authored/rowing-dressing.blend` is the course
+dressing's modelled source, and `tools/blender/export_dressing.py` exports
+`rowing-dressing.glb` and `dressing.json` from it. `build.rs` generates the
+declarative `DressingScene` (one Model per structure, one material per
+primitive in the exporter's class order, one instanced Model per furniture
+variant), and `RowingDressing.qml` gives it its materials.
+`replay::dressing::validate_dressing` gates the GLB against the placements
+at build time. The web rower venue's structures (finish tower, start
+pontoons, launch dock, distance posts, pavilion, boathouse, timing tower,
+course bridge, boardwalk, hide) and its island are hidden by the venue walk;
+with Phase 3's land, nothing of the rower bake is drawn. The island's plants
+join `vegetation.json` from the environment's source, whose export now reads
+the dressing's footprints (`dressing.json`) in place of the web venue's.
+The structures cast and receive the key light's shadow as the exporter
+records; the furniture casts none. Pose, camera, rig, loop and the frame
+bundle are unchanged. The divergences are in the table below.
+
 ### Licensing of the authored assets
 
 Everything under `assets/replay/authored/` is MIT (ADRs 0002 and 0016, amended
 2026-09-26). That is Direction C's skies, probes, water normals, buoy and
-course, the Phase 2 shell, the Phase 3 environment (its `.blend` source, mesh
-and placements), and the manifest. The owner holds its copyright and
+course, the Phase 2 shell, the Phase 3 environment and the Phase 4 dressing
+(their `.blend` sources, meshes and placements), and the manifest. The owner holds its copyright and
 its provenance is clean; being generated is not the reason. The Blender
 scripts that generate it stay GPL-3.0-or-later, and their licence decides
 nothing about their output.
@@ -293,6 +312,7 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | Hull wet band | none | none | vertex-colour masks on the hull scale roughness and clearcoat roughness toward the waterline | A Direction C addition. There is no texture and no UV set, and parts without the attribute are unaffected. |
 | Rowing land and vegetation (Blender Phase 3) | the venue builder's flat bank arcs, horizon and ridge bands, and instanced woodland and reeds (`renderer3dEnvironment.ts`), baked here into the rower venue GLBs | its own port of the builder (`ReplayEnvironment*.swift`) | `authored/rowing-environment.glb` and `vegetation.json`, from `rowing-environment.blend`: terrain from the near bank to the rim, woodland masses, a far bank, and six instanced variants over four tiers; the baked venue's land and vegetation round the basin are hidden, its structures and the island kept | Direction C (ADR 0016, amended). In the port the baked land read as a test arena: flat plates at water level, a faceted two-band ridge, and woodland that does not render (#121). The land uses follow the web's sectors, the terrain receives shadows as the web's banks do, and nothing casts, as the web's trees do not. |
 | Water detail (Blender Phase 3) | a flat surface with painted ripple and reflection overlays | — | a world-fixed normal map: 360 wave vectors from a wind-sea spectrum on an 8 m tile, RMS slope 0.11 | Replaces Phase 1's 16-component, 4 m map, which read as a lattice. Nothing scrolls, and no speed term exists. |
+| Course structures and island (Blender Phase 4) | the venue builder's finish tower (a box shaft, a cabin and a wing at 52°), start pontoons (27°), launch dock (High and up), blank distance posts in the campus arc (High and up), three pavilion blocks with cone roofs, a two-leg span at 148° (High and up), an Ultra-only boardwalk and hide, and a flat island with instanced trees (`renderer3dEnvironment.ts`), baked here into the rower venue GLBs | its own port of the builder | `authored/rowing-dressing.glb` and `dressing.json`, from `rowing-dressing.blend`: a judges' tower with a finish-line boom, a start jetty from the island on the finish line, a floating launch pontoon, a footbridge from the island to the bank, a boathouse, a clubhouse and a regatta office, the boardwalk and hide, numbered boards at 250, 500 and 750 m from the line, a coaching pontoon and launch at 264°, an authored island, and instanced furniture by tier; every structure at every tier | Direction C (ADR 0016, amended). The web's zones and angles are kept so the Phase 3 terrain still meets the structures; the start pontoons move from 27° onto the finish line as the island's jetty, the distance boards count from that line (the web's were blank), and Low keeps the silhouettes the web left it without. The web's island trees never rendered in the port (refs #121). |
 | Concept2 `is_interval` | set by `getWorkout` from a non-empty `workout.intervals`; summaries have none | set in `mapWorkout` from `workout_type` containing "interval" **or** non-empty intervals | web | One rule (the intervals array) for summaries and detail alike; the API's `workout_type` values are not documented as an interval signal. |
 | Detail assembly without per-stroke rows | synthesises a split-derived timeline and clears `hasStrokeData` | returns empty strokes, keeps `hasStrokeData` | web | `hasStrokeData` must go false when the timeline is synthesised, or the pose model renders one cycle per synthesised point (≈4 catches across a 2K instead of ≈221). |
 | Concept2 status mapping | throws a message with the status, no typed cases | `unauthorized` / `forbidden` / `rateLimited` / `httpError(statusCode)` | web's statuses with Studio's typed cases, plus `NotFound(id)` for the in-memory mock only | A 404 from the API maps to `Http { status: 404 }` (the transport's job); `NotFound(id)` stays the mock's domain error. `RateLimited` also carries `Retry-After` seconds when the header is a plain integer (no reference parses it). |

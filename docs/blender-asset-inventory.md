@@ -7,6 +7,7 @@
 | `assets/replay/authored/buoy.glb` | 7,404 | 224 mesh triangles; 0 embedded images |
 | `assets/replay/authored/overcast.hdr` | 30,984 | generated environment radiance |
 | `assets/replay/authored/overcast.ktx` | 1,048,436 | prefiltered IBL |
+| `assets/replay/authored/rowing-dressing.glb` | 637,208 | 9,884 mesh triangles; 0 embedded images |
 | `assets/replay/authored/rowing-environment.glb` | 595,504 | 24,251 mesh triangles; 0 embedded images |
 | `assets/replay/authored/rowing-shell.glb` | 912,596 | 39,926 mesh triangles; 0 embedded images |
 | `assets/replay/authored/water-normal.png` | 297,417 | texture |

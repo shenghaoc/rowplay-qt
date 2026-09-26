@@ -44,12 +44,32 @@ until Phase 4. The frame, the camera, the rig and the loop are
 unchanged. Scope, budgets, evidence and measurements are in
 `.kiro/specs/blender-03-environment-water/tasks.md` and `docs/blender-audit.md`.
 
+### Blender Phase 4: course dressing and venue furniture
+
+The basin reads as a rowing venue. Every structure the web bake still drew
+was audited from the chase camera and round the lap, then rebuilt as a
+generic, unbranded authored asset: a judges' tower with a finish-line boom,
+a start jetty from the island, a floating launch pontoon, a footbridge from
+the island to the bank, a boathouse, a clubhouse and a regatta office, the
+wetland boardwalk and hide; the blank distance posts became numbered boards
+at 250, 500 and 750 m from the finish line, and the web's flat island an
+authored one planted from the environment's own vegetation. A coaching
+pontoon with its launch marks the far bank, and instanced furniture
+(bollards, benches, life rings, flagpoles with plain flags, an upturned
+single on slings, finish buoys) gives the zones human scale by tier.
+`rowing-dressing.blend` is the second modelled source under ADR 0016;
+`tools/blender/export_dressing.py` exports and validates it against the
+Phase 3 terrain, the lane band and the plants. Nothing of the rower bake is
+drawn any more. The frame, the camera, the rig and the loop are unchanged.
+Scope, the audit, budgets, evidence and measurements are in
+`.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
+
 ### Licensing of the authored assets (2026-09-26)
 
 Everything under `assets/replay/authored/` is MIT (ADRs 0002 and 0016). That
 is Direction C's skies, probes, water normals, buoy and course, the Phase 2
-shell, the Phase 3 environment (its `.blend` source, mesh and placements), and
-the manifest. The owner holds its copyright and its provenance is
+shell, the Phase 3 environment and the Phase 4 dressing (their `.blend`
+sources, meshes and placements), and the manifest. The owner holds its copyright and its provenance is
 clean; being generated is not the reason. The Blender scripts that generate
 it stay GPL-3.0-or-later, and their licence decides nothing about their
 output. Its inputs from elsewhere are recorded with their licences in
