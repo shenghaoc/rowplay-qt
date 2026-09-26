@@ -25,6 +25,10 @@ pub struct Anchor {
 /// Oarlock pivots in row avatar-root coordinates (README table).
 pub const OARLOCK_PIVOT: [f32; 3] = [0.88, 0.51, 0.28];
 
+/// Web `renderer3dRowAvatar.ts` carriage origin inside the moving rower group.
+/// Kept at f64 precision for composition; the static QML table is f32.
+pub const ROW_SEAT_CARRIAGE: [f64; 3] = [0.0, 0.29, -0.14];
+
 /// Per-side ski anchor x factor: `(side × 0.15, 0, 0.16)`.
 pub const SKI_ANCHOR: [f32; 3] = [0.15, 0.0, 0.16];
 
@@ -48,7 +52,11 @@ pub const ANCHORS: [Anchor; 7] = [
     },
     Anchor {
         template: "equipment:row:seat-carriage",
-        position: [0.0, 0.0, 0.0],
+        position: [
+            0.0,
+            ROW_SEAT_CARRIAGE[1] as f32,
+            ROW_SEAT_CARRIAGE[2] as f32,
+        ],
         yaw: 0.0,
         instances: 1,
         space: "moving rower group",

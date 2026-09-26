@@ -7,7 +7,10 @@ procedural versus modelled Blender source of truth;
 [ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
 governs licensing and provenance.
 
-Status: planned; not started. Blender Phases 1–4 are merged and complete.
+Status: Phase 5.0 and the Phase 5.1 investigation complete; Phase 5.2+ not
+started. Rendered contact remains unaccepted; see the [contact report](../../../docs/blender-phase5-contact-audit.md)
+and proposed [ADR 0018](../../../docs/decisions/0018-contact-calibration-checkpoint.md).
+Blender Phases 1–4 are merged and complete.
 This is the Blender roadmap, separate from the original implementation phases.
 [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md) brings
 athlete refinement/replacement back into scope as an intentional visual
@@ -22,12 +25,12 @@ chosen athlete. Fit the shell around that final athlete in
 
 ## Phase 5.0 — Correct #130 and freeze the seat/pelvis reference
 
-- [ ] Correct the authoritative anchor and pelvis target tracked in
+- [x] Correct the authoritative anchor and pelvis target tracked in
   [#130](https://github.com/shenghaoc/rowplay-qt/issues/130), with web-derived
   evidence and regression coverage; freeze and record the corrected reference
   before either audit. This is Step 0 of Phase 5, not work between Phases 5
   and 6. Do not implement it in the docs-only roadmap PR.
-- [ ] Re-capture the baseline against the corrected reference. The current
+- [x] Re-capture the baseline against the corrected reference. The current
   target sits below the web's: auditing it now would contaminate judgments of
   seated height, pelvis position, torso scale, knee path, foot/stretcher
   relationship, cockpit clearance and apparent athlete/boat proportions.
@@ -61,7 +64,7 @@ by copying an obsolete bound or equate target parity with skin acceptance.
 
 ### Trace the full chain for all three sports
 
-- [ ] Audit each layer independently and locate where each error first enters:
+- [x] Audit each layer independently and locate where each error first enters:
 
   ```text
   authoritative equipment geometry
@@ -75,7 +78,7 @@ by copying an obsolete bound or equate target parity with skin acceptance.
   visible contact in Qt
   ```
 
-- [ ] For each observed defect, record phase, side, evidence, responsible
+- [x] For each observed defect, record phase, side, evidence, responsible
   layer(s), proposed correction and verification. Classify as one or more of:
   equipment transform; contact target; IK / arm solve; wrist solve;
   digit-helper geometry; skeleton proportions; skin weights; hand mesh
@@ -85,16 +88,16 @@ by copying an obsolete bound or equate target parity with skin acceptance.
 
 ### Measure the actual skinned hand
 
-- [ ] Evaluate the actual deformed/skinned hand mesh against the equipment
+- [x] Evaluate the actual deformed/skinned hand mesh against the equipment
   surface at representative contact phases. Measurement must correspond to
   the skin rendered in Qt, not joint origins or helper points. Validate any
   offline skinning reconstruction against that Qt frame and record transforms,
   asset/version, replay time, sport, side, renderer, scheme and tier.
-- [ ] For cylinders (grips/poles), inspect or calculate minimum skin-surface
+- [x] For cylinders (grips/poles), inspect or calculate minimum skin-surface
   distance, visible gaps, penetration/intersection, palm seating, finger wrap,
   thumb seating, pinky/ring-finger reach and wrist orientation relative to the
   grip axis. A single minimum distance cannot prove whole-hand contact.
-- [ ] Establish and justify tolerances during Phase 5 from hand scale,
+- [x] Establish and justify tolerances during Phase 5 from hand scale,
   grip/pole radius, skin deformation and visual inspection. This roadmap
   invents no skin-contact tolerance; existing target-test tolerances are not
   skin acceptance thresholds.
@@ -112,11 +115,11 @@ must not force contact through a phase that calls for separation.
 | SkiErg | Pre-plant approach; plant/contact; loaded pull; pole release; recovery. |
 | BikeErg | Representative replay phases as the control, checking both hands. |
 
-- [ ] At each phase capture ordinary chase/replay framing, a hand close-up,
+- [x] At each phase capture ordinary chase/replay framing, a hand close-up,
   and the equipment surface; add a skeleton/helper overlay or diagnostic
   render when useful. Resolve floating hands, hand intersection, grip through
   palm, fingers failing to wrap and implausible wrist orientation clearly.
-- [ ] Publish the classified contact report before drawing conclusions about
+- [x] Publish the classified contact report before drawing conclusions about
   retaining or replacing the human mesh. Record unresolved causes explicitly.
 
 ## Phase 5.2 — Existing V4 athlete audit

@@ -1,0 +1,48 @@
+Rust 1.98.1; Qt 6.11.2; qtbridge 0.3.0; Linux Wayland/OpenGL software.
+
+gate walk (full profile): 248.1 s of app log
+  shell, languages, filters                    8.1 s
+  mock syncs                                   7.7 s
+  sorting, dates, detail captures              2.2 s
+  replay loads and captures                   64.5 s
+  tier cycling                                16.4 s
+  phase shots (row, ski)                      50.3 s
+  step-529 strip                              26.0 s
+  phase shots (bike)                          29.2 s
+  teardown                                     0.2 s
+  bench (ROWPLAY_REPLAY_BENCH only)            0.3 s
+  menus, settings over a replay, dialogs       3.9 s
+  width classes                                5.7 s
+  timezone filter                             31.2 s
+  replay entry, step 52 to first frame: 2.1 s (budget 30 s)
+  steps whose first frame took over 1 s: 5 (1.9 s), 52 (2.1 s), 56 (21.0 s), 58 (20.5 s), 73 (21.0 s), 80 (17.9 s), 233 (19.7 s)
+  longest silence in the app log: 21.0 s, during step 56
+
+replay-row-high: the key light's shadow darkens 2.43 % of the capture (23359 px) by 8.53 % (need at least 1 % and more than 5 %)
+test shell_walk_produces_no_qml_runtime_errors ... ok
+
+Qt-free: cargo test passed.
+App: cargo test -p rowplay-app passed (19 + 8 + 3 + 1 + 2 tests).
+Workspace clippy, fmt, diff check passed. Five Python instrument tests passed.
+
+Final ghost handoff follow-up: same-workout player/ghost regression passed.
+Workspace clippy/fmt and full app suite rerun: 20 + 8 + 3 + 1 + 2 tests passed.
+gate walk (full profile): 127.6 s of app log
+  shell, languages, filters                    6.8 s
+  mock syncs                                   6.9 s
+  sorting, dates, detail captures              2.4 s
+  replay loads and captures                   60.0 s
+  tier cycling                                10.8 s
+  phase shots (row, ski)                       0.4 s
+  teardown                                     0.3 s
+  bench (ROWPLAY_REPLAY_BENCH only)            0.1 s
+  menus, settings over a replay, dialogs       3.9 s
+  width classes                                5.7 s
+  timezone filter                             28.8 s
+  replay entry, step 52 to first frame: 1.5 s (budget 30 s)
+  steps whose first frame took over 1 s: 52 (1.5 s), 56 (20.4 s), 58 (18.0 s), 233 (17.7 s)
+  longest silence in the app log: 20.4 s, during step 56
+
+replay-row-high: the key light's shadow darkens 2.43 % of the capture (23359 px) by 8.53 % (need at least 1 % and more than 5 %)
+test shell_walk_produces_no_qml_runtime_errors ... ok
+Committed silhouette archive revalidated: 22 masks, minimum IoU 0.984322.

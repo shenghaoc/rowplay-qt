@@ -33,7 +33,8 @@ use rowplay_viewmodel::replay::course::{
 use rowplay_viewmodel::replay::equipment::{
     PoleLeafFit, blade_position, blade_roll_degrees, crank_rotation,
     layout_json as equipment_layout_json, oar_rotations, oar_rotations_from_yaws, pole_leaf_fits,
-    pole_leaf_position, pole_rotation, roll_rotation, wheel_rotation, yaw_rotation,
+    pole_leaf_position, pole_rotation, pole_visual_rotation, roll_rotation, rower_seat_position,
+    wheel_rotation, yaw_rotation,
 };
 use rowplay_viewmodel::replay::frame;
 use rowplay_viewmodel::replay::grip::{
@@ -1342,6 +1343,7 @@ impl ReplayBackend {
         match rig {
             SportRigPose::Rower(rower) => {
                 f[frame::EQ_SEAT_Z] = rower.seat_z as f32;
+                write_vec3(f, frame::EQ_SEAT_POSITION, rower_seat_position(&rower));
                 // The composed arm-authority yaw when the pose pass ran (the
                 // web renders this); `oar_sweep` is only its branch fallback,
                 // used when there is no solver/clip (e.g. reduced motion).
@@ -1370,7 +1372,7 @@ impl ReplayBackend {
                 write_vec3(f, frame::EQ_BLADE_RIGHT, rbp);
                 write_quat(f, frame::EQ_BLADE_RIGHT + 3, right);
             }
-            SportRigPose::SkiErg(_) => {
+            SportRigPose::SkiErg(ski) => {
                 if let Some([left, right]) = targets.poles {
                     for (at, leaves_at, pole) in [
                         (frame::EQ_POLE_LEFT, frame::EQ_POLE_LEAVES_LEFT, left),
@@ -1378,6 +1380,13 @@ impl ReplayBackend {
                     ] {
                         let pole_pos = pole.root;
                         let pole_rot = pole_rotation(pole.direction);
+                        let visual = pole_visual_rotation(pole.direction, ski.joints.torso_lean);
+                        let visual_at = if at == frame::EQ_POLE_LEFT {
+                            frame::EQ_POLE_VISUAL_LEFT
+                        } else {
+                            frame::EQ_POLE_VISUAL_RIGHT
+                        };
+                        write_quat(f, visual_at, visual);
                         for i in 0..3 {
                             f[at + i] = pole_pos[i] as f32;
                         }
@@ -1388,7 +1397,8 @@ impl ReplayBackend {
                                 Some(fit) => fit.position,
                                 None => [0.0; 3],
                             };
-                            let leaf_pos = pole_leaf_position(pole_pos, pole_rot, fit_pos);
+                            let leaf_rot = if li < 2 { visual } else { pole_rot };
+                            let leaf_pos = pole_leaf_position(pole_pos, leaf_rot, fit_pos);
                             write_vec3(f, leaves_at + li * 3, leaf_pos);
                         }
                     }
@@ -1420,6 +1430,7 @@ impl ReplayBackend {
 
             let g_rig = solve_rig_pose(g_sport, &g_stroke, g_distance, self.reduce_motion);
             let g_targets = rig_targets(&g_rig);
+            let mut ghost_oar_yaw = None;
             if let (Some(solver), Some(clip)) =
                 (&self.solver, self.athlete.clip_for(sport_name(g_sport)))
             {
@@ -1443,6 +1454,7 @@ impl ReplayBackend {
                     ),
                     g_targets.oar,
                 );
+                ghost_oar_yaw = posed.oar_yaw;
                 solver.pack(&posed, &mut self.ghost_frame);
             }
 
@@ -1490,7 +1502,11 @@ impl ReplayBackend {
             match g_rig {
                 SportRigPose::Rower(rower) => {
                     gf[frame::EQ_SEAT_Z] = rower.seat_z as f32;
-                    let [left, right] = oar_rotations(rower.oar_sweep, rower.oar_feather);
+                    write_vec3(gf, frame::EQ_SEAT_POSITION, rower_seat_position(&rower));
+                    let [left, right] = ghost_oar_yaw.map_or_else(
+                        || oar_rotations(rower.oar_sweep, rower.oar_feather),
+                        |yaws| oar_rotations_from_yaws(yaws, rower.oar_feather),
+                    );
                     write_quat(gf, frame::EQ_OAR_LEFT, left);
                     write_quat(gf, frame::EQ_OAR_RIGHT, right);
                     gf[frame::EQ_BLADE_ROLL_DEG] = blade_roll_degrees(rower.blade_feather) as f32;
@@ -1514,7 +1530,7 @@ impl ReplayBackend {
                         }
                     }
                 }
-                SportRigPose::SkiErg(_) => {
+                SportRigPose::SkiErg(ski) => {
                     if let Some([left_pole, right_pole]) = g_targets.poles {
                         for (pole_at, leaves_at, pole) in [
                             (frame::EQ_POLE_LEFT, frame::EQ_POLE_LEAVES_LEFT, left_pole),
@@ -1528,10 +1544,19 @@ impl ReplayBackend {
                                 gf[pole_at + i] = pole.root[i] as f32;
                             }
                             let pr = pole_rotation(pole.direction);
+                            let visual =
+                                pole_visual_rotation(pole.direction, ski.joints.torso_lean);
+                            let visual_at = if pole_at == frame::EQ_POLE_LEFT {
+                                frame::EQ_POLE_VISUAL_LEFT
+                            } else {
+                                frame::EQ_POLE_VISUAL_RIGHT
+                            };
+                            write_quat(gf, visual_at, visual);
                             write_quat(gf, pole_at + 3, pr);
                             for (leaf_idx, fit) in self.pole_fits.iter().enumerate() {
                                 if let Some(fit) = fit {
-                                    let lp = pole_leaf_position(pole.root, pr, fit.position);
+                                    let leaf_rot = if leaf_idx < 2 { visual } else { pr };
+                                    let lp = pole_leaf_position(pole.root, leaf_rot, fit.position);
                                     for i in 0..3 {
                                         gf[leaves_at + leaf_idx * 3 + i] = lp[i] as f32;
                                     }
@@ -1623,6 +1648,24 @@ mod tests {
     /// tests publish the demo library directly.
     fn seed_demo_library() {
         AppState::get().set_details(rowplay_core::demo::demo_details());
+    }
+
+    #[test]
+    fn a_same_workout_ghost_packs_the_same_contact_equipment() {
+        seed_demo_library();
+        for id in [1001, 1003, 1004] {
+            let mut replay = ReplayBackend::default();
+            replay.load_workout(id);
+            replay.load_ghost(id);
+            for progress in [0.0, 0.25, 0.5, 0.75] {
+                replay.seek(progress);
+                assert_eq!(
+                    &replay.frame[frame::EQUIPMENT..],
+                    &replay.ghost_frame[frame::EQUIPMENT..],
+                    "workout {id}, progress {progress}: ghost dropped contact equipment state"
+                );
+            }
+        }
     }
 
     /// Spec R6.2: 600 driven ticks produce exactly one notify bundle each,
