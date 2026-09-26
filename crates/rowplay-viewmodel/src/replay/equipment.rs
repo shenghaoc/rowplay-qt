@@ -20,6 +20,15 @@ use super::pose::geometry::{
     BIKE_AXLE_Y, BIKE_BB_Z, BIKE_HEAD_TOP_Y, BIKE_HEAD_TOP_Z, SKI_POLE_LENGTH,
 };
 
+/// Compose the web carriage attachment with its moving rower group.
+#[must_use]
+pub fn rower_seat_position(rig: &rowplay_core::replay::rig_pose::RowerRigPose) -> [f64; 3] {
+    add(
+        super::anchors::ROW_SEAT_CARRIAGE,
+        [0.0, rig.seat_y, rig.seat_z],
+    )
+}
+
 /// A mesh's `(min, max)` POSITION bounds, metres.
 pub type Bounds = ([f64; 3], [f64; 3]);
 
@@ -34,7 +43,7 @@ const BIKE_CHAINSTAY: f64 = 0.41;
 /// The web's fist grip radius the pole grip leaf is fitted to
 /// (`HAND_FIST_REFERENCE_GRIP_RADIUS`).
 pub const POLE_GRIP_RADIUS: f64 = 0.016;
-/// Pole grip length (Studio `gripLength`).
+/// Pole grip length (web `capsulePart`, along local +Z).
 pub const POLE_GRIP_LENGTH: f64 = 0.15;
 
 /// Front axle z on the bike frame (web `FRONT_AXLE_Z`).
@@ -177,6 +186,15 @@ pub fn pole_rotation(direction: [f64; 3]) -> [f64; 4] {
     rotation_between([0.0, -1.0, 0.0], direction)
 }
 
+/// Web shaft/grip orientation: solve in the hinged upper frame, then compose
+/// back into rig space. The legacy -Y frame remains the logical wrist frame.
+#[must_use]
+pub fn pole_visual_rotation(direction: [f64; 3], torso_lean: f64) -> [f64; 4] {
+    let upper = axis_angle([1.0, 0.0, 0.0], torso_lean);
+    let local = rotate_vec(axis_angle([1.0, 0.0, 0.0], -torso_lean), direction);
+    quat_mul(upper, rotation_between([0.0, 0.0, 1.0], local))
+}
+
 /// Crank rotation about local X (web `cranks.orientation`).
 #[must_use]
 pub fn crank_rotation(angle: f64) -> [f64; 4] {
@@ -281,17 +299,17 @@ pub fn pole_leaf_fits(leaf_bounds: &dyn Fn(&str) -> Option<Bounds>) -> [Option<P
     [
         compute(
             "equipment:ski:pole-shaft",
-            [0.018, SKI_POLE_LENGTH, 0.018],
-            [0.0, -SKI_POLE_LENGTH / 2.0, 0.0],
+            [0.018, 0.018, SKI_POLE_LENGTH],
+            [0.0, 0.0, SKI_POLE_LENGTH / 2.0],
         ),
         compute(
             "equipment:ski:pole-grip",
             [
                 POLE_GRIP_RADIUS * 2.0,
-                POLE_GRIP_LENGTH,
                 POLE_GRIP_RADIUS * 2.0,
+                POLE_GRIP_LENGTH,
             ],
-            [0.0, -POLE_GRIP_LENGTH / 2.0, 0.0],
+            [0.0, 0.0, 0.042],
         ),
         compute(
             "equipment:ski:pole-basket",
@@ -330,8 +348,8 @@ pub fn layout_json(leaf_bounds: &dyn Fn(&str) -> Option<Bounds>) -> Value {
         ],
         "poleLength": SKI_POLE_LENGTH,
         "poleLeaves": [
-            fit("equipment:ski:pole-shaft", [0.018, SKI_POLE_LENGTH, 0.018], [0.0, -SKI_POLE_LENGTH / 2.0, 0.0]),
-            fit("equipment:ski:pole-grip", [POLE_GRIP_RADIUS * 2.0, POLE_GRIP_LENGTH, POLE_GRIP_RADIUS * 2.0], [0.0, -POLE_GRIP_LENGTH / 2.0, 0.0]),
+            fit("equipment:ski:pole-shaft", [0.018, 0.018, SKI_POLE_LENGTH], [0.0, 0.0, SKI_POLE_LENGTH / 2.0]),
+            fit("equipment:ski:pole-grip", [POLE_GRIP_RADIUS * 2.0, POLE_GRIP_RADIUS * 2.0, POLE_GRIP_LENGTH], [0.0, 0.0, 0.042]),
             fit("equipment:ski:pole-basket", [0.056, 0.014, 0.056], [0.0, -SKI_POLE_LENGTH, 0.0]),
         ],
         // Constant scales for the three pole leaves, for QML to set on the
@@ -359,6 +377,97 @@ mod tests {
         let u = [q[0], q[1], q[2]];
         let t = scale(cross(u, v), 2.0);
         add(add(v, scale(t, q[3])), cross(u, t))
+    }
+
+    #[test]
+    fn contact_equipment_matches_rendered_web_geometry() {
+        use rowplay_core::models::Sport;
+        use rowplay_core::replay::{
+            rig_pose::{SportRigPose, solve_rig_pose},
+            stroke_model::fallback_stroke_pose,
+        };
+        let reference: Value = serde_json::from_str(include_str!(
+            "../../../../tests/fixtures/replay-contact-equipment-parity.json"
+        ))
+        .unwrap();
+        let library = super::super::glb::validate_v3(include_bytes!(
+            "../../../../assets/replay/rowplay-rigs-v3.glb"
+        ))
+        .unwrap();
+        let fits = pole_leaf_fits(&|slot| {
+            library
+                .leaves
+                .iter()
+                .find(|leaf| leaf.slot == slot)
+                .map(|leaf| leaf.bounds)
+        });
+        let vector = |v: &Value| -> [f64; 3] { std::array::from_fn(|i| v[i].as_f64().unwrap()) };
+        let check = |actual: [f64; 3], expected: [f64; 3]| {
+            // The web fits and stores GLB vertices as f32. This is a numeric
+            // transform tolerance, not a skin-contact acceptance threshold.
+            assert!(
+                length(sub(actual, expected)) < 2e-8,
+                "{actual:?} != {expected:?}"
+            );
+        };
+        for sample in reference["samples"].as_array().unwrap() {
+            let step = sample["step"].as_f64().unwrap();
+            if sample["sport"] == "rower" {
+                let pose = fallback_stroke_pose(Sport::Rower, step / 2000.0 * 2.0 * PI, 30.0);
+                let SportRigPose::Rower(rig) =
+                    solve_rig_pose(Sport::Rower, &pose, step * 3.0, false)
+                else {
+                    panic!("rower")
+                };
+                check(
+                    super::super::anchors::ROW_SEAT_CARRIAGE,
+                    vector(&sample["carriageLocal"]),
+                );
+                check(rower_seat_position(&rig), vector(&sample["carriage"]));
+                continue;
+            }
+            let root = vector(&sample["hand"]);
+            let shaft = &sample["shaft"];
+            // Recorded rendered shaft centre is halfway between endpoints.
+            let delta = sub(vector(&shaft["position"]), root);
+            let direction = scale(delta, 1.0 / length(delta));
+            let upper = &sample["upperQuaternion"];
+            let lean = 2.0 * upper[0].as_f64().unwrap().atan2(upper[3].as_f64().unwrap());
+            let rotation = pole_visual_rotation(direction, lean);
+            for (index, slot) in ["equipment:ski:pole-shaft", "equipment:ski:pole-grip"]
+                .iter()
+                .enumerate()
+            {
+                let leaf = library
+                    .leaves
+                    .iter()
+                    .find(|leaf| leaf.slot == *slot)
+                    .unwrap();
+                let fit = fits[index].unwrap();
+                let recorded = &sample[if index == 0 { "shaft" } else { "grip" }];
+                let q = std::array::from_fn(|i| recorded["quaternion"][i].as_f64().unwrap());
+                for corner in 0..8 {
+                    let p = std::array::from_fn(|i| {
+                        if corner & (1 << i) == 0 {
+                            leaf.bounds.0[i]
+                        } else {
+                            leaf.bounds.1[i]
+                        }
+                    });
+                    let fitted = add(scale_components(p, fit.scale), fit.position);
+                    let actual = add(root, rotate_vec(rotation, fitted));
+                    let expected_local = std::array::from_fn(|i| {
+                        recorded["bounds"][usize::from(corner & (1 << i) != 0)][i]
+                            .as_f64()
+                            .unwrap()
+                            * recorded["scale"][i].as_f64().unwrap()
+                    });
+                    let expected =
+                        add(vector(&recorded["position"]), rotate_vec(q, expected_local));
+                    check(actual, expected);
+                }
+            }
+        }
     }
 
     #[test]
@@ -508,7 +617,7 @@ mod tests {
             layout["poleLeaves"][0]["slot"],
             json!("equipment:ski:pole-shaft")
         );
-        assert!((layout["poleLeaves"][0]["scale"][1].as_f64().expect("scale") - 1.37).abs() < 1e-9);
+        assert!((layout["poleLeaves"][0]["scale"][2].as_f64().expect("scale") - 1.37).abs() < 1e-9);
         // An unknown leaf keeps the identity fit rather than failing.
         assert_eq!(layout["poleLeaves"][2]["scale"], json!([1.0, 1.0, 1.0]));
         assert_eq!(layout["bladeOffset"], json!([1.82, -0.06, 0.0]));

@@ -1,0 +1,96 @@
+{
+  "base": "2b13e718f4102add40b461d8d581fd5a87cd2da5",
+  "samples": {
+    "1001": [
+      [
+        "row-catch",
+        0
+      ],
+      [
+        "row-middrive",
+        380
+      ],
+      [
+        "row-finish",
+        760
+      ],
+      [
+        "row-halfslide",
+        1380
+      ]
+    ],
+    "1003": [
+      [
+        "ski-approach",
+        1900
+      ],
+      [
+        "ski-plant",
+        0
+      ],
+      [
+        "ski-pull",
+        300
+      ],
+      [
+        "ski-release",
+        540
+      ],
+      [
+        "ski-recovery",
+        1100
+      ]
+    ],
+    "1004": [
+      [
+        "bike-top",
+        0
+      ],
+      [
+        "bike-quarter",
+        500
+      ]
+    ]
+  },
+  "clock": "fallback_stroke_pose at 30 spm; phase = step/2000 * tau; metres = step*3",
+  "scheme": "light",
+  "renderer": "opengl",
+  "platform": "wayland",
+  "state": "main",
+  "meaning": "Unmodified starting main before #130; not used to judge contact geometry.",
+  "original_native_png_sha256": {
+    "bike-quarter-chase.png": "6ea75890c6fe8e7f715bcaf1dbd6c8524f40edbc17f5a076b4284ce517f407e1",
+    "bike-quarter-left.png": "912cd23533bbb87f8a5b488b37e475a48ffa721a5fe1f071f87d20fe9739510a",
+    "bike-quarter-right.png": "e16e0ebda536395a45a9fc401d08369ab529409cc5b8db4888049d2f20675ef2",
+    "bike-top-chase.png": "28a58c8bf6ff92949303f8bc64543ce279892ece56cc280c0f84d75c4663e021",
+    "bike-top-left.png": "b7fac2311fe79e26c89f7ac07dd9540896997f8c57cc880e78eab102800702ea",
+    "bike-top-right.png": "0bc207658907cdccffdc0d02030cb3e06edeeb5ac6615e9ec3517ccf817dfd21",
+    "row-catch-chase.png": "efa13ec0eeab5ed88332c1d6883d57908d691f09fe602a41f43a0bd1b6ebcfb5",
+    "row-catch-left.png": "252b6215338d439fa1d9ec0b792f684f789096ce9c9d4b1b438d88d2c03ad925",
+    "row-catch-right.png": "bf9ae6e75c56824b013c6dd1c3dc84a71486c8f1df14d0bd2f47b5a9647b0ccf",
+    "row-finish-chase.png": "164415a1687d67577d1962e87f7a692a1cf9ac0aee3dcc52b8ef6e61fc8aa5db",
+    "row-finish-left.png": "97b89e2e491c1af8ddf2832d12031cf2afed9b643190843e9c299a9eec879795",
+    "row-finish-right.png": "7577f537ed5e9e91e0196caed20924740c8fb4267aee0e815133cc83742bed76",
+    "row-halfslide-chase.png": "0965ce6dd2ab83487aacc92fd5459cebd2fd3c8b554798d7777c27e0f712af4f",
+    "row-halfslide-left.png": "6f294be112e5ba26cd57cea5299a712c0edff7cabb5c2b47ab87a3ca0bd02e8e",
+    "row-halfslide-right.png": "7b8d617e5593985dd857f064b718adbef705206a7257c816533babd3bf317e55",
+    "row-middrive-chase.png": "d8be59b7653f9d53bf1590c3be889569edc43537399d0e2f10377fb709b47449",
+    "row-middrive-left.png": "6586c6d7083fac4d59a65e57df0b5210bfed6e3f3c438be5e927f72ba010344f",
+    "row-middrive-right.png": "c4103d304c77adb6aad9894c6173e68ee380fd1730c92ac37c34bdc677f954fe",
+    "ski-approach-chase.png": "167cf3f8c2ef0192f76d04a5025113c6ad965abdfc0b3a7aed54115ff0527c87",
+    "ski-approach-left.png": "0ef751c6ef5bacc49210fad0341c6bab2ac57d0c1862caed3adf1194e95b4a5b",
+    "ski-approach-right.png": "edbd360228e0e46b3074ebc73c4be342ff5f0d23ccdf4680bf5d66686873950f",
+    "ski-plant-chase.png": "41c0113da98811cfbd1f75dc5dc773d359768bae3511dd443f351b5f88d1d080",
+    "ski-plant-left.png": "fa632d85af7fea7dfa9f18a79793ab030dd05156e8885f7278e0bc0b1106d82d",
+    "ski-plant-right.png": "c792f6614157bf17bf5ae40b449ba93d2d12b58b5e6d5d1186699f2183dd8e69",
+    "ski-pull-chase.png": "d4099a38fafe9501d7f302ccd636601ebb924ea5d56923007cca04e891654b37",
+    "ski-pull-left.png": "4f22f2a22422aaa6957cf28828db20fad4bcd3eb60d60b82b8f88e8dec079dff",
+    "ski-pull-right.png": "d44839808b2c772e909e138db97328106b2f2335cb83462668b955f84453d1af",
+    "ski-recovery-chase.png": "d30cd3c79e299783222c263496a5df3967c23e30cc031e2d34aff894415003f7",
+    "ski-recovery-left.png": "36243140cdf331334da62bbe28c32fbcfada34d7f788ef350f27aad9e02015a5",
+    "ski-recovery-right.png": "e46ed9605a4877ca31fd8c05e0122b3aedddf962a03963c1cea92ed332c16069",
+    "ski-release-chase.png": "f980333b7f840575f6e7ae4e0ef1d152da37ae15bf293521111d97b1fb3b5173",
+    "ski-release-left.png": "bf406ea3781cfe007459ba07fc935aadb9da1c0ec15a684f58252f39aa9eb900",
+    "ski-release-right.png": "b82c08142f05705ff8c249d0109bf8fec59cb036c1a7fa7362c5f62ac684cf0b"
+  }
+}

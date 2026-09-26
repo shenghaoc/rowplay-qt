@@ -76,7 +76,9 @@ impl AthleteJointPose {
 pub struct RowerRigPose {
     /// Common athlete joint angles.
     pub joints: AthleteJointPose,
-    /// Seat Z offset from neutral (negative = toward the stern / catch).
+    /// Moving rower group height: web `graph.accents.vertical.value * 0.03`.
+    pub seat_y: f64,
+    /// Moving rower group Z: catch +0.26, travel −0.44 m.
     pub seat_z: f64,
     /// Handle height.
     pub handle_y: f64,
@@ -345,6 +347,7 @@ fn solve_rower(pose: &StrokePose) -> RowerRigPose {
 
     RowerRigPose {
         joints,
+        seat_y: finite(graph.accents.vertical.value * 0.03, 0.0),
         seat_z: finite(seat_z, -0.1),
         handle_y: finite(handle_y, 0.72),
         handle_z: finite(handle_z, 0.58),
@@ -586,6 +589,7 @@ pub fn reduced_pose(sport: Sport) -> SportRigPose {
     match sport {
         Sport::Rower => SportRigPose::Rower(RowerRigPose {
             joints: AthleteJointPose::NEUTRAL,
+            seat_y: 0.0,
             seat_z: -0.1,
             handle_y: 0.72,
             handle_z: 0.58,

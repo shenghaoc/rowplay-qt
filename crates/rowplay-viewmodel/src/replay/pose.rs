@@ -94,8 +94,8 @@ pub mod geometry {
     pub const ROW_INBOARD_CONTACT: f64 = 0.66 + 0.32 / 2.0 - 0.04;
     /// RowErg: the grip anchor's drop below the pivot line.
     pub const ROW_GRIP_DROP: f64 = -0.04;
-    /// RowErg: pelvis target height and its z at neutral seat travel.
-    pub const ROW_PELVIS: [f64; 2] = [0.30, -0.1];
+    /// Web hips origin inside the moving rower group (before its vertical cue).
+    pub const ROW_PELVIS: [f64; 2] = [0.38, -0.14];
     /// SkiErg: foot anchor per side (lateral, y, z).
     pub const SKI_FOOT: [f64; 3] = [0.15, 0.055, 0.18];
     /// SkiErg: shoulder half width and the hand's extra lateral margin.
@@ -285,7 +285,7 @@ fn rower_targets(rig: &RowerRigPose) -> RigTargets {
     };
     RigTargets {
         contacts: ContactTargets {
-            pelvis: [0.0, ROW_PELVIS[0], ROW_PELVIS[1] + rig.seat_z],
+            pelvis: [0.0, ROW_PELVIS[0] + rig.seat_y, ROW_PELVIS[1] + rig.seat_z],
             left_hand: hand(-1.0),
             right_hand: hand(1.0),
             left_foot: [-ROW_FOOT[0], ROW_FOOT[1], ROW_FOOT[2]],
@@ -701,6 +701,7 @@ impl PoseSolver {
         oar: Option<RowerOarInputs>,
     ) -> Posed {
         let mut targets = *targets;
+        let mut frames = *frames;
         let mut work = Workspace::new(athlete.sample(clip, clip_time), &self.parent, &self.order);
         // Clip snapshot of both forearm locals: the shoulder-share pass
         // measures the elbow-seam excess against these after the solves.
@@ -814,6 +815,15 @@ impl PoseSolver {
                     } else {
                         targets.right_hand = target;
                     }
+                }
+                // The wrist and equipment must consume the same final frame.
+                // The web placeArms updates the grip channel after its reach
+                // solve; retaining the authored sweep here turned the hand
+                // across an oar whose yaw had already changed.
+                let rotations = crate::replay::equipment::oar_rotations_from_yaws(solved, oar.roll);
+                for index in 0..2 {
+                    frames[index].base = rotations[index];
+                    frames[index].shaft_thumbward = rotate(rotations[index], [-1.0, 0.0, 0.0]);
                 }
                 oar_yaw = Some(solved);
             }
@@ -1733,6 +1743,63 @@ mod tests {
     }
 
     #[test]
+    fn rower_wrist_uses_the_same_solved_oar_frame_as_the_equipment() {
+        use crate::replay::equipment::{oar_rotations_from_yaws, rotate_vec};
+        use crate::replay::grip::{grip_frames, warped_cycle};
+        let athlete = vendored();
+        let solver = PoseSolver::new(&athlete).unwrap();
+        let clip = athlete.clip_for("rower").unwrap();
+        for step in [0, 380, 760, 1380] {
+            let stroke = fallback_stroke_pose(
+                Sport::Rower,
+                f64::from(step) / 2000.0 * std::f64::consts::TAU,
+                30.0,
+            );
+            let rig = solve_rig_pose(Sport::Rower, &stroke, f64::from(step) * 3.0, false);
+            let SportRigPose::Rower(rower) = rig else {
+                panic!("rower")
+            };
+            let targets = rig_targets(&rig);
+            let frames = grip_frames(Sport::Rower, &rig, None, warped_cycle(stroke.warped_phase));
+            let time = clip_fraction(
+                stroke.cycle_frac,
+                stroke.phase,
+                stroke.drive_frac,
+                clip.drive_end,
+            ) * f64::from(clip.duration);
+            let solve = |frames| {
+                solver.pose(
+                    &athlete,
+                    Sport::Rower,
+                    clip,
+                    time,
+                    &targets.contacts,
+                    frames,
+                    targets.oar,
+                )
+            };
+            let actual = solve(&frames);
+            let rotations = oar_rotations_from_yaws(actual.oar_yaw.unwrap(), rower.oar_feather);
+            let mut final_frames = frames;
+            for i in 0..2 {
+                final_frames[i].base = rotations[i];
+                final_frames[i].shaft_thumbward = rotate_vec(rotations[i], [-1.0, 0.0, 0.0]);
+            }
+            let supplied_final = solve(&final_frames);
+            for (a, b) in actual.locals.iter().zip(&supplied_final.locals) {
+                assert!(length(sub(a.translation, b.translation)) < 1e-12);
+                assert!(
+                    a.rotation
+                        .iter()
+                        .zip(b.rotation)
+                        .all(|(x, y)| (x - y).abs() < 1e-12),
+                    "step {step}: stale pre-reach oar frame changes the wrist"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn clip_fraction_matches_the_web_mapping() {
         assert!((clip_fraction(0.19, 0.0, 0.38, 0.38) - 0.19).abs() < 1e-12);
         assert!((clip_fraction(0.5, 0.0, 0.4, 0.5) - (0.5 + 0.1 / 0.6 * 0.5)).abs() < 1e-12);
@@ -1746,6 +1813,35 @@ mod tests {
     }
 
     #[test]
+    fn rower_pelvis_matches_every_composed_web_sample() {
+        let fixture: serde_json::Value =
+            rowplay_fixtures::load_json("replay-rig-phase-parity.json").expect("fixture");
+        let mut checked = 0;
+        for sample in fixture["samples"].as_array().expect("samples") {
+            if sample["sport"] != "rower" {
+                continue;
+            }
+            let pose = stroke_pose_from_echo(&sample["pose"]);
+            let rig = solve_rig_pose(
+                Sport::Rower,
+                &pose,
+                sample["rig"]["meters"].as_f64().unwrap(),
+                false,
+            );
+            let pelvis = rig_targets(&rig).contacts.pelvis;
+            for (axis, value) in pelvis.iter().enumerate() {
+                let expected = sample["rig"]["targets"]["pelvis"][axis].as_f64().unwrap();
+                assert!(
+                    (value - expected).abs() < 1e-12,
+                    "sample {checked} axis {axis}: {value} vs {expected}"
+                );
+            }
+            checked += 1;
+        }
+        assert_eq!(checked, 128);
+    }
+
+    #[test]
     fn rower_targets_mirror_and_feet_stay_on_the_stretcher() {
         let pose = fallback_stroke_pose(Sport::Rower, 1.0, 28.0);
         let rig = solve_rig_pose(Sport::Rower, &pose, 0.0, false);
@@ -1756,17 +1852,7 @@ mod tests {
                 && (c.left_hand[1] - c.right_hand[1]).abs() < 1e-9
         );
         assert_eq!(c.left_foot, [-0.12, 0.215, 0.75]);
-        assert!(
-            c.pelvis[1] == 0.30
-                && (c.pelvis[2]
-                    - (-0.1
-                        + match rig {
-                            SportRigPose::Rower(r) => r.seat_z,
-                            _ => 0.0,
-                        }))
-                .abs()
-                    < 1e-12
-        );
+        // Pelvis values are pinned independently by the composed web fixture.
         // With no sweep the hands sit inboard of the oarlocks, rolled only by
         // the neutral feather (−0.06 rad) about the pivot's z axis.
         let neutral = rig_targets(&rowplay_core::replay::rig_pose::reduced_pose(Sport::Rower));
@@ -2593,7 +2679,7 @@ mod tests {
         // actually exceed the budgets somewhere (otherwise the clamp path
         // is untested); where nothing redistributes, kept == requested.
         //
-        // Continuity is asserted at 2000 samples/cycle, not 40: the
+        // SkiErg continuity is asserted at 2000 samples/cycle, not 40: the
         // skierg's late-press pronation demand against the fixed plant
         // (Phase 7.5) passes through ±π and is continuous on the circle,
         // but its scalar representation wraps there — a coarse grid that
@@ -2618,9 +2704,15 @@ mod tests {
             let mut prev_elbow: Option<HandFrame> = None;
             let mut engaged = false;
             let mut max_abs_requested = 0.0f64;
-            for (step, oracle_step_slot) in oracle_measured.iter_mut().enumerate() {
+            // #130 exposes the rower reach-circle tangencies at cycles ~.398
+            // and ~.433: acos(clamp(cosine)) is continuous there but its slope
+            // is unbounded. Measured elbow steps shrink from 29.77 mm (2000)
+            // to <20 mm (32000); retain the bounds, increase sampling. This
+            // does not assert that the sharp motion is visually satisfactory.
+            let steps = if sport == Sport::Rower { 32000 } else { STEPS };
+            for step in 0..steps {
                 let step_f = step as f64;
-                let phase = step_f / STEPS as f64 * std::f64::consts::TAU;
+                let phase = step_f / steps as f64 * std::f64::consts::TAU;
                 let stroke = fallback_stroke_pose(sport, phase, 30.0);
                 let rig = solve_rig_pose(sport, &stroke, step_f * 3.0, false);
                 let targets = rig_targets(&rig);
@@ -2796,8 +2888,8 @@ mod tests {
                     } else {
                         // RowErg and BikeErg have no inherited ±π snaps: both
                         // stay under these budgets through the whole cycle
-                        // (measured worst 0.0048 m / 0.024 rad on the rower,
-                        // 0.00005 m / 0.0003 rad on the bike).
+                        // at the densities above. The old 4.8 mm rower measurement
+                        // used the incorrect low pelvis and is retired.
                         assert!(
                             dc < POSITION_TOL,
                             "{sport:?} step {step}: contact jumps {dc:.4}"
@@ -2816,7 +2908,7 @@ mod tests {
                         );
                     }
                     if sport == Sport::Skierg {
-                        *oracle_step_slot = OracleStep {
+                        oracle_measured[step] = OracleStep {
                             hand: dh,
                             elbow: d,
                             orientation: dq,
