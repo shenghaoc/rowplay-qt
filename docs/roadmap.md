@@ -29,11 +29,26 @@ athlete the app draws. Scope, evidence and the fit are in
 Found on the way and left for their own changes: the blades never square
 (#129), and the seat and pelvis sit below the web's (#130).
 
+### Blender Phase 3: environment and water
+
+The water is a seeded wind-sea spectrum on an 8 m tile, fixed in the world
+and irregular enough to lose Phase 1's lattice. The basin gains a near bank
+(woodland banks, the campus quay, a wetland reed shore), mid-distance mass
+(woodland stands with continuous canopies, parkland, a poplar row) and a far
+bank (a forest belt, distant hills). The environment is the first modelled
+asset: `rowing-environment.blend` is its source, and
+`tools/blender/export_environment.py` exports and validates it. It replaces the
+baked web venue's rowing land and vegetation (ADR 0016, amended); the venue's
+structures stay until Phase 4. The frame, the camera, the rig and the loop are
+unchanged. Scope, budgets, evidence and measurements are in
+`.kiro/specs/blender-03-environment-water/tasks.md` and `docs/blender-audit.md`.
+
 ### Licensing of the authored assets (2026-09-26)
 
 Everything under `assets/replay/authored/` is MIT (ADRs 0002 and 0016). That
 is Direction C's skies, probes, water normals, buoy and course, the Phase 2
-shell, and the manifest. The owner holds its copyright and its provenance is
+shell, the Phase 3 environment (its `.blend` source, mesh and placements), and
+the manifest. The owner holds its copyright and its provenance is
 clean; being generated is not the reason. The Blender scripts that generate
 it stay GPL-3.0-or-later, and their licence decides nothing about their
 output. Its inputs from elsewhere are recorded with their licences in

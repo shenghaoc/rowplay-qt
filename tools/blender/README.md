@@ -12,7 +12,13 @@ Source `.envrc` for Qt 6.11.2, then:
 make blender-assets BLENDER="$HOME/opt/blender-5.2.1-linux-x64/blender"
 # macOS: BLENDER=/Applications/Blender.app/Contents/MacOS/Blender
 make blender-shell BLENDER=...   # the shell and oars alone (Phase 2)
+make blender-water BLENDER=...   # the water normal alone (Phase 3)
+make blender-environment BLENDER=...   # export the environment from its .blend (Phase 3)
 ```
+
+Each `--only` mode rebuilds one part and re-pins just its files in
+`MANIFEST.json`, so the other assets keep the bytes of the machine that made
+them.
 
 The target uses factory startup and `--python-exit-code 1`. `build_all.py`
 rebuilds the entire new authored pack, including both skies, Qt-prefiltered
@@ -84,22 +90,87 @@ previews are `build/previews/shell-contact-sheet.png` (top, side, front and
 three-quarter views, posed as the app clones the oars) and
 `build/previews/shell-details.png` (close-ups).
 
+## Environment and water (Phase 3)
+
+**Water** (`water.py`, procedural). A periodic height field on an 8 m tile:
+360 integer wave vectors from a wind-sea spectrum, 6 cm to 2.8 m, spread about
+a 28-degree wind with a second direction 74 degrees away, and an 18 % seeded
+amplitude variation. The slopes are scaled to an RMS of 0.11, chosen in Qt
+(`docs/blender-audit.md`, "Phase 3"). `RowingWater.qml` repeats the tile every
+8 m: it is fixed in the world and never scrolls. `build_all.py` writes the
+normals through Blender's image API. `test_water.py` checks that the field
+tiles, its RMS, its spectrum, and that no component or direction dominates.
+
+**Environment** (a modelled asset: `assets/replay/authored/rowing-environment.blend`
+is its source, MIT). `export_environment.py` does not model; it opens the
+file, validates it and writes `rowing-environment.glb` (one mesh per part,
+vertex colours, no materials) and `vegetation.json` (one instance per line,
+sorted by variant and tier). The file's contract:
+
+- a collection `rowplay-environment` holding `land` (`environment:row:terrain`,
+  `far-bank`, `woodland`), `vegetation-variants` (the six variants) and
+  `vegetation-low` to `vegetation-ultra`;
+- every mesh named like its object, at the origin with no rotation, scale or
+  modifier, and carrying a point colour attribute `Col` (the albedo, linear);
+- every instance a linked duplicate of a variant, turned about +Z only, scaled
+  uniformly, tinted by its object colour, and in exactly one tier collection.
+  An instance shown at Medium sits in `vegetation-medium` and also shows at
+  High and Ultra.
+
+It refuses:
+
+- a part over its budget, or a tier over its instance or triangle count;
+- a variant with no Low instance;
+- terrain above the water inside 36.2 m (the outer buoy ring is at 33.3 m);
+- anything planted inside a retained web venue structure, or ground at a
+  structure's middle outside its range. The footprints are annular sectors
+  read from the vendored Ultra venue.
+
+To edit the environment, open the file in Blender 5.2, change it (sculpt the
+bank, move or re-tier a tree, retint an instance), save it, and run `make
+blender-environment`. The manifest's `environment` section then records the
+file's SHA-256, the triangle counts, the instances per variant and tier, and the
+budgets; the asset tests check all of them. Two things trip the exporter:
+
+- **Shared topology.** Blender's exporter shares identical index buffers
+  between meshes, which `canonical.py` refuses, so each variant needs its own
+  topology.
+- **Icosphere subdivisions.** `bmesh.ops.create_icosphere` counts them from
+  one: 3 is 320 faces.
+
+**Review renders** (`review_environment.py`, Blender only, not acceptance
+evidence). They put the committed `.blend` in the context the replay draws it
+in: the Phase 2 shell at the approved moment, the buoys, the web venue's
+retained structures, the water, the authored sky, and Qt's depth fog
+reproduced in every material. Views: `chase`, `lap` (eight chase views round
+the loop), `wide`, `top`, `bank` and `water`.
+
+```sh
+blender -b --factory-startup -P tools/blender/review_environment.py -- \
+    --output build/previews/environment-light --scheme light
+```
+
 ## Outputs and budgets
 
 Committed build outputs live in `assets/replay/authored/`, with their hashes in
-`MANIFEST.json`; `course.json` holds one buoy per line. The outputs are MIT
+`MANIFEST.json`; `course.json` holds one buoy per line, `vegetation.json` one
+plant per line. The environment's `.blend` source is pinned there too. The outputs are MIT
 common assets and these scripts are GPL-3.0-or-later tooling (ADR 0002). Previews and Qt's full-resolution intermediate probes go under
-gitignored `build/`. No blend file, downloaded texture or third-party logo is
-required. Generated source provenance is in `ASSET_PROVENANCE.md`.
+gitignored `build/`. No downloaded texture or third-party logo is required;
+the one `.blend` is the environment's own source. Generated source provenance is in `ASSET_PROVENANCE.md`.
 
 | Asset | Limit |
 | --- | --- |
 | Shell plus oars | 60,000 triangles as drawn; 1K PNG textures (none used) |
 | Each new environment prop | 5,000 triangles, 1K textures |
+| Environment terrain / far bank / woodland (Phase 3) | 16,000 / 8,000 / 6,000 triangles |
+| Each vegetation variant (Phase 3) | 800 triangles; no textures |
+| Vegetation instances, Low / Medium / High / Ultra | 100 / 200 / 300 / 400 |
+| Vegetation triangles drawn, Low / Medium / High / Ultra | 60k / 90k / 120k / 150k |
 | Water detail | 512 square, periodic tangent-space normal PNG |
 | Sky source | 512 x 256 linear HDR |
 | Runtime IBL | 128 square per face, six Qt-prefiltered levels |
-| Entire authored pack | 4 MiB |
+| Entire authored pack | 6 MiB (4 MiB before Phase 3) |
 | Entire replay inventory | 100 MiB (ADR 0011) |
 
 The existing athlete is retained, not rebuilt; the discarded Phase 5's 40k
@@ -108,8 +179,9 @@ pack size; Rust tests verify hashes, inventory, placement radii and budgets.
 Course dressing is 256 instances of one shared buoy mesh, not a combined mesh.
 
 Run `python3 tools/blender/audit.py --output docs/blender-asset-inventory.md`
-to inventory every model/texture and count exported triangles. The KTX layout
-tests run with Blender's bundled Python (which supplies NumPy):
+to inventory every model/texture and count exported triangles. The pipeline
+tests (canonicalisation, KTX layout, the water field, the environment export's
+helpers) run with Blender's bundled Python, which supplies NumPy:
 `<blender-dir>/5.2/python/bin/python3.13 -m unittest discover -s tools/blender`.
 
 `probes.py` validates Qt's exact KTX layout before independently box-reducing
@@ -183,7 +255,12 @@ motion. Only same-renderer, runtime-driven sequences qualify for acceptance.
 
 `python3 tools/blender/compare.py <before-dir> <after-dir> --output <comparison-dir>`
 checks all 18 runtime states (excluding only the sequence counter), opaque
-alpha, nonblank pixels, tier/grip equality and water-band differences. It
-creates side-by-side stills and a 4 fps comparison clip. This optional review
-tool uses ImageMagick and FFmpeg already installed on this Linux host; neither
-is required by generation or the app build. Ask before installing them elsewhere.
+alpha, nonblank pixels, tier/grip equality and water-band differences. It also
+checks that the same replay state renders the same pixels at two wall-clock
+times (`style-medium` and `motion-000`), so nothing moves on its own clock. It
+creates side-by-side stills and a 4 fps comparison clip. It reads pixels with
+Pillow and numpy where they are installed and with ImageMagick otherwise, and
+needs FFmpeg for the clip; none of these is required by generation or the app
+build. Ask before installing them. The water band is a fixed 250 x 230 patch
+of near water at (0, 1150); Phase 1's (0, 420) lies across the far bank in the
+current layout.
