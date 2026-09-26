@@ -4,7 +4,8 @@ Status: accepted (2026-09-26, Direction C approval); the source rule is
 amended 2026-09-26, before the shell and oars (Blender Phase 2), and the
 licence of what it produces the same day (with ADR 0002); the rowing
 environment is added the same day (Blender Phase 3), and the course dressing
-on 2026-09-27 (Blender Phase 4).
+on 2026-09-27 (Blender Phase 4). Amended again 2026-09-27 to restore the
+athlete to Blender Phase 5 and order contact truth before hero fit.
 
 ## Context
 
@@ -121,8 +122,58 @@ The rowing course dressing (amended 2026-09-27, Blender Phase 4):
 
 This is an intentional visual divergence from the web palette, not a change
 to its replay mechanics. The 7.8 m shell and oarlock pivots remain intact.
-The existing athlete is exempt from the proposed replacement-rower budget;
-the replacement-rower phase was dropped by the owner.
+Historical decision (now superseded): "The existing athlete is exempt from
+the proposed replacement-rower budget; the replacement-rower phase was dropped
+by the owner."
+
+**Superseding decision, 2026-09-27:** the athlete is back in scope as
+[Blender Phase 5](../../.kiro/specs/blender-05-athlete-contact/tasks.md).
+Replacing or materially refining it is an intentional visual divergence from
+the web application's V4 athlete, just as Direction C intentionally diverges
+from the web presentation. Current V4 remains the baseline until the audit is
+complete and the owner chooses the route. Phase 5 must establish an explicit
+athlete triangle budget before substantial modeling; the old exemption does
+not carry forward.
+
+Phase 5 starts with the correction tracked in #130 and freezes the corrected
+seat/pelvis reference. It then audits contact truth across equipment, targets,
+bones/helpers, actual skinned hands and Qt rendering before auditing the human
+asset. Logical hand-target parity is insufficient. Require the V4 geometry,
+rigging and presentation audit plus a material/normal-only Qt experiment,
+then stop for the owner's retain/refine/replace/sculpt decision. Calibrate
+contact against the final mesh rather than inheriting V4 helper geometry.
+An artistically modeled human should use a reviewed `.blend` source plus
+deterministic export/validation tooling. Phase 2's procedural `shell.py` was
+a valid one-off engineering choice and does not establish a precedent that
+future hero assets must be authored as Python geometry.
+
+Choose no human generator now; verify current terms at the Phase 5 decision.
+Apply ADR 0002 to every base, modification and accessory, distinguishing CC0
+base from MIT RowPlay modifications. Its existing prohibition on downloaded
+human models/generator output requires an explicit architectural decision
+before incorporating such a base; listing candidates does not waive it.
+
+[Phase 6](../../.kiro/specs/blender-06-hero-fit/tasks.md) fits the complete
+hero system only after the chosen athlete is implemented, using numerical
+clearances/proportions and real single-scull photographic calibration. Only
+then consider shell mid-body/cockpit changes; do not fit the boat twice.
+[Phase 7](../../.kiro/specs/blender-07-water-polish/tasks.md) is wake, foam,
+spray and final water polish, consuming replay motion without inventing
+speed/distance, scrolling the world or compensating for course compression.
+
+The architectural boundary remains:
+
+- Rust owns meaning and replay truth.
+- Qt/QML owns the runtime presentation object graph.
+- Blender + Qt tooling owns authored/renderable assets.
+
+Preserve replay state, stroke timing, the 225-float frame, replay-driven pose,
+grip/contact semantics and hand/oar and hand/pole relationships unless
+separately decided. This is not permission for a new animation architecture.
+If the audit proves a contract encodes a visual defect, stop and document the
+architectural decision rather than compensating in another layer. Blender
+Phases 1–4 remain complete; this amendment changes no delivered assets or
+runtime behavior and does not begin Phase 5.
 
 Qt is the visual acceptance renderer. Every comparison must record the runtime
 frame and use the same renderer, scheme, tier and replay moment on both sides.
