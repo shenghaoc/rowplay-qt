@@ -418,8 +418,11 @@ const AUTHORED: &[&str] = &[
     "authored/blue-hour.ktx",
     "authored/buoy.glb",
     "authored/course.json",
+    "authored/dressing.json",
     "authored/overcast.hdr",
     "authored/overcast.ktx",
+    "authored/rowing-dressing.blend",
+    "authored/rowing-dressing.glb",
     "authored/rowing-environment.blend",
     "authored/rowing-environment.glb",
     "authored/rowing-shell.glb",
@@ -428,9 +431,10 @@ const AUTHORED: &[&str] = &[
 ];
 
 /// The authored pack's plain-Git budget (ADR 0011). Blender Phase 3 raised it
-/// from 4 to 6 MiB for the environment's `.blend` source and its outputs
-/// (`docs/blender-audit.md`, "Phase 3").
-const AUTHORED_PACK_BUDGET: u64 = 6 * 1024 * 1024;
+/// from 4 to 6 MiB for the environment's `.blend` source and its outputs,
+/// and Blender Phase 4 to 8 MiB for the dressing's (`docs/blender-audit.md`,
+/// "Phase 3" and "Phase 4").
+const AUTHORED_PACK_BUDGET: u64 = 8 * 1024 * 1024;
 
 #[test]
 fn authored_assets_match_manifest_and_budgets() {
@@ -592,9 +596,13 @@ fn the_environment_matches_its_source_and_budgets() {
             let p = entry["position"].as_array().unwrap();
             let radius = p[0].as_f64().unwrap().hypot(p[2].as_f64().unwrap());
             // Clear of the course: the outer buoy ring is at 33.3 m and the
-            // quay at 36.2 m or beyond; only reeds stand in the shallows.
+            // quay at 36.2 m or beyond; only reeds stand in the shallows, and
+            // the island's lawn (Blender Phase 4, inside 12.4 m) has its trees.
             let floor = if variant == "reeds" { 35.0 } else { 38.2 };
-            assert!(radius >= floor, "{variant} at r {radius:.2} m");
+            assert!(
+                radius >= floor || radius <= 12.4,
+                "{variant} at r {radius:.2} m"
+            );
             let scale = entry["scale"].as_f64().unwrap();
             assert!((0.3..=2.0).contains(&scale));
         }
@@ -621,6 +629,170 @@ fn the_environment_matches_its_source_and_budgets() {
         assert!(drawn[i] <= budget["drawn"][tier].as_u64().unwrap());
     }
     assert_eq!(placements.len() as u64, shown[3]);
+}
+
+/// Blender Phase 4: the course dressing is exported from the committed
+/// `.blend` (`tools/blender/export_dressing.py`). The manifest records which
+/// source the GLB and the placements came from, and their budgets; the
+/// triangle counts are recounted from the GLB against the placements, every
+/// budget is pinned here, and the placements keep the invariants the scene
+/// relies on.
+#[test]
+fn the_dressing_matches_its_source_and_budgets() {
+    use rowplay_viewmodel::replay::dressing::{
+        DRESSING_CLASSES, STRUCTURE_BUDGET, STRUCTURES_BUDGET, VARIANT_BUDGET, validate_dressing,
+    };
+    let dir = assets_dir().join("authored");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("MANIFEST.json")).unwrap()).unwrap();
+    let dressing = &manifest["dressing"];
+    assert_eq!(dressing["source"].as_str(), Some("rowing-dressing.blend"));
+    let blend = std::fs::read(dir.join("rowing-dressing.blend")).unwrap();
+    assert_eq!(
+        dressing["sourceSha256"].as_str(),
+        Some(sha256_hex(&blend).as_str()),
+        "rowing-dressing.blend changed without a re-export (make blender-dressing)"
+    );
+    let budget = &dressing["budget"];
+    assert_eq!(budget["structure"].as_u64(), Some(STRUCTURE_BUDGET));
+    assert_eq!(budget["structures"].as_u64(), Some(STRUCTURES_BUDGET));
+    assert_eq!(budget["variant"].as_u64(), Some(VARIANT_BUDGET));
+    for (key, limits) in [
+        ("instances", [10, 40, 80, 120]),
+        ("drawn", [4_000, 10_000, 20_000, 30_000]),
+    ] {
+        let pinned: serde_json::Map<String, serde_json::Value> = ["low", "medium", "high", "ultra"]
+            .into_iter()
+            .zip(limits)
+            .map(|(tier, limit)| (tier.to_owned(), serde_json::Value::from(limit)))
+            .collect();
+        assert_eq!(
+            budget[key].as_object(),
+            Some(&pinned),
+            "the {key} budgets moved; update docs/blender-audit.md"
+        );
+    }
+
+    // The placements name the meshes; the GLB is validated against them and
+    // its counts checked against the manifest's and the placements' own.
+    let text = std::fs::read_to_string(dir.join("dressing.json")).unwrap();
+    let placements: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let recount = validate_dressing(
+        &std::fs::read(dir.join("rowing-dressing.glb")).unwrap(),
+        &placements,
+    )
+    .expect("the dressing GLB honours its contract");
+    let triangles = dressing["triangles"].as_object().unwrap();
+    assert_eq!(
+        triangles.len(),
+        recount.structures.len() + recount.variants.len()
+    );
+    for mesh in recount.structures.iter().chain(&recount.variants) {
+        assert_eq!(
+            triangles[&mesh.name].as_u64(),
+            Some(mesh.triangles),
+            "{}: the manifest's triangle count is not the GLB's",
+            mesh.name
+        );
+        assert!(
+            mesh.classes
+                .iter()
+                .all(|class| DRESSING_CLASSES.contains(&class.as_str()))
+        );
+    }
+    for (entry, mesh) in placements["structures"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(&recount.structures)
+    {
+        assert_eq!(
+            entry["triangles"].as_u64(),
+            Some(mesh.triangles),
+            "{}",
+            mesh.name
+        );
+        let footprint = entry["footprint"].as_array().unwrap();
+        assert_eq!(footprint.len(), 4, "{}: footprint", mesh.name);
+    }
+    let structure_total: u64 = recount.structures.iter().map(|s| s.triangles).sum();
+    assert!(structure_total <= STRUCTURES_BUDGET);
+
+    // Instances: one per line, sorted by variant and then tier (the scene's
+    // instanceCountOverride relies on it), clear of the lanes, the buoys on
+    // the water and everything else on the ground or a deck.
+    let instances = placements["instances"].as_array().unwrap();
+    assert_eq!(
+        text.lines()
+            .filter(|line| line.starts_with("    {\"variant\""))
+            .count(),
+        instances.len(),
+        "one instance per line"
+    );
+    let key = |e: &serde_json::Value| {
+        (
+            e["variant"].as_str().unwrap().to_owned(),
+            e["tier"].as_u64().unwrap(),
+        )
+    };
+    assert!(
+        instances.windows(2).all(|w| key(&w[0]) <= key(&w[1])),
+        "dressing.json must be sorted by variant, then tier"
+    );
+    let tiers = ["low", "medium", "high", "ultra"];
+    let mut shown = [0_u64; 4];
+    let mut drawn = [0_u64; 4];
+    for variant in &recount.variants {
+        let mut counts = [0_u64; 4];
+        for entry in instances
+            .iter()
+            .filter(|e| e["variant"] == variant.name.as_str())
+        {
+            let tier = usize::try_from(entry["tier"].as_u64().unwrap()).unwrap();
+            for count in &mut counts[tier..] {
+                *count += 1;
+            }
+            let p = entry["position"].as_array().unwrap();
+            let radius = p[0].as_f64().unwrap().hypot(p[2].as_f64().unwrap());
+            // The lane band (tools/blender/export_dressing.py): the buoy
+            // rings at 23.1 and 33.3 m, the blades to about 33 m.
+            assert!(
+                !(22.8..=33.6).contains(&radius),
+                "{} at r {radius:.2} m",
+                variant.name
+            );
+            let scale = entry["scale"].as_f64().unwrap();
+            assert!((0.5..=2.0).contains(&scale));
+            if variant.name == "finish-buoy" {
+                assert_eq!(p[1].as_f64(), Some(0.0), "a finish buoy floats at 0 m");
+            }
+        }
+        // Furniture may be absent at Low; a variant with no instance at a
+        // tier is hidden by a binding in the generated scene.
+        assert!(
+            counts[3] > 0,
+            "{} has no instance at any tier",
+            variant.name
+        );
+        let recorded: Vec<u64> = dressing["instances"][&variant.name]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c.as_u64().unwrap())
+            .collect();
+        assert_eq!(recorded, counts, "{} tier counts", variant.name);
+        for (i, count) in counts.iter().enumerate() {
+            shown[i] += count;
+            drawn[i] += count * variant.triangles;
+        }
+    }
+    for (i, tier) in tiers.iter().enumerate() {
+        assert_eq!(dressing["shown"][tier].as_u64(), Some(shown[i]));
+        assert_eq!(dressing["drawnTriangles"][tier].as_u64(), Some(drawn[i]));
+        assert!(shown[i] <= budget["instances"][tier].as_u64().unwrap());
+        assert!(drawn[i] <= budget["drawn"][tier].as_u64().unwrap());
+    }
+    assert_eq!(instances.len() as u64, shown[3]);
 }
 
 /// Blender Phase 3: the water normal's tile is the one the scene repeats.

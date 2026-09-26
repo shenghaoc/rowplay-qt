@@ -5,3 +5,4 @@ singleton RowingStyle 1.0 RowingStyle.qml
 RowingWater 1.0 RowingWater.qml
 RowingCourse 1.0 RowingCourse.qml
 RowingEnvironment 1.0 RowingEnvironment.qml
+RowingDressing 1.0 RowingDressing.qml

@@ -247,8 +247,16 @@ Item {
         RowingCourse { visible: Replay.sportIndex === 0 && Replay.loadState !== "error" }
         // Blender Phase 3: the banks, woodland and far bank around the basin.
         // They replace the web venue's land and vegetation (walkVenue hides
-        // those); the venue's structures stay.
+        // those).
         RowingEnvironment {
+            visible: Replay.sportIndex === 0 && Replay.loadState !== "error"
+            tier: Replay.effectiveQuality
+        }
+        // Blender Phase 4: the course dressing. The finish tower, the start
+        // jetty, the pontoons, the bridge, the campus, the boardwalk and
+        // hide, the distance boards and the island replace the web venue's
+        // structures and its island (walkVenue hides those too).
+        RowingDressing {
             visible: Replay.sportIndex === 0 && Replay.loadState !== "error"
             tier: Replay.effectiveQuality
         }
@@ -1417,7 +1425,7 @@ Item {
     // The web rower venue's nodes the authored rowing assets replace: the
     // painted water overlays (Phase 1) and the land and vegetation (Phase 3).
     readonly property var replacedVenueNode:
-        /:(apron|ripple|reflection|sun-glint|mist-band|shoreline|horizon-far|horizon-mid|valley-ridges|pines|pine-trunks|broadleaves|campus-path)/
+        /:(apron|ripple|reflection|sun-glint|mist-band|shoreline|horizon-far|horizon-mid|valley-ridges|pines|pine-trunks|broadleaves|campus-path|basin-center|finish-tower|launch-dock|regatta-pavilion|boathouse|timing-tower|course-bridge|distance-posts|wetland-boardwalk|wetland-hide)/
     property var venueMaterials: ({})
     property var venueTextureCache: ({})
     property var venueWalked: ({})
@@ -1600,10 +1608,12 @@ Item {
         for (var i = 0; children && i < children.length; ++i) {
             var child = children[i]
             // The continuous water surface replaces the old painted overlays,
-            // and RowingEnvironment (Blender Phase 3) the land and vegetation:
-            // the banks, the horizon and ridge bands, the woodland and reeds.
-            // The structures (tower, pontoons, buildings, bridge, boardwalk)
-            // and the island stay.
+            // RowingEnvironment (Blender Phase 3) the land and vegetation (the
+            // banks, the horizon and ridge bands, the woodland and reeds), and
+            // RowingDressing (Blender Phase 4) the structures (tower, pontoons,
+            // dock, buildings, bridge, posts, boardwalk, hide) and the island.
+            // Every rower venue node is therefore hidden; the walk still
+            // builds its materials, so the venue texture counts hold.
             if (child.visible !== undefined && child.objectName
                     && child.objectName.indexOf("environment:rower:") === 0
                     && replacedVenueNode.test(child.objectName))

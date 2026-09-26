@@ -6,7 +6,8 @@
 //! the baked-venue reader and contract validator ([`venue`]); Blender Phase 2
 //! the authored rowing shell's gate against the V3 contract
 //! ([`rowing_shell`]); Blender Phase 3 the authored rowing environment's
-//! gate ([`environment`]).
+//! gate ([`environment`]); Blender Phase 4 the authored course dressing's
+//! gate ([`dressing`]).
 //!
 //! Everything here is Qt-free data and validation: the app crate's `Replay`
 //! singleton adapts it to QML, and no hex colour or anchor coordinate is
@@ -16,6 +17,7 @@ pub mod anchors;
 pub mod athlete;
 pub mod camera;
 pub mod course;
+pub mod dressing;
 pub mod environment;
 pub mod equipment;
 pub mod frame;
