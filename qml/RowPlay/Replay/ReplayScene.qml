@@ -258,6 +258,13 @@ Item {
             roughness: 0.4
             clearcoatAmount: 0.35
             clearcoatRoughnessAmount: 0.25
+            // The hull's wet band: its vertex colours scale the roughness
+            // (red) and the clearcoat roughness (green) toward the waterline.
+            // Parts without colours keep a mask of 1: Qt 6.11 enables masks
+            // only for meshes that carry the attribute.
+            vertexColorsMaskEnabled: true
+            vertexColorRedMask: PrincipledMaterial.RoughnessMask
+            vertexColorGreenMask: PrincipledMaterial.ClearcoatRoughnessAmountMask
         }
         PrincipledMaterial {
             id: rowingMetal
@@ -270,6 +277,18 @@ Item {
             baseColor: RowingStyle.blade
             roughness: 0.34
             clearcoatAmount: 0.4
+        }
+        // The left blade is the right one reflected in its own z (a hatchet
+        // blade has a handedness a pi turn cannot give). Reflection reverses
+        // the winding, so this copy culls front faces instead of back faces;
+        // it is not double-sided, which would flip its normals.
+        PrincipledMaterial {
+            id: rowingPaintMirror
+            baseColor: rowingPaint.baseColor
+            roughness: rowingPaint.roughness
+            clearcoatAmount: rowingPaint.clearcoatAmount
+            clearcoatRoughnessAmount: rowingPaint.clearcoatRoughnessAmount
+            cullMode: Material.FrontFaceCulling
         }
 
         // ---- Venue (Phase 6b): the twelve baked venue variants ----
@@ -374,6 +393,20 @@ Item {
                     visible: Replay.loadState !== "error"
                 }
 
+                // Blender Phase 2: the authored shell and sculls under the
+                // V3 rowing names and roles (rowing_shell.rs checks them at
+                // build time). The walk hides the V3 pack's own rowing nodes
+                // and places these instead; the mirror copy gives the left
+                // oar and blade.
+                RowingRig {
+                    id: rowingRig
+                    visible: Replay.loadState !== "error"
+                }
+                RowingRig {
+                    id: rowingRigMirror
+                    visible: Replay.loadState !== "error"
+                }
+
                 Athlete {
                     id: athlete
                     visible: Replay.loadState !== "error"
@@ -414,6 +447,16 @@ Item {
                 Rigs {
                     id: ghostRigsMirror
                     visible: Replay.hasGhost && Replay.loadState !== "error"
+                }
+                RowingRig {
+                    id: ghostRowingRig
+                    visible: Replay.hasGhost && Replay.loadState !== "error"
+                }
+                RowingRig {
+                    id: ghostRowingRigMirror
+                    visible: Replay.hasGhost && Replay.loadState !== "error"
+                    // The left ghost blade's mirrored winding (see walkRigs).
+                    PrincipledMaterial { id: gMatPaintedMirror; baseColor: Replay.ghostPaint; metalness: 0.05; roughness: 0.35; opacity: 0.45; alphaMode: PrincipledMaterial.Blend; cullMode: Material.FrontFaceCulling }
                 }
                 Athlete {
                     id: ghostAthlete
@@ -1145,9 +1188,13 @@ Item {
         setShadowRoles(athlete, true, true)
         setShadowRoles(rigs, true, false)
         setShadowRoles(rigsMirror, true, false)
+        setShadowRoles(rowingRig, true, false)
+        setShadowRoles(rowingRigMirror, true, false)
         setShadowRoles(ghostAthlete, false, false)
         setShadowRoles(ghostRigs, false, false)
         setShadowRoles(ghostRigsMirror, false, false)
+        setShadowRoles(ghostRowingRig, false, false)
+        setShadowRoles(ghostRowingRigMirror, false, false)
         venueSchemeCached = Replay.schemeDark
         syncVenue()
         Replay.reportReady()
@@ -1213,8 +1260,11 @@ Item {
         oarRigNode = null; oarRigMirror = null
         wheelAssemblyNode = null; wheelMirror = null
         bladeNodes = {}; poleShaftNodes = {}; poleGripNodes = {}; poleBasketNodes = {}
-        walkRigs(rigs, anchorsByTemplate, false)
-        walkRigs(rigsMirror, mirrorByTemplate, true)
+        // The V3 pack's rowing nodes give way to the authored shell's.
+        walkRigs(rigs, anchorsByTemplate, false, undefined, "equipment:row:")
+        walkRigs(rigsMirror, mirrorByTemplate, true, undefined, "equipment:row:")
+        walkRigs(rowingRig, anchorsByTemplate, false)
+        walkRigs(rowingRigMirror, mirrorByTemplate, true)
         // Ghost rigs: same materials and anchors, separate node caches.
         // Save and restore the player caches around the ghost walk.
         var savedSeat = seatNode, savedBoat = boatNode
@@ -1227,8 +1277,10 @@ Item {
         oarRigNode = null; oarRigMirror = null
         wheelAssemblyNode = null; wheelMirror = null
         bladeNodes = {}; poleShaftNodes = {}; poleGripNodes = {}; poleBasketNodes = {}
-        walkRigs(ghostRigs, anchorsByTemplate, false, ghostByRole)
-        walkRigs(ghostRigsMirror, mirrorByTemplate, true, ghostByRole)
+        walkRigs(ghostRigs, anchorsByTemplate, false, ghostByRole, "equipment:row:")
+        walkRigs(ghostRigsMirror, mirrorByTemplate, true, ghostByRole, "equipment:row:")
+        walkRigs(ghostRowingRig, anchorsByTemplate, false, ghostByRole)
+        walkRigs(ghostRowingRigMirror, mirrorByTemplate, true, ghostByRole)
         ghostSeatNode = seatNode; ghostOarRigNode = oarRigNode
         ghostOarRigMirror = oarRigMirror; ghostWheelNode = wheelAssemblyNode
         ghostWheelMirror = wheelMirror; ghostDrivetrainNode = drivetrainNode
@@ -1592,8 +1644,15 @@ Item {
     // Walk one balsam Rigs component: assign materials, show/hide by sport,
     // place templates at anchors, cache nodes for per-frame updates.
     // `isMirror` restricts the mirror copy to multi-instance templates only.
-    function walkRigs(node, anchorMap, isMirror, materialMap) {
+    // `replaced` hides the nodes under that name prefix without caching them
+    // (the V3 pack's rowing equipment, replaced by the authored shell).
+    function walkRigs(node, anchorMap, isMirror, materialMap, replaced) {
         if (!node) return
+        if (replaced && typeof node.objectName === "string"
+                && node.objectName.lastIndexOf(replaced, 0) === 0) {
+            node.visible = false
+            return
+        }
         var matMap = materialMap || byRole
         var side = isMirror ? "left" : "right"
         var meta = replayRoot.meshRoles[node.objectName]
@@ -1615,6 +1674,12 @@ Item {
                 if (leafBelongs) {
                     node.visible = true
                     cacheLeaf(meta.slot, side, node)
+                    if (isMirror && meta.slot === "equipment:row:blade") {
+                        // The left blade is the right one reflected, not
+                        // turned (rowingPaintMirror explains the culling).
+                        node.scale = Qt.vector3d(1, 1, -1)
+                        node.materials = [materialMap ? gMatPaintedMirror : rowingPaintMirror]
+                    }
                 } else {
                     node.visible = false
                     leavesHidden += 1
@@ -1648,7 +1713,8 @@ Item {
             }
         }
         var ch = node.children
-        for (var i = 0; ch && i < ch.length; ++i) walkRigs(ch[i], anchorMap, isMirror, materialMap)
+        for (var i = 0; ch && i < ch.length; ++i)
+            walkRigs(ch[i], anchorMap, isMirror, materialMap, replaced)
     }
 
     function cacheLeaf(slot, side, node) {
