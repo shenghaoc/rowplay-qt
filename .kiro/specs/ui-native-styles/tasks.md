@@ -156,27 +156,27 @@ pull request that delivers it.
     comments and the settings page at `readableWidth`.
   - [x] T8.5 Checked at 1200, 1440, 1600 and 1920 px, light and dark,
     English and Japanese: every text item fits (32 runs, none flagged).
-- [ ] T9 (`docs/native-design-system`) Documentation and the full
-  verification matrix (R8, R9). Open: T9.3 and T9.4.
+- [x] T9 (`docs/native-design-system`) Documentation and the full
+  verification matrix (R8, R9).
   - [x] T9.1 `docs/design-system.md`: the six principles, platform
     behaviour → Qt API, per platform with its known issues, and what stays
     ours. AGENTS.md sends UI work there first.
   - [x] T9.2 ADR 0015's "What was checked where"; ADR 0013's round-3
     notes; the README's screenshots, now the native macOS captures.
-  - [ ] T9.3 R8.1 on macOS remains incomplete. Earlier native checks covered:
-    - the full gate walk in light at the pre-#124 stack tip;
-    - the text-fit matrix: five screens, three languages, three widths,
-      native light and dark, 150 % light and dark; nothing flagged
-      natively, and only Qt Graphs' axis labels at 150 %, as on the base;
-    - the large widths;
-    - real input through QtTest's `TestEvent`. It found that the HUD's
-      masks answered `contains()` but not real clicks; the fix is in #114.
-    The five-width-class × three-language × two-text-scale × two-scheme
-    matrix, including Spanish at large and extra-large and all screens at
-    every width, was not run on the rebased head. A current native macOS
-    full walk in both schemes is also still required.
-  - [ ] T9.4 R8.1 by the owner: a non-blue accent, Increase Contrast and
-    the native menu bar's roles.
+  - [x] T9.3 R8.1 on the current composed #118 code, natively on macOS:
+    full Cocoa/Metal light and dark gates (3 tests each; 107.0 / 106.4 s
+    app-log durations), phases, close-ups and all six compact locales.
+    The five-width-class × en/es/ja × 100/150 % text × light/dark matrix
+    covers every screen and its drawer/dialog/menu states (960 distinct
+    cases across 16 states). Native mouse/keyboard checks preserve the
+    speed-focus fix and actual HUD hit delivery. See the
+    [verification record](../../../docs/native-macos-verification.md) for
+    achieved fonts/widths, clipping analysis, reruns and evidence scope.
+  - [x] T9.4 Actual macOS System Settings and native menus checked with
+    Computer Use: purple accent; Increase Contrast in light and dark;
+    About, Preferences / Cmd+, and Quit / Cmd+Q. Japanese app content
+    retains Qt's documented English native role titles (#80). Original
+    appearance, accent and contrast settings were visibly restored.
   - [x] T9.5 R8.2 Windows: CI's captures looked at. The Windows style is
     unreadable under the dark scheme; FluentWinUI3 is not, so it is
     proposed in its own pull request.
