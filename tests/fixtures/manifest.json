@@ -73,6 +73,16 @@
       }
     },
     {
+      "path": "replay-contact-equipment-parity.json",
+      "source": {
+        "repository": "https://github.com/shenghaoc/rowplay",
+        "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+        "path": "tests/fixtures/replay-contact-equipment-parity.json"
+      },
+      "bytes": 308195,
+      "sha256": "c946d2db716266424cd1f7cd7f0f3a6b41bff93c5c4aa2bb40ec31cda9f6d5bf"
+    },
+    {
       "path": "replay-current-main-2d.json",
       "bytes": 112327,
       "sha256": "407a4a4db8b4c96dcf0121fec5018f820be5485e6d3111f084c1a98baeea2693",

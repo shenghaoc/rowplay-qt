@@ -1,0 +1,3109 @@
+{
+  "asset_sha256": "a564a4dbd4922e2ba76ef21a23f5bf0eb1b0180846548f9d7110e55ffd8f760e",
+  "row_equipment_sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+  "v3_equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925",
+  "samples": [
+    {
+      "name": "row-catch-chase",
+      "sport": 0,
+      "contacts": "10/10",
+      "equipment_sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+      "hud_elapsed": 0,
+      "hud_distance": 9,
+      "hands": {
+        "Left": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            -0.6448808035438207,
+            0.6539525019289497,
+            0.8809959034188926
+          ],
+          "equipment_axis": [
+            -0.3501398452628364,
+            -0.27635573587829565,
+            -0.895002567597704
+          ],
+          "palm_helper_proxy_mm": 12.790315314000738,
+          "palm_helper_actual_surface_mm": 13.297875456413145,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.00013264409845862272,
+              "actual_p05_mm": 1.3434492056281155,
+              "actual_fraction_within_2mm": 0.07476674441852715,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.60550649226137,
+              "min_absolute_mm": 0.0008221308356697044,
+              "p05_signed_mm": -13.785055326657645,
+              "median_signed_mm": 10.206239989399474,
+              "penetration_fraction": 0.2892785738087304,
+              "edge_median_mm": 3.9887781489347884,
+              "edge_max_mm": 9.977872273820863
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.0025259539199606403,
+              "actual_p05_mm": 1.0642852625423616,
+              "actual_fraction_within_2mm": 0.0918539690788619,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.61180877820515,
+              "min_absolute_mm": 0.00020259475625589163,
+              "p05_signed_mm": -16.766268206840955,
+              "median_signed_mm": -4.889834398618786,
+              "penetration_fraction": 0.6472002078731973,
+              "edge_median_mm": 3.120909400726423,
+              "edge_max_mm": 16.28699942076003,
+              "helper_to_own_skin_mm": [
+                1.1744098166820174,
+                3.8692639722428472,
+                7.601634207874227
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0025239600588820993,
+              "actual_p05_mm": 0.7127941466989723,
+              "actual_fraction_within_2mm": 0.15433217955057416,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.78872790390145,
+              "min_absolute_mm": 0.00036073609839537557,
+              "p05_signed_mm": -18.183676263278134,
+              "median_signed_mm": -4.508264851272807,
+              "penetration_fraction": 0.6882039448381957,
+              "edge_median_mm": 3.2071680784582766,
+              "edge_max_mm": 22.395414219646213,
+              "helper_to_own_skin_mm": [
+                2.1566161115369047,
+                3.136589729525926,
+                8.465137994868996
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.00042384219355165193,
+              "actual_p05_mm": 0.4477372065571047,
+              "actual_fraction_within_2mm": 0.2511671887004314,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.749824746638573,
+              "min_absolute_mm": 0.0004024050107506727,
+              "p05_signed_mm": -13.484044536901196,
+              "median_signed_mm": -3.1298888310943367,
+              "penetration_fraction": 0.677146740736363,
+              "edge_median_mm": 3.099729717602009,
+              "edge_max_mm": 24.12200189667288,
+              "helper_to_own_skin_mm": [
+                1.440403922983636,
+                4.097333520948865,
+                6.06010063778048
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.0005610839607656435,
+              "actual_p05_mm": 0.35044972359868043,
+              "actual_fraction_within_2mm": 0.34516616314199394,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -16.52169160717379,
+              "min_absolute_mm": 3.1088333643514154e-07,
+              "p05_signed_mm": -11.609939537977992,
+              "median_signed_mm": -1.1841038842984892,
+              "penetration_fraction": 0.5930376270255424,
+              "edge_median_mm": 2.528077043659599,
+              "edge_max_mm": 23.561743652759763,
+              "helper_to_own_skin_mm": [
+                1.8513253246358854,
+                4.251035092446312,
+                6.723794103173248
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 11.99053074034371,
+              "actual_p05_mm": 13.65203894153677,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 10.652768971451913,
+              "min_absolute_mm": 10.652768971451913,
+              "p05_signed_mm": 12.577673763651614,
+              "median_signed_mm": 25.977519046226725,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.5077089492205147,
+              "edge_max_mm": 16.89131883389578,
+              "helper_to_own_skin_mm": [
+                6.257864667093881,
+                6.160549740187001,
+                3.885091719548104
+              ]
+            }
+          },
+          "channel_axis_error_deg": 36.057602854660196,
+          "palm_normal_axis_angle_deg": 78.56477351272957,
+          "palm_contact_to_all_skin_mm": 18.433749363647667,
+          "palm_contact_to_palm_region_mm": 30.61754653573646
+        },
+        "Right": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            0.6448793378198588,
+            0.6539524950085592,
+            0.8809959094079494
+          ],
+          "equipment_axis": [
+            0.3501408745540438,
+            -0.2763556416077134,
+            -0.895002194029779
+          ],
+          "palm_helper_proxy_mm": 12.789808229367539,
+          "palm_helper_actual_surface_mm": 13.297367887588203,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 6.671599115036584e-05,
+              "actual_p05_mm": 1.335092370288555,
+              "actual_fraction_within_2mm": 0.0755269442425501,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.615573727181783,
+              "min_absolute_mm": 0.00010409655129550721,
+              "p05_signed_mm": -13.750447969211454,
+              "median_signed_mm": 9.905197329778584,
+              "penetration_fraction": 0.2893780500467241,
+              "edge_median_mm": 3.9903156131490154,
+              "edge_max_mm": 9.496357145728012
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 0.0019809516388344076,
+              "actual_p05_mm": 0.97540703460709,
+              "actual_fraction_within_2mm": 0.09595609109835342,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.60566801437319,
+              "min_absolute_mm": 0.002001836713526328,
+              "p05_signed_mm": -16.737586067124713,
+              "median_signed_mm": -5.00835385884546,
+              "penetration_fraction": 0.6573086871490758,
+              "edge_median_mm": 3.1312778296477988,
+              "edge_max_mm": 15.226047725664595,
+              "helper_to_own_skin_mm": [
+                1.2625499869699164,
+                3.935948290637586,
+                7.60318546005603
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0006767632117572158,
+              "actual_p05_mm": 0.6905028834810164,
+              "actual_fraction_within_2mm": 0.15753048445567394,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.824544124496626,
+              "min_absolute_mm": 0.0004533355658503657,
+              "p05_signed_mm": -18.1840526689823,
+              "median_signed_mm": -4.608109660682491,
+              "penetration_fraction": 0.6983961331429199,
+              "edge_median_mm": 3.2288357375944567,
+              "edge_max_mm": 22.41974490498016,
+              "helper_to_own_skin_mm": [
+                2.2004606969817524,
+                3.0920763771127677,
+                8.501145270635508
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.00046387313700558684,
+              "actual_p05_mm": 0.48561977444441223,
+              "actual_fraction_within_2mm": 0.24405142823899006,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.71692797840491,
+              "min_absolute_mm": 0.0017192063771001576,
+              "p05_signed_mm": -13.43905055516389,
+              "median_signed_mm": -3.4287159325506846,
+              "penetration_fraction": 0.6843911804060736,
+              "edge_median_mm": 3.0970596506517927,
+              "edge_max_mm": 23.789399849578864,
+              "helper_to_own_skin_mm": [
+                1.4972299865064027,
+                4.107307026666847,
+                6.121161611292391
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.0018775593442216672,
+              "actual_p05_mm": 0.3612047588813202,
+              "actual_fraction_within_2mm": 0.3380331585659629,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -16.517307401784638,
+              "min_absolute_mm": 8.612343227812347e-05,
+              "p05_signed_mm": -11.404181564146132,
+              "median_signed_mm": -1.1593262055554914,
+              "penetration_fraction": 0.5875726229275896,
+              "edge_median_mm": 2.512208414682631,
+              "edge_max_mm": 23.524658457073933,
+              "helper_to_own_skin_mm": [
+                1.8566692785408858,
+                4.253005825121049,
+                6.608344056915118
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 11.99637528784815,
+              "actual_p05_mm": 13.740712103051472,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 10.663664922681136,
+              "min_absolute_mm": 10.663664922681136,
+              "p05_signed_mm": 12.63683805267621,
+              "median_signed_mm": 25.9629057529451,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.4881093195998263,
+              "edge_max_mm": 16.860737260458652,
+              "helper_to_own_skin_mm": [
+                6.275843955177248,
+                6.115579344048121,
+                3.927431795549983
+              ]
+            }
+          },
+          "channel_axis_error_deg": 36.05753255382251,
+          "palm_normal_axis_angle_deg": 78.56476576202434,
+          "palm_contact_to_all_skin_mm": 18.36859148584327,
+          "palm_contact_to_palm_region_mm": 30.733173117899327
+        }
+      }
+    },
+    {
+      "name": "row-middrive-chase",
+      "sport": 0,
+      "contacts": "10/10",
+      "equipment_sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+      "hud_elapsed": 0,
+      "hud_distance": 9,
+      "hands": {
+        "Left": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            -0.2793692298397703,
+            0.653952529549747,
+            0.5160513954018549
+          ],
+          "equipment_axis": [
+            -0.8944583579357669,
+            -0.2763556109712619,
+            -0.35152783986983466
+          ],
+          "palm_helper_proxy_mm": 22.55344899857737,
+          "palm_helper_actual_surface_mm": 23.05751822486107,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0004753532801003189,
+              "actual_p05_mm": 1.1132787939725788,
+              "actual_fraction_within_2mm": 0.09238587137620793,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.813738230219858,
+              "min_absolute_mm": 0.0008440606346429846,
+              "p05_signed_mm": -15.296234642428407,
+              "median_signed_mm": 7.483881182528825,
+              "penetration_fraction": 0.31935188270576476,
+              "edge_median_mm": 3.988779641759736,
+              "edge_max_mm": 9.977875197150667
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.002013698151176388,
+              "actual_p05_mm": 0.3727038000938925,
+              "actual_fraction_within_2mm": 0.31785111082239836,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.7758723042499,
+              "min_absolute_mm": 0.000797214530112722,
+              "p05_signed_mm": -13.902604832198852,
+              "median_signed_mm": -3.9942293666185065,
+              "penetration_fraction": 0.8852150188385085,
+              "edge_median_mm": 3.120910357275751,
+              "edge_max_mm": 16.287147405997793,
+              "helper_to_own_skin_mm": [
+                1.174482366343798,
+                3.8692013927447886,
+                7.6016299671995275
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0002341899792117376,
+              "actual_p05_mm": 0.33064219420776203,
+              "actual_fraction_within_2mm": 0.2543816273831108,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.35534031020329,
+              "min_absolute_mm": 0.0004194116128980463,
+              "p05_signed_mm": -11.895183501244954,
+              "median_signed_mm": -0.8397640197090294,
+              "penetration_fraction": 0.5636503488819296,
+              "edge_median_mm": 3.2071690568856526,
+              "edge_max_mm": 22.39526672889468,
+              "helper_to_own_skin_mm": [
+                2.1566687008105645,
+                3.1367511544192657,
+                8.465571536174838
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.0008471395940178903,
+              "actual_p05_mm": 0.3809524916932328,
+              "actual_fraction_within_2mm": 0.23142840257667988,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.94628171744316,
+              "min_absolute_mm": 0.00013421860667328644,
+              "p05_signed_mm": -10.022217661781793,
+              "median_signed_mm": 0.6358383096459163,
+              "penetration_fraction": 0.46279770699131256,
+              "edge_median_mm": 3.0997255500667604,
+              "edge_max_mm": 24.122388656799135,
+              "helper_to_own_skin_mm": [
+                1.440694560253739,
+                4.098486983454871,
+                6.061388199563449
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.00223081052103766,
+              "actual_p05_mm": 0.6835359800159081,
+              "actual_fraction_within_2mm": 0.14430727023319617,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -9.976267941880382,
+              "min_absolute_mm": 0.0023693971686993,
+              "p05_signed_mm": -6.399270846685301,
+              "median_signed_mm": 6.084225088650839,
+              "penetration_fraction": 0.25685871056241427,
+              "edge_median_mm": 2.5280748705768725,
+              "edge_max_mm": 23.562390250669615,
+              "helper_to_own_skin_mm": [
+                1.8514760943375943,
+                4.250728912599584,
+                6.723574344783185
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.00025854623692539344,
+              "actual_p05_mm": 1.0542158087546656,
+              "actual_fraction_within_2mm": 0.09783071033602722,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -3.941233025254884,
+              "min_absolute_mm": 0.0006323911669117721,
+              "p05_signed_mm": -0.9869279150236561,
+              "median_signed_mm": 12.504561529817437,
+              "penetration_fraction": 0.07512760527435133,
+              "edge_median_mm": 3.507705538780676,
+              "edge_max_mm": 16.892226368132057,
+              "helper_to_own_skin_mm": [
+                6.257911510759329,
+                6.160770976672313,
+                3.884950124771528
+              ]
+            }
+          },
+          "channel_axis_error_deg": 19.234914235943716,
+          "palm_normal_axis_angle_deg": 65.87810950574878,
+          "palm_contact_to_all_skin_mm": 18.43369132255816,
+          "palm_contact_to_palm_region_mm": 30.61754556390313
+        },
+        "Right": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            0.2793706999613733,
+            0.6539524843444847,
+            0.5160532028016744
+          ],
+          "equipment_axis": [
+            0.8944577988945105,
+            -0.2763556193464903,
+            -0.35152925575605376
+          ],
+          "palm_helper_proxy_mm": 22.54960489091158,
+          "palm_helper_actual_surface_mm": 23.053879309355278,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.0004074777680152552,
+              "actual_p05_mm": 1.0849342654323864,
+              "actual_fraction_within_2mm": 0.09471498286782265,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.760033064916346,
+              "min_absolute_mm": 0.0010263221564381364,
+              "p05_signed_mm": -15.412428008166453,
+              "median_signed_mm": 7.3667129881324,
+              "penetration_fraction": 0.31950991589658395,
+              "edge_median_mm": 3.990314661585456,
+              "edge_max_mm": 9.496351540744513
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 0.0012763418852992517,
+              "actual_p05_mm": 0.3859550280284138,
+              "actual_fraction_within_2mm": 0.31449119929341995,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.862810441402644,
+              "min_absolute_mm": 0.0009466618716251485,
+              "p05_signed_mm": -14.292180540078828,
+              "median_signed_mm": -4.140540173129676,
+              "penetration_fraction": 0.8868841082581541,
+              "edge_median_mm": 3.1312739598406942,
+              "edge_max_mm": 15.226228660725234,
+              "helper_to_own_skin_mm": [
+                1.262672632194035,
+                3.9365233513974363,
+                7.60309158613695
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0005441009230121897,
+              "actual_p05_mm": 0.3352345045676128,
+              "actual_fraction_within_2mm": 0.25810172470614084,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.28431274063455,
+              "min_absolute_mm": 0.00020772012885444946,
+              "p05_signed_mm": -11.918261457695966,
+              "median_signed_mm": -1.0028152611390433,
+              "penetration_fraction": 0.5746457211908162,
+              "edge_median_mm": 3.2288374302968204,
+              "edge_max_mm": 22.420111984042986,
+              "helper_to_own_skin_mm": [
+                2.2004665330893625,
+                3.091921122349181,
+                8.500934193917862
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0011199129479794036,
+              "actual_p05_mm": 0.3765320167061171,
+              "actual_fraction_within_2mm": 0.2301471871545756,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.86655131020109,
+              "min_absolute_mm": 0.0010969871755590888,
+              "p05_signed_mm": -9.946137817234154,
+              "median_signed_mm": 0.23418237570314512,
+              "penetration_fraction": 0.4830414800162895,
+              "edge_median_mm": 3.097054785558554,
+              "edge_max_mm": 23.789508275129513,
+              "helper_to_own_skin_mm": [
+                1.4972496999362521,
+                4.106011595660564,
+                6.119971674313003
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.0015886387751802452,
+              "actual_p05_mm": 0.6887253500547107,
+              "actual_fraction_within_2mm": 0.144749893722545,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -9.952620650219998,
+              "min_absolute_mm": 0.005929546470821723,
+              "p05_signed_mm": -6.35685174427594,
+              "median_signed_mm": 6.2077635858764735,
+              "penetration_fraction": 0.2644183080629163,
+              "edge_median_mm": 2.512207659879521,
+              "edge_max_mm": 23.52551656548829,
+              "helper_to_own_skin_mm": [
+                1.856546112052267,
+                4.252770460554454,
+                6.608518368192965
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.002034990670891866,
+              "actual_p05_mm": 1.0737061797987457,
+              "actual_fraction_within_2mm": 0.09585381491771747,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -3.7420407432203797,
+              "min_absolute_mm": 0.0009349759219103027,
+              "p05_signed_mm": -0.8461528554645665,
+              "median_signed_mm": 12.534736526386318,
+              "penetration_fraction": 0.07148963453729429,
+              "edge_median_mm": 3.4881137817980545,
+              "edge_max_mm": 16.860334128180853,
+              "helper_to_own_skin_mm": [
+                6.275984102264802,
+                6.115570786170893,
+                3.927709828139523
+              ]
+            }
+          },
+          "channel_axis_error_deg": 19.235039603014176,
+          "palm_normal_axis_angle_deg": 65.87808212851348,
+          "palm_contact_to_all_skin_mm": 18.368524725259327,
+          "palm_contact_to_palm_region_mm": 30.733133435871018
+        }
+      }
+    },
+    {
+      "name": "row-finish-chase",
+      "sport": 0,
+      "contacts": "10/10",
+      "equipment_sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+      "hud_elapsed": 0,
+      "hud_distance": 9,
+      "hands": {
+        "Left": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            -0.45813533044981686,
+            0.6796444901508587,
+            -0.20005269705108197
+          ],
+          "equipment_axis": [
+            -0.6266038636051696,
+            -0.3145667498949467,
+            0.7130325083582122
+          ],
+          "palm_helper_proxy_mm": 27.346820727050357,
+          "palm_helper_actual_surface_mm": 27.577436003196684,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.00016109470934122297,
+              "actual_p05_mm": 0.7870381924447762,
+              "actual_fraction_within_2mm": 0.12198017327557481,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.633249919632746,
+              "min_absolute_mm": 0.0003199275463751372,
+              "p05_signed_mm": -13.607679153623922,
+              "median_signed_mm": 5.183334079162223,
+              "penetration_fraction": 0.35275741419526824,
+              "edge_median_mm": 3.9887789122819317,
+              "edge_max_mm": 9.97787265000143
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.00018159653149179335,
+              "actual_p05_mm": 0.5082394185523438,
+              "actual_fraction_within_2mm": 0.18922956996232299,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.018911773770268,
+              "min_absolute_mm": 0.0005363292363905203,
+              "p05_signed_mm": -6.986861304063276,
+              "median_signed_mm": 3.4740165823897615,
+              "penetration_fraction": 0.34597895283876834,
+              "edge_median_mm": 3.1209084670625904,
+              "edge_max_mm": 16.286587524278566,
+              "helper_to_own_skin_mm": [
+                1.1745114632223805,
+                3.8686285615063585,
+                7.60299592807159
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0012342339036116275,
+              "actual_p05_mm": 0.47287053611305546,
+              "actual_fraction_within_2mm": 0.2007032580627438,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.934431473683155,
+              "min_absolute_mm": 0.0002822632653894097,
+              "p05_signed_mm": -8.700326545042843,
+              "median_signed_mm": 2.08595500284655,
+              "penetration_fraction": 0.40354925553541016,
+              "edge_median_mm": 3.207168260704899,
+              "edge_max_mm": 22.394532280644338,
+              "helper_to_own_skin_mm": [
+                2.156570885235312,
+                3.137266261340042,
+                8.465634084040286
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.00035048533179750596,
+              "actual_p05_mm": 0.4023096918307016,
+              "actual_fraction_within_2mm": 0.24023402872170677,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -19.06655773697403,
+              "min_absolute_mm": 0.0019306657649924286,
+              "p05_signed_mm": -10.314824254265057,
+              "median_signed_mm": 0.4280098859832,
+              "penetration_fraction": 0.47639028426215946,
+              "edge_median_mm": 3.099725756743951,
+              "edge_max_mm": 24.12144358381441,
+              "helper_to_own_skin_mm": [
+                1.4405366855200363,
+                4.099680306248893,
+                6.061768295981908
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.003191668240043495,
+              "actual_p05_mm": 0.6824355481457284,
+              "actual_fraction_within_2mm": 0.14334705075445817,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -12.681891015942124,
+              "min_absolute_mm": 0.0008964199400482431,
+              "p05_signed_mm": -4.946355840835194,
+              "median_signed_mm": 6.973287943346654,
+              "penetration_fraction": 0.21117969821673527,
+              "edge_median_mm": 2.5280758832693726,
+              "edge_max_mm": 23.560852797428478,
+              "helper_to_own_skin_mm": [
+                1.8512834453301303,
+                4.251277164344242,
+                6.72368160419449
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0054036707400816715,
+              "actual_p05_mm": 1.5256874417275925,
+              "actual_fraction_within_2mm": 0.07507443641003828,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.230867032476997,
+              "min_absolute_mm": 0.005483107074322202,
+              "p05_signed_mm": 0.244325621170101,
+              "median_signed_mm": 11.54734157984514,
+              "penetration_fraction": 0.045353041259038704,
+              "edge_median_mm": 3.5077069920493145,
+              "edge_max_mm": 16.891888864387443,
+              "helper_to_own_skin_mm": [
+                6.257923163841971,
+                6.160382101343287,
+                3.8852162318281045
+              ]
+            }
+          },
+          "channel_axis_error_deg": 2.709859370366323,
+          "palm_normal_axis_angle_deg": 70.20738496608661,
+          "palm_contact_to_all_skin_mm": 18.43407618706922,
+          "palm_contact_to_palm_region_mm": 30.617538630622793
+        },
+        "Right": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            0.4581350472850556,
+            0.6796444749857256,
+            -0.20005287974563646
+          ],
+          "equipment_axis": [
+            0.6266044101878917,
+            -0.3145665517736145,
+            0.7130321154326377
+          ],
+          "palm_helper_proxy_mm": 27.34753291737021,
+          "palm_helper_actual_surface_mm": 27.578159212889833,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 2.645880214366899e-05,
+              "actual_p05_mm": 0.7739651202609515,
+              "actual_fraction_within_2mm": 0.12264562350742395,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.677116462668053,
+              "min_absolute_mm": 7.294222463191669e-05,
+              "p05_signed_mm": -13.69075371390243,
+              "median_signed_mm": 5.146135827361332,
+              "penetration_fraction": 0.35564323538573356,
+              "edge_median_mm": 3.9903129031477858,
+              "edge_max_mm": 9.496349018617744
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 0.0004094861829267281,
+              "actual_p05_mm": 0.47575703762879684,
+              "actual_fraction_within_2mm": 0.19563434483628794,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -9.964745487694357,
+              "min_absolute_mm": 0.0012641035993105065,
+              "p05_signed_mm": -7.050110833557591,
+              "median_signed_mm": 2.9789065734070683,
+              "penetration_fraction": 0.3644565011671188,
+              "edge_median_mm": 3.1312765924269663,
+              "edge_max_mm": 15.226973851759054,
+              "helper_to_own_skin_mm": [
+                1.2625464317315995,
+                3.9360242340862,
+                7.603850858318984
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0001949883072845798,
+              "actual_p05_mm": 0.4920707629251388,
+              "actual_fraction_within_2mm": 0.19713281335823354,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.887204305321141,
+              "min_absolute_mm": 0.0005568040831217813,
+              "p05_signed_mm": -8.723452080545389,
+              "median_signed_mm": 2.1528791886251275,
+              "penetration_fraction": 0.40316379215643194,
+              "edge_median_mm": 3.22883550422123,
+              "edge_max_mm": 22.420638434157635,
+              "helper_to_own_skin_mm": [
+                2.2004180486333844,
+                3.0915861267366367,
+                8.50112182209731
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0021200929856582413,
+              "actual_p05_mm": 0.38363800104066453,
+              "actual_fraction_within_2mm": 0.24492407935307464,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -18.990334607831656,
+              "min_absolute_mm": 0.0011871890277029284,
+              "p05_signed_mm": -10.102047823081122,
+              "median_signed_mm": 0.1520489150805722,
+              "penetration_fraction": 0.48944092151957647,
+              "edge_median_mm": 3.097060119685411,
+              "edge_max_mm": 23.79054475117893,
+              "helper_to_own_skin_mm": [
+                1.4973868538928823,
+                4.105350429279777,
+                6.119724367305644
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.0011060646099339006,
+              "actual_p05_mm": 0.6901499074944308,
+              "actual_fraction_within_2mm": 0.1417741249822871,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -12.64539654798662,
+              "min_absolute_mm": 0.009501474720577385,
+              "p05_signed_mm": -4.947647132524758,
+              "median_signed_mm": 7.018739884664322,
+              "penetration_fraction": 0.21574323366869774,
+              "edge_median_mm": 2.5122093193042874,
+              "edge_max_mm": 23.52578110448792,
+              "helper_to_own_skin_mm": [
+                1.8568157527435072,
+                4.251614232628283,
+                6.608194957219604
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.004478685152103915,
+              "actual_p05_mm": 1.6137190466939553,
+              "actual_fraction_within_2mm": 0.07159649497755931,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.4919751935259,
+              "min_absolute_mm": 0.002790854960355027,
+              "p05_signed_mm": 0.6025648039956477,
+              "median_signed_mm": 11.566226837945223,
+              "penetration_fraction": 0.039965804659115194,
+              "edge_median_mm": 3.4881081508496896,
+              "edge_max_mm": 16.860399509315823,
+              "helper_to_own_skin_mm": [
+                6.275987585960147,
+                6.116274071747855,
+                3.927621566409598
+              ]
+            }
+          },
+          "channel_axis_error_deg": 2.709778329360016,
+          "palm_normal_axis_angle_deg": 70.207461347033,
+          "palm_contact_to_all_skin_mm": 18.368361088308667,
+          "palm_contact_to_palm_region_mm": 30.733143107007045
+        }
+      }
+    },
+    {
+      "name": "row-halfslide-chase",
+      "sport": 0,
+      "contacts": "10/10",
+      "equipment_sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+      "hud_elapsed": 0,
+      "hud_distance": 9,
+      "hands": {
+        "Left": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            -0.24943867707826362,
+            0.47000001297675337,
+            0.4749178090205579
+          ],
+          "equipment_axis": [
+            -0.955395108518064,
+            -4.056853992231615e-08,
+            -0.2953306394869235
+          ],
+          "palm_helper_proxy_mm": 17.24551095548817,
+          "palm_helper_actual_surface_mm": 17.638213748032054,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0004501020757312934,
+              "actual_p05_mm": 1.3418458915847513,
+              "actual_fraction_within_2mm": 0.07424608463845385,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.77215635286368,
+              "min_absolute_mm": 0.00065033985540211,
+              "p05_signed_mm": -13.660501000988843,
+              "median_signed_mm": 12.189825556545776,
+              "penetration_fraction": 0.24248167277574142,
+              "edge_median_mm": 3.988779650050573,
+              "edge_max_mm": 9.9778747314265
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.0011752932936886593,
+              "actual_p05_mm": 0.6036602529952814,
+              "actual_fraction_within_2mm": 0.18578667013121997,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.410324464357753,
+              "min_absolute_mm": 0.0005137562439742893,
+              "p05_signed_mm": -15.925326464588732,
+              "median_signed_mm": -5.790888375495049,
+              "penetration_fraction": 0.881382356762375,
+              "edge_median_mm": 3.120906676421454,
+              "edge_max_mm": 16.28774434785888,
+              "helper_to_own_skin_mm": [
+                1.1744924085075845,
+                3.86891599448322,
+                7.602087768639451
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 5.098411166668591e-05,
+              "actual_p05_mm": 0.4669826211636544,
+              "actual_fraction_within_2mm": 0.22405362342728422,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.946922913380494,
+              "min_absolute_mm": 0.0005814698986368605,
+              "p05_signed_mm": -16.639661770294904,
+              "median_signed_mm": -2.8859363775370452,
+              "penetration_fraction": 0.6838085819460469,
+              "edge_median_mm": 3.2071677977961417,
+              "edge_max_mm": 22.395491987278042,
+              "helper_to_own_skin_mm": [
+                2.1567992345227136,
+                3.1369884135875576,
+                8.465595682755737
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 5.8624121242794755e-05,
+              "actual_p05_mm": 0.4230337711212302,
+              "actual_fraction_within_2mm": 0.2504580107558655,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.513754010524266,
+              "min_absolute_mm": 0.00038200921183284553,
+              "p05_signed_mm": -12.355603823019372,
+              "median_signed_mm": 0.7832746997011968,
+              "penetration_fraction": 0.4453637491874003,
+              "edge_median_mm": 3.0997267448752424,
+              "edge_max_mm": 24.12140181540088,
+              "helper_to_own_skin_mm": [
+                1.440143308441435,
+                4.099126793146315,
+                6.0618287801368105
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.005115683551819783,
+              "actual_p05_mm": 0.7706229525666207,
+              "actual_fraction_within_2mm": 0.13209876543209875,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.619859528474569,
+              "min_absolute_mm": 0.0003044848174947601,
+              "p05_signed_mm": -2.0600359003055564,
+              "median_signed_mm": 9.780673994156349,
+              "penetration_fraction": 0.11790123456790123,
+              "edge_median_mm": 2.5280766614539263,
+              "edge_max_mm": 23.5611010386519,
+              "helper_to_own_skin_mm": [
+                1.8513787280037945,
+                4.250581664554444,
+                6.723682765318051
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0006030904872730925,
+              "actual_p05_mm": 2.440299640756402,
+              "actual_fraction_within_2mm": 0.04290727350063803,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -1.8512432730130035,
+              "min_absolute_mm": 4.7931082491903254e-05,
+              "p05_signed_mm": 1.6752184662610796,
+              "median_signed_mm": 13.503205048330317,
+              "penetration_fraction": 0.02190557209698001,
+              "edge_median_mm": 3.507708417732392,
+              "edge_max_mm": 16.891379191597473,
+              "helper_to_own_skin_mm": [
+                6.257717833587155,
+                6.160656170445728,
+                3.884968469151104
+              ]
+            }
+          },
+          "channel_axis_error_deg": 20.74059732973437,
+          "palm_normal_axis_angle_deg": 60.743243636986264,
+          "palm_contact_to_all_skin_mm": 18.433821475575083,
+          "palm_contact_to_palm_region_mm": 30.617520123865148
+        },
+        "Right": {
+          "radius_mm": 23.0,
+          "equipment_centre": [
+            0.24943940640231632,
+            0.47000002681604813,
+            0.47491670061000535
+          ],
+          "equipment_axis": [
+            0.9553956189320846,
+            -4.224218072544346e-09,
+            -0.29532898829166615
+          ],
+          "palm_helper_proxy_mm": 17.24863306122347,
+          "palm_helper_actual_surface_mm": 17.64138350394996,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 9.440361506639957e-05,
+              "actual_p05_mm": 1.358479694710663,
+              "actual_fraction_within_2mm": 0.0737410445436611,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.76643684022664,
+              "min_absolute_mm": 0.0004155974852315669,
+              "p05_signed_mm": -13.823905272561694,
+              "median_signed_mm": 12.076397837391006,
+              "penetration_fraction": 0.24352611359152737,
+              "edge_median_mm": 3.990311628417719,
+              "edge_max_mm": 9.49634717520302
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 0.00010544637726117904,
+              "actual_p05_mm": 0.5994595448432275,
+              "actual_fraction_within_2mm": 0.1856665194624945,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.415976833632858,
+              "min_absolute_mm": 0.001009887025737316,
+              "p05_signed_mm": -16.190493342918867,
+              "median_signed_mm": -5.8278713475005475,
+              "penetration_fraction": 0.8838559081445966,
+              "edge_median_mm": 3.1312745948549217,
+              "edge_max_mm": 15.225876750707553,
+              "helper_to_own_skin_mm": [
+                1.2623894726039409,
+                3.936060243386706,
+                7.603316618603595
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0017977013640116078,
+              "actual_p05_mm": 0.4826238334335349,
+              "actual_fraction_within_2mm": 0.22014720421838954,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -22.916186477824272,
+              "min_absolute_mm": 0.0006074895860588847,
+              "p05_signed_mm": -16.74529748976897,
+              "median_signed_mm": -3.053549607655347,
+              "penetration_fraction": 0.6902120180160387,
+              "edge_median_mm": 3.228837453727797,
+              "edge_max_mm": 22.41965178192724,
+              "helper_to_own_skin_mm": [
+                2.200265241141086,
+                3.091874046048203,
+                8.500816340363022
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.001578857548842713,
+              "actual_p05_mm": 0.4214758578466648,
+              "actual_fraction_within_2mm": 0.25015998603758216,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -21.43118708768111,
+              "min_absolute_mm": 0.000792666613697729,
+              "p05_signed_mm": -12.446447899822358,
+              "median_signed_mm": 0.6950541176643683,
+              "penetration_fraction": 0.450113444644831,
+              "edge_median_mm": 3.097056821512856,
+              "edge_max_mm": 23.789593811835534,
+              "helper_to_own_skin_mm": [
+                1.497197328281205,
+                4.1064194389720905,
+                6.120345182288645
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.0018349416505655696,
+              "actual_p05_mm": 0.784454272150681,
+              "actual_fraction_within_2mm": 0.13447640640498795,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.618432113459262,
+              "min_absolute_mm": 0.0003373729534975056,
+              "p05_signed_mm": -2.1087997508437706,
+              "median_signed_mm": 9.87753563414248,
+              "penetration_fraction": 0.12214822162391951,
+              "edge_median_mm": 2.5122094510461284,
+              "edge_max_mm": 23.524868291636253,
+              "helper_to_own_skin_mm": [
+                1.856671692450151,
+                4.252520129634046,
+                6.608304213621436
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0004502520536962885,
+              "actual_p05_mm": 2.4525285087319797,
+              "actual_fraction_within_2mm": 0.04285103654627057,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -1.855756647497181,
+              "min_absolute_mm": 0.000368577852932761,
+              "p05_signed_mm": 1.6934217319598348,
+              "median_signed_mm": 13.474154887212608,
+              "penetration_fraction": 0.02206668091472537,
+              "edge_median_mm": 3.488107671173557,
+              "edge_max_mm": 16.86021134555394,
+              "helper_to_own_skin_mm": [
+                6.276051205278019,
+                6.115601224940782,
+                3.927605896443957
+              ]
+            }
+          },
+          "channel_axis_error_deg": 20.740601478643395,
+          "palm_normal_axis_angle_deg": 60.743227690010485,
+          "palm_contact_to_all_skin_mm": 18.367345510795893,
+          "palm_contact_to_palm_region_mm": 30.733127293874364
+        }
+      }
+    },
+    {
+      "name": "ski-approach-chase",
+      "sport": 1,
+      "contacts": "8/10",
+      "hud_elapsed": 0,
+      "hud_distance": 5.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            -0.306591129448735,
+            1.5358818081037433,
+            0.6881141031166199
+          ],
+          "equipment_axis": [
+            0.07802191201228123,
+            0.9655057419262485,
+            0.2484174783572854
+          ],
+          "palm_helper_proxy_mm": 30.04245546996568,
+          "channel_axis_error_deg": 21.025158213183563,
+          "palm_helper_actual_surface_mm": 46.13448376288032,
+          "palm_normal_axis_angle_deg": 71.01705417777542,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0009360860453974274,
+              "actual_p05_mm": 2.425803814114687,
+              "actual_fraction_within_2mm": 0.04225674775074975,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.68922467791738,
+              "min_absolute_mm": 0.0010488960294693928,
+              "p05_signed_mm": -3.6620932333566047,
+              "median_signed_mm": 22.00360698681307,
+              "penetration_fraction": 0.10152865711429523,
+              "edge_median_mm": 3.9887784032326867,
+              "edge_max_mm": 9.97787180776785
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 17.35013945125828,
+              "actual_p05_mm": 20.248820976543456,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 15.520503900236612,
+              "min_absolute_mm": 15.520503900236612,
+              "p05_signed_mm": 17.529981903060857,
+              "median_signed_mm": 27.29100283727179,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.084035407660927,
+              "edge_max_mm": 18.247595286046103,
+              "helper_to_own_skin_mm": [
+                1.330893372044108,
+                3.3806218370937584,
+                7.644061244621687
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0005858107529994226,
+              "actual_p05_mm": 1.6860520930581888,
+              "actual_fraction_within_2mm": 0.06312362146833315,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.353752153360363,
+              "min_absolute_mm": 0.0009522526825192501,
+              "p05_signed_mm": -4.751880728956263,
+              "median_signed_mm": 5.443112784487412,
+              "penetration_fraction": 0.2171515597101145,
+              "edge_median_mm": 3.1597372033540587,
+              "edge_max_mm": 26.270769815681142,
+              "helper_to_own_skin_mm": [
+                2.8789291446441223,
+                3.6893765636061655,
+                8.464906399532042
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.0001672777621800725,
+              "actual_p05_mm": 0.291573513233611,
+              "actual_fraction_within_2mm": 0.29503307667281203,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.630569747970986,
+              "min_absolute_mm": 0.00016936649871457377,
+              "p05_signed_mm": -9.490861684309325,
+              "median_signed_mm": -0.7624687572617997,
+              "penetration_fraction": 0.5781368615117666,
+              "edge_median_mm": 2.865541208496647,
+              "edge_max_mm": 29.261788604143234,
+              "helper_to_own_skin_mm": [
+                4.00619050297531,
+                5.051159669637959,
+                6.075244802654614
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.0012776867079477125,
+              "actual_p05_mm": 0.643510036242572,
+              "actual_fraction_within_2mm": 0.11163201521945916,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -5.842818967289514,
+              "min_absolute_mm": 0.003663445544331567,
+              "p05_signed_mm": -1.7203998116732937,
+              "median_signed_mm": 10.362804554981984,
+              "penetration_fraction": 0.10762331838565023,
+              "edge_median_mm": 2.4999284750020503,
+              "edge_max_mm": 23.561070183457105,
+              "helper_to_own_skin_mm": [
+                1.8506825748689242,
+                4.018334426306511,
+                6.724129111386036
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.003546456202431506,
+              "actual_p05_mm": 1.838995026788237,
+              "actual_fraction_within_2mm": 0.05574129232265516,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.755391792255477,
+              "min_absolute_mm": 0.0009033068271852018,
+              "p05_signed_mm": -4.556267581608703,
+              "median_signed_mm": 11.06681739071502,
+              "penetration_fraction": 0.13762081332441797,
+              "edge_median_mm": 3.5893121898352662,
+              "edge_max_mm": 11.539088019848101,
+              "helper_to_own_skin_mm": [
+                6.293054148989835,
+                6.443792395690751,
+                3.572440872592722
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.334628828731272,
+          "palm_contact_to_palm_region_mm": 30.61755389919235
+        },
+        "Right": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            0.306632652737455,
+            1.5358784177921116,
+            0.6880345290993155
+          ],
+          "equipment_axis": [
+            -0.07846858748067419,
+            0.9652446705379689,
+            0.24928980479922477
+          ],
+          "palm_helper_proxy_mm": 30.046689549696033,
+          "channel_axis_error_deg": 21.082777492977876,
+          "palm_helper_actual_surface_mm": 46.14977880220616,
+          "palm_normal_axis_angle_deg": 71.01809534552093,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.001588662745721862,
+              "actual_p05_mm": 2.4834545039541385,
+              "actual_fraction_within_2mm": 0.04120029072785796,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.749801107193171,
+              "min_absolute_mm": 0.00041655706155274697,
+              "p05_signed_mm": -3.5486992419741714,
+              "median_signed_mm": 21.626682923123777,
+              "penetration_fraction": 0.10021804589346901,
+              "edge_median_mm": 3.9903170451089296,
+              "edge_max_mm": 9.496361055033308
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 17.346705622915024,
+              "actual_p05_mm": 19.972671626354273,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 15.62816459632975,
+              "min_absolute_mm": 15.62816459632975,
+              "p05_signed_mm": 17.522480338659836,
+              "median_signed_mm": 27.226014105863747,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.116985063228793,
+              "edge_max_mm": 17.397801696664125,
+              "helper_to_own_skin_mm": [
+                1.4461932479012118,
+                3.436533715240004,
+                7.603565473140721
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0007566780225114658,
+              "actual_p05_mm": 1.7129388790677031,
+              "actual_fraction_within_2mm": 0.06004947108046945,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.073178641376703,
+              "min_absolute_mm": 0.0014279671071842914,
+              "p05_signed_mm": -4.658828249476859,
+              "median_signed_mm": 5.404633050217415,
+              "penetration_fraction": 0.2203041945160781,
+              "edge_median_mm": 3.142305626117896,
+              "edge_max_mm": 26.272778327331864,
+              "helper_to_own_skin_mm": [
+                2.938965262793468,
+                3.657218316711199,
+                8.501054168067414
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0005247452519096708,
+              "actual_p05_mm": 0.2947561221432453,
+              "actual_fraction_within_2mm": 0.29021426287176205,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.642079872559052,
+              "min_absolute_mm": 2.3490303150547343e-05,
+              "p05_signed_mm": -9.712849295920714,
+              "median_signed_mm": -0.9072896059111472,
+              "penetration_fraction": 0.5843726681590449,
+              "edge_median_mm": 2.8816394968173498,
+              "edge_max_mm": 29.22765606465132,
+              "helper_to_own_skin_mm": [
+                4.203394469078758,
+                5.01282623031939,
+                6.197572016518831
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.0032735798618152615,
+              "actual_p05_mm": 0.658749685479771,
+              "actual_fraction_within_2mm": 0.11063977746870654,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -5.822268548260958,
+              "min_absolute_mm": 0.0009738807464666766,
+              "p05_signed_mm": -1.7172254067570527,
+              "median_signed_mm": 10.407985152979684,
+              "penetration_fraction": 0.10660639777468707,
+              "edge_median_mm": 2.4929802700755728,
+              "edge_max_mm": 23.525432981736312,
+              "helper_to_own_skin_mm": [
+                1.8571532596027736,
+                3.9688261679955357,
+                6.607578986196336
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0001227577599496025,
+              "actual_p05_mm": 1.812524543294136,
+              "actual_fraction_within_2mm": 0.055389495516378943,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.771912731210286,
+              "min_absolute_mm": 8.46920730178391e-05,
+              "p05_signed_mm": -4.428350461064229,
+              "median_signed_mm": 11.041365954801801,
+              "penetration_fraction": 0.13853474043799183,
+              "edge_median_mm": 3.578577237125414,
+              "edge_max_mm": 11.581356821158733,
+              "helper_to_own_skin_mm": [
+                6.3065754534894465,
+                6.337101680332869,
+                3.818852592782511
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.26068663512705,
+          "palm_contact_to_palm_region_mm": 30.733157850974106
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "ski-plant-chase",
+      "sport": 1,
+      "contacts": "8/10",
+      "hud_elapsed": 0,
+      "hud_distance": 5.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            -0.33377929708542825,
+            1.2894135931415678,
+            0.6105624616713216
+          ],
+          "equipment_axis": [
+            0.09746441700112643,
+            0.9532154705788276,
+            0.2861484825537516
+          ],
+          "palm_helper_proxy_mm": 30.462610783464683,
+          "channel_axis_error_deg": 25.939054164188256,
+          "palm_helper_actual_surface_mm": 46.40075077853773,
+          "palm_normal_axis_angle_deg": 71.01759825639402,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.00012073396297320959,
+              "actual_p05_mm": 2.087875940750699,
+              "actual_fraction_within_2mm": 0.0476299566811063,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.661566509860902,
+              "min_absolute_mm": 0.0006720562381740125,
+              "p05_signed_mm": -4.369293253711918,
+              "median_signed_mm": 20.843308167606704,
+              "penetration_fraction": 0.11210846384538488,
+              "edge_median_mm": 3.9887781604965222,
+              "edge_max_mm": 9.977872977921152
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 17.359140922761927,
+              "actual_p05_mm": 20.173843409001922,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.747307419494495,
+              "min_absolute_mm": 14.747307419494495,
+              "p05_signed_mm": 16.944633601142687,
+              "median_signed_mm": 27.369702065358034,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.0840358576231313,
+              "edge_max_mm": 18.247926289879153,
+              "helper_to_own_skin_mm": [
+                1.3311853255551764,
+                3.3798378880461146,
+                7.643666137288918
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.00197328770862878,
+              "actual_p05_mm": 1.3949717251377298,
+              "actual_fraction_within_2mm": 0.07320659594580402,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -11.122058837488888,
+              "min_absolute_mm": 0.0006554998206176332,
+              "p05_signed_mm": -5.21339911617077,
+              "median_signed_mm": 5.580627119032927,
+              "penetration_fraction": 0.2253964919651297,
+              "edge_median_mm": 3.1597363963008545,
+              "edge_max_mm": 26.270409099962027,
+              "helper_to_own_skin_mm": [
+                2.8785167726178007,
+                3.689157888699132,
+                8.465189702124462
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.00022148346334382015,
+              "actual_p05_mm": 0.2178183524557609,
+              "actual_fraction_within_2mm": 0.2924303220908795,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.13887890809089,
+              "min_absolute_mm": 0.0005809100405707035,
+              "p05_signed_mm": -10.175779105641178,
+              "median_signed_mm": -1.2573477632958665,
+              "penetration_fraction": 0.6131656002602754,
+              "edge_median_mm": 2.8655418198728246,
+              "edge_max_mm": 29.261252151854418,
+              "helper_to_own_skin_mm": [
+                4.006312664782514,
+                5.0512806477412715,
+                6.074711203869229
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.0033947602640517494,
+              "actual_p05_mm": 0.5698537700910467,
+              "actual_fraction_within_2mm": 0.1203288490284006,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -4.8011788897565495,
+              "min_absolute_mm": 0.0009427270954188993,
+              "p05_signed_mm": -2.790542662414731,
+              "median_signed_mm": 9.528230735040358,
+              "penetration_fraction": 0.12630792227204785,
+              "edge_median_mm": 2.499927595011649,
+              "edge_max_mm": 23.56035644936126,
+              "helper_to_own_skin_mm": [
+                1.8509879098948463,
+                4.018515007137086,
+                6.7233315067066615
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0038648604150795457,
+              "actual_p05_mm": 1.8842030794279228,
+              "actual_fraction_within_2mm": 0.053066682876420884,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -9.125771347578095,
+              "min_absolute_mm": 0.0002953185968233851,
+              "p05_signed_mm": -4.7044073658897165,
+              "median_signed_mm": 10.721823926344047,
+              "penetration_fraction": 0.14309160537353352,
+              "edge_median_mm": 3.5893150434509056,
+              "edge_max_mm": 11.53932916557183,
+              "helper_to_own_skin_mm": [
+                6.293080346450582,
+                6.443658685657728,
+                3.5726821010894656
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.334318796832456,
+          "palm_contact_to_palm_region_mm": 30.617546504485176
+        },
+        "Right": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            0.33377929708542825,
+            1.2894135931415678,
+            0.6105624220412225
+          ],
+          "equipment_axis": [
+            -0.09746441764919903,
+            0.9532154769170672,
+            0.28614846121912063
+          ],
+          "palm_helper_proxy_mm": 30.462685308080818,
+          "channel_axis_error_deg": 25.93905272973889,
+          "palm_helper_actual_surface_mm": 46.40082808456791,
+          "palm_normal_axis_angle_deg": 71.01759730264206,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.0026332286647451596,
+              "actual_p05_mm": 2.099985122223434,
+              "actual_fraction_within_2mm": 0.04749247222510643,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.754813349197423,
+              "min_absolute_mm": 0.0008408651851858628,
+              "p05_signed_mm": -4.277758736279034,
+              "median_signed_mm": 20.460951921046966,
+              "penetration_fraction": 0.10896064790779773,
+              "edge_median_mm": 3.9903165995007335,
+              "edge_max_mm": 9.496360807534371
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 17.347866453097236,
+              "actual_p05_mm": 19.90976245736996,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.812006225724003,
+              "min_absolute_mm": 14.812006225724003,
+              "p05_signed_mm": 16.925842055764598,
+              "median_signed_mm": 27.309899561875774,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.1169836042958363,
+              "edge_max_mm": 17.39807497818322,
+              "helper_to_own_skin_mm": [
+                1.4463786717820375,
+                3.435758568582402,
+                7.603213898934172
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0012778012189353044,
+              "actual_p05_mm": 1.4447656734377976,
+              "actual_fraction_within_2mm": 0.07041734645544971,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.94261874317029,
+              "min_absolute_mm": 3.419184386316276e-05,
+              "p05_signed_mm": -5.039967012454335,
+              "median_signed_mm": 5.54365295722772,
+              "penetration_fraction": 0.22983000894689753,
+              "edge_median_mm": 3.1424918353217675,
+              "edge_max_mm": 26.271759692302552,
+              "helper_to_own_skin_mm": [
+                2.9378250752858377,
+                3.6564256766983143,
+                8.50092739485096
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.00010515173446088237,
+              "actual_p05_mm": 0.21635788889380422,
+              "actual_fraction_within_2mm": 0.28664321500906087,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.15213679305634,
+              "min_absolute_mm": 0.000488919846289293,
+              "p05_signed_mm": -10.603331446577693,
+              "median_signed_mm": -1.3792302950967166,
+              "penetration_fraction": 0.6231745016522758,
+              "edge_median_mm": 2.8816390254439277,
+              "edge_max_mm": 29.22784385718948,
+              "helper_to_own_skin_mm": [
+                4.203421063510005,
+                5.012873275320358,
+                6.197250262548946
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 4.7217679984953e-05,
+              "actual_p05_mm": 0.5362552649767476,
+              "actual_fraction_within_2mm": 0.12079276773296245,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -4.828509864104399,
+              "min_absolute_mm": 0.0020460345115901057,
+              "p05_signed_mm": -2.76977464848753,
+              "median_signed_mm": 9.601507378459832,
+              "penetration_fraction": 0.12531293463143253,
+              "edge_median_mm": 2.4929787419488028,
+              "edge_max_mm": 23.52582736316069,
+              "helper_to_own_skin_mm": [
+                1.8572114001445472,
+                3.9687457771298345,
+                6.607975231760524
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.002981464307059389,
+              "actual_p05_mm": 1.8792182832816116,
+              "actual_fraction_within_2mm": 0.053437442810955894,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -9.151944506132413,
+              "min_absolute_mm": 0.0029492562579440385,
+              "p05_signed_mm": -4.547772066693271,
+              "median_signed_mm": 10.702689897575775,
+              "penetration_fraction": 0.14414689196608307,
+              "edge_median_mm": 3.578577070814096,
+              "edge_max_mm": 11.58118065614284,
+              "helper_to_own_skin_mm": [
+                6.306500484243157,
+                6.337116744304073,
+                3.8186963179173574
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.26064867401076,
+          "palm_contact_to_palm_region_mm": 30.733158237862657
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "ski-pull-chase",
+      "sport": 1,
+      "contacts": "8/10",
+      "hud_elapsed": 0,
+      "hud_distance": 5.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            -0.19933093430704135,
+            1.2733634689999311,
+            0.5882728943244419
+          ],
+          "equipment_axis": [
+            0.20267454188222658,
+            0.940818765902606,
+            0.2716304102973869
+          ],
+          "palm_helper_proxy_mm": 28.818785626684924,
+          "channel_axis_error_deg": 0.0006273726042407231,
+          "palm_helper_actual_surface_mm": 38.75121377154912,
+          "palm_normal_axis_angle_deg": 71.01789327695698,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.001823299010855076,
+              "actual_p05_mm": 3.0783726921574304,
+              "actual_fraction_within_2mm": 0.03309313562145951,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.504580562226415,
+              "min_absolute_mm": 0.0010017087306406214,
+              "p05_signed_mm": -0.9290877441662203,
+              "median_signed_mm": 26.451768742803,
+              "penetration_fraction": 0.060000833055648115,
+              "edge_median_mm": 3.9887746438589535,
+              "edge_max_mm": 9.97786486446062
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 18.558553449572035,
+              "actual_p05_mm": 20.342264048391435,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.591829992791487,
+              "min_absolute_mm": 14.591829992791487,
+              "p05_signed_mm": 17.100642020873003,
+              "median_signed_mm": 26.41446830321484,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.0840344744288037,
+              "edge_max_mm": 18.248249178369555,
+              "helper_to_own_skin_mm": [
+                1.3312191013953012,
+                3.3798128202311197,
+                7.6438486772355185
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0002462473851262959,
+              "actual_p05_mm": 1.9338138659200144,
+              "actual_fraction_within_2mm": 0.052252914609809895,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.393893714251657,
+              "min_absolute_mm": 0.0012058123281706579,
+              "p05_signed_mm": -4.111100252957141,
+              "median_signed_mm": 5.653964818212583,
+              "penetration_fraction": 0.17398382522844238,
+              "edge_median_mm": 3.1597349417093805,
+              "edge_max_mm": 26.2710510630418,
+              "helper_to_own_skin_mm": [
+                2.8783720284106695,
+                3.688134843755398,
+                8.464850274490313
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.0006449045183964778,
+              "actual_p05_mm": 0.3005442759832658,
+              "actual_fraction_within_2mm": 0.2608176987311571,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.928475315809077,
+              "min_absolute_mm": 0.0005299470865541278,
+              "p05_signed_mm": -9.173671735906696,
+              "median_signed_mm": 0.4127918860806351,
+              "penetration_fraction": 0.4741893503958356,
+              "edge_median_mm": 2.865540867661999,
+              "edge_max_mm": 29.261772850560238,
+              "helper_to_own_skin_mm": [
+                4.006227141942099,
+                5.05134082573054,
+                6.074512492563534
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.0033144661003036693,
+              "actual_p05_mm": 3.0939931642244374,
+              "actual_fraction_within_2mm": 0.03295284685419215,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.558483104838234,
+              "min_absolute_mm": 0.020793204871812077,
+              "p05_signed_mm": 3.244563808018715,
+              "median_signed_mm": 15.057282449058915,
+              "penetration_fraction": 0.02058703628210355,
+              "edge_median_mm": 2.4999253756418627,
+              "edge_max_mm": 23.561247538299593,
+              "helper_to_own_skin_mm": [
+                1.8505094671119844,
+                4.018341996451433,
+                6.724029474883309
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.011381422251160489,
+              "actual_p05_mm": 1.6100870317691338,
+              "actual_fraction_within_2mm": 0.06327882803476992,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.705184315184859,
+              "min_absolute_mm": 0.002787870566536149,
+              "p05_signed_mm": -3.2794226484824582,
+              "median_signed_mm": 14.326316312052867,
+              "penetration_fraction": 0.10911190809069357,
+              "edge_median_mm": 3.5893103827509427,
+              "edge_max_mm": 11.539141263316003,
+              "helper_to_own_skin_mm": [
+                6.293498226830439,
+                6.443034877118904,
+                3.573171156893091
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.334636654984042,
+          "palm_contact_to_palm_region_mm": 30.61755317240979
+        },
+        "Right": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            0.2007487528077464,
+            1.2773191336280405,
+            0.5850629658916953
+          ],
+          "equipment_axis": [
+            -0.19878852383815937,
+            0.9438762108668718,
+            0.26378176841821743
+          ],
+          "palm_helper_proxy_mm": 28.815654856389582,
+          "channel_axis_error_deg": 0.00022269421722335552,
+          "palm_helper_actual_surface_mm": 38.76875698095795,
+          "palm_normal_axis_angle_deg": 71.0172217278834,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.001331221307014872,
+              "actual_p05_mm": 3.072317632162149,
+              "actual_fraction_within_2mm": 0.03222925968227598,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.52601445542571,
+              "min_absolute_mm": 0.0021844995813508072,
+              "p05_signed_mm": -0.9227118134947347,
+              "median_signed_mm": 26.168650809269923,
+              "penetration_fraction": 0.05997300384176098,
+              "edge_median_mm": 3.990315744138437,
+              "edge_max_mm": 9.496357655406744
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 18.496872706268856,
+              "actual_p05_mm": 20.10165780438655,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.658214932734916,
+              "min_absolute_mm": 14.658214932734916,
+              "p05_signed_mm": 17.094758909554407,
+              "median_signed_mm": 26.23960290399856,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.116980182594518,
+              "edge_max_mm": 17.398007742441983,
+              "helper_to_own_skin_mm": [
+                1.4468569519438457,
+                3.437020419890541,
+                7.604002153364585
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.00026624615989657426,
+              "actual_p05_mm": 1.955749002068485,
+              "actual_fraction_within_2mm": 0.051418346402820905,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.971177449578814,
+              "min_absolute_mm": 0.00209420408647798,
+              "p05_signed_mm": -4.123762359458258,
+              "median_signed_mm": 5.620378112591525,
+              "penetration_fraction": 0.17683279827377507,
+              "edge_median_mm": 3.1419065190081517,
+              "edge_max_mm": 26.272370434414242,
+              "helper_to_own_skin_mm": [
+                2.939189646490281,
+                3.6571476284087874,
+                8.500167191084502
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.00018190368528270794,
+              "actual_p05_mm": 0.2884062641404182,
+              "actual_fraction_within_2mm": 0.2686813772518921,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.911890262414463,
+              "min_absolute_mm": 2.3499667038684446e-06,
+              "p05_signed_mm": -9.023989585372883,
+              "median_signed_mm": 0.38793676040533437,
+              "penetration_fraction": 0.47500266496109156,
+              "edge_median_mm": 2.881637268738637,
+              "edge_max_mm": 29.22683876207883,
+              "helper_to_own_skin_mm": [
+                4.203704646323748,
+                5.012976165899251,
+                6.19654280023631
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.005567215735267732,
+              "actual_p05_mm": 2.8486143719975643,
+              "actual_fraction_within_2mm": 0.03525730180806676,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.538755909020158,
+              "min_absolute_mm": 0.00795988164379452,
+              "p05_signed_mm": 2.915690614109056,
+              "median_signed_mm": 15.098409498120034,
+              "penetration_fraction": 0.022044506258692628,
+              "edge_median_mm": 2.4929799636515737,
+              "edge_max_mm": 23.525937370395287,
+              "helper_to_own_skin_mm": [
+                1.8570179229946693,
+                3.968736220471459,
+                6.6083769417825104
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.00025354741296005045,
+              "actual_p05_mm": 1.6848760062343606,
+              "actual_fraction_within_2mm": 0.05923259928018056,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.711241281045492,
+              "min_absolute_mm": 0.0002773206722733734,
+              "p05_signed_mm": -3.0574532282614273,
+              "median_signed_mm": 14.181985327922144,
+              "penetration_fraction": 0.10937595315073508,
+              "edge_median_mm": 3.5785773680750537,
+              "edge_max_mm": 11.580690198058008,
+              "helper_to_own_skin_mm": [
+                6.3059310679560365,
+                6.337643634796552,
+                3.81820101712943
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.260830858571495,
+          "palm_contact_to_palm_region_mm": 30.733161970367235
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "ski-release-chase",
+      "sport": 1,
+      "contacts": "8/10",
+      "hud_elapsed": 0,
+      "hud_distance": 5.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            -0.2660687575966648,
+            0.7398410876688659,
+            -0.37298592163384986
+          ],
+          "equipment_axis": [
+            0.21063969703325974,
+            0.7317144538465006,
+            -0.6482475422752129
+          ],
+          "palm_helper_proxy_mm": 17.06886086265659,
+          "channel_axis_error_deg": 35.14876133975801,
+          "palm_helper_actual_surface_mm": 20.365667124882272,
+          "palm_normal_axis_angle_deg": 71.0174202632512,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0025220955094855447,
+              "actual_p05_mm": 8.290069778454434,
+              "actual_fraction_within_2mm": 0.011371209596801067,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.799647082104242,
+              "min_absolute_mm": 0.002422215011316231,
+              "p05_signed_mm": 3.4070655537688994,
+              "median_signed_mm": 29.18321857175785,
+              "penetration_fraction": 0.02334638453848717,
+              "edge_median_mm": 3.9887763452106166,
+              "edge_max_mm": 9.977869638462831
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 16.88156546121257,
+              "actual_p05_mm": 18.471379200832875,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 6.567138061848569,
+              "min_absolute_mm": 6.567138061848569,
+              "p05_signed_mm": 10.352176176222567,
+              "median_signed_mm": 22.192812228565003,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.084037369269721,
+              "edge_max_mm": 18.24780795125778,
+              "helper_to_own_skin_mm": [
+                1.330149673315896,
+                3.3801271964361024,
+                7.64431435489821
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0016441684747179942,
+              "actual_p05_mm": 1.5705274162157752,
+              "actual_fraction_within_2mm": 0.06380632286524525,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -11.934846611471139,
+              "min_absolute_mm": 0.0006636650792153642,
+              "p05_signed_mm": -5.324189066238366,
+              "median_signed_mm": 4.763335328625217,
+              "penetration_fraction": 0.21095473164583553,
+              "edge_median_mm": 3.1597364099824863,
+              "edge_max_mm": 26.27093055261895,
+              "helper_to_own_skin_mm": [
+                2.8782366062380635,
+                3.688780376985686,
+                8.465141880348316
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.001714118303058705,
+              "actual_p05_mm": 0.7009247366126818,
+              "actual_fraction_within_2mm": 0.12471532371760113,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.168509332949494,
+              "min_absolute_mm": 1.3680081512035258e-05,
+              "p05_signed_mm": -6.065141930114433,
+              "median_signed_mm": 6.20833150457655,
+              "penetration_fraction": 0.1710768897082746,
+              "edge_median_mm": 2.865541718787298,
+              "edge_max_mm": 29.261046506059973,
+              "helper_to_own_skin_mm": [
+                4.00650643181671,
+                5.051130283014022,
+                6.0755313668942605
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 7.68745280199967,
+              "actual_p05_mm": 15.512529247975976,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 8.3188508334986,
+              "min_absolute_mm": 8.3188508334986,
+              "p05_signed_mm": 13.61872254757046,
+              "median_signed_mm": 23.762396486716924,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 2.4999277555833936,
+              "edge_max_mm": 23.560382988766506,
+              "helper_to_own_skin_mm": [
+                1.8511500959316918,
+                4.018132698283591,
+                6.7236806233471205
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 2.135124489702281,
+              "actual_p05_mm": 4.816407157348269,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -3.3701836499312585,
+              "min_absolute_mm": 0.01016345019247411,
+              "p05_signed_mm": 0.2061856664819176,
+              "median_signed_mm": 19.417392915421853,
+              "penetration_fraction": 0.04668409215245274,
+              "edge_median_mm": 3.5893143287906435,
+              "edge_max_mm": 11.539283486504806,
+              "helper_to_own_skin_mm": [
+                6.293733407883691,
+                6.443100077016398,
+                3.573148123772512
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.333762825620894,
+          "palm_contact_to_palm_region_mm": 30.617560730739882
+        },
+        "Right": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            0.2682498417614342,
+            0.7368505629138187,
+            -0.37286759012882825
+          ],
+          "equipment_axis": [
+            -0.20047344460439426,
+            0.7253314916837494,
+            -0.6585625446229657
+          ],
+          "palm_helper_proxy_mm": 17.066702306306865,
+          "channel_axis_error_deg": 35.148492472999635,
+          "palm_helper_actual_surface_mm": 20.345622935509414,
+          "palm_normal_axis_angle_deg": 71.01730050999291,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.0028983563444355256,
+              "actual_p05_mm": 8.343839607241796,
+              "actual_fraction_within_2mm": 0.011359152735956807,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.875704398839797,
+              "min_absolute_mm": 0.0018770978011499462,
+              "p05_signed_mm": 3.423186233641682,
+              "median_signed_mm": 29.033985767416873,
+              "penetration_fraction": 0.02329976118783096,
+              "edge_median_mm": 3.9903159326658755,
+              "edge_max_mm": 9.496359650384298
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 16.824033256815085,
+              "actual_p05_mm": 18.264530373910354,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 6.642630631329584,
+              "min_absolute_mm": 6.642630631329584,
+              "p05_signed_mm": 10.234067108392388,
+              "median_signed_mm": 21.963704445377125,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.1169834382547505,
+              "edge_max_mm": 17.397068699217225,
+              "helper_to_own_skin_mm": [
+                1.4461369876995505,
+                3.4366435757367473,
+                7.603927184783032
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0031256696450201404,
+              "actual_p05_mm": 1.5365419054342238,
+              "actual_fraction_within_2mm": 0.06447029103731383,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -12.074309832604571,
+              "min_absolute_mm": 0.0016213989397217965,
+              "p05_signed_mm": -5.450399538858328,
+              "median_signed_mm": 4.727329617872287,
+              "penetration_fraction": 0.21225198673754012,
+              "edge_median_mm": 3.1416529057710414,
+              "edge_max_mm": 26.271422791153853,
+              "helper_to_own_skin_mm": [
+                2.938481698410735,
+                3.6579398065866107,
+                8.501093817931611
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0004151087559668169,
+              "actual_p05_mm": 0.7239805674598822,
+              "actual_fraction_within_2mm": 0.12125572966634687,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.082040198927551,
+              "min_absolute_mm": 0.0016786163267758225,
+              "p05_signed_mm": -5.946845736075957,
+              "median_signed_mm": 6.332358840109063,
+              "penetration_fraction": 0.1649610915680631,
+              "edge_median_mm": 2.8816394767019933,
+              "edge_max_mm": 29.227449862040185,
+              "helper_to_own_skin_mm": [
+                4.204032592751007,
+                5.013059322641047,
+                6.196842476664355
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 7.612779505330288,
+              "actual_p05_mm": 15.142797461392592,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 8.22008623188622,
+              "min_absolute_mm": 8.22008623188622,
+              "p05_signed_mm": 13.364789185498713,
+              "median_signed_mm": 23.925405460745104,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 2.4929804258703743,
+              "edge_max_mm": 23.5258864279883,
+              "helper_to_own_skin_mm": [
+                1.8568765567311056,
+                3.9689898175282137,
+                6.608430097705346
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 2.1428310787731957,
+              "actual_p05_mm": 5.168727204812579,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -3.404025913292046,
+              "min_absolute_mm": 0.0010131111883061872,
+              "p05_signed_mm": 0.45265388433451886,
+              "median_signed_mm": 19.153943840062386,
+              "penetration_fraction": 0.041786128225462085,
+              "edge_median_mm": 3.578576775122481,
+              "edge_max_mm": 11.580551560779888,
+              "helper_to_own_skin_mm": [
+                6.306026146187885,
+                6.337838039035475,
+                3.817981081038668
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.261218205802926,
+          "palm_contact_to_palm_region_mm": 30.733153309659198
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "ski-recovery-chase",
+      "sport": 1,
+      "contacts": "8/10",
+      "hud_elapsed": 0,
+      "hud_distance": 5.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            -0.31505782453689263,
+            0.7537969162247795,
+            0.0008345723558246562
+          ],
+          "equipment_axis": [
+            0.2007688225476714,
+            0.4089243057193295,
+            0.890209409119442
+          ],
+          "palm_helper_proxy_mm": 28.819961324150324,
+          "channel_axis_error_deg": 0.0002507334209853254,
+          "palm_helper_actual_surface_mm": 39.619649946612626,
+          "palm_normal_axis_angle_deg": 71.01720506059935,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0014980231807960101,
+              "actual_p05_mm": 3.5590777528180046,
+              "actual_fraction_within_2mm": 0.025074975008330558,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.506326683026002,
+              "min_absolute_mm": 0.002610024834724667,
+              "p05_signed_mm": -0.9305838595665903,
+              "median_signed_mm": 26.45198868082498,
+              "penetration_fraction": 0.06004248583805398,
+              "edge_median_mm": 3.988775583157431,
+              "edge_max_mm": 9.977863969735397
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 18.007715305894845,
+              "actual_p05_mm": 20.626097431060973,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.593615008285658,
+              "min_absolute_mm": 14.593615008285658,
+              "p05_signed_mm": 17.102284369290363,
+              "median_signed_mm": 26.415629872202807,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.0840343167537716,
+              "edge_max_mm": 18.24792017159403,
+              "helper_to_own_skin_mm": [
+                1.3310887716075366,
+                3.3807495020943388,
+                7.6443478067417105
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0003963778315541898,
+              "actual_p05_mm": 2.270639164320369,
+              "actual_fraction_within_2mm": 0.03922907257641004,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.391919254005147,
+              "min_absolute_mm": 0.0010680738073420848,
+              "p05_signed_mm": -4.110896763860159,
+              "median_signed_mm": 5.653673251655484,
+              "penetration_fraction": 0.17408885621258272,
+              "edge_median_mm": 3.1597362553058415,
+              "edge_max_mm": 26.269879374728387,
+              "helper_to_own_skin_mm": [
+                2.877792515010997,
+                3.689173204310431,
+                8.465052084997103
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.0011850014788571893,
+              "actual_p05_mm": 0.3289825073139437,
+              "actual_fraction_within_2mm": 0.21407656436395184,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.92954876264906,
+              "min_absolute_mm": 7.907073573676371e-05,
+              "p05_signed_mm": -9.177545988009241,
+              "median_signed_mm": 0.40906132059671113,
+              "penetration_fraction": 0.4744604706647869,
+              "edge_median_mm": 2.865539630477936,
+              "edge_max_mm": 29.26156973545597,
+              "helper_to_own_skin_mm": [
+                4.006035540103553,
+                5.051276206512039,
+                6.074864874637409
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.006274194751095213,
+              "actual_p05_mm": 3.298319588573811,
+              "actual_fraction_within_2mm": 0.035602663405353986,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.561642682156496,
+              "min_absolute_mm": 0.018922261289480713,
+              "p05_signed_mm": 3.2416672956466615,
+              "median_signed_mm": 15.053489276046065,
+              "penetration_fraction": 0.02058703628210355,
+              "edge_median_mm": 2.4999282820617013,
+              "edge_max_mm": 23.560623783413536,
+              "helper_to_own_skin_mm": [
+                1.8506813564836357,
+                4.018412045082505,
+                6.72387317592595
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.004211013445441374,
+              "actual_p05_mm": 2.266798504667897,
+              "actual_fraction_within_2mm": 0.043583976657953924,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.707833563213458,
+              "min_absolute_mm": 0.0023297907801173023,
+              "p05_signed_mm": -3.2823034985616983,
+              "median_signed_mm": 14.324511000775715,
+              "penetration_fraction": 0.10911190809069357,
+              "edge_median_mm": 3.589310041881552,
+              "edge_max_mm": 11.539737761864819,
+              "helper_to_own_skin_mm": [
+                6.293114881307525,
+                6.44363297474247,
+                3.5729072307351046
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.334381706967772,
+          "palm_contact_to_palm_region_mm": 30.617540083576603
+        },
+        "Right": {
+          "radius_mm": 16.0,
+          "equipment_centre": [
+            0.31505770153317264,
+            0.7537969162247795,
+            0.0008352877200055687
+          ],
+          "equipment_axis": [
+            -0.2007700921119324,
+            0.40892168294476494,
+            0.8902103275805036
+          ],
+          "palm_helper_proxy_mm": 28.8197555045253,
+          "channel_axis_error_deg": 0.00025473377997998337,
+          "palm_helper_actual_surface_mm": 39.61960436182329,
+          "palm_normal_axis_angle_deg": 71.01711143731937,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.00029745656574533646,
+              "actual_p05_mm": 3.5625955249461003,
+              "actual_fraction_within_2mm": 0.025563285224794934,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -14.530383543203513,
+              "min_absolute_mm": 0.0007584657933518146,
+              "p05_signed_mm": -0.925585705953207,
+              "median_signed_mm": 26.166168560452334,
+              "penetration_fraction": 0.0599522375661925,
+              "edge_median_mm": 3.9903170180193075,
+              "edge_max_mm": 9.49636254965902
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 17.981987432786987,
+              "actual_p05_mm": 20.371404870618697,
+              "actual_fraction_within_2mm": 0.0,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": 14.66198514034087,
+              "min_absolute_mm": 14.66198514034087,
+              "p05_signed_mm": 17.098943326435872,
+              "median_signed_mm": 26.243277629125288,
+              "penetration_fraction": 0.0,
+              "edge_median_mm": 3.1169841862325636,
+              "edge_max_mm": 17.39764427509953,
+              "helper_to_own_skin_mm": [
+                1.4459550966946901,
+                3.4356659870434783,
+                7.6031351959855975
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.004155944188181199,
+              "actual_p05_mm": 2.3597188750776397,
+              "actual_fraction_within_2mm": 0.038945318667438555,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.968561386650974,
+              "min_absolute_mm": 0.0005696459899652562,
+              "p05_signed_mm": -4.121134742399571,
+              "median_signed_mm": 5.620850968522501,
+              "penetration_fraction": 0.17678016946476502,
+              "edge_median_mm": 3.1422167627663726,
+              "edge_max_mm": 26.272357175822776,
+              "helper_to_own_skin_mm": [
+                2.938557955462203,
+                3.6570214041977303,
+                8.500630912175415
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0002767061571995578,
+              "actual_p05_mm": 0.3022620622431332,
+              "actual_fraction_within_2mm": 0.22380343246988593,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -15.906426342162591,
+              "min_absolute_mm": 0.0001296386253693549,
+              "p05_signed_mm": -9.020737921841109,
+              "median_signed_mm": 0.38576895062833116,
+              "penetration_fraction": 0.4751092634047543,
+              "edge_median_mm": 2.881638317804236,
+              "edge_max_mm": 29.228000608357604,
+              "helper_to_own_skin_mm": [
+                4.203467624709717,
+                5.012943429730595,
+                6.196739643528639
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.004703266575968071,
+              "actual_p05_mm": 3.3309944735484818,
+              "actual_fraction_within_2mm": 0.035048678720445064,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.542144496557619,
+              "min_absolute_mm": 0.011750778744139961,
+              "p05_signed_mm": 2.9114693345913323,
+              "median_signed_mm": 15.094348726544093,
+              "penetration_fraction": 0.022044506258692628,
+              "edge_median_mm": 2.492980152796646,
+              "edge_max_mm": 23.525962009913403,
+              "helper_to_own_skin_mm": [
+                1.8569878468502767,
+                3.968706602697657,
+                6.608392658865316
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.012408746379412252,
+              "actual_p05_mm": 2.3817428668601943,
+              "actual_fraction_within_2mm": 0.04160312328432868,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -6.71296117793479,
+              "min_absolute_mm": 0.00016585597935672713,
+              "p05_signed_mm": -3.0569354243494566,
+              "median_signed_mm": 14.183432974836435,
+              "penetration_fraction": 0.10937595315073508,
+              "edge_median_mm": 3.578574472183407,
+              "edge_max_mm": 11.581200654156568,
+              "helper_to_own_skin_mm": [
+                6.306468539001,
+                6.337111208489427,
+                3.818850362103706
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 19.260745775807766,
+          "palm_contact_to_palm_region_mm": 30.73316263157335
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "bike-top-chase",
+      "sport": 2,
+      "contacts": "10/10",
+      "hud_elapsed": 0,
+      "hud_distance": 3.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 18.0,
+          "equipment_centre": [
+            -0.2,
+            0.84,
+            0.51
+          ],
+          "equipment_axis": [
+            0.0,
+            0.23770262642713458,
+            0.9713379748520297
+          ],
+          "palm_helper_proxy_mm": 27.897176625915396,
+          "channel_axis_error_deg": 1.4664043934568493e-05,
+          "palm_helper_actual_surface_mm": 23.77748036914506,
+          "palm_normal_axis_angle_deg": 71.01742954648756,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0004623395883140922,
+              "actual_p05_mm": 0.6638387391823822,
+              "actual_fraction_within_2mm": 0.1555106631122959,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.74715964348958,
+              "min_absolute_mm": 0.0004333470867527722,
+              "p05_signed_mm": -10.827980760409309,
+              "median_signed_mm": 13.456351977339315,
+              "penetration_fraction": 0.2184688437187604,
+              "edge_median_mm": 3.9887769344131367,
+              "edge_max_mm": 9.977869322166104
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.0005705262416539613,
+              "actual_p05_mm": 0.4801113823917914,
+              "actual_fraction_within_2mm": 0.21405091846600063,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.344515519115658,
+              "min_absolute_mm": 0.0030727070340665075,
+              "p05_signed_mm": -4.840939486340729,
+              "median_signed_mm": 5.23242975629571,
+              "penetration_fraction": 0.2540766999677731,
+              "edge_median_mm": 3.110566700925694,
+              "edge_max_mm": 16.585642683257646,
+              "helper_to_own_skin_mm": [
+                0.7738539772919201,
+                3.605328992232535,
+                7.644495704739285
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.00036755122586113966,
+              "actual_p05_mm": 0.3994698305201053,
+              "actual_fraction_within_2mm": 0.2217708733600483,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -13.129128358863463,
+              "min_absolute_mm": 9.451330117496437e-05,
+              "p05_signed_mm": -6.216374399063615,
+              "median_signed_mm": 4.720007981777092,
+              "penetration_fraction": 0.25618927375528355,
+              "edge_median_mm": 3.237951887679209,
+              "edge_max_mm": 22.91334683928749,
+              "helper_to_own_skin_mm": [
+                1.2758097096724448,
+                3.235544442335956,
+                8.465636215111914
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 0.0016889667378113288,
+              "actual_p05_mm": 0.6051908589352636,
+              "actual_fraction_within_2mm": 0.14648868253047012,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.315893513242678,
+              "min_absolute_mm": 0.00027860802208692914,
+              "p05_signed_mm": -8.194821706544099,
+              "median_signed_mm": 2.4689827774148614,
+              "penetration_fraction": 0.351015670342426,
+              "edge_median_mm": 3.062075905142901,
+              "edge_max_mm": 25.33625050886354,
+              "helper_to_own_skin_mm": [
+                1.3835878207558594,
+                4.676246886113192,
+                6.0753833261458645
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 0.001916681574481715,
+              "actual_p05_mm": 1.3972485527431715,
+              "actual_fraction_within_2mm": 0.07501019160211986,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.770265775416764,
+              "min_absolute_mm": 0.0003957548235337949,
+              "p05_signed_mm": 0.9114276336183739,
+              "median_signed_mm": 12.596205625651137,
+              "penetration_fraction": 0.036961543688001086,
+              "edge_median_mm": 2.4999275735810174,
+              "edge_max_mm": 23.560343057536755,
+              "helper_to_own_skin_mm": [
+                1.8508322146443448,
+                4.018210739866148,
+                6.724264144228374
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 7.050136049667375e-05,
+              "actual_p05_mm": 0.28323786311700794,
+              "actual_fraction_within_2mm": 0.32090326518156853,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.897411269069025,
+              "min_absolute_mm": 0.0007076178385814758,
+              "p05_signed_mm": -13.776412587480664,
+              "median_signed_mm": -4.348901454276388,
+              "penetration_fraction": 0.7738785474519377,
+              "edge_median_mm": 3.598651974329484,
+              "edge_max_mm": 10.848666804059727,
+              "helper_to_own_skin_mm": [
+                6.292801778638192,
+                6.443947459465862,
+                3.572388545946568
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 16.795764104753058,
+          "palm_contact_to_palm_region_mm": 30.617538399546536
+        },
+        "Right": {
+          "radius_mm": 18.0,
+          "equipment_centre": [
+            0.2,
+            0.84,
+            0.51
+          ],
+          "equipment_axis": [
+            0.0,
+            0.23770262642713458,
+            0.9713379748520297
+          ],
+          "palm_helper_proxy_mm": 27.89756642732052,
+          "channel_axis_error_deg": 1.8070981951380476e-05,
+          "palm_helper_actual_surface_mm": 23.778171970275906,
+          "palm_normal_axis_angle_deg": 71.01742925587926,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.0001774673920321502,
+              "actual_p05_mm": 0.6567593535932638,
+              "actual_fraction_within_2mm": 0.15661925033745197,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.83058445484325,
+              "min_absolute_mm": 0.0013347927194477804,
+              "p05_signed_mm": -10.831327687149608,
+              "median_signed_mm": 13.438514150134088,
+              "penetration_fraction": 0.21918803862527256,
+              "edge_median_mm": 3.99031488931128,
+              "edge_max_mm": 9.496355699854604
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 0.00014950703691438987,
+              "actual_p05_mm": 0.4389814352040082,
+              "actual_fraction_within_2mm": 0.22410675313337905,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.310893017431114,
+              "min_absolute_mm": 0.0031226127198760723,
+              "p05_signed_mm": -4.994601378294527,
+              "median_signed_mm": 4.742518419076098,
+              "penetration_fraction": 0.2686287959094594,
+              "edge_median_mm": 3.1373004238755353,
+              "edge_max_mm": 15.619367141629475,
+              "helper_to_own_skin_mm": [
+                0.8560705661607214,
+                3.664706110862983,
+                7.603353376557696
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0003385491495298155,
+              "actual_p05_mm": 0.393907985581587,
+              "actual_fraction_within_2mm": 0.2248181617809125,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -13.106822511273196,
+              "min_absolute_mm": 0.00042938197265113276,
+              "p05_signed_mm": -6.265373669572119,
+              "median_signed_mm": 4.792071059636436,
+              "penetration_fraction": 0.25666740136654176,
+              "edge_median_mm": 3.2178868006614856,
+              "edge_max_mm": 22.93869181265215,
+              "helper_to_own_skin_mm": [
+                1.3248869667232543,
+                3.1914613481084184,
+                8.500350096061467
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0014294614990033512,
+              "actual_p05_mm": 0.5779367816399337,
+              "actual_fraction_within_2mm": 0.15701393648617776,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.354694412896105,
+              "min_absolute_mm": 0.0007403998472516049,
+              "p05_signed_mm": -8.021892988670269,
+              "median_signed_mm": 2.162923915311763,
+              "penetration_fraction": 0.3604637879826365,
+              "edge_median_mm": 3.0596451574981787,
+              "edge_max_mm": 25.16517755032817,
+              "helper_to_own_skin_mm": [
+                1.445633716385781,
+                4.651640486917602,
+                6.197080032507463
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.005244794668476151,
+              "actual_p05_mm": 1.388295677393289,
+              "actual_fraction_within_2mm": 0.07642559109874826,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -8.746268345020074,
+              "min_absolute_mm": 0.00109302909967815,
+              "p05_signed_mm": 0.6471972565830729,
+              "median_signed_mm": 12.65119986551039,
+              "penetration_fraction": 0.040611961057023645,
+              "edge_median_mm": 2.492979529273221,
+              "edge_max_mm": 23.52601770634336,
+              "helper_to_own_skin_mm": [
+                1.8572948468252508,
+                3.968895098984818,
+                6.607924780585562
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 3.0374653730723068e-06,
+              "actual_p05_mm": 0.2803887314635735,
+              "actual_fraction_within_2mm": 0.3231417063346759,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.97751131187553,
+              "min_absolute_mm": 0.0011003349955074349,
+              "p05_signed_mm": -13.959482102879248,
+              "median_signed_mm": -4.581762392073116,
+              "penetration_fraction": 0.7796899792505798,
+              "edge_median_mm": 3.5861454370341517,
+              "edge_max_mm": 11.138828169172433,
+              "helper_to_own_skin_mm": [
+                6.306839154940114,
+                6.336675975687098,
+                3.819208620520497
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 16.759664375597612,
+          "palm_contact_to_palm_region_mm": 30.733146417166598
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    },
+    {
+      "name": "bike-quarter-chase",
+      "sport": 2,
+      "contacts": "10/10",
+      "hud_elapsed": 0,
+      "hud_distance": 3.5,
+      "hands": {
+        "Left": {
+          "radius_mm": 18.0,
+          "equipment_centre": [
+            -0.2,
+            0.84,
+            0.51
+          ],
+          "equipment_axis": [
+            0.0,
+            0.23770262642713458,
+            0.9713379748520297
+          ],
+          "palm_helper_proxy_mm": 20.41073441368255,
+          "channel_axis_error_deg": 1.4183953086968166e-05,
+          "palm_helper_actual_surface_mm": 21.597129790736762,
+          "palm_normal_axis_angle_deg": 71.01743872209997,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1836,
+              "actual_min_mm": 0.0008193913627439824,
+              "actual_p05_mm": 0.814872734121362,
+              "actual_fraction_within_2mm": 0.12268827057647451,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.831552000558172,
+              "min_absolute_mm": 0.000948280143502761,
+              "p05_signed_mm": -10.88772351531255,
+              "median_signed_mm": 19.5610367805583,
+              "penetration_fraction": 0.15567727424191935,
+              "edge_median_mm": 3.988777831890602,
+              "edge_max_mm": 9.977872460241144
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 706,
+              "actual_min_mm": 0.00018600472863634305,
+              "actual_p05_mm": 0.29701570213448186,
+              "actual_fraction_within_2mm": 0.2867547534643893,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.887826325216249,
+              "min_absolute_mm": 0.0005856218235449073,
+              "p05_signed_mm": -9.041713357215338,
+              "median_signed_mm": 0.15549151984251344,
+              "penetration_fraction": 0.49300676764421525,
+              "edge_median_mm": 3.1105672584884174,
+              "edge_max_mm": 16.585644565719203,
+              "helper_to_own_skin_mm": [
+                0.7738550494071368,
+                3.6053294222046564,
+                7.644498846273348
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 680,
+              "actual_min_mm": 0.0003036708930238895,
+              "actual_p05_mm": 0.27632306776434695,
+              "actual_fraction_within_2mm": 0.2886314980512708,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -16.920919357343866,
+              "min_absolute_mm": 0.0001271307824290968,
+              "p05_signed_mm": -10.32535626289543,
+              "median_signed_mm": 1.580176300741764,
+              "penetration_fraction": 0.41225229181533735,
+              "edge_median_mm": 3.2379523325718242,
+              "edge_max_mm": 22.913346830915543,
+              "helper_to_own_skin_mm": [
+                1.2758104957018248,
+                3.235544815586345,
+                8.465640682364846
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 675,
+              "actual_min_mm": 9.587593693980974e-05,
+              "actual_p05_mm": 0.3562430424441259,
+              "actual_fraction_within_2mm": 0.23424260011607662,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.658342958741176,
+              "min_absolute_mm": 0.0012269815522110428,
+              "p05_signed_mm": -11.292052279760922,
+              "median_signed_mm": 0.724108511483761,
+              "penetration_fraction": 0.4693557748113755,
+              "edge_median_mm": 3.0620764274865135,
+              "edge_max_mm": 25.33625320115093,
+              "helper_to_own_skin_mm": [
+                1.3835908242856334,
+                4.676241272596451,
+                6.075385246901895
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 639,
+              "actual_min_mm": 3.726871245366154e-05,
+              "actual_p05_mm": 0.9216687016325605,
+              "actual_fraction_within_2mm": 0.10442994972142954,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.274213544342205,
+              "min_absolute_mm": 0.0002907362860495033,
+              "p05_signed_mm": 1.9456336382722383,
+              "median_signed_mm": 15.214253770608963,
+              "penetration_fraction": 0.029351814105177332,
+              "edge_median_mm": 2.4999281004377862,
+              "edge_max_mm": 23.560329431458072,
+              "helper_to_own_skin_mm": [
+                1.8508228525472536,
+                4.018212728820926,
+                6.724265050291466
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.0024231097859367286,
+              "actual_p05_mm": 0.2441933099543278,
+              "actual_fraction_within_2mm": 0.3152883735123589,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.871182411187124,
+              "min_absolute_mm": 0.00017629418550685338,
+              "p05_signed_mm": -14.213366455092176,
+              "median_signed_mm": -3.0994594314643615,
+              "penetration_fraction": 0.615013732072017,
+              "edge_median_mm": 3.5986530940379313,
+              "edge_max_mm": 10.848665415318619,
+              "helper_to_own_skin_mm": [
+                6.292804464700764,
+                6.443949188163168,
+                3.5723890827132436
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 16.795727481946784,
+          "palm_contact_to_palm_region_mm": 30.61754743359841
+        },
+        "Right": {
+          "radius_mm": 18.0,
+          "equipment_centre": [
+            0.2,
+            0.84,
+            0.51
+          ],
+          "equipment_axis": [
+            0.0,
+            0.23770262642713458,
+            0.9713379748520297
+          ],
+          "palm_helper_proxy_mm": 20.41075514257743,
+          "channel_axis_error_deg": 1.3309014001239913e-05,
+          "palm_helper_actual_surface_mm": 21.59712145920949,
+          "palm_normal_axis_angle_deg": 71.01743603617994,
+          "regions": {
+            "Palm": {
+              "vertices": 1071,
+              "triangles": 1839,
+              "actual_min_mm": 0.0007110764621221739,
+              "actual_p05_mm": 0.8095758441687511,
+              "actual_fraction_within_2mm": 0.12295711764095109,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.82213697379701,
+              "min_absolute_mm": 0.0004315924345306421,
+              "p05_signed_mm": -10.99038099931352,
+              "median_signed_mm": 19.478555400276075,
+              "penetration_fraction": 0.15601702834596615,
+              "edge_median_mm": 3.9903161300280923,
+              "edge_max_mm": 9.496359307538695
+            },
+            "Index": {
+              "vertices": 405,
+              "triangles": 707,
+              "actual_min_mm": 1.556445360466376e-05,
+              "actual_p05_mm": 0.2789365020575101,
+              "actual_fraction_within_2mm": 0.2953170792542246,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -10.978756986347916,
+              "min_absolute_mm": 0.0003384909375916956,
+              "p05_signed_mm": -9.122742114995914,
+              "median_signed_mm": -0.17619568638320426,
+              "penetration_fraction": 0.5100081062542869,
+              "edge_median_mm": 3.137300846351444,
+              "edge_max_mm": 15.61936670749972,
+              "helper_to_own_skin_mm": [
+                0.8560663453685436,
+                3.664707555280479,
+                7.603354755990122
+              ]
+            },
+            "Middle": {
+              "vertices": 392,
+              "triangles": 679,
+              "actual_min_mm": 0.0006004010280088566,
+              "actual_p05_mm": 0.26768422058852737,
+              "actual_fraction_within_2mm": 0.28961869076482255,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -16.76218522084844,
+              "min_absolute_mm": 0.00029051053350090394,
+              "p05_signed_mm": -10.492306313728992,
+              "median_signed_mm": 1.522220406537704,
+              "penetration_fraction": 0.41822790390125636,
+              "edge_median_mm": 3.217887517766047,
+              "edge_max_mm": 22.93871111099103,
+              "helper_to_own_skin_mm": [
+                1.3248827981938212,
+                3.1914737116919834,
+                8.500391527460621
+              ]
+            },
+            "Ring": {
+              "vertices": 390,
+              "triangles": 673,
+              "actual_min_mm": 0.0012567601647340554,
+              "actual_p05_mm": 0.34972873517715364,
+              "actual_fraction_within_2mm": 0.24263193968471555,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.668675609118722,
+              "min_absolute_mm": 0.00017562911283630633,
+              "p05_signed_mm": -11.232093424332112,
+              "median_signed_mm": 0.7653498342593892,
+              "penetration_fraction": 0.4646447338359607,
+              "edge_median_mm": 3.05964550327112,
+              "edge_max_mm": 25.165180723051854,
+              "helper_to_own_skin_mm": [
+                1.445628018715989,
+                4.651635535096277,
+                6.197081432613957
+              ]
+            },
+            "Pinky": {
+              "vertices": 369,
+              "triangles": 642,
+              "actual_min_mm": 0.00041677165869524226,
+              "actual_p05_mm": 0.922252655432417,
+              "actual_fraction_within_2mm": 0.10716272600834492,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -7.26811709910102,
+              "min_absolute_mm": 0.0013971962106867908,
+              "p05_signed_mm": 1.5792352266485374,
+              "median_signed_mm": 15.237032184579235,
+              "penetration_fraction": 0.03337969401947149,
+              "edge_median_mm": 2.492979868828222,
+              "edge_max_mm": 23.52601942625412,
+              "helper_to_own_skin_mm": [
+                1.857294909887398,
+                3.9688962011987146,
+                6.607928833911546
+              ]
+            },
+            "Thumb": {
+              "vertices": 399,
+              "triangles": 686,
+              "actual_min_mm": 0.00043351344903176555,
+              "actual_p05_mm": 0.25014938242614265,
+              "actual_fraction_within_2mm": 0.3134993286952276,
+              "sample_cover_bound_mm": 1.0,
+              "min_signed_mm": -17.862337301167774,
+              "min_absolute_mm": 0.001532770385479637,
+              "p05_signed_mm": -14.434854644438827,
+              "median_signed_mm": -3.1089298723650605,
+              "penetration_fraction": 0.6218723300378372,
+              "edge_median_mm": 3.586145415668816,
+              "edge_max_mm": 11.138832870881966,
+              "helper_to_own_skin_mm": [
+                6.306839831617421,
+                6.3366763251112515,
+                3.819210808704144
+              ]
+            }
+          },
+          "palm_contact_to_all_skin_mm": 16.75967322575034,
+          "palm_contact_to_palm_region_mm": 30.733155822828614
+        }
+      },
+      "equipment_sha256": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925"
+    }
+  ]
+}

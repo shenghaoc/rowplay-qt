@@ -27,6 +27,32 @@ Two rules govern this document (see AGENTS.md, "Parity is the test oracle"):
 This document outlives the audit: when you add a ported surface, add its row
 and its fixture in the same PR.
 
+## Blender Phase 5.0–5.1 addendum (2026-09-27)
+
+The [contact audit](blender-phase5-contact-audit.md) starts from live main
+`2b13e718f4102add40b461d8d581fd5a87cd2da5` and the unchanged 173c6fa/3d406a5
+reference pins. Earlier historical bounds below retain their original scope.
+
+- #130's pelvis law now consumes all 128 existing web samples (no oracle edit).
+  A new `replay-contact-equipment-parity.json` records actual carriage nodes
+  and fitted pole leaf geometry; `contact_equipment_matches_rendered_web_geometry`
+  checks both sides/axes/upper-frame composition with a 2e−8 m float-fit tolerance.
+- `rower_wrist_uses_the_same_solved_oar_frame_as_the_equipment` closes a missing
+  handoff assertion. The old target-parity test did not see a stale wrist frame.
+- The rower continuity guard now samples 32000 steps to resolve reach-circle
+  tangencies exposed by the corrected pelvis; its 20 mm/.35 rad limits remain.
+  SkiErg keeps the existing 2000-step web oracle and its measured residual/snap.
+- Native Qt skin silhouettes independently validate an offline LBS palette;
+  actual triangle distances now distinguish helper closure from skin contact.
+  This is recorded diagnostic coverage, **not a new green skin-acceptance gate**.
+  Counts 10/10, 8/10, 10/10 still do not establish acceptable hands.
+
+The full web V4 row refinement, anatomical reach feasibility, and the exact
+split between helper calibration, hand shape and weights remain open. No
+fixture was changed simply to bless the implementation; the new recorder
+adds previously unobserved geometry. The proposed contact-contract checkpoint
+is ADR 0018; Phase 5.2/5.3 conclusions are deferred.
+
 ## How to read a row
 
 - **Rust / web** — the function-level pairing. The web column is what the code

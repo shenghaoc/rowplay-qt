@@ -56,6 +56,7 @@ FILES = [
 # generator's commit; an existing entry is refreshed in place rather than
 # rewritten, so a recorded pin survives re-vendoring.
 GENERATED_FIXTURES = {
+    "replay-contact-equipment-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
     "replay-row-phase-parity.json": "4d96480e7c6fb382f800555bd3aa463d9fe5b1a6",
     "replay-rig-phase-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",
     "replay-stroke-model-parity.json": "173c6facbcedef419ad39168c5e3e642abb7e57e",

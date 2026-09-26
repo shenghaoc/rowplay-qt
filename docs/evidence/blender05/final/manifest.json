@@ -1,0 +1,118 @@
+{
+  "base": "2b13e718f4102add40b461d8d581fd5a87cd2da5",
+  "samples": {
+    "1001": [
+      [
+        "row-catch",
+        0
+      ],
+      [
+        "row-middrive",
+        380
+      ],
+      [
+        "row-finish",
+        760
+      ],
+      [
+        "row-halfslide",
+        1380
+      ]
+    ],
+    "1003": [
+      [
+        "ski-approach",
+        1900
+      ],
+      [
+        "ski-plant",
+        0
+      ],
+      [
+        "ski-pull",
+        300
+      ],
+      [
+        "ski-release",
+        540
+      ],
+      [
+        "ski-recovery",
+        1100
+      ]
+    ],
+    "1004": [
+      [
+        "bike-top",
+        0
+      ],
+      [
+        "bike-quarter",
+        500
+      ]
+    ]
+  },
+  "clock": "fallback_stroke_pose at 30 spm; phase = step/2000 * tau; metres = step*3",
+  "scheme": "light",
+  "renderer": "opengl",
+  "platform": "wayland",
+  "state": "final",
+  "meaning": "#130 plus corrected rower wrist frame and pole visual fit; no athlete geometry changed.",
+  "original_native_png_sha256": {
+    "bike-quarter-chase.png": "334400a12bf478ab04016ece441c53f0f2769cd78e6de7d6c7d661ce9a3aa66e",
+    "bike-quarter-left-mask.png": "9a0264d88ca781fe37ba0bf1f2177e75b037ad3d716c902b79fa632c19469d9e",
+    "bike-quarter-left.png": "6cd1b838edb2e523eceede2b7c8fb26043ae400d01c72df71c1495d6369cb43c",
+    "bike-quarter-right-mask.png": "3d09f524386abf6896ad0b455bf6ef7d9ea40e6d4ab2cfe7771cdd91258ca4d6",
+    "bike-quarter-right.png": "f039e04007090511a9565da8b3aabb9cddbbca97dba98904eea437c9e341fca3",
+    "bike-top-chase.png": "889e9072b5b2fa7c2a16b07754eec059ee44596e36decc35a5f5abf0872ee7df",
+    "bike-top-left-mask.png": "a84fd783a0a0d76b1a59647eedbff66fc9919f79a6f7d3d22776f2196c352628",
+    "bike-top-left.png": "0aea74c220b05e56ba2fa0c8840ca72a277c7379abae2f285ce63f33aa3dfc2f",
+    "bike-top-right-mask.png": "b356db8d773659265169d9c14dcbe2a291d23c637a9eb87e227363055adc15bf",
+    "bike-top-right.png": "49b1a109f511816c31d0bde380197784ce597447bd3030e8786d7b6bb186e57e",
+    "row-catch-chase.png": "1eda31259c9dec9d69053a82ebd0c45f92f6f0afb6469600865e2ad34fc90827",
+    "row-catch-left-mask.png": "525528897cbddaf2d2cdd593828d5a054f5fadd45963771df62571a10d9c49a6",
+    "row-catch-left.png": "daca134022aa7f43bddad0bdda3cdeb8b6da4194feaeb7c39dfb08410c277eac",
+    "row-catch-right-mask.png": "a3c56fe3765c737487ce933656e6c80ddcbf7facfd8758f2bf6782ed052ca99d",
+    "row-catch-right.png": "b12e6a89eb27996b34c5a79c16d54bde6f6402095446aa80a65cf34044769156",
+    "row-finish-chase.png": "07767e3874cdea1432a50a9636ce73c344fcf5219ccf64d05ff024d6e701d193",
+    "row-finish-left-mask.png": "04cc2f2786de45153c0678f9ccef7382768d805e1c93135776849d3352d80244",
+    "row-finish-left.png": "4e8cd32fbc26ff858a69ae77e8d653edbe078b885d7f9432846892367dab189e",
+    "row-finish-right-mask.png": "c87bab14a90c30c3041fe22489ad172d288ae5d4b8f68764785be06868b1c73a",
+    "row-finish-right.png": "d17dc4f7aa1f5ea943e7f0113b7c5b78bac56911b4022a85468525ff6454b48b",
+    "row-halfslide-chase.png": "8cbf52471de7ba6d6995f52bccc7e309298a995d24704b4f7040b75f8e782732",
+    "row-halfslide-left-mask.png": "7344594b24b12339334ffcd40e88cf177e290c0d3b98853e1e0f403393c6d1d1",
+    "row-halfslide-left.png": "e0aa90e757c497f73880d64c7cb2b3ad3228065b60c4d48e52bc116fc3c26328",
+    "row-halfslide-right-mask.png": "f15087904bf9e7de91769f548aebd8d861a74f3020bbb123756e7ff2da21e8be",
+    "row-halfslide-right.png": "77480c77fd0c5e82abde45248a612a9d6e3100f503ffb462f0d63fd90df2ea61",
+    "row-middrive-chase.png": "23ca1ab55a4f6c65fdd388eb35947684423b2cd0375c238b37375918724b939e",
+    "row-middrive-left-mask.png": "3e76e476ffef4fcee9c45ed24b067950fc602b6ebb63f6c2393f31b223a9fc59",
+    "row-middrive-left.png": "2d4d7c8270f105362cff2b8f95e871e7e7691c9834f58cfc8db34edd1ef22d14",
+    "row-middrive-right-mask.png": "4e84fb004b4e9057907a7a726ce271698b6fc35406483b52e0cc4a50d6af3245",
+    "row-middrive-right.png": "42e77bf731291d6421b0a56fd2c2f3ba3cbbc0a5fb1b623b872aa0a164404705",
+    "ski-approach-chase.png": "8d5d157a83398e5aa7cf6465c7e03ee931a7447634c28336751f9a202f54af3b",
+    "ski-approach-left-mask.png": "bd7a6dbe0c7212d3999068931a36218adf5758fd2f50721d1c3d9f7edd329c56",
+    "ski-approach-left.png": "763af2f780f1bbebaa2ebc55c4704581952f3bca98f134318d70a2aba028e6ad",
+    "ski-approach-right-mask.png": "d8cb376d34462509fea1ed1de3d91886db97a9f336f1e8324447eaac690087aa",
+    "ski-approach-right.png": "e93e23109d1bb561a4f4b70f4c2a25f4bbb0e3340b4ac398017a9e59bfbe4d41",
+    "ski-plant-chase.png": "cede08493e13cc988eb99d165adc9e4da76f8ac0d69bd0e46bb8d2f6c5313641",
+    "ski-plant-left-mask.png": "1567c31a3cec3aea6b0828c4e13a6805b53c08c32f91e206749304be9a7728be",
+    "ski-plant-left.png": "78443e325d004b17dbadd12b70f5fae4d73b658cee98b0727bb84ea440d2a04c",
+    "ski-plant-right-mask.png": "aa711c71ba92da7f088aa0761c044697cf65aa4f91b2f7e4ec867707daf61128",
+    "ski-plant-right.png": "c8f08de70dd916c407b43562145b3e9b99416dc001d005532e044bfa0b241ebd",
+    "ski-pull-chase.png": "11ee2237ce230084dcd9498a99c10e2b803a2b5f521d75d1922b60291e1796d5",
+    "ski-pull-left-mask.png": "c52f11d69445248d3599e8051a997ad0b2da41c99cecfcc1184cf740e65d2d2c",
+    "ski-pull-left.png": "e6b20c28e9927193ae9b01b0adfe7c8b42703cd2aa8df44f76f8665f8b4843c9",
+    "ski-pull-right-mask.png": "4ea536f88ccab8a363445cf76af8f7d3dfaa1356076069b292b7e0dad4196357",
+    "ski-pull-right.png": "c199429653c6bb1994b25d1935b5fdf87962cef13ef3806c94d9e0d78b4f4d3b",
+    "ski-recovery-chase.png": "73794b1dc2eb07ac16b3c25cda7cd4c1df4de6ae9cb55cd0f9a8516f44d76957",
+    "ski-recovery-left-mask.png": "74861a7e76d199632d68b5389ff51a151cd7f65b70d77ee1868513e35343e790",
+    "ski-recovery-left.png": "681796fb945340e5874b226ebf6aca946ae0b0594eedf2bde17ebb9279b04885",
+    "ski-recovery-right-mask.png": "6e977ae4b9246414cefca0c1bb2bffcb1afb158c277124880ec4c0d79c2f6dc2",
+    "ski-recovery-right.png": "cb186520bbc547170b3fa817c869ba8a71150863e91f310367d4a653d82171c6",
+    "ski-release-chase.png": "3607f681513ce6924f93fd100379deb5e90309d4dbb3a5a169777ff357d7d39a",
+    "ski-release-left-mask.png": "39e5044da5ad73e4fa2d9312124ea7bf8b89db3ecb8cf231248c44058c526695",
+    "ski-release-left.png": "74171bc7f70ef1c0e2eb63311d9d4797a17baa1b103a218ca1f22423ab337529",
+    "ski-release-right-mask.png": "92f0e3af3d9d528084b74cf0c993da226bfa0387e49feca7f45989a75869c82d",
+    "ski-release-right.png": "89f6ab6c3c985312d751dc03af9980463e73a08e08d42556207b64cd38f10dca"
+  }
+}

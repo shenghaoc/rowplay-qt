@@ -71,10 +71,18 @@ pub const EQ_SEAT_Z: usize = EQUIPMENT;
 pub const EQ_OAR_LEFT: usize = EQUIPMENT + 1;
 /// RowErg right oar-rig instance rotation.
 pub const EQ_OAR_RIGHT: usize = EQUIPMENT + 5;
+/// SkiErg visual +Z shaft/grip orientation; aliases the unused oar slots.
+pub const EQ_POLE_VISUAL_LEFT: usize = EQ_OAR_LEFT;
+/// Right counterpart of [`EQ_POLE_VISUAL_LEFT`].
+pub const EQ_POLE_VISUAL_RIGHT: usize = EQ_OAR_RIGHT;
 /// RowErg blade roll about the shaft, degrees (web `(1 − bladeFeather) · 90`).
 pub const EQ_BLADE_ROLL_DEG: usize = EQUIPMENT + 9;
 /// SkiErg left pole: root position xyz then rotation xyzw.
 pub const EQ_POLE_LEFT: usize = EQUIPMENT + 10;
+/// RowErg carriage position xyz. Reuses the unused left-pole slot for rowing;
+/// the sport-specific equipment superset remains exactly 225 floats. `seatZ`
+/// still records the moving group's z, for diagnostics and existing consumers.
+pub const EQ_SEAT_POSITION: usize = EQ_POLE_LEFT;
 /// SkiErg right pole: root position xyz then rotation xyzw.
 pub const EQ_POLE_RIGHT: usize = EQUIPMENT + 17;
 /// BikeErg crank rotation about local X.
@@ -136,6 +144,9 @@ pub fn layout_json() -> Value {
         ("jointStride", JOINT_STRIDE),
         ("equipment", EQUIPMENT),
         ("seatZ", EQ_SEAT_Z),
+        ("seatPosition", EQ_SEAT_POSITION),
+        ("poleVisualLeft", EQ_POLE_VISUAL_LEFT),
+        ("poleVisualRight", EQ_POLE_VISUAL_RIGHT),
         ("oarLeft", EQ_OAR_LEFT),
         ("oarRight", EQ_OAR_RIGHT),
         ("bladeRollDeg", EQ_BLADE_ROLL_DEG),
@@ -200,7 +211,10 @@ mod tests {
         assert_eq!(object["jointStride"], json!(7));
         assert_eq!(object["cameraFov"], json!(CAMERA_FOV));
         assert_eq!(object["wheel"], json!(EQ_WHEEL));
-        assert_eq!(object.len(), 35);
+        assert_eq!(object.len(), 38);
+        assert_eq!(object["seatPosition"], object["poleLeft"]);
+        assert_eq!(object["poleVisualLeft"], object["oarLeft"]);
+        assert_eq!(object["poleVisualRight"], object["oarRight"]);
         // Offsets are unique and inside the frame.
         let mut seen = std::collections::BTreeSet::new();
         for (name, value) in object {
@@ -208,7 +222,13 @@ mod tests {
             // Counts, and the equipment block start (which is also seatZ).
             if matches!(
                 name.as_str(),
-                "jointCount" | "jointStride" | "length" | "equipment"
+                "jointCount"
+                    | "jointStride"
+                    | "length"
+                    | "equipment"
+                    | "seatPosition"
+                    | "poleVisualLeft"
+                    | "poleVisualRight"
             ) {
                 continue;
             }

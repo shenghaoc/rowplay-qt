@@ -1780,8 +1780,8 @@ Item {
             jn.rotation = Qt.quaternion(f[at + 6], f[at + 3], f[at + 4], f[at + 5])
         }
 
-        // Equipment: seat carriage z (rower).
-        if (seatNode) seatNode.z = f[fl.seatZ]
+        // Equipment: fully composed carriage attachment (rower).
+        if (seatNode) seatNode.position = vec3FromFrame(f, fl.seatPosition)
 
         // Oar rigs: right (primary) and left (mirror).
         if (oarRigNode) oarRigNode.rotation = quatFromFrame(f, fl.oarRight)
@@ -1838,7 +1838,7 @@ Item {
         }
 
         // Ghost equipment.
-        if (ghostSeatNode) ghostSeatNode.z = gf[fl.seatZ]
+        if (ghostSeatNode) ghostSeatNode.position = vec3FromFrame(gf, fl.seatPosition)
         if (ghostOarRigNode) ghostOarRigNode.rotation = quatFromFrame(gf, fl.oarRight)
         if (ghostOarRigMirror) ghostOarRigMirror.rotation = quatFromFrame(gf, fl.oarLeft)
         var wq = quatFromFrame(gf, fl.wheel)
@@ -1880,16 +1880,16 @@ Item {
         node.rotation = quatFromFrame(f, at + 3)
     }
 
-    // Read the three pole leaf positions from the frame (rotation shared
-    // with the pole root, scale set once from the constant fits).
+    // Read the pole leaf positions and authored +Z visual rotation. The
+    // basket retains its separate -Y placement frame; scales are constant.
     function applyPoleLeaves(f, poleAt, leavesAt, side, shaftMap, gripMap, basketMap) {
-        var rot = quatFromFrame(f, poleAt + 3)
+        var rot = quatFromFrame(f, side === "left" ? fl.poleVisualLeft : fl.poleVisualRight)
         var shaft = (shaftMap || poleShaftNodes)[side]
         if (shaft) { shaft.position = vec3FromFrame(f, leavesAt); shaft.rotation = rot }
         var grip = (gripMap || poleGripNodes)[side]
         if (grip) { grip.position = vec3FromFrame(f, leavesAt + 3); grip.rotation = rot }
         var basket = (basketMap || poleBasketNodes)[side]
-        if (basket) { basket.position = vec3FromFrame(f, leavesAt + 6); basket.rotation = rot }
+        if (basket) { basket.position = vec3FromFrame(f, leavesAt + 6); basket.rotation = quatFromFrame(f, poleAt + 3) }
     }
 
     // ---- Bench mode (ROWPLAY_REPLAY_BENCH=1) ----
