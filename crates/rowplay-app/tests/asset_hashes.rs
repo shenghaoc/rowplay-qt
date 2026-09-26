@@ -472,6 +472,45 @@ fn authored_assets_match_manifest_and_budgets() {
     }
 }
 
+/// Blender Phase 3: the water normal's tile is the one the scene repeats.
+/// `RowingWater.qml` draws Qt's 100-unit Rectangle scaled by 60 (6000 m) and
+/// repeats the texture `scaleU` times, so one tile is 6000 / scaleU metres.
+#[test]
+fn the_water_tile_matches_the_scene() {
+    let dir = assets_dir().join("authored");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("MANIFEST.json")).unwrap()).unwrap();
+    let water = &manifest["water"];
+    let tile = water["tile"].as_f64().unwrap();
+    let size = water["size"].as_u64().unwrap();
+    assert!(size <= manifest["textureMax"].as_u64().unwrap());
+    let qml =
+        std::fs::read_to_string(assets_dir().join("../../qml/RowPlay/Replay/RowingWater.qml"))
+            .unwrap();
+    let number = |needle: &str| -> f64 {
+        let start = qml.find(needle).unwrap_or_else(|| panic!("{needle} moved")) + needle.len();
+        qml[start..]
+            .split(|c: char| !(c.is_ascii_digit() || c == '.'))
+            .find(|s| !s.is_empty())
+            .unwrap()
+            .parse()
+            .unwrap()
+    };
+    assert!(qml.contains("scale: Qt.vector3d(60, 60, 1)"));
+    let (u, v) = (number("scaleU:"), number("scaleV:"));
+    assert!((u - v).abs() < f64::EPSILON);
+    assert!(
+        (6000.0 / u - tile).abs() < 1e-9,
+        "RowingWater repeats a {} m tile, the generator draws {tile} m",
+        6000.0 / u
+    );
+    // The PNG's own header: width and height at offsets 16 and 20.
+    let png = std::fs::read(dir.join("water-normal.png")).unwrap();
+    let width = u32::from_be_bytes(png[16..20].try_into().unwrap());
+    let height = u32::from_be_bytes(png[20..24].try_into().unwrap());
+    assert_eq!((u64::from(width), u64::from(height)), (size, size));
+}
+
 /// ADR 0002: the common assets authored here are MIT, whatever the licence of
 /// the repository or of the scripts that generate them. Every file in the
 /// authored pack needs its own MIT row in ASSET_PROVENANCE.md, and no row may

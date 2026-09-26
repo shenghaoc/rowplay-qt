@@ -21,8 +21,10 @@ Model {
             source: "qrc:/qt/qml/RowPlay/Environments/authored/water-normal.png"
             tilingModeHorizontal: Texture.Repeat
             tilingModeVertical: Texture.Repeat
-            scaleU: 1500
-            scaleV: 1500
+            // One 8 m tile of the Phase 3 normal map (6000 m / 750), fixed
+            // in the world: the boat moves over it, it never scrolls.
+            scaleU: 750
+            scaleV: 750
             generateMipmaps: true
             mipFilter: Texture.Linear
         }
