@@ -425,6 +425,32 @@ Phase 4) are authored (0016); Rust core first (0006).
   whole fixtures directory). When a parity comparison fails, verify the
   recorder and the round-trip before changing port code.
 
+## Blender athlete and contact work
+
+Blender Phases 1–4 are complete. Follow
+`.kiro/specs/blender-05-athlete-contact/tasks.md`: first correct the seat/pelvis
+reference tracked in #130, then audit the full equipment → target → bones/
+helpers → skinned hand → Qt contact chain, then audit V4 and run its
+material/normal-only experiment. Logical target parity and digit-contact
+counts cannot prove contact of the actual deformed skin. Locate and correct
+the owning layer; do not hide defects with arbitrary QML-node offsets.
+
+Stop after the audit recommendation for the owner's retain/refine/replace/
+sculpt decision. Set the athlete triangle budget before substantial modeling.
+Calibrate helpers, digit chains and contact assumptions against the final
+mesh. Modelled humans use reviewed `.blend` sources with deterministic
+export/validation; Phase 2's procedural shell is no Python-geometry precedent.
+Apply ADR 0002, including the explicit decision needed before importing a new
+human base, and preserve CC0 base + MIT modifications as distinct provenance.
+
+Rust owns meaning and replay truth; Qt/QML owns the runtime presentation object
+graph; Blender + Qt tooling owns authored/renderable assets. Preserve replay
+state/timing, the 225-float frame and pose/contact semantics unless separately
+decided. If a contract encodes the defect, stop and record an architectural
+decision rather than compensate elsewhere. Phase 6 fits the hero system only
+after the athlete is implemented; Phase 7 owns wake/foam/spray/water polish.
+Do not fit the boat twice.
+
 ## Privacy and security invariants (from rowplay-studio)
 
 - Concept2 tokens live only in the OS keychain via `keyring` — never in files,
@@ -567,6 +593,23 @@ P1 (must fix before merge):
 
 One PR per phase; commits scoped per logical step with subjects in the
 rowplay-studio style, e.g. `feat: Phase 1 - Core parity foundation`.
+
+### Dependent PR stacks
+
+For future work intentionally split across multiple dependent PRs, use
+[GitHub's `gh-stack` workflow](https://github.com/github/gh-stack) rather than
+manually maintaining and landing each PR. Use `gh stack init` / `gh stack add`,
+then `gh stack submit`; maintain it with `gh stack sync` or `gh stack rebase`
+as needed, and land it with `gh stack merge` when merging is authorized.
+
+`gh stack push` is not itself atomic. For direct stack landing, `gh stack merge`
+uses GitHub's atomic stack merge: all selected PRs merge or none do (see the
+[GitHub stack reference](https://docs.github.com/en/pull-requests/reference/stacked-pull-requests)).
+Do not repeat the manual merge-parent → rebase-child → wait-for-CI →
+merge-child cycle when a genuine GitHub stack is appropriate. Ordinary changes
+with two commits need not become a stack; this applies to intentionally
+organized multiple dependent PRs. Gate-profile and review-batching rules below
+still apply.
 
 ## Working efficiently
 

@@ -19,6 +19,39 @@ Swift column; the rows below extend it with the Rust target. The golden
 fixtures in `tests/fixtures/` come from Studio at the commit above
 (`tests/fixtures/PROVENANCE.md`).
 
+Reference check for the docs-only Blender roadmap revision (2026-09-27):
+fetched both repositories' current `main` and checked out the two SHAs above;
+both remain unchanged. No source, asset or fixture was copied or regenerated.
+
+## Blender roadmap revision (2026-09-27; planned work only)
+
+Blender Phases 1–4 are merged and complete. Their source mappings and evidence
+below retain the delivered history. [ADR 0016](decisions/0016-authored-overcast-lighting.md)
+explicitly supersedes the dropped replacement-rower phase and athlete-budget
+exemption; refinement/replacement is an intentional visual divergence from the
+web V4 athlete, conditional on the Phase 5 audit and owner's route decision.
+Current V4 remains the baseline; no replay behavior changes in this revision.
+
+| Phase | Ownership and evidence boundary |
+| --- | --- |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Step 5.0 is the correction tracked in #130 and a frozen seat/pelvis reference. Step 5.1 traces equipment → logical target → wrist/hand/digit bones and helpers → skinned mesh → Qt contact. RowErg target parity at 1e-9 and 10/10 digit closure do not prove visible contact; SkiErg's 8/10 closure (both pinkies short), pole/plant motion history and visible failure are separate questions. BikeErg is the control. Then audit V4 geometry, deformation and presentation, run a material/normal-only experiment, set a triangle budget before substantial modeling, and stop for owner decision. Approved implementation calibrates helpers/contact to the final mesh. |
+| [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | After the selected athlete is implemented, integrate athlete and equipment numerically and against real single-scull photos (catch, finish, half-slide recovery; several body types; URLs/provenance). Re-verify skinned-hand contact. Only a remaining mismatch justifies shell mid-body/cockpit reshaping, preserving 7.8 m length, grip semantics and the oarlock/rig contract unless separately decided, plus slender bow/stern. |
+| [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish after hero fit. Consume authoritative replay motion; no independent speed/distance model, world scrolling or circular-course compression compensation. |
+
+The Phase 5 evidence links to the current tests and the chronological parity
+records; historical corrected SkiErg deltas are not claimed as current
+measurements. Actual deformed skin versus the equipment surface is the new
+planned acceptance surface, with scale/deformation/visual tolerances to be
+established in Phase 5. Correct defects in their owning layer, never through
+arbitrary QML offsets. Preserve replay semantics unless a separately recorded
+architectural decision follows evidence that a contract encodes the defect.
+
+Future human-base selection verifies current terms under ADR 0002 and addresses
+its import prohibition explicitly before incorporation. Provenance separates
+CC0 base + MIT RowPlay modifications and audits clothing, hair, textures,
+accessories, morphs and community assets separately; incorporated material,
+measurement inputs and visual-only references are distinct.
+
 ## Bridge API maintenance
 
 The qtbridge 0.3.0 migration changes only the adapter API: manual
@@ -307,7 +340,7 @@ Web wins unless stated. "Kept from Studio" means the web has no equivalent.
 | --- | --- | --- | --- | --- |
 | Concept2 mapper defaults | absent `workout_type` / `verified` stay `undefined` | `JustRow`, `verified = true` | web | The web keeps the API's `undefined`; Studio's defaults are undocumented. |
 | Rowing shell and sculls (Blender Phase 2) | the V3 rig pack's rowing templates: an open-U shell with strut riggers and a spoon blade | the same templates, converted (`convert_rowplay_equipment.py`) | `authored/rowing-shell.glb` in the scene, under the V3 names, roles and composite rules | The Direction C art pass (ADR 0016). The V3 pack stays vendored and pinned. `rowing_shell::validate_rowing_shell` holds the authored pack to its rowing names and roles and to the 60,000-triangle budget as drawn. Tests pin the pins to `OARLOCK_PIVOT` and the grip to the hand-contact constants. |
-| Seat and stretcher fit | seat carriage group at `(0, 0.29, −0.14)` in the moving rower group; pelvis target 0.376 m | — | the authored seat, floor and stretcher fit the athlete the port draws: pad top 0.118, 0.09 aft of the seat origin; heels on the floor at the finish | The port's anchor puts the seat template at the group origin, and its pelvis target is 0.30, so the V3 seat rendered 0.29 m low, inside the hull. The fit comes from skinning the V4 athlete with the replay's own frames (`docs/blender-audit.md`, "Phase 2"). Anchor and pelvis target are unchanged; #130 tracks the question. |
+| Seat and stretcher fit | seat carriage group at `(0, 0.29, −0.14)` in the moving rower group; pelvis target 0.376 m | — | the authored seat, floor and stretcher fit the athlete the port draws: pad top 0.118, 0.09 aft of the seat origin; heels on the floor at the finish | The port's anchor puts the seat template at the group origin, and its pelvis target is 0.30, so the V3 seat rendered 0.29 m low, inside the hull. The fit comes from skinning the V4 athlete with the replay's own frames (`docs/blender-audit.md`, "Phase 2"). Anchor and pelvis target were unchanged in Phase 2; #130 is now explicitly Blender Phase 5.0, before contact/athlete audits (see the roadmap revision above). |
 | Left blade | the blade leaf at `side · 1.82` with the same roll on both sides; the V3 spoon is near-symmetric | same | the left leaf is reflected in its own z (scale `(1, 1, −1)`), with a front-face-culled copy of its material | A hatchet blade has a handedness that the port's π turn of the left oar cannot give. Culling front faces keeps the reflected leaf's normals and lighting right; see the Qt notes. |
 | Hull wet band | none | none | vertex-colour masks on the hull scale roughness and clearcoat roughness toward the waterline | A Direction C addition. There is no texture and no UV set, and parts without the attribute are unaffected. |
 | Rowing land and vegetation (Blender Phase 3) | the venue builder's flat bank arcs, horizon and ridge bands, and instanced woodland and reeds (`renderer3dEnvironment.ts`), baked here into the rower venue GLBs | its own port of the builder (`ReplayEnvironment*.swift`) | `authored/rowing-environment.glb` and `vegetation.json`, from `rowing-environment.blend`: terrain from the near bank to the rim, woodland masses, a far bank, and six instanced variants over four tiers; the baked venue's land and vegetation round the basin are hidden, its structures and the island kept | Direction C (ADR 0016, amended). In the port the baked land read as a test arena: flat plates at water level, a faceted two-band ridge, and woodland that does not render (#121). The land uses follow the web's sectors, the terrain receives shadows as the web's banks do, and nothing casts, as the web's trees do not. |

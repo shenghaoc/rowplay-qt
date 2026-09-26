@@ -4,12 +4,32 @@
 
 The owner-approved art direction adds script-generated overcast lighting,
 silver rippled water, fixed course references and a blue-hour companion to the
-existing rowing replay. ADR 0016 permits repository-generated sky probes;
-the athlete, 7.8 m shell contract, chase camera and loop remain unchanged.
-See `docs/blender-audit.md`, `tools/blender/README.md` and
-`.kiro/specs/blender-01-pipeline/tasks.md` for scope and acceptance gaps.
-The replacement-rower phase is dropped. Missing baseline venue furniture is
-tracked separately in #121. Do not claim macOS verification from Linux captures.
+existing rowing replay. ADR 0016 permits repository-generated sky probes.
+Blender Phases 1–4 are merged and complete. Their delivered scope and evidence
+below remain historical; the revised remaining plan (2026-09-27) supersedes
+the old decision to drop replacement-rower work. The current V4 athlete remains
+the baseline pending Phase 5's audit and owner route decision. The 7.8 m shell
+contract, chase camera and loop remain the baseline too.
+See `docs/blender-audit.md` and `tools/blender/README.md` for completed work.
+Missing SkiErg/BikeErg venue furniture remains tracked in #121. Do not claim
+macOS verification from Linux captures.
+
+| Blender phase | Scope | Status |
+| --- | --- | --- |
+| [1](../.kiro/specs/blender-01-pipeline/tasks.md) | Direction C pipeline | Complete |
+| [2](../.kiro/specs/blender-02-shell-oars/tasks.md) | Shell and oars | Complete |
+| [3](../.kiro/specs/blender-03-environment-water/tasks.md) | Environment and water | Complete |
+| [4](../.kiro/specs/blender-04-course-dressing/tasks.md) | Course dressing and venue furniture | Complete |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | Planned |
+| [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | Hero-fit integration | Planned |
+| [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish | Planned |
+
+Correct the authoritative seat/pelvis reference and understand hand/equipment
+contact failures before deciding which athlete asset to keep; then fit the
+shell around the final athlete. **Do not fit the boat twice.** These Blender
+phase numbers are separate from the original implementation roadmap below.
+
+### Blender Phase 1: Direction C pipeline (complete)
 
 Source-first closeout tightened only the GLB/KTX generator input contracts;
 committed assets and runtime remain unchanged. See `docs/blender-audit.md` for
@@ -17,7 +37,7 @@ Qt source tracing and the isolated filter timing comparison. Both hardware
 acceptance gates passed on Apple M5/Metal at the audited head; see the
 acceptance and current-main integration records in `docs/blender-audit.md`.
 
-### Blender Phase 2: shell and oars
+### Blender Phase 2: shell and oars (complete)
 
 The single scull and its sculls are rebuilt inside the V3 rowing contract: the
 7.8 m shell, the oarlock pivots, and the node names and roles the scene maps
@@ -29,7 +49,7 @@ athlete the app draws. Scope, evidence and the fit are in
 Found on the way and left for their own changes: the blades never square
 (#129), and the seat and pelvis sit below the web's (#130).
 
-### Blender Phase 3: environment and water
+### Blender Phase 3: environment and water (complete)
 
 The water is a seeded wind-sea spectrum on an 8 m tile, fixed in the world
 and irregular enough to lose Phase 1's lattice. The basin gains a near bank
@@ -44,7 +64,7 @@ until Phase 4. The frame, the camera, the rig and the loop are
 unchanged. Scope, budgets, evidence and measurements are in
 `.kiro/specs/blender-03-environment-water/tasks.md` and `docs/blender-audit.md`.
 
-### Blender Phase 4: course dressing and venue furniture
+### Blender Phase 4: course dressing and venue furniture (complete)
 
 The basin reads as a rowing venue. Every structure the web bake still drew
 was audited from the chase camera and round the lap, then rebuilt as a
@@ -63,6 +83,44 @@ Phase 3 terrain, the lane band and the plants. Nothing of the rower bake is
 drawn any more. The frame, the camera, the rig and the loop are unchanged.
 Scope, the audit, budgets, evidence and measurements are in
 `.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
+
+### Blender Phase 5: seat/pelvis, contact truth and athlete (planned)
+
+[Phase 5's spec](../.kiro/specs/blender-05-athlete-contact/tasks.md) starts
+with **5.0: correct #130 and freeze the seat/pelvis reference**. Then 5.1
+traces equipment geometry → logical target → bones/helpers → skinned hand →
+visible Qt contact for RowErg, SkiErg and BikeErg. Target parity and digit
+closure counts do not establish contact of the rendered skin. Measure that
+skin against equipment, capture the required contact phases, classify each
+defect and correct it in its owning layer; no arbitrary QML offsets.
+
+Only then does 5.2 audit V4 geometry, proportions, rigging/deformation and
+presentation, including a material/normal-only experiment in Qt. Recommend
+retaining, refining, replacing from a permissive base, or an owner-authored
+sculpt; report skeleton/helper/digit/weight reuse and set an athlete triangle
+budget before substantial modeling. **Stop for owner decision.** Implementation
+and final-mesh contact calibration follow only after approval. Current licence
+terms and ADR 0002's import prohibition must be addressed before any new base
+is incorporated; CC0 base and MIT RowPlay modifications remain distinct.
+
+### Blender Phase 6: hero-fit integration (planned)
+
+[Phase 6](../.kiro/specs/blender-06-hero-fit/tasks.md) starts after the chosen
+athlete is implemented. Integrate athlete, seat, rails, stretcher, cockpit,
+riggers, oars/poles and shell/machine numerically, and compare the chase view
+with real single-scull photos at catch, finish and half-slide recovery across
+several body types. Record reference provenance; collision tests alone are
+insufficient. Re-verify Phase 5's rendered-skin contact acceptance. Correct
+athlete/contact/anchor issues first, re-evaluate the Phase 2 shell second,
+and reshape its mid-body/cockpit only if a mismatch remains. Keep its 7.8 m
+length, grip semantics and oarlock/rig contract unless separately decided;
+never uniformly widen the hull or lose bow/stern slenderness.
+
+### Blender Phase 7: wake, foam, spray and final water polish (planned)
+
+[Phase 7](../.kiro/specs/blender-07-water-polish/tasks.md) follows hero fit.
+It may consume authoritative replay motion; it may not invent speed/distance
+models, scroll the world or compensate for circular-course compression.
 
 ### Licensing of the authored assets (2026-09-26)
 
