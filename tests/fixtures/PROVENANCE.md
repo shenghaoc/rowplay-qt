@@ -107,6 +107,25 @@ its nearest double.
 | `replay-stroke-model-parity.json` | 96504 | `11e3072f42921050af59d33a1e07d3c2475dd94078e2a3daca5a28499c3673a1` |
 | `replay-venue-shadow-parity.json` | 82832 | `e0139e8ec71b9da4245358713a9e962f638459066ed966e25c99d438a75e7c96` |
 
+## Phase 5 contact equipment oracle
+
+`replay-contact-equipment-parity.json` is generated locally by
+`tools/gen-contact-equipment-parity.mjs` using rowplay
+`173c6facbcedef419ad39168c5e3e642abb7e57e`. It records four actual composed
+rower carriage/pelvis states and both SkiErg fitted V3 shaft/grip meshes in
+five phases. `sourceFileSha256s` and `assetSha256` in the JSON pin the evaluated
+sources and input GLB. `manifest.json` pins the output bytes/SHA-256.
+
+The recorder builds the real web avatars, parents them to a scene, runs the
+web's asset-fitting function and animation/contact placement, then reads the
+rendered nodes and geometry. It does not derive expected dimensions using
+Rust constants. Existing fixtures are unchanged. Reproduce with Node 24.21.0:
+
+```sh
+node --experimental-transform-types tools/gen-contact-equipment-parity.mjs
+python3 tools/vendor-fixtures.py reference/rowplay-studio
+```
+
 ## Licence
 
 rowplay-studio is (c) shenghaoc; the fixtures are reused here by the same
