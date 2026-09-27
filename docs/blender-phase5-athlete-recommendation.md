@@ -456,8 +456,9 @@ Why the evidence leads here:
    or calibrate against hands the evidence says are wrong.
 3. The honest cost comparison collapses Route 2 into Route 3A plus undo
    work, and Route 1 buys only the measured "limited and local" presentation
-   gain while leaving proportions, deformation, contact and Phase 6 risk in
-   place.
+   gain while retaining the underlying proportion, topology, deformation and
+   Phase 6 fit risks — and it still pays full helper/contact recalibration
+   and rendered-contact acceptance against the retained V4 hands.
 4. Route 3A is the only route that ends with the athlete inside the
    repository's deterministic, machine-checkable asset pattern without an
    unbounded owner dependency.
@@ -471,13 +472,21 @@ and instrument, so switching between them wastes little work.
 
 **Rejected:**
 
-- **Route 1** — the audits' measured conclusion is that presentation cannot
-  fix segment proportions, silhouette, helper registration, terminal reach,
-  palm crossing, gaps or surface collapse; the rendered-contact failures and
-  deformation defects would be accepted permanently, and Phase 6 would fit
-  the boat to them. Rejected as the primary route; its presentation ideas
-  (role separation, material response) are subsumed into the rebuild's
-  surface authoring.
+- **Route 1** — rejected for what it deliberately preserves, not for its
+  contact obligations. Like every route, it still requires Phase 5.4's full
+  helper/contact recalibration and rendered-contact acceptance — the
+  actual-skin instrument and native Qt evidence — against the retained V4
+  hands; the measured palm crossing and gaps are evidence of how much
+  recalibration that mesh demands, not failures Route 1 may declare
+  acceptable. Even after that work, the geometry-specific findings remain
+  by definition: the distorted segment proportions (long forearms, short
+  broad hands), the rest-shape distortion, the silhouette limits
+  presentation cannot repair, the topology misallocation and the
+  geometry-limited deformation quality. Calibration effort is spent on
+  hands the audit found structurally poor for the purpose, and Phase 6
+  fits the boat around those retained anatomical limitations. Rejected as
+  the primary route; its presentation ideas (role separation, material
+  response) are subsumed into the rebuild's surface authoring.
 - **Route 2** — dishonest under its own name: the surviving-geometry
   analysis shows the work is a rebuild wearing "refine", executed on a
   forked artifact with no in-repo source and the base's history lost.
