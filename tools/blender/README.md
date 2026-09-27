@@ -357,3 +357,55 @@ the clip; none of these is required by generation or the app build. Ask
 before installing them. The water band is a fixed 250 x 230 patch of near
 water at (0, 1150); Phase 1's (0, 420) lies across the far bank in the
 current layout.
+
+## Phase 5.2 athlete audit
+
+Audit-only tools; see [the report](../../docs/blender-phase5-athlete-audit.md).
+The pinned `reference/rowplay` checkout supplies the actual reviewed base and
+builder. No `.blend`, GLB, production weight or material is saved. Blender
+5.2.2 LTS and Python with numpy/Pillow were used. The figure publisher uses
+DejaVu Sans at `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf` on Linux.
+
+```sh
+blender -b -noaudio --factory-startup --python-exit-code 1 \
+  -P tools/blender/audit_athlete_base.py -- --output build/phase52/base
+python3 tools/blender/audit_athlete.py \
+  --base build/phase52/base --output build/phase52/metrics
+source .envrc
+QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  python3 tools/blender/capture_athlete.py --output build/phase52/native
+QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  python3 tools/blender/capture_athlete_lower.py --output build/phase52/lower
+python3 tools/blender/publish_athlete_audit.py --base build/phase52/base \
+  --metrics build/phase52/metrics --capture build/phase52/native \
+  --lower build/phase52/lower --output build/phase52/evidence
+cargo build -p rowplay-app  # restore the production binary after temporary captures
+python3 -m unittest discover -s tools/blender
+```
+
+Run captures alone, with no concurrent app builds or QML edits. Each output
+capture directory must be new. Both scripts restore the two production QML
+files in `finally`; the lower-body supplement deliberately hides equipment
+and is **not** part of the fixed-equipment material experiment. `--smoke`
+on the main capture takes one face comparison for instrument diagnosis.
+
+The base inspector imports the real canonical builder and checks preserved
+polygon connectivity. Added-object join ordering is normalized by sorting
+the detail-position multiset, while retaining the body prefix. For a repeat,
+use another output directory and compare every `.npz` array with
+`numpy.array_equal` and `base-source.json` byte-for-byte. Do not compare the
+ZIP container timestamp as geometry. The metric JSON must match byte-for-byte
+on repeated analysis of fixed inputs. The analysis reuses Phase 5.1's
+immutable final palette archive; it never re-derives animation transforms.
+
+The publisher refuses mismatched poses/cameras/equipment/lighting in A–D,
+allows only the deliberately changed key light in L, checks all ten native
+whole-athlete silhouettes against CPU skinning (4× coverage rasterization,
+IoU ≥.97), refuses blank/saturated frames, and requires A/A0 pixel identity.
+It also checks that isolated anatomy has the original joint and recorded
+equipment transforms; that capture hides the equipment’s parent nodes,
+whose children retain local `visible` values in the transform recorder. Numeric differences use raw PNGs, not review JPEGs.
+The committed evidence is bounded: compressed matrices/metrics, native
+lossless masks, labelled JPEG panels, diagnostic maps and input hashes.
+Original full-size PNG/PPM captures and large inspection arrays stay in
+`build/`. Old Phase 5.1 evidence must not be regenerated for this audit.

@@ -1,0 +1,136 @@
+{
+  "controlled_views": [
+    "row-catch-full-",
+    "row-catch-face-",
+    "row-catch-torso-",
+    "row-catch-left-",
+    "row-catch-right-",
+    "ski-release-full-",
+    "ski-release-face-",
+    "ski-release-torso-",
+    "ski-release-left-",
+    "ski-release-right-"
+  ],
+  "silhouettes": [
+    {
+      "name": "row-catch-full-mask",
+      "iou": 0.9832513012995291,
+      "pixels": 55537,
+      "mean_abs_rgb_8bit": {
+        "A-B": 89.95685363217831,
+        "A-C": 33.5162197110249,
+        "C-D": 2.217930698450179,
+        "C-L": 14.480563207835935
+      }
+    },
+    {
+      "name": "row-catch-face-mask",
+      "iou": 0.9966169964404605,
+      "pixels": 276628,
+      "mean_abs_rgb_8bit": {
+        "A-B": 119.98905166405935,
+        "A-C": 17.29866563348295,
+        "C-D": 3.335598296221569,
+        "C-L": 15.240187191446019
+      }
+    },
+    {
+      "name": "row-catch-torso-mask",
+      "iou": 0.9928633322748532,
+      "pixels": 184484,
+      "mean_abs_rgb_8bit": {
+        "A-B": 110.07110206078801,
+        "A-C": 18.0824627915832,
+        "C-D": 1.2898016470852258,
+        "C-L": 15.618935409757057
+      }
+    },
+    {
+      "name": "row-catch-left-mask",
+      "iou": 0.9950023105755901,
+      "pixels": 290871,
+      "mean_abs_rgb_8bit": {
+        "A-B": 75.57655262523538,
+        "A-C": 16.98493809994608,
+        "C-D": 2.4968319236820253,
+        "C-L": 9.624352672514885
+      }
+    },
+    {
+      "name": "row-catch-right-mask",
+      "iou": 0.9943473071911965,
+      "pixels": 290855,
+      "mean_abs_rgb_8bit": {
+        "A-B": 89.86901147481608,
+        "A-C": 15.736309821198772,
+        "C-D": 1.7466316820452261,
+        "C-L": 17.314692725784155
+      }
+    },
+    {
+      "name": "ski-release-full-mask",
+      "iou": 0.9776388507819543,
+      "pixels": 49886,
+      "mean_abs_rgb_8bit": {
+        "A-B": 110.57237197325249,
+        "A-C": 18.502422782461824,
+        "C-D": 2.6294111946394207,
+        "C-L": 10.315238609461312
+      }
+    },
+    {
+      "name": "ski-release-face-mask",
+      "iou": 0.9972178801988532,
+      "pixels": 240516,
+      "mean_abs_rgb_8bit": {
+        "A-B": 96.66868734395064,
+        "A-C": 17.63827496054568,
+        "C-D": 3.608691572949531,
+        "C-L": 8.250482764028863
+      }
+    },
+    {
+      "name": "ski-release-torso-mask",
+      "iou": 0.9939075395940219,
+      "pixels": 142595,
+      "mean_abs_rgb_8bit": {
+        "A-B": 110.59366453151667,
+        "A-C": 18.562156192054005,
+        "C-D": 1.5559411679294282,
+        "C-L": 9.599196402855435
+      }
+    },
+    {
+      "name": "ski-release-left-mask",
+      "iou": 0.9969503986460869,
+      "pixels": 181508,
+      "mean_abs_rgb_8bit": {
+        "A-B": 52.75662265173276,
+        "A-C": 12.445643783354488,
+        "C-D": 0.44334097842303327,
+        "C-L": 1.2179258797419967
+      }
+    },
+    {
+      "name": "ski-release-right-mask",
+      "iou": 0.9971114481088318,
+      "pixels": 179582,
+      "mean_abs_rgb_8bit": {
+        "A-B": 68.05876803031155,
+        "A-C": 9.844351283926997,
+        "C-D": 0.5291579914842534,
+        "C-L": 27.265967024928255
+      }
+    }
+  ],
+  "normal_disabled": [
+    {
+      "phase": "row-catch",
+      "max_channel_difference": 0
+    },
+    {
+      "phase": "ski-release",
+      "max_channel_difference": 0
+    }
+  ]
+}

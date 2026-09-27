@@ -1,0 +1,94 @@
+{
+  "base": "63c823cb0663a4c05d72ee34159901ebd764b9d1",
+  "asset_sha256": "a564a4dbd4922e2ba76ef21a23f5bf0eb1b0180846548f9d7110e55ffd8f760e",
+  "instrument_sha256": "06fc749fce2f4c899efd7d174e228ba2007fd5b3a1bfa274992642b9569752db",
+  "maps": {
+    "size": 512,
+    "painted_triangles": 21912,
+    "roughness_by_role": [
+      0.48,
+      0.86,
+      0.86,
+      0.7,
+      0.78,
+      0.7,
+      0.18,
+      0.5
+    ],
+    "normal_xy_amplitude": 0.1,
+    "normal_periods": 80,
+    "normal_strength": 0.2,
+    "overlap_policy": "GLB triangle order, last writer; original UVs retained",
+    "fallback_roughness": 0.7
+  },
+  "map_sha256": {
+    "roughness.png": "6ec62eb227ff698d95327cfcbd970d58bd2b4526ccdb0b2c3217ef7ab1ecf136",
+    "normal.png": "a1845bcf010870f8db58ee17017994f377cf2fa9b66eaf02dbffdc47bf06f521"
+  },
+  "qt": "6.11.2",
+  "samples": {
+    "1001": [
+      [
+        "row-catch",
+        0
+      ],
+      [
+        "row-middrive",
+        380
+      ],
+      [
+        "row-finish",
+        760
+      ],
+      [
+        "row-halfslide",
+        1380
+      ]
+    ],
+    "1003": [
+      [
+        "ski-approach",
+        1900
+      ],
+      [
+        "ski-plant",
+        0
+      ],
+      [
+        "ski-pull",
+        300
+      ],
+      [
+        "ski-release",
+        540
+      ],
+      [
+        "ski-recovery",
+        1100
+      ]
+    ],
+    "1004": [
+      [
+        "bike-top",
+        0
+      ],
+      [
+        "bike-quarter",
+        500
+      ]
+    ]
+  },
+  "clock": "fallback 30 spm; phase=step/2000*tau, distance=step*3",
+  "scheme": "light",
+  "tier": "Medium",
+  "renderer": "opengl",
+  "platform": "wayland",
+  "views": [
+    "lower"
+  ],
+  "variants": [
+    "B"
+  ],
+  "mode": "supplemental isolated lower anatomy; equipment hidden, clay material",
+  "supplemental_instrument_sha256": "2d111f9c392dfe9f57383d679977402516f408d53454725891e2c39d7df8ebe1"
+}

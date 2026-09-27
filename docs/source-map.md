@@ -47,7 +47,29 @@ approved divergences** or evidence of correct contact. See the audit's
 [open calibration questions](blender-phase5-contact-audit.md#open-contact-calibration-questions).
 They remain future owner/architecture decisions, informed by the selected
 athlete after Phase 5.2/5.3; no contact architecture is selected here.
-Phase 5.2+ and athlete/shell refinement have not started.
+At this contact-audit checkpoint Phase 5.2+ had not started; see the
+subsequent athlete audit below. Athlete/shell refinement remains unstarted.
+
+## Blender Phase 5.2 athlete audit (2026-09-27)
+
+Started from current main `63c823cb0663a4c05d72ee34159901ebd764b9d1`;
+fetched both reference mains and verified the pins above unchanged.
+[The athlete report](blender-phase5-athlete-audit.md) records FACT,
+MEASUREMENT, INFERENCE and OPEN QUESTION separately. The actual reviewed
+CC0 base and canonical Blender builder were executed in memory, with source
+hashes in the [metric archive](evidence/blender052/athlete-metrics.json.gz).
+No source model or production asset was regenerated.
+
+| Source / observable | Audit instrument | Finding / boundary |
+| --- | --- | --- |
+| Web reviewed Human Base Meshes v1.4.1 `.blend`, `build-replay-athlete-v4-blender.py`, `rigV4.ts`, GLB | `audit_athlete_base.py`, `audit_athlete.py` | Exact adapted-body coordinate agreement; preserved body polygons; altered arm/hand/leg proportions, pre-animation upper-arm distortion, region-based weights. Hair-only nearest-position mismatch ≤.369 mm remains explicit. |
+| Web V4 role palettes and `renderer3dV4Motion.ts` maps versus actual Qt imported material | `capture_athlete.py` | Qt has one V4 material with no maps; web runtime role/maps are not implemented in this path. This is an observed presentation gap, not a newly approved divergence or a production fix. |
+| Final Phase 5.1 palette + GLB skin; new native matched states | `contact_skin.py`, new audit/publisher and lower-anatomy capture | Source/adapted metrics, bilateral helper/anatomy overlays, deformation at all required row/ski phases, ten controlled A–L views; same meshes, rig, weights, pose and equipment. Separate clay lower views hide equipment only for inspection. |
+
+Evidence is separate in `docs/evidence/blender052/`; Phase 5.1 evidence is
+unchanged. No Qt Bridges issue was encountered. Phase 5.2 completes the four
+audit checklist items, with no athlete route, budget, architecture choice,
+production material change or shell-fit adjustment. Phase 5.3+ remains open.
 
 ## Blender roadmap revision (2026-09-27; planned work only)
 
