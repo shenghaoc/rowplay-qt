@@ -38,7 +38,7 @@ There are no embedded textures and no TANGENT accessor.
 
 Source paths and SHA-256s, Blender version, per-bone origins and source region
 IDs are embedded in [the metric archive](evidence/blender052/athlete-metrics.json.gz).
-Existing asset licensing/provenance remains in `assets/ASSET_PROVENANCE.md`;
+Existing asset licensing/provenance remains in [ASSET_PROVENANCE.md](../ASSET_PROVENANCE.md);
 this PR copies no new human model. Diagnostic figures derive from that same
 CC0 base and existing RowPlay surface; tooling is GPL-3.0-or-later.
 
@@ -454,7 +454,7 @@ viewport, scheme/tier and lighting across each controlled view. All must
 match exactly except the deliberately changed L key light. Native unlit whole-athlete masks validate the CPU skin projection at **.9776–.9972 IoU** using 4× coverage rasterization; all ten palettes also match Phase 5.1 exactly. A0 matches A pixel-for-pixel in both stressed states. Blank/saturated fallback images fail publication.
 See [validation results](evidence/blender052/validation.json) for measured
 IoUs and masked mean absolute RGB differences. Those pixel differences
-measure intervention size, **not percentage improvement in realism**.
+measure intervention size, **not percentage improvement in realism**. The ROI is the unoccluded athlete mask: unchanged occluding equipment can dilute these mean differences.
 
 **INFERENCE:** B removes painted face seams and reveals coherent underlying
 cheek/nose/lip form. C modestly separates response and reduces broad coat-like
