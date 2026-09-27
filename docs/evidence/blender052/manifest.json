@@ -1,10 +1,46 @@
 {
-  "base": "63c823cb0663a4c05d72ee34159901ebd764b9d1",
+  "base": "9e2c4e6170070fab7efb809752d8791310f521d1",
   "asset_sha256": "a564a4dbd4922e2ba76ef21a23f5bf0eb1b0180846548f9d7110e55ffd8f760e",
-  "instrument_sha256": "06fc749fce2f4c899efd7d174e228ba2007fd5b3a1bfa274992642b9569752db",
+  "instrument_sha256": "7c3ab31063fcca51cc87133427ed41de9fbe5e35de1ec8a69da088ad1e05bd04",
   "maps": {
-    "size": 512,
-    "painted_triangles": 21912,
+    "size": 1024,
+    "painted_triangles": 93192,
+    "qt_uv_min": [
+      0.0,
+      0.0
+    ],
+    "qt_uv_span": [
+      8.948707580566406,
+      3.96671199798584
+    ],
+    "texture_scale": [
+      0.11174798011779785,
+      0.2520979642868042
+    ],
+    "texture_offset": [
+      -0.0,
+      -0.0
+    ],
+    "triangle_centroid_role_recovery": {
+      "skin": 0.6936406696993856,
+      "jersey": 0.9482081911262799,
+      "lower": 0.9573639438351953,
+      "footwear": 0.9853443580729812,
+      "hair": 0.0201922300298845,
+      "trim": 0.9762428508578971,
+      "eye": 0.008536827476672622,
+      "face-detail": 0.032516703786191536
+    },
+    "surface_area_role_recovery": {
+      "skin": 0.7773029208183289,
+      "jersey": 0.9855381846427917,
+      "lower": 0.9771909117698669,
+      "footwear": 0.9906424880027771,
+      "hair": 0.32542720437049866,
+      "trim": 0.9575734734535217,
+      "eye": 0.08151550590991974,
+      "face-detail": 0.1578722894191742
+    },
     "roughness_by_role": [
       0.48,
       0.86,
@@ -22,8 +58,8 @@
     "fallback_roughness": 0.7
   },
   "map_sha256": {
-    "roughness.png": "6ec62eb227ff698d95327cfcbd970d58bd2b4526ccdb0b2c3217ef7ab1ecf136",
-    "normal.png": "a1845bcf010870f8db58ee17017994f377cf2fa9b66eaf02dbffdc47bf06f521"
+    "roughness.png": "40d18067079f2506eb5988a9b3eb54abeff9f0a97824aabd8456ddb98312f78e",
+    "normal.png": "af2f70b98327318e1c58d88ce8ea21a71e6dd86e935eefcfe03572fc5cf1ef66"
   },
   "qt": "6.11.2",
   "samples": {
@@ -96,5 +132,14 @@
     "C",
     "D",
     "L"
-  ]
+  ],
+  "imported_uv": {
+    "mesh_sha256": "c214c3279489c7f5360d4a53262019620e95fcdfce0755f408931f230eb9afe7",
+    "vertices": 57069,
+    "position_uv_tuple_max_error": 0,
+    "qt_uv": "(glTF.u, 1 - glTF.v)",
+    "mesh_version": 7,
+    "stride": 80,
+    "uv_offset": 24
+  }
 }
