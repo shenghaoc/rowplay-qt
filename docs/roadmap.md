@@ -22,7 +22,7 @@ macOS verification from Linux captures.
 | [2](../.kiro/specs/blender-02-shell-oars/tasks.md) | Shell and oars | Complete |
 | [3](../.kiro/specs/blender-03-environment-water/tasks.md) | Environment and water | Complete |
 | [4](../.kiro/specs/blender-04-course-dressing/tasks.md) | Course dressing and venue furniture | Complete |
-| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0/5.1 investigation complete; 5.2+ not started |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0/5.1 investigation and 5.2 athlete audit complete; 5.3+ not started |
 | [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | Hero-fit integration | Planned |
 | [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish | Planned |
 
@@ -86,7 +86,7 @@ drawn any more. The frame, the camera, the rig and the loop are unchanged.
 Scope, the audit, budgets, evidence and measurements are in
 `.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
 
-### Blender Phase 5: seat/pelvis, contact truth and athlete (5.0/5.1 audited)
+### Blender Phase 5: seat/pelvis, contact truth and athlete (5.0–5.2 audited)
 
 [Phase 5.0–5.1 report](blender-phase5-contact-audit.md): #130 corrected and
 baseline frozen; stale rowing wrist frame and pole leaf fit corrected;
@@ -94,7 +94,12 @@ actual skin measured against native Qt. Hand contact remains unaccepted.
 The audit records [open contact-calibration questions](blender-phase5-contact-audit.md#open-contact-calibration-questions)
 for Phase 5.2/5.3 and any later architectural decision after the owner's
 athlete-route choice; no contact architecture is selected.
-Phase 5.2+ and Phase 6 have not started.
+[Phase 5.2 athlete audit](blender-phase5-athlete-audit.md) is complete: the
+canonical base comparison, bilateral anatomy/helper overlays, regional
+topology/weight metrics, native replay deformation and material/normal-only
+experiment are recorded. Production V4 is unchanged. No retain/refine/replace
+route or future triangle budget is chosen. Phase 5.3+, Phase 6 and Phase 7
+have not started.
 
 ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
 continues to govern procedural versus modelled Blender source of truth;

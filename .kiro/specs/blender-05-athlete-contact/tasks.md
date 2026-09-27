@@ -7,8 +7,9 @@ procedural versus modelled Blender source of truth;
 [ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
 governs licensing and provenance.
 
-Status: Phase 5.0 and the Phase 5.1 investigation complete; Phase 5.2+ not
-started. Rendered contact remains unaccepted; see the [contact report](../../../docs/blender-phase5-contact-audit.md).
+Status: Phase 5.0, the Phase 5.1 investigation and Phase 5.2 athlete audit
+complete; Phase 5.3+ not started. Rendered contact remains unaccepted; see
+the [contact report](../../../docs/blender-phase5-contact-audit.md).
 Its [open calibration questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
 remain future owner/architecture decisions; no contact architecture is selected.
 Blender Phases 1–4 are merged and complete.
@@ -126,7 +127,8 @@ must not force contact through a phase that calls for separation.
 ### Stop after Phase 5.1
 
 Phase 5.0 is complete and the Phase 5.1 investigation is complete. **Rendered
-hand contact is NOT accepted; Phase 5.2+ is NOT started.** Removing an
+hand contact is NOT accepted.** Phase 5.2 is now complete and Phase 5.3+
+is not started. Removing an
 unselected architectural proposal does not authorize further contact fixes.
 
 **FUTURE DECISION:** after #137 is merged with owner authorization, proceed
@@ -148,22 +150,27 @@ and native Qt phase evidence against the chosen athlete, not only helper tests.
 Only after the contact chain is understood, inspect the athlete itself against
 the corrected Step 0 reference.
 
-- [ ] Geometry/appearance: silhouette, anthropometric proportions, shoulder
+- [x] Geometry/appearance: silhouette, anthropometric proportions, shoulder
   width, hip width, torso length, arm/leg proportions, hands/fingers, feet,
   head, facial treatment, clothing shape, topology, normals and UVs.
-- [ ] Rigging/deformation at catch, mid-drive, finish, recovery / half slide
+- [x] Rigging/deformation at catch, mid-drive, finish, recovery / half slide
   and representative SkiErg phases: skin weights, shoulders, elbows, wrists,
   fingers, hips, knees, feet and grip deformation.
-- [ ] Attribute the mannequin appearance among geometry, proportions,
+- [x] Attribute the mannequin appearance among geometry, proportions,
   materials, normals, Qt lighting/material configuration, rigging, weight
   painting and pose, including combinations. Separate it from contact-chain
   defects rather than calling every problem a bad mannequin.
-- [ ] Run a **material/normal-only improvement experiment in Qt on the
+- [x] Run a **material/normal-only improvement experiment in Qt on the
   existing V4 mesh** before concluding geometry must be replaced. Hold mesh
   geometry, rig and pose fixed; compare flat material treatment, normals,
   roughness, skin/fabric separation and lighting response under controlled
   Qt views. Diagnose the lighting contribution separately. This experiment
   cannot excuse genuinely bad geometry or deformation.
+
+[Audit report and evidence](../../../docs/blender-phase5-athlete-audit.md)
+record the source comparison, bilateral hand overlays, topology/weights,
+native deformation and controlled presentation experiment. No route, budget
+or production refinement is selected.
 
 ## Phase 5.3 — Recommendation and owner checkpoint
 
