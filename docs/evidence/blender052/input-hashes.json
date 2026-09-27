@@ -133,5 +133,5 @@
   "tools/blender/audit_athlete_base.py": "0ed00ef07ba17a82b46025e9cfd3c0e99f071106320098ad5d81dc92c97eb958",
   "tools/blender/capture_athlete.py": "06fc749fce2f4c899efd7d174e228ba2007fd5b3a1bfa274992642b9569752db",
   "tools/blender/capture_athlete_lower.py": "2d111f9c392dfe9f57383d679977402516f408d53454725891e2c39d7df8ebe1",
-  "tools/blender/publish_athlete_audit.py": "9e870276bb51e6654ddda4fce0f0380386001ef7efad8d683a1bd9173e6c5a2b"
+  "tools/blender/publish_athlete_audit.py": "2e74ccd191bb8f0bed563dc275f210b8cdd82990da5a7e6d4378d148f6527962"
 }

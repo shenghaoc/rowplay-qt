@@ -98,12 +98,17 @@ def scientific_figures(base_dir,metrics_dir,out,records,capture):
     for col,(side,stage) in enumerate([(s,v) for s in ['Left','Right'] for v in ['base','adapted']]):
         ids=[10 if side=='Left' else 9]+[i for v in m['source']['digit_face_sets'][side].values() for i in v]
         selected=np.isin(a['vertex_face_sets'],ids);points=a[stage];center=points[selected].mean(0)
-        axes=np.linalg.svd(points[selected]-center,full_matrices=False)[2]
-        q=np.column_stack([col*400+200+(points-center)@axes[1]*1900,330-(points-center)@axes[0]*1900])
+        digit_ids=m['source']['digit_face_sets'][side]
+        palm=points[a['vertex_face_sets']==ids[0]].mean(0)
+        long=points[a['vertex_face_sets']==digit_ids['Middle'][3]].mean(0)-palm
+        long/=np.linalg.norm(long)
+        across=points[a['vertex_face_sets']==digit_ids['Index'][0]].mean(0)-points[a['vertex_face_sets']==digit_ids['Pinky'][0]].mean(0)
+        across-=long*np.dot(across,long);across/=np.linalg.norm(across)
+        q=np.column_stack([col*400+200+(points-center)@across*1900,330-(points-center)@long*1900])
         tr=a['triangles'] if stage=='base' else a['adapted_triangles'];tr=tr[np.all(selected[tr],axis=1)]
         for t in tr: draw.polygon([tuple(v) for v in q[t]],fill='#e6e6e6',outline='#aaa')
         draw.text((col*400+20,20),side+' '+stage,font=font(22),fill='black')
-    draw.text((20,610),'Common 1.9 px/mm; independent PCA projection per hand/stage. Spread-hand geometry, not a clinical length measure.',font=font(18),fill='black')
+    draw.text((20,610),'Common 1.9 px/mm; up = palm toward middle tip, right = pinky toward index. Anatomical projection, not a clinical measure.',font=font(18),fill='black')
     result.save(out/'hand-proportions.png')
     for side in ['Left','Right']:
         hand=m['hands'][side];ids=[10 if side=='Left' else 9]+[i for v in m['source']['digit_face_sets'][side].values() for i in v]
