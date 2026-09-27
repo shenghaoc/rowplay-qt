@@ -22,7 +22,7 @@ macOS verification from Linux captures.
 | [2](../.kiro/specs/blender-02-shell-oars/tasks.md) | Shell and oars | Complete |
 | [3](../.kiro/specs/blender-03-environment-water/tasks.md) | Environment and water | Complete |
 | [4](../.kiro/specs/blender-04-course-dressing/tasks.md) | Course dressing and venue furniture | Complete |
-| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0/5.1 investigation and 5.2 athlete audit complete; 5.3+ not started |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0–5.2 complete; 5.3 recommendation made, owner decision pending; 5.4 not started |
 | [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | Hero-fit integration | Planned |
 | [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish | Planned |
 
@@ -86,7 +86,7 @@ drawn any more. The frame, the camera, the rig and the loop are unchanged.
 Scope, the audit, budgets, evidence and measurements are in
 `.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
 
-### Blender Phase 5: seat/pelvis, contact truth and athlete (5.0–5.2 audited)
+### Blender Phase 5: seat/pelvis, contact truth and athlete (recommendation awaiting owner decision)
 
 [Phase 5.0–5.1 report](blender-phase5-contact-audit.md): #130 corrected and
 baseline frozen; stale rowing wrist frame and pole leaf fit corrected;
@@ -97,9 +97,16 @@ athlete-route choice; no contact architecture is selected.
 [Phase 5.2 athlete audit](blender-phase5-athlete-audit.md) is complete: the
 canonical base comparison, bilateral anatomy/helper overlays, regional
 topology/weight metrics, native replay deformation and material/normal-only
-experiment are recorded. Production V4 is unchanged. No retain/refine/replace
-route or future triangle budget is chosen. Phase 5.3+, Phase 6 and Phase 7
-have not started.
+experiment are recorded. Production V4 is unchanged. The
+[Phase 5.3 recommendation](blender-phase5-athlete-recommendation.md) is
+complete: it recommends Route 3A — replace the V4 adaptation by rebuilding
+from the already reviewed CC0 Human Base Meshes v1.4.1 snapshot as a
+reviewed `.blend` (fallback: an owner-authored sculpt on the same
+pipeline) — with a 60,000 exported-triangle target and 75,000 hard
+ceiling, and records what is reusable (semantic contracts, instruments)
+versus re-derived (bone transforms, helper geometry, weight values).
+**No route is selected until the owner decides**; nothing is imported and
+no ADR is created. Phase 5.4, Phase 6 and Phase 7 have not started.
 
 ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
 continues to govern procedural versus modelled Blender source of truth;

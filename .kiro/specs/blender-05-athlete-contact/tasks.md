@@ -7,8 +7,9 @@ procedural versus modelled Blender source of truth;
 [ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
 governs licensing and provenance.
 
-Status: Phase 5.0, the Phase 5.1 investigation and Phase 5.2 athlete audit
-complete; Phase 5.3+ not started. Rendered contact remains unaccepted; see
+Status: Phase 5.0, the Phase 5.1 investigation, the Phase 5.2 athlete audit
+and the Phase 5.3 recommendation complete; the Phase 5.3 owner decision is
+pending and Phase 5.4 is not started. Rendered contact remains unaccepted; see
 the [contact report](../../../docs/blender-phase5-contact-audit.md).
 Its [open calibration questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
 remain future owner/architecture decisions; no contact architecture is selected.
@@ -127,8 +128,9 @@ must not force contact through a phase that calls for separation.
 ### Stop after Phase 5.1
 
 Phase 5.0 is complete and the Phase 5.1 investigation is complete. **Rendered
-hand contact is NOT accepted.** Phase 5.2 is now complete and Phase 5.3+
-is not started. Removing an
+hand contact is NOT accepted.** Phase 5.2 and the Phase 5.3 recommendation are
+now complete; the owner decision is pending and Phase 5.4 is not started.
+Removing an
 unselected architectural proposal does not authorize further contact fixes.
 
 **FUTURE DECISION:** after #137 is merged with owner authorization, proceed
@@ -174,17 +176,36 @@ or production refinement is selected.
 
 ## Phase 5.3 — Recommendation and owner checkpoint
 
-- [ ] Recommend one route, with evidence and tradeoffs:
+The [Phase 5.3 recommendation](../../../docs/blender-phase5-athlete-recommendation.md)
+records the route analysis, the reuse decisions and the budget.
+**Recommendation complete; awaiting owner decision.**
+
+- [x] Recommend one route, with evidence and tradeoffs:
   1. Retain V4 geometry and improve presentation.
   2. Substantially refine V4 in Blender.
   3. Replace V4 using a permissively licensed base human.
   4. Owner-authored sculpt, with the agent handling rig/export/validation.
-- [ ] State separately whether the existing skeleton, hand helpers, digit
+
+  Recommended: Route 3 (variant 3A) — replace the V4 adaptation by
+  rebuilding from the already reviewed CC0 Human Base Meshes v1.4.1
+  snapshot as a reviewed `.blend` in this repository. Fallback: Route 4 on
+  the same pipeline. This is advisory until the owner decides.
+- [x] State separately whether the existing skeleton, hand helpers, digit
   chains and skin weights are reusable or need replacement/calibration.
-- [ ] Establish an explicit athlete triangle budget **before substantial
+  Recorded in the recommendation's reuse table: the semantic contracts
+  (19-bone skeleton, helper/digit roles, solver structure, replay
+  semantics) are reusable; the concrete bone transforms, helper geometry
+  and closure parameters, and all current skin-weight values are not, and
+  are re-derived against the final mesh.
+- [x] Establish an explicit athlete triangle budget **before substantial
   modeling**, with counting scope and validation recorded. The old exemption
   from a replacement-rower budget is superseded; this roadmap sets no number.
-- [ ] **STOP for owner decision.** Record the selected route and its approved
+  Recommended: 60,000 exported-triangle target, 75,000 hard ceiling,
+  complete-athlete exported-GLB counting scope, regional allocation
+  guidance and Phase 3/4-style machine validation; the owner approves or
+  adjusts it with the route.
+- [ ] **STOP for owner decision.** Recommendation complete; awaiting owner
+  decision. Record the selected route and its approved
   scope before implementation. Do not automatically continue into replacement.
 
 ### Licensing checkpoint
@@ -196,6 +217,10 @@ ADR 0002 currently prohibits downloaded human models/generator output: if the
 owner chooses that route, explicitly amend that prohibition by an architectural
 decision before importing anything. Candidate status and a permissive licence
 alone do not waive it; this roadmap does not import or approve a third-party base.
+The [Phase 5.3 recommendation](../../../docs/blender-phase5-athlete-recommendation.md)
+records each route's ADR 0002 path and verifies the reviewed CC0 base's
+current upstream terms; it imports nothing, and the recording obligations
+below remain import-time obligations for Phase 5.4.
 
 - [ ] Audit clothing, hair, textures, accessories, morphs and community assets
   separately; do not infer their terms from the base or generator.
