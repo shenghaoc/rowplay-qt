@@ -50,8 +50,10 @@ reference pins. Earlier historical bounds below retain their original scope.
 The full web V4 row refinement, anatomical reach feasibility, and the exact
 split between helper calibration, hand shape and weights remain open. No
 fixture was changed simply to bless the implementation; the new recorder
-adds previously unobserved geometry. The proposed contact-contract checkpoint
-is ADR 0018; Phase 5.2/5.3 conclusions are deferred.
+adds previously unobserved geometry. The audit's
+[open calibration questions](blender-phase5-contact-audit.md#open-contact-calibration-questions)
+remain future owner/architecture decisions; Phase 5.2/5.3 conclusions are
+deferred and no contact architecture is selected.
 
 ## How to read a row
 

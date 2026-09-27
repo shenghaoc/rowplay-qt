@@ -8,8 +8,9 @@ procedural versus modelled Blender source of truth;
 governs licensing and provenance.
 
 Status: Phase 5.0 and the Phase 5.1 investigation complete; Phase 5.2+ not
-started. Rendered contact remains unaccepted; see the [contact report](../../../docs/blender-phase5-contact-audit.md)
-and proposed [ADR 0018](../../../docs/decisions/0018-contact-calibration-checkpoint.md).
+started. Rendered contact remains unaccepted; see the [contact report](../../../docs/blender-phase5-contact-audit.md).
+Its [open calibration questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
+remain future owner/architecture decisions; no contact architecture is selected.
 Blender Phases 1–4 are merged and complete.
 This is the Blender roadmap, separate from the original implementation phases.
 [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md) brings
@@ -54,7 +55,7 @@ measurements performed by this roadmap PR. Reproduce them after Step 0.
 | SkiErg | `crates/rowplay-app/tests/qml_runtime_gate.rs` records 8/10 digit contacts from `replay-current-main-grips.json`: both pinkies stay short of the pole. The source map and parity audit record pole/hand-target motion concerns, including plant/contact behavior; visible hand/pole contact remains wrong. | The digit shortfall, motion behavior and visible skin failure need separate diagnoses. Distinguish pole motion/plant target, hand-target/IK, wrist orientation, digit-helper geometry and skinned hand geometry. Correct or isolate solver-level errors before blaming the mesh. |
 | BikeErg | The handlebar-anchor parity test and 10/10 closure provide a control case with simpler contact geometry and stronger existing parity. | Use it to distinguish global V4 hands/skin failures from cylindrical-closure, SkiErg-specific or motion-solve failures; it is not proof of skin contact by itself. |
 
-Read the [source-map divergences](../../../docs/source-map.md#divergences)
+Read the [source-map divergences](../../../docs/source-map.md#divergences-recorded-by-the-rust-port)
 and [parity audit](../../../docs/parity-coverage.md) with their chronology.
 The old SkiErg retreating-plant defect was corrected in implementation
 Phase 7.5; its historical 0.977 m delta is not a current measurement.
@@ -121,6 +122,26 @@ must not force contact through a phase that calls for separation.
   palm, fingers failing to wrap and implausible wrist orientation clearly.
 - [x] Publish the classified contact report before drawing conclusions about
   retaining or replacing the human mesh. Record unresolved causes explicitly.
+
+### Stop after Phase 5.1
+
+Phase 5.0 is complete and the Phase 5.1 investigation is complete. **Rendered
+hand contact is NOT accepted; Phase 5.2+ is NOT started.** Removing an
+unselected architectural proposal does not authorize further contact fixes.
+
+**FUTURE DECISION:** after #137 is merged with owner authorization, proceed
+through Phase 5.2's existing V4 audit and Phase 5.3's retain/refine/replace
+recommendation, then stop for the **OWNER DECISION**. Only afterwards make
+any architectural decision needed for final contact calibration, informed by
+the selected/final athlete. Preserve the audit's
+[open questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
+as questions until that evidence and decision exist.
+
+Helper parity is insufficient to accept rendered skin contact. Do not recover
+a green contact count through arbitrary QML offsets, inflated grip radii,
+increased finger limits without evidence, or skin-weight edits merely to force
+numerical contact. Future acceptance must rerun the actual-skin instrument
+and native Qt phase evidence against the chosen athlete, not only helper tests.
 
 ## Phase 5.2 — Existing V4 athlete audit
 
@@ -201,8 +222,9 @@ contract, replay-driven pose, grip/contact semantics and hand/oar and hand/pole
 relationships unless separately decided. Phase 5 does not authorize a new
 animation architecture. If the audit proves a skeleton/helper/contact contract
 itself encodes the defect and prevents correct rendered contact, stop and
-record an architectural decision with evidence/options; do not compensate in
-another layer merely to preserve the contract.
+preserve the evidence/options as open questions. After the athlete-route owner
+decision, record any necessary architectural choice before changing that
+contract; do not compensate in another layer merely to preserve it.
 
 Rust owns meaning and replay truth. Qt/QML owns the runtime presentation object
 graph. Blender + Qt tooling owns authored/renderable assets.

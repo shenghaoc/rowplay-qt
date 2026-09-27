@@ -91,8 +91,9 @@ Scope, the audit, budgets, evidence and measurements are in
 [Phase 5.0–5.1 report](blender-phase5-contact-audit.md): #130 corrected and
 baseline frozen; stale rowing wrist frame and pole leaf fit corrected;
 actual skin measured against native Qt. Hand contact remains unaccepted.
-[ADR 0018](decisions/0018-contact-calibration-checkpoint.md) records the
-contact-calibration checkpoint, without selecting an athlete route.
+The audit records [open contact-calibration questions](blender-phase5-contact-audit.md#open-contact-calibration-questions)
+for Phase 5.2/5.3 and any later architectural decision after the owner's
+athlete-route choice; no contact architecture is selected.
 Phase 5.2+ and Phase 6 have not started.
 
 ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
