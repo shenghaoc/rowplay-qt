@@ -1,12 +1,17 @@
 # Blender Phase 5.3 — athlete route recommendation
 
-**Status: recommendation complete; awaiting owner decision.** This report is
-advisory under [ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md)
-and the [Phase 5 spec](../.kiro/specs/blender-05-athlete-contact/tasks.md).
-It selects nothing by itself: no route is implemented, no asset, QML, Rust,
-skeleton, helper, weight, fixture or contract changes, no third-party material
-is imported, and no ADR is created. ADR numbering is reserved until the owner
-accepts a route. Phase 5.4 and Blender Phases 6–7 remain unstarted.
+**Status: recommendation complete; owner accepted Route 3A on 2026-09-27.**
+[ADR 0018](decisions/0018-reviewed-cc0-athlete-source.md) records the narrow
+source exception and approved 60,000 exported-triangle target / 75,000 hard
+ceiling. Phase 5.4 is authorized; implementation and acceptance remain open.
+Blender Phases 6–7 remain unstarted.
+
+The analysis below is the landed Phase 5.3 recommendation under
+[ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md) and the
+[Phase 5 spec](../.kiro/specs/blender-05-athlete-contact/tasks.md). Its measured
+evidence and route predictions remain historical. The owner decision at the
+end supersedes its advisory/gated status; this governance update changes no
+asset, runtime, skeleton, helper, weight, fixture or contact contract.
 
 Synthesized from live `main` `cb26725589d14e5e6c84f6622f5761ca65b4a960`
 (the Phase 5.2 merge). The evidence base is the landed
@@ -505,28 +510,43 @@ throughout this report that is called **replacement/rebuild**. No
 proposed for preservation beyond the semantic contracts listed in the reuse
 table.
 
-## Owner decision required
+## Owner decision (2026-09-27)
 
-**OWNER DECISION — the following are the owner's to make; Phase 5.4 stays
-gated until they are returned:**
+**OWNER DECISION — Route 3A accepted. Phase 5.4 authorized.** The owner
+approves replacement/rebuild from the exact reviewed CC0 Human Base Meshes
+v1.4.1 male snapshot, a **60,000 exported-triangle target and 75,000 hard
+ceiling**, and the narrow provenance decision now recorded in
+[ADR 0018](decisions/0018-reviewed-cc0-athlete-source.md). The source pin is
+`173c6facbcedef419ad39168c5e3e642abb7e57e`, source SHA-256
+`1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457`.
+ADR 0002's accepted text is unchanged; the exception applies only to those
+reviewed bytes. Licensing is CC0 anatomical base + MIT RowPlay modifications;
+application/export/validation tooling stays GPL-3.0-or-later.
 
-1. **Route.** Accept Route 3A (rebuild from the reviewed CC0 Human Base
-   Meshes v1.4.1 snapshot), or select Route 1, 2, 3B or 4 instead. The
-   recommendation and its fallback (Route 4) are advisory.
-2. **Triangle budget.** Approve or adjust the 60,000-triangle target and
-   75,000-triangle hard ceiling with the stated complete-athlete,
-   exported-GLB counting scope and regional guidance.
-3. **Governance to draft after acceptance (not now).** If 3A (or 3B/4-over-
-   base) is selected: authorize drafting the narrow provenance ADR that
-   permits incorporating the reviewed CC0 base snapshot as the athlete's
-   modelled source (CC0 base + MIT RowPlay modifications), before anything
-   is imported. If 3B: additionally authorize the source-specific terms
-   audit. No ADR is created by Phase 5.3.
+The reuse decisions above are approved: keep replay truth, timing/motion
+graph, the 225-float frame, sport semantics, equipment/contact-target
+ownership, the 19 semantic bones, 32 helper roles/hierarchy, three-joint
+digit-chain concept, solver structure and audit instruments. Re-derive all
+concrete bone/helper geometry, digit lengths, closure calibration/limits as
+needed, skin weights and palm/contact calibration from the final mesh.
+The `.blend` stores final reviewed weights; the reuse table's scripted
+weight-generation approach does not authorize a generator as sculpt or
+weight authority, or reuse of V4's region-threshold weights.
 
-Until the decision is returned: no Phase 5.4 implementation, no asset
-authoring, no replacement or refinement work, no contact recalibration, no
-ADR 0002 amendment, no third-party import, and no Phase 6 work begins.
-V4 remains the production baseline, unchanged.
+The complete exported athlete is the counting basis. Regional allocations
+above are design guidance, not independent caps or minimums. The exporter
+rejects more than 75,000 triangles; 60,001–75,000 requires a measured PR
+justification. Native deformation/material acceptance precedes final
+actual-skin contact acceptance. No final contact tolerance is approved by
+this budget decision.
+
+The Phase 5.3 STOP checkpoint is satisfied. Route 4 remains an available
+fallback requiring a further owner decision, never an automatic switch.
+V4 remains the production baseline until the new athlete is integrated,
+then remains an immutable audit input. The frozen seat/pelvis and equipment
+stay fixed; fit mismatches belong to Phase 6. Phase 5.4 is not complete and
+Phases 6–7 have not started. No PR merge or AI/code-bot review is authorized
+by this implementation workflow.
 
 ## Validation
 

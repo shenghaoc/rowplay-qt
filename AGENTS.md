@@ -452,8 +452,12 @@ material/normal-only experiment. Logical target parity and digit-contact
 counts cannot prove contact of the actual deformed skin. Locate and correct
 the owning layer; do not hide defects with arbitrary QML-node offsets.
 
-Stop after the audit recommendation for the owner's retain/refine/replace/
-sculpt decision. Set the athlete triangle budget before substantial modeling.
+The audit/recommendation owner checkpoint is now satisfied: ADR 0018 records
+the 2026-09-27 acceptance of Route 3A using only the exact reviewed CC0 Human
+Base Meshes v1.4.1 male snapshot, with a 60,000 exported-triangle target and
+75,000 hard ceiling for the whole athlete. Phase 5.4 is authorized, not
+complete; Route 4 still requires a further owner decision. Preserve the
+governance → authored athlete/runtime → final contact `gh-stack` ancestry.
 Calibrate helpers, digit chains and contact assumptions against the final
 mesh. Modelled humans use reviewed `.blend` sources with deterministic
 export/validation; Phase 2's procedural shell is no Python-geometry precedent.

@@ -5,11 +5,14 @@ restores the athlete to Phase 5 and defines the contact/hero-fit/water sequence.
 [ADR 0016](../../../docs/decisions/0016-authored-overcast-lighting.md) governs
 procedural versus modelled Blender source of truth;
 [ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
-governs licensing and provenance.
+governs licensing and provenance, with the exact reviewed CC0 source exception
+in [ADR 0018](../../../docs/decisions/0018-reviewed-cc0-athlete-source.md).
 
 Status: Phase 5.0, the Phase 5.1 investigation, the Phase 5.2 athlete audit
-and the Phase 5.3 recommendation complete; the Phase 5.3 owner decision is
-pending and Phase 5.4 is not started. Rendered contact remains unaccepted; see
+and Phase 5.3 complete. On 2026-09-27 the owner accepted Route 3A and the
+60,000 exported-triangle target / 75,000 hard ceiling. The owner checkpoint
+is satisfied and Phase 5.4 is authorized, not complete. Rendered contact
+remains unaccepted; see
 the [contact report](../../../docs/blender-phase5-contact-audit.md).
 Its [open calibration questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
 remain future owner/architecture decisions; no contact architecture is selected.
@@ -17,9 +20,9 @@ Blender Phases 1–4 are merged and complete.
 This is the Blender roadmap, separate from the original implementation phases.
 [ADR 0017](../../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md) brings
 athlete refinement/replacement back into scope as an intentional visual
-divergence from the web V4 athlete. V4 remains the baseline until this audit
-is complete and the owner chooses a route. This spec authorizes no automatic
-replacement and the roadmap PR implements none of its tasks.
+divergence from the web V4 athlete. V4 remains the production baseline until
+the approved replacement passes its integration and acceptance gates. The
+original roadmap PR implemented none of these tasks.
 
 Order: correct the authoritative seat/pelvis reference, understand the contact
 chain, audit the human asset, obtain the owner's decision, then implement the
@@ -129,15 +132,11 @@ must not force contact through a phase that calls for separation.
 
 Phase 5.0 is complete and the Phase 5.1 investigation is complete. **Rendered
 hand contact is NOT accepted.** Phase 5.2 and the Phase 5.3 recommendation are
-now complete; the owner decision is pending and Phase 5.4 is not started.
-Removing an
-unselected architectural proposal does not authorize further contact fixes.
-
-**FUTURE DECISION:** after #137 is merged with owner authorization, proceed
-through Phase 5.2's existing V4 audit and Phase 5.3's retain/refine/replace
-recommendation, then stop for the **OWNER DECISION**. Only afterwards make
-any architectural decision needed for final contact calibration, informed by
-the selected/final athlete. Preserve the audit's
+now complete and the owner accepted Route 3A in ADR 0018. That decision
+authorizes Phase 5.4; it does not accept the old skin or select an answer to
+every contact architecture question. Make any further architectural decision
+needed for final contact calibration from evidence on the final athlete.
+Preserve the audit's
 [open questions](../../../docs/blender-phase5-contact-audit.md#open-contact-calibration-questions)
 as questions until that evidence and decision exist.
 
@@ -171,14 +170,14 @@ the corrected Step 0 reference.
 
 [Audit report and evidence](../../../docs/blender-phase5-athlete-audit.md)
 record the source comparison, bilateral hand overlays, topology/weights,
-native deformation and controlled presentation experiment. No route, budget
-or production refinement is selected.
+native deformation and controlled presentation experiment. That audit selected
+no route, budget or production refinement; the later owner choice is below.
 
 ## Phase 5.3 — Recommendation and owner checkpoint
 
 The [Phase 5.3 recommendation](../../../docs/blender-phase5-athlete-recommendation.md)
 records the route analysis, the reuse decisions and the budget.
-**Recommendation complete; awaiting owner decision.**
+**Owner decision accepted on 2026-09-27; Phase 5.4 authorized.**
 
 - [x] Recommend one route, with evidence and tradeoffs:
   1. Retain V4 geometry and improve presentation.
@@ -189,7 +188,8 @@ records the route analysis, the reuse decisions and the budget.
   Recommended: Route 3 (variant 3A) — replace the V4 adaptation by
   rebuilding from the already reviewed CC0 Human Base Meshes v1.4.1
   snapshot as a reviewed `.blend` in this repository. Fallback: Route 4 on
-  the same pipeline. This is advisory until the owner decides.
+  the same pipeline only after a further owner decision. The owner accepted
+  Route 3A; do not invoke Route 4 automatically.
 - [x] State separately whether the existing skeleton, hand helpers, digit
   chains and skin weights are reusable or need replacement/calibration.
   Recorded in the recommendation's reuse table: the semantic contracts
@@ -199,24 +199,25 @@ records the route analysis, the reuse decisions and the budget.
   are re-derived against the final mesh.
 - [x] Establish an explicit athlete triangle budget **before substantial
   modeling**, with counting scope and validation recorded. The old exemption
-  from a replacement-rower budget is superseded; this roadmap sets no number.
-  Recommended: 60,000 exported-triangle target, 75,000 hard ceiling,
+  from a replacement-rower budget is superseded. Approved:
+  60,000 exported-triangle target, 75,000 hard ceiling,
   complete-athlete exported-GLB counting scope, regional allocation
-  guidance and Phase 3/4-style machine validation; the owner approves or
-  adjusts it with the route.
-- [ ] **STOP for owner decision.** Recommendation complete; awaiting owner
-  decision. Record the selected route and its approved
-  scope before implementation. Do not automatically continue into replacement.
+  guidance and machine validation. Regional guidance is neither independent
+  hard caps nor minimums; count the complete exported athlete.
+- [x] **STOP for owner decision.** Satisfied by the explicit Route 3A owner
+  decision, recorded in ADR 0018 before incorporating the source. Preserve
+  the approved semantics, re-derive anatomical transforms/helpers/weights
+  and calibrate actual skin against fixed equipment. Phase 5.4 remains open.
 
 ### Licensing checkpoint
 
 Apply [ADR 0002](../../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)
-rigorously. Select no human generator now. MakeHuman / MPFB may be candidates;
-verify current terms at the replacement decision, including output terms.
-ADR 0002 currently prohibits downloaded human models/generator output: if the
-owner chooses that route, explicitly amend that prohibition by an architectural
-decision before importing anything. Candidate status and a permissive licence
-alone do not waive it; this roadmap does not import or approve a third-party base.
+rigorously. ADR 0018 makes one narrow exception for the exact reviewed Human
+Base Meshes v1.4.1 male snapshot; it does not amend ADR 0002's bytes or permit
+MakeHuman/MPFB, another extraction/version, clothing or hair packs, morphs,
+textures, scans, likenesses or user images. The governance commit must be an
+ancestor of every commit incorporating the CC0 source. Use the existing
+pinned reference bytes after verifying their hash, not a new download.
 The [Phase 5.3 recommendation](../../../docs/blender-phase5-athlete-recommendation.md)
 records each route's ADR 0002 path and verifies the reviewed CC0 base's
 current upstream terms; it imports nothing, and the recording obligations
@@ -234,12 +235,51 @@ below remain import-time obligations for Phase 5.4.
 
 ## Phase 5.4 — Implement the approved athlete and calibrate contact
 
-These tasks remain gated on the owner decision above.
+Authorized by the owner decision above. Deliver through a real `gh-stack`:
+governance first (documentation only), authored athlete/runtime integration
+second, final contact calibration/acceptance third. Do not merge the stack
+or request/retrigger AI/code-bot review; normal CI runs on each PR.
 
 - [ ] Implement only the selected route. An artistically modeled human uses a
   reviewed `.blend` source plus deterministic export/validation tooling.
-  Phase 2's procedural `shell.py` was a valid one-off engineering choice;
-  future hero assets need not be authored as Python geometry.
+  It stores the final anatomy, skeleton, helpers and all newly authored skin
+  weights. Do not create a Python human-body generator, repeat V4's segment
+  scaling or carry forward its region-threshold weights. Exporters inspect,
+  validate and export the authored source; they do not recreate it.
+- [ ] Give the replacement a distinct identity; preserve V4 bytes and old
+  audit evidence. Switch build-time Balsam/static Qt integration to the new
+  committed GLB and stop converting/packaging V4 when runtime no longer needs
+  it. No normal-build Blender dependency, RuntimeLoader, runtime download,
+  new scene discovery or additional per-frame bridge crossing.
+- [ ] Preserve plausible source anatomy, preferably with mostly global
+  scaling near the existing 1.87–1.90 m hero scale. Record height, shoulder
+  breadth, arm/forearm/hand/thigh/shin/foot dimensions and joint centres
+  against the reviewed source and V4. Measure palms, webbing, thumb bases,
+  digit lengths, MCP/PIP/DIP landmarks and fingertip extents. Fit the semantic
+  skeleton to the anatomy, not anatomy to the old rest skeleton.
+- [ ] Validate complete exported triangle counts (target 60k, reject over
+  75k; measured PR justification for 60,001–75,000) and actual regional
+  allocation. Inspect manifoldness, duplicate/degenerate triangles, unintended
+  boundaries, slivers, hidden internal geometry and useful deformation loops.
+- [ ] Author generic hair/clothing/footwear/detail, with explicit skin,
+  fabric, lower, footwear, hair, trim, eye and face-detail roles. Verify static
+  role completeness/uniqueness, deliberate UVs and albedo without baked fake
+  highlights in production Qt. No downloaded textures; any authored maps
+  need provenance, budget and native acceptance.
+- [ ] Validate metre scale, axes/root transform, the 19 semantic bones and
+  32 helper roles/hierarchies, finite transforms, skin/inverse binds,
+  normalized finite weights, supported influence counts and plausible local
+  influences. Inspect bilateral transitions and deformation; report weight
+  distribution without optimizing a single-influence percentage.
+- [ ] Pin the `.blend` hash, Blender version and export settings; reject
+  unsupported glTF extensions, unapproved external dependencies, accidental
+  source-path leakage and embedded animation that competes with replay.
+  Prove repeated deterministic exports and validate the committed output.
+- [ ] **Before contact calibration**, accept native Qt deformation at row
+  catch/mid-drive/finish/half-slide, ski approach/pull/release/recovery and
+  representative bike phases. Compare measurable shoulder, elbow, forearm,
+  wrist, palm/digit, torso, hip, knee and ankle deformation against V4; inspect
+  normal, clay and production material views with fixed camera/equipment.
 - [ ] Calibrate final contact against the actual final hand mesh: palm
   dimensions, finger lengths, joint centres, grip-seat depth, flesh-radius
   assumptions and helper pivots must match that geometry. Do not blindly
@@ -248,6 +288,21 @@ These tasks remain gated on the owner decision above.
   checks for the final athlete, with numerical and Qt visual acceptance,
   deterministic export, triangle-budget checks, provenance and parity evidence.
   Publish the final athlete/contact reference for Phase 6.
+- [ ] Capture the phases and views specified above for both hands, with
+  actual deformed skin against actual rendered equipment triangles. Validate
+  offline reconstruction against native Qt. Pin source/GLB hashes, committed
+  instrument ancestry, exact current Cargo executable/OUT_DIR and renderer,
+  scheme, tier, replay/pose/camera/equipment state; refuse stale artifacts.
+- [ ] Derive final contact tolerances from final hand scale, grip geometry,
+  skin deformation and native evidence. Check gaps/penetration, palm seating,
+  finger wrap, thumb and pinky/ring reach, wrist orientation and intentional
+  release. Helper contact must describe visible skin; no arbitrary offsets,
+  inflated radii, unevidenced limits or weights chosen to force a count.
+- [ ] Publish source-to-final comparisons, budget/topology/weight/material
+  results, deterministic export proof, native deformation/contact evidence,
+  regression/parity/gate results and remaining limits. Run quick gates on
+  intermediate stack layers and the full gate on the final layer. Keep Phase
+  5.4 open for any unresolved acceptance failure; do not weaken a gate.
 
 Preserve authoritative Rust replay state, stroke timing, the 225-float frame
 contract, replay-driven pose, grip/contact semantics and hand/oar and hand/pole
@@ -265,3 +320,6 @@ Exit: owner decision implemented, corrected anchor frozen, final athlete and
 contact system accepted with measured skin and Qt evidence, budget/provenance
 recorded, and roadmap/source map/ADR/spec updated. Whole-system proportional
 fit belongs to Phase 6; wake, foam, spray and water polish belong to Phase 7.
+Keep the corrected Phase 5.0 reference, 7.8 m shell, cockpit, seat, rails,
+stretcher and riggers fixed. Record mismatches for Phase 6 without fitting
+the boat in this phase.
