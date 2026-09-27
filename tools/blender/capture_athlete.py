@@ -16,15 +16,17 @@ import subprocess
 
 from capture import ROOT, replace_once
 from capture_contact import DIAGNOSTIC, SAMPLES
+from athlete_evidence import (verified_palette, instrument_record, build_capture, diagnostic_textures,
+                              SCALAR_FIELDS, MAP_FIELDS, TEXTURE_FIELDS, validate_materials)
 
 VIEWS = ['full', 'face', 'torso', 'left', 'right']
 VARIANTS = ['A', 'B', 'C', 'D', 'L']
 STRESSED = {'row-catch', 'ski-release'}
 
 
-def surface_palettes():
-    path = ROOT/'reference/rowplay/src/lib/replay/renderer3dV4Assets.ts'
-    section = path.read_text().split('const SURFACE_PALETTES:')[1].split('\n];', 1)[0]
+def surface_palettes(verified_bytes=None):
+    source = verified_palette()[0] if verified_bytes is None else verified_bytes
+    section = source.decode().split('const SURFACE_PALETTES:')[1].split('\n];', 1)[0]
     result = []
     for role, values in re.findall(r'role: "([\w-]+)",\s+colors: \[(.*?)\n    \]', section, re.S):
         colors = [list(map(float, x)) for x in re.findall(r'\[([.\d]+), ([.\d]+), ([.\d]+)\]', values)]
@@ -45,7 +47,7 @@ def nearest_palette_roles(centers, palette, roles):
     return result
 
 
-def diagnostic_maps(out, size=1024):
+def diagnostic_maps(out, size=1024, palette_bytes=None):
     """Bake only presentation maps; overlapping UVs remain a measured limitation."""
     import numpy as np
     from PIL import Image, ImageDraw
@@ -61,8 +63,9 @@ def diagnostic_maps(out, size=1024):
     atlas_uv=(uv-uv_min)/uv_span
     colors=glb.accessor(att['COLOR_0'])[:,:3]
     triangles=glb.accessor(primitive['indices']).reshape(-1,3)
+    palettes=surface_palettes(palette_bytes)
     palette=[]; roles=[]
-    for role, (_, swatches) in enumerate(surface_palettes()):
+    for role, (_, swatches) in enumerate(palettes):
         for c in swatches:
             c=np.array(c)
             palette.extend([c,np.where(c<=.04045,c/12.92,((c+.055)/1.055)**2.4)])
@@ -84,10 +87,10 @@ def diagnostic_maps(out, size=1024):
     center_uv=atlas_uv[triangles].mean(1)
     ix=np.rint(center_uv[:,0]*(size-1)).astype(int);iy=np.rint((1-center_uv[:,1])*(size-1)).astype(int)
     actual=np.asarray(rough)[iy,ix];wanted=np.rint(roughness[role]*255).astype(int)
-    recovery={name:float(np.mean(actual[role==i]==wanted[role==i])) for i,(name,_) in enumerate(surface_palettes())}
+    recovery={name:float(np.mean(actual[role==i]==wanted[role==i])) for i,(name,_) in enumerate(palettes)}
     positions=glb.accessor(att['POSITION']);pts=positions[triangles]
     area=np.linalg.norm(np.cross(pts[:,1]-pts[:,0],pts[:,2]-pts[:,0]),axis=1)
-    area_recovery={name:float(area[(role==i)&(actual==wanted)].sum()/area[role==i].sum()) for i,(name,_) in enumerate(surface_palettes())}
+    area_recovery={name:float(area[(role==i)&(actual==wanted)].sum()/area[role==i].sum()) for i,(name,_) in enumerate(palettes)}
     if recovery['jersey']<.9 or recovery['lower']<.9:
         raise ValueError('atlas does not preserve sufficient skin/fabric role coverage: '+str(recovery))
     y,x=np.mgrid[:size,:size]/size
@@ -102,7 +105,7 @@ def diagnostic_maps(out, size=1024):
             'fallback_roughness':.70}
 
 
-def verify_imported_uv():
+def verify_imported_uv(path):
     """Strict proof of the importer convention for this pinned V4, no new parser.
 
     meshdebug supplies the version/layout. Search candidate buffer starts,
@@ -116,57 +119,125 @@ def verify_imported_uv():
     p=glb.accessor(att['POSITION']);uv=glb.accessor(att['TEXCOORD_0'])
     expected=np.column_stack([p,uv[:,0],1-uv[:,1]])
     expected=expected[np.lexsort(expected.T[::-1])]
-    paths=sorted((ROOT/'target/debug/build').glob('rowplay-app-*/out/replay-balsam/athlete/meshes/*.mesh'),key=lambda p:p.stat().st_mtime,reverse=True)
-    for path in paths:
-        layout=subprocess.check_output(['meshdebug',str(path)],stderr=subprocess.STDOUT,text=True)
-        if not all(value in layout for value in ['fileVersion: 7','stride: 80','entry count: 6','name: "attr_uv0"']): continue
-        data=path.read_bytes();start=0
-        while True:
-            offset=data.find(p[0].tobytes(),start)
-            if offset<0 or offset+len(p)*80>len(data): break
-            v=np.ndarray((len(p),20),dtype='<f4',buffer=data,offset=offset,strides=(80,4))
-            actual=np.column_stack([v[:,:3],v[:,6:8]])
-            if np.array_equal(actual[np.lexsort(actual.T[::-1])],expected):
-                return {'mesh_sha256':hashlib.sha256(data).hexdigest(),'vertices':len(p),
-                        'position_uv_tuple_max_error':0,'qt_uv':'(glTF.u, 1 - glTF.v)',
-                        'mesh_version':7,'stride':80,'uv_offset':24}
-            start=offset+1
+    path=Path(path)
+    layout=subprocess.check_output(['meshdebug',str(path)],stderr=subprocess.STDOUT,text=True)
+    if not all(value in layout for value in ['fileVersion: 7','stride: 80','entry count: 6','name: "attr_uv0"']):
+        raise ValueError('current imported mesh layout changed; inspect meshdebug output')
+    data=path.read_bytes();start=0
+    while True:
+        offset=data.find(p[0].tobytes(),start)
+        if offset<0 or offset+len(p)*80>len(data): break
+        v=np.ndarray((len(p),20),dtype='<f4',buffer=data,offset=offset,strides=(80,4))
+        actual=np.column_stack([v[:,:3],v[:,6:8]])
+        if np.array_equal(actual[np.lexsort(actual.T[::-1])],expected):
+            return {'mesh_path':str(path.resolve()),'mesh_sha256':hashlib.sha256(data).hexdigest(),'vertices':len(p),
+                    'position_uv_tuple_max_error':0,'qt_uv':'(glTF.u, 1 - glTF.v)',
+                    'mesh_version':7,'stride':80,'uv_offset':24}
+        start=offset+1
     raise ValueError('cannot verify the imported V4 UV convention; inspect meshdebug output')
 
 
 AUDIT = r'''
     property var auditOriginal: []
+    property var auditBaseline: []
+    property var auditIdentities: []
     property string auditVariantName: "A"
     property string auditViewName: "chase"
+    property var auditScalarFields: __SCALAR_FIELDS__
+    property var auditMapFields: __MAP_FIELDS__
+    property var auditTextureFields: __TEXTURE_FIELDS__
+    function auditIdentity(object, kind) {
+        for (var i=0; i<auditIdentities.length; ++i)
+            if (auditIdentities[i].object === object) return auditIdentities[i].identity
+        var identity=kind+":"+auditIdentities.length
+        auditIdentities.push({object:object, identity:identity})
+        return identity
+    }
+    function auditTexture(texture) {
+        if (!texture) return null
+        var known=texture === auditRoughness ? "roughness" : texture === auditNormal ? "normal" : ""
+        var value={identity:known ? "audit-"+known : auditIdentity(texture,"texture"),
+            source:texture.source.toString(), sha256:known ? auditMapHashes[known+".png"] : null,
+            sourceItem:!!texture.sourceItem, textureData:!!texture.textureData}
+        for (var i=0; i<auditTextureFields.length; ++i) {
+            var key=auditTextureFields[i]
+            if (texture[key] === undefined) throw new Error("missing audited texture property "+key)
+            value[key]=texture[key]
+        }
+        return value
+    }
+    function auditMaterialState(m) {
+        var state={baseColor:m.baseColor.toString(),
+            emissiveFactor:[m.emissiveFactor.x,m.emissiveFactor.y,m.emissiveFactor.z]}
+        for (var i=0; i<auditScalarFields.length; ++i) {
+            var key=auditScalarFields[i]
+            if (m[key] === undefined) throw new Error("missing audited material property "+key)
+            state[key]=m[key]
+        }
+        for (var j=0; j<auditMapFields.length; ++j) {
+            if (m[auditMapFields[j]] === undefined) throw new Error("missing audited map property "+auditMapFields[j])
+            state[auditMapFields[j]]=auditTexture(m[auditMapFields[j]])
+        }
+        return {identity:auditIdentity(m,"material"),objectName:m.objectName,state:state}
+    }
+    function auditEntries() {
+        var result=[]
+        function visit(n, path) {
+            if (n.materials !== undefined)
+                result.push({node:n,path:path,materials:Array.prototype.slice.call(n.materials)})
+            var ch=n.children
+            for (var i=0; ch && i<ch.length; ++i) visit(ch[i],path+"/"+i)
+        }
+        visit(athlete,"athlete")
+        return result
+    }
+    function auditSnapshot() {
+        var entries=auditEntries(), result=[]
+        for (var i=0; i<entries.length; ++i) {
+            var e=entries[i], materials=[]
+            for (var j=0; j<e.materials.length; ++j) materials.push(auditMaterialState(e.materials[j]))
+            result.push({node:e.path,objectName:e.node.objectName,materialCount:materials.length,materials:materials})
+        }
+        return result
+    }
     function auditMaterials(variant) {
         if (auditOriginal.length === 0) {
-            function visit(n) {
-                if (n.materials !== undefined) {
-                    var defaults={}, material=n.materials[0]
-                    var fields=["baseColor","vertexColorsEnabled","roughness","specularAmount","clearcoatAmount","roughnessMap","roughnessChannel","normalMap","normalStrength"]
-                    for (var f=0; f<fields.length; ++f) defaults[fields[f]]=material[fields[f]]
-                    auditOriginal.push({node:n, materials:Array.prototype.slice.call(n.materials), defaults:defaults})
+            auditOriginal=auditEntries()
+            var fields=["baseColor","vertexColorsEnabled","roughness","specularAmount","clearcoatAmount","roughnessMap","roughnessChannel","normalMap","normalStrength"]
+            for (var i=0; i<auditOriginal.length; ++i) {
+                var entry=auditOriginal[i]
+                entry.defaults=[]
+                for (var j=0; j<entry.materials.length; ++j) {
+                    var defaults={}, material=entry.materials[j]
+                    for (var f=0; f<fields.length; ++f) {
+                        var field=fields[f]
+                        // QColor is a live QML value reference. Store an immutable
+                        // colour literal or B's clay colour leaks into later A/C.
+                        defaults[field]=field === "baseColor" ? material[field].toString() : material[field]
+                    }
+                    entry.defaults.push(defaults)
                 }
-                var ch=n.children
-                for (var i=0; ch && i<ch.length; ++i) visit(ch[i])
             }
-            visit(athlete)
+            // Freeze untouched production values before the first intervention.
+            auditBaseline=JSON.parse(JSON.stringify(auditSnapshot()))
         }
-        for (var i=0; i<auditOriginal.length; ++i) {
-            var entry=auditOriginal[i]
-            entry.node.materials = entry.materials
-            var m=entry.materials[0]
-            for (var key in entry.defaults) m[key]=entry.defaults[key]
-            if (variant === "B") {
-                m.baseColor="#a3a3a3"; m.vertexColorsEnabled=false
-                m.roughness=.9; m.specularAmount=.1; m.clearcoatAmount=0
-                m.normalMap=null; m.normalStrength=0
-            } else if (variant === "C" || variant === "D" || variant === "L") {
-                m.roughness=1; m.roughnessMap=auditRoughness; m.roughnessChannel=Material.R
-                m.specularAmount=.25; m.clearcoatAmount=0
-                m.normalMap=variant === "D" ? auditNormal : null
-                m.normalStrength=variant === "D" ? .20 : 0
-            } else if (variant === "A0") { m.normalMap=null; m.normalStrength=0 }
+        for (var n=0; n<auditOriginal.length; ++n) {
+            var saved=auditOriginal[n]
+            saved.node.materials=saved.materials
+            for (var k=0; k<saved.materials.length; ++k) {
+                var m=saved.materials[k], original=saved.defaults[k]
+                for (var key in original) m[key]=original[key]
+                if (variant === "B") {
+                    m.baseColor="#a3a3a3"; m.vertexColorsEnabled=false
+                    m.roughness=.9; m.specularAmount=.1; m.clearcoatAmount=0
+                    m.normalMap=null; m.normalStrength=0
+                } else if (variant === "C" || variant === "D" || variant === "L") {
+                    m.roughness=1; m.roughnessMap=auditRoughness; m.roughnessChannel=Material.R
+                    m.specularAmount=.25; m.clearcoatAmount=0
+                    m.normalMap=variant === "D" ? auditNormal : null
+                    m.normalStrength=variant === "D" ? .20 : 0
+                } else if (variant === "A0") { m.normalMap=null; m.normalStrength=0 }
+            }
         }
         keyLight.brightness = variant === "L" ? 0 : Replay.sportIndex === 0 ? RowingStyle.keyBrightness : 1.2
         auditVariantName=variant
@@ -194,19 +265,14 @@ AUDIT = r'''
         camera.fieldOfView=45
     }
     function auditDump(name) {
-        var materials=[]
-        for (var i=0; i<auditOriginal.length; ++i) {
-            var entry=auditOriginal[i], m=entry.materials[0]
-            materials.push({node:entry.node.objectName, materialCount:entry.materials.length,
-                roughness:m.roughness, metalness:m.metalness, clearcoat:m.clearcoatAmount,
-                normalStrength:m.normalStrength, vertexColors:m.vertexColorsEnabled,
-                normalMap:!!m.normalMap, baseColorMap:!!m.baseColorMap, roughnessMap:!!m.roughnessMap})
-        }
-        console.log("ATHLETE_EXPERIMENT " + JSON.stringify({name:name,variant:auditVariantName,view:auditViewName,
-            materials:materials,keyBrightness:keyLight.brightness,probeExposure:scene.environment.probeExposure,
+        var mask=name.endsWith("-mask")
+        console.log("ATHLETE_EXPERIMENT " + JSON.stringify({name:name,variant:mask ? "mask" : auditVariantName,view:auditViewName,
+            baseline:auditBaseline,materials:mask ? [] : auditSnapshot(),
+            keyBrightness:keyLight.brightness,probeExposure:scene.environment.probeExposure,
             probe:skyProbe.source.toString()}))
     }
 '''
+AUDIT = AUDIT.replace('__SCALAR_FIELDS__',json.dumps(SCALAR_FIELDS)).replace('__MAP_FIELDS__',json.dumps(MAP_FIELDS)).replace('__TEXTURE_FIELDS__',json.dumps(TEXTURE_FIELDS))
 
 
 def capture_cases(smoke=False):
@@ -243,14 +309,17 @@ def capture_cases(smoke=False):
     return cases, count
 
 
-def main():
+def main(supplemental=False):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--smoke', action='store_true', help='one stressed pose to validate the instrument')
     args=p.parse_args()
+    tooling=instrument_record()
+    palette_bytes,palette_provenance=verified_palette()
     out=args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
-    map_parameters=diagnostic_maps(out)
+    map_parameters=diagnostic_maps(out,palette_bytes=palette_bytes)
+    map_hashes={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ['roughness.png','normal.png']}
     paths=[ROOT/'qml/RowPlay/Main.qml', ROOT/'qml/RowPlay/Replay/ReplayScene.qml']
     originals=[p.read_text() for p in paths]
     main=replace_once(originals[0], '            case 53: Replay.loadWorkout(1001); break     // rower demo workout',
@@ -259,38 +328,46 @@ def main():
     main=replace_once(main, '            switch (root.gateStep) {', '            switch (root.gateStep) {\n'+'\n'.join(cases))
     anchor='            result.saveToFile(Settings.screenshotDir + "/" + name + ".ppm")'
     main=replace_once(main, anchor, anchor+'\n            if (root.gateStep >= 300) { detailColumn.children[3].contactDump(name); detailColumn.children[3].auditDump(name) }')
-    scene=replace_once(originals[1], '    // ---- applyFrame (the per-tick frame-bundle reader) ----', DIAGNOSTIC+AUDIT+'\n    // ---- applyFrame (the per-tick frame-bundle reader) ----')
+    scene=replace_once(originals[1], '    // ---- applyFrame (the per-tick frame-bundle reader) ----', DIAGNOSTIC+AUDIT+'\n    property var auditMapHashes: '+json.dumps(map_hashes)+'\n    // ---- applyFrame (the per-tick frame-bundle reader) ----')
     scene=replace_once(scene, '        PerspectiveCamera { id: camera; clipNear: 0.1; clipFar: 1000 }', f'''
         DefaultMaterial {{ id: contactMaskMaterial; lighting: DefaultMaterial.NoLighting; diffuseColor: "#ff00ff"; vertexColorsEnabled: false }}
         Texture {{ id: auditRoughness; source: "{(out/'roughness.png').as_uri()}"; scaleU: {map_parameters['texture_scale'][0]}; scaleV: {map_parameters['texture_scale'][1]}; positionU: {map_parameters['texture_offset'][0]}; positionV: {map_parameters['texture_offset'][1]}; tilingModeHorizontal: Texture.ClampToEdge; tilingModeVertical: Texture.ClampToEdge }}
         Texture {{ id: auditNormal; source: "{(out/'normal.png').as_uri()}" }}
         PerspectiveCamera {{ id: camera; clipNear: 0.1; clipFar: 1000 }}''')
-    metadata={'base':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    metadata={'base':tooling['commit'],'tooling':tooling,'canonical_palette':palette_provenance,
         'asset_sha256':hashlib.sha256((ROOT/'assets/replay/rowplay-athlete-v4.glb').read_bytes()).hexdigest(),
         'instrument_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'maps':map_parameters,
-        'map_sha256':{name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ['roughness.png','normal.png']},
+        'map_sha256':map_hashes,'diagnostic_textures':diagnostic_textures(out,map_parameters,map_hashes),
         'qt':subprocess.check_output(['qmake','-query','QT_VERSION'],text=True).strip(),
         'samples':SAMPLES, 'clock':'fallback 30 spm; phase=step/2000*tau, distance=step*3',
         'scheme':'light','tier':'Medium','renderer':os.environ.get('QSG_RHI_BACKEND'),
         'platform':os.environ.get('QT_QPA_PLATFORM'), 'views':VIEWS, 'variants':VARIANTS}
+    if supplemental:
+        metadata.update(mode='supplemental isolated lower anatomy; equipment hidden, clay material',
+                        views=['lower'],variants=['B'],
+                        supplemental_instrument_sha256=tooling['instruments']['tools/blender/capture_athlete_lower.py'])
     (out/'manifest.json').write_text(json.dumps(metadata,indent=2)+'\n')
     try:
         for path,value in zip(paths,[main,scene]): path.write_text(value)
-        subprocess.run(['cargo','build','-p','rowplay-app'],cwd=ROOT,check=True)
-        metadata['imported_uv']=verify_imported_uv()
+        artifacts=build_capture(out)
+        metadata['cargo']=dict(artifacts,target_dir_env=os.environ.get('CARGO_TARGET_DIR'))
+        metadata['imported_uv']=verify_imported_uv(artifacts['athlete_mesh'])
+        metadata['cargo']['launched_executable']=artifacts['executable']
         (out/'manifest.json').write_text(json.dumps(metadata,indent=2)+'\n')
         env=dict(os.environ, ROWPLAY_SMOKE_GATE='1',ROWPLAY_SYNC_MOCK='1',ROWPLAY_GATE_PROFILE='full',
                  ROWPLAY_FORCE_COLOR_SCHEME='light',ROWPLAY_SMOKE_SCREENSHOT_DIR=str(out),
                  ROWPLAY_DATA_DIR=str(out/'data'),QT_MESSAGE_PATTERN='[%{time process}] %{message}')
         with (out/'gate.log').open('w') as log:
-            subprocess.run([str(ROOT/'target/debug/rowplay-app')],cwd=ROOT,env=env,stdout=log,
+            subprocess.run([artifacts['executable']],cwd=ROOT,env=env,stdout=log,
                            stderr=subprocess.STDOUT,check=True,timeout=1200)
         log=(out/'gate.log').read_text()
         for prefix,filename in [('CONTACT_FRAME ','frames.json'),('ATHLETE_EXPERIMENT ','experiment.json')]:
             records=[json.loads(line.split(prefix,1)[1]) for line in log.splitlines() if prefix in line]
             if len(records)!=expected: raise RuntimeError(f'{prefix}: {len(records)} != {expected}; inspect gate.log')
             (out/filename).write_text(json.dumps(records,indent=2)+'\n')
+        material_validation=validate_materials(json.loads((out/'experiment.json').read_text()),metadata,lower=supplemental)
+        (out/'material-validation.json').write_text(json.dumps(material_validation,indent=2)+'\n')
         forbidden=['failed to load component','Unexpected token','screenshot FAILED','ReferenceError:','TypeError:','Failed to compile','Failed to generate shader','Shader compilation failed']
         if any(x in log for x in forbidden): raise RuntimeError('invalid capture; inspect gate.log')
     finally:
