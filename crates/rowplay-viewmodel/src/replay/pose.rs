@@ -15,9 +15,7 @@
 
 use rowplay_core::models::Sport;
 use rowplay_core::replay::bike_equipment::HOOD_RADIUS;
-use rowplay_core::replay::hand_grip::{
-    HAND_FIST_CENTRE, hand_channel_centre, hand_curl_axis, hand_long_axis, hand_palm_normal_out,
-};
+use rowplay_core::replay::hand_grip::{HAND_FIST_CENTRE, HandFrame, hand_channel_centre};
 use rowplay_core::replay::rig_pose::{BikeErgRigPose, RowerRigPose, SkiErgRigPose, SportRigPose};
 use rowplay_core::replay::row_equipment::SCULL_GRIP_RADIUS;
 use rowplay_core::replay::row_equipment::{
@@ -27,8 +25,8 @@ use rowplay_core::replay::two_bone::{
     add, cross, dot, length, scale, solve_rigid_contact3d, solve3d, sub,
 };
 use rowplay_core::replay::wrist::{
-    WristMetrics, WristRest, constrain_wrist_frame, orient_hand_to_grip_channel,
-    refine_grip_spin_for_wrist, refine_grip_tilt_for_wrist,
+    WristMetrics, WristRest, constrain_wrist_frame, orient_hand_with_frame,
+    refine_grip_spin_with_axis, refine_grip_tilt_with_frame,
 };
 
 use super::athlete::{AssetError, Clip, LocalTransform, V4Athlete};
@@ -566,13 +564,14 @@ fn effective_hand_offset(sport: Sport, side: f64, authored: [f64; 3]) -> [f64; 3
 /// the hand's long axis continues that bone axis, and flexion/deviation
 /// complete the triad off the curl axis.
 fn build_wrist_rest(athlete: &V4Athlete, hand: usize, side: f64) -> WristRest {
+    let frame = athlete.hand_frame(side);
     let rest = &athlete.joints[hand];
     let bone_axis_local = normalised_or(rest.translation, [0.0, 1.0, 0.0]);
     let mut hand_rest = rest.rotation;
-    let long_in_forearm = rotate(hand_rest, hand_long_axis(side));
+    let long_in_forearm = rotate(hand_rest, frame.long_axis);
     let align = rotation_between(long_in_forearm, bone_axis_local);
     hand_rest = normalise(quat_mul(align, hand_rest));
-    let mut flex = rotate(hand_rest, hand_curl_axis(side));
+    let mut flex = rotate(hand_rest, frame.curl_axis);
     let along = dot(flex, bone_axis_local);
     flex = [
         flex[0] - bone_axis_local[0] * along,
@@ -602,6 +601,9 @@ pub struct PoseSolver {
     bindings: [Binding; 4],
     /// Wrist rest frames (left, right) the budget pass measures against.
     wrists: [WristRest; 2],
+    /// Measured axes in each athlete hand's own rest basis.
+    hands: [HandFrame; 2],
+    modelled_hands: bool,
 }
 
 impl PoseSolver {
@@ -681,7 +683,21 @@ impl PoseSolver {
                 build_wrist_rest(athlete, bindings[0].terminal, -1.0),
                 build_wrist_rest(athlete, bindings[1].terminal, 1.0),
             ],
+            hands: [athlete.hand_frame(-1.0), athlete.hand_frame(1.0)],
+            modelled_hands: !athlete.hand_calibration.is_empty(),
         })
+    }
+
+    fn hand_offset(&self, sport: Sport, side: f64, authored: [f64; 3]) -> [f64; 3] {
+        if !self.modelled_hands {
+            return effective_hand_offset(sport, side, authored);
+        }
+        let radius = match sport {
+            Sport::Rower => SCULL_GRIP_RADIUS,
+            Sport::Skierg => rowplay_core::replay::ski_equipment::POLE_GRIP_RADIUS,
+            Sport::Bike => HOOD_RADIUS,
+        };
+        self.hands[usize::from(side >= 0.0)].channel_centre(radius)
     }
 
     /// Pose the athlete: sample `clip` at the stroke's clip time, align the
@@ -717,11 +733,11 @@ impl PoseSolver {
         // equipment sits at. See [`effective_hand_offset`].
         let bindings = [
             Binding {
-                offset: effective_hand_offset(sport, -1.0, self.bindings[0].offset),
+                offset: self.hand_offset(sport, -1.0, self.bindings[0].offset),
                 ..self.bindings[0]
             },
             Binding {
-                offset: effective_hand_offset(sport, 1.0, self.bindings[1].offset),
+                offset: self.hand_offset(sport, 1.0, self.bindings[1].offset),
                 ..self.bindings[1]
             },
             self.bindings[2],
@@ -1131,18 +1147,20 @@ impl PoseSolver {
                 [0.0, -1.0, 0.0]
             }
         });
+        let hand_frame = self.hands[usize::from(side >= 0.0)];
         let roll_local = if frame.palm_roll {
-            Some(hand_palm_normal_out(side))
+            Some(hand_frame.palm_normal)
         } else {
             None
         };
-        let mut desired = orient_hand_to_grip_channel(
+        let mut desired = orient_hand_with_frame(
             frame.base,
             side,
             frame.radius,
             frame.shaft_thumbward,
             frame.roll_reference,
             roll_local,
+            hand_frame,
         );
         let shaft = frame.shaft_thumbward;
         let across = |direction: [f64; 3]| -> f64 {
@@ -1153,17 +1171,17 @@ impl PoseSolver {
             Sport::Skierg => {
                 let weight = smoothstep(across(forearm), 0.12, 0.35);
                 if weight > 1e-4 {
-                    desired = refine_grip_spin_for_wrist(
+                    desired = refine_grip_spin_with_axis(
                         desired,
-                        side,
+                        hand_frame.long_axis,
                         shaft,
                         forearm,
                         SKI_FLAT_MAX_SPIN * weight,
                     );
                 }
-                desired = refine_grip_tilt_for_wrist(
+                desired = refine_grip_tilt_with_frame(
                     desired,
-                    side,
+                    hand_frame,
                     forearm,
                     SKI_PALM_TILT_COMFORT,
                     SKI_PALM_TILT,
@@ -1173,11 +1191,12 @@ impl PoseSolver {
             Sport::Rower => {
                 let weight = frame.flat_window * smoothstep(across(forearm), 0.12, 0.3);
                 if weight > 1e-4 {
-                    desired = flat_wrist_roll(desired, side, shaft, forearm, weight);
+                    desired =
+                        flat_wrist_roll(desired, hand_frame.long_axis, shaft, forearm, weight);
                 }
-                desired = refine_grip_tilt_for_wrist(
+                desired = refine_grip_tilt_with_frame(
                     desired,
-                    side,
+                    hand_frame,
                     forearm,
                     ROWER_PALM_TILT_COMFORT,
                     ROWER_PALM_TILT,
@@ -1261,7 +1280,7 @@ impl PoseSolver {
 /// wrap, so the applied roll goes smoothly to zero on both sides of it.
 fn flat_wrist_roll(
     hand: [f64; 4],
-    side: f64,
+    long_axis: [f64; 3],
     shaft: [f64; 3],
     forearm: [f64; 3],
     weight: f64,
@@ -1270,7 +1289,7 @@ fn flat_wrist_roll(
         let along = dot(direction, shaft);
         sub(direction, scale(shaft, along))
     };
-    let long = project(rotate(hand, hand_long_axis(side)));
+    let long = project(rotate(hand, long_axis));
     let fore = project(forearm);
     if dot(long, long) <= 1e-8 || dot(fore, fore) <= 1e-8 {
         return hand;

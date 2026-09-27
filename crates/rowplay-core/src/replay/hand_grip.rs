@@ -12,12 +12,69 @@
 //! Evaluation order mirrors the web module so the golden corpus
 //! (`replay-current-main-grips.json`) compares within 1e-9.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A point or direction in hand-local space.
 pub type Vec3 = [f64; 3];
 /// A rotation quaternion, `[x, y, z, w]`.
 pub type Quat = [f64; 4];
+
+/// A particular athlete's measured hand geometry, in its hand joint basis.
+/// The legacy web calibration remains available for historical parity;
+/// modelled athletes supply their own saved-source measurements.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HandFrame {
+    /// Unsigned finger curl axis; handedness signs it thumbward.
+    pub curl_axis: Vec3,
+    /// Actual palm surface landmark.
+    pub palm_contact: Vec3,
+    /// Outward normal of the palm surface.
+    pub palm_normal: Vec3,
+    /// Wrist-to-middle-metacarpal direction.
+    pub long_axis: Vec3,
+    /// Palm-to-held-channel direction (distinct from the V4 surface normal).
+    pub channel_direction: Vec3,
+    /// Signed palm-seat allowance added to the equipment radius, metres.
+    pub seat_flesh: f64,
+}
+
+impl HandFrame {
+    /// The unchanged V4/web geometry for golden fixtures and old evidence.
+    #[must_use]
+    pub fn legacy(side: f64) -> Self {
+        let sign = side_sign(side);
+        let direction = hand_palm_normal_in();
+        Self {
+            curl_axis: hand_curl_axis(side),
+            palm_contact: [
+                sign * HAND_PALM_CONTACT[0],
+                HAND_PALM_CONTACT[1],
+                HAND_PALM_CONTACT[2],
+            ],
+            palm_normal: hand_palm_normal_out(side),
+            long_axis: hand_long_axis(side),
+            channel_direction: [sign * direction[0], direction[1], direction[2]],
+            seat_flesh: hand_grip_seat_flesh(),
+        }
+    }
+
+    /// The held equipment's centre in this hand's local coordinates.
+    #[must_use]
+    pub fn channel_centre(self, radius: f64) -> Vec3 {
+        add_scaled(
+            self.palm_contact,
+            self.channel_direction,
+            self.seat_flesh + radius,
+        )
+    }
+
+    /// Curl axis signed from pinky to thumb.
+    #[must_use]
+    pub fn thumbward(self, side: f64) -> Vec3 {
+        scale(self.curl_axis, side_sign(side))
+    }
+}
 
 /// Fitted hand curl axis (right hand; mirrors on Y/Z per side).
 pub const HAND_CURL_AXIS: Vec3 = [-0.61, 0.16, 0.77];
@@ -508,12 +565,40 @@ fn stage_clearance(
 /// An install-time solve: cache the returned poses, never call per frame.
 #[must_use]
 pub fn solve_hand_grip_closure(chains: &[HandDigitChain], options: &ClosureOptions) -> GripClosure {
+    solve_closure(
+        chains,
+        options,
+        hand_curl_axis(options.side),
+        hand_channel_centre(options.surface.radius, options.side),
+    )
+}
+
+/// Solve the same closure against a modelled athlete's measured channel.
+#[must_use]
+pub fn solve_hand_grip_closure_with_frame(
+    chains: &[HandDigitChain],
+    options: &ClosureOptions,
+    frame: HandFrame,
+) -> GripClosure {
+    solve_closure(
+        chains,
+        options,
+        frame.curl_axis,
+        frame.channel_centre(options.surface.radius),
+    )
+}
+
+fn solve_closure(
+    chains: &[HandDigitChain],
+    options: &ClosureOptions,
+    mut axis: Vec3,
+    centre: Vec3,
+) -> GripClosure {
     let finger_flesh = options.finger_flesh.unwrap_or(DEFAULT_DIGIT_FLESH);
     let posed: Vec<HandDigitChain> = chains
         .iter()
         .map(|chain| cup_chain(chain, options.side))
         .collect();
-    let mut axis = hand_curl_axis(options.side);
     // Thumb-ward sign: the axis must point from the pinky side toward the
     // index/thumb side so `thumb_end_axial` has one meaning on both hands.
     let index = posed.iter().find(|chain| chain.digit == "index");
@@ -524,7 +609,6 @@ pub fn solve_hand_grip_closure(chains: &[HandDigitChain], options: &ClosureOptio
             axis = scale(axis, -1.0);
         }
     }
-    let centre = hand_channel_centre(options.surface.radius, options.side);
 
     let mut closure = GripClosure::default();
     let mut points = [[0.0; 3]; 4];

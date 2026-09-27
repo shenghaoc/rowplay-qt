@@ -382,14 +382,7 @@ Item {
 
                     // Static materials — values transcribe MaterialRole::spec()
                     // and are cross-checked at startup (validateMaterials).
-                    PrincipledMaterial { id: matAthleteSkin; baseColor: Theme.replaySkin; metalness: 0.0; roughness: 0.55 }
-                    PrincipledMaterial { id: matAthleteFabric; baseColor: Theme.replayFabric; metalness: 0.0; roughness: 0.8 }
-                    PrincipledMaterial { id: matAthleteHair; baseColor: Theme.replayHair; metalness: 0.0; roughness: 0.45 }
-                    PrincipledMaterial { id: matAthleteFootwear; baseColor: Theme.replayFootwear; metalness: 0.0; roughness: 0.6 }
-                    PrincipledMaterial { id: matAthleteShorts; baseColor: Theme.replayShorts; metalness: 0.0; roughness: 0.8 }
-                    PrincipledMaterial { id: matAthleteTrim; baseColor: Theme.replayTrim; metalness: 0.1; roughness: 0.4 }
-                    PrincipledMaterial { id: matAthleteEye; baseColor: Theme.replayEye; metalness: 0.0; roughness: 0.15 }
-                    PrincipledMaterial { id: matAthleteFaceDetail; baseColor: Theme.replayFaceDetail; metalness: 0.0; roughness: 0.6 }
+
                     PrincipledMaterial { id: matEquipmentPainted; baseColor: Replay.livePaint; metalness: 0.05; roughness: 0.35 }
                     PrincipledMaterial { id: matEquipmentDark; baseColor: Theme.replayEquipmentDark; metalness: 0.2; roughness: 0.5 }
                     PrincipledMaterial { id: matEquipmentLight; baseColor: Theme.replayEquipmentLight; metalness: 0.1; roughness: 0.4 }
@@ -424,6 +417,14 @@ Item {
 
                 Athlete {
                     id: athlete
+                    skinColor: Theme.replaySkin
+                    fabricColor: Theme.replayFabric
+                    shortsColor: Theme.replayShorts
+                    footwearColor: Theme.replayFootwear
+                    hairColor: Theme.replayHair
+                    trimColor: Theme.replayTrim
+                    eyeColor: Theme.replayEye
+                    faceDetailColor: Theme.replayFaceDetail
                     visible: Replay.loadState !== "error"
                 }
             }
@@ -443,14 +444,7 @@ Item {
                     // equipment and athlete trim/shorts go 45% opacity (the V4
                     // depth contract, materialSpecs.ghostOpacity). The ghost
                     // painted equipment uses the ghost paint colour.
-                    PrincipledMaterial { id: gMatSkin; baseColor: Theme.replaySkin; metalness: 0.0; roughness: 0.55 }
-                    PrincipledMaterial { id: gMatFabric; baseColor: Theme.replayFabric; metalness: 0.0; roughness: 0.8 }
-                    PrincipledMaterial { id: gMatHair; baseColor: Theme.replayHair; metalness: 0.0; roughness: 0.45 }
-                    PrincipledMaterial { id: gMatFootwear; baseColor: Theme.replayFootwear; metalness: 0.0; roughness: 0.6 }
-                    PrincipledMaterial { id: gMatShorts; baseColor: Theme.replayShorts; metalness: 0.0; roughness: 0.8; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
-                    PrincipledMaterial { id: gMatTrim; baseColor: Theme.replayTrim; metalness: 0.1; roughness: 0.4; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
-                    PrincipledMaterial { id: gMatEye; baseColor: Theme.replayEye; metalness: 0.0; roughness: 0.15 }
-                    PrincipledMaterial { id: gMatFaceDetail; baseColor: Theme.replayFaceDetail; metalness: 0.0; roughness: 0.6 }
+
                     PrincipledMaterial { id: gMatPainted; baseColor: Replay.ghostPaint; metalness: 0.05; roughness: 0.35; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
                     PrincipledMaterial { id: gMatDark; baseColor: Theme.replayEquipmentDark; metalness: 0.2; roughness: 0.5; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
                     PrincipledMaterial { id: gMatLight; baseColor: Theme.replayEquipmentLight; metalness: 0.1; roughness: 0.4; opacity: 0.45; alphaMode: PrincipledMaterial.Blend }
@@ -475,6 +469,15 @@ Item {
                 }
                 Athlete {
                     id: ghostAthlete
+                    skinColor: Theme.replaySkin
+                    fabricColor: Theme.replayFabric
+                    shortsColor: Theme.replayShorts
+                    footwearColor: Theme.replayFootwear
+                    hairColor: Theme.replayHair
+                    trimColor: Theme.replayTrim
+                    eyeColor: Theme.replayEye
+                    faceDetailColor: Theme.replayFaceDetail
+                    ghost: true
                     visible: Replay.hasGhost && Replay.loadState !== "error"
                 }
             }
@@ -1143,10 +1146,10 @@ Item {
 
     // ---- roleId → material ----
     property var byRole: ({
-        "athlete-skin": matAthleteSkin, "athlete-fabric": matAthleteFabric,
-        "athlete-hair": matAthleteHair, "athlete-footwear": matAthleteFootwear,
-        "athlete-shorts": matAthleteShorts, "athlete-trim": matAthleteTrim,
-        "athlete-eye": matAthleteEye, "athlete-face-detail": matAthleteFaceDetail,
+        "athlete-skin": athlete.skinMaterial, "athlete-fabric": athlete.fabricMaterial,
+        "athlete-hair": athlete.hairMaterial, "athlete-footwear": athlete.footwearMaterial,
+        "athlete-shorts": athlete.shortsMaterial, "athlete-trim": athlete.trimMaterial,
+        "athlete-eye": athlete.eyeMaterial, "athlete-face-detail": athlete.faceDetailMaterial,
         "equipment-painted": matEquipmentPainted, "equipment-dark": matEquipmentDark,
         "equipment-light": matEquipmentLight, "equipment-metal": matEquipmentMetal,
         "equipment-rubber": matEquipmentRubber, "equipment-grip": matEquipmentGrip,
@@ -1155,10 +1158,10 @@ Item {
     // Ghost material variant: same keys, but equipment and athlete trim/shorts
     // get 45% opacity (the V4 depth contract).
     property var ghostByRole: ({
-        "athlete-skin": gMatSkin, "athlete-fabric": gMatFabric,
-        "athlete-hair": gMatHair, "athlete-footwear": gMatFootwear,
-        "athlete-shorts": gMatShorts, "athlete-trim": gMatTrim,
-        "athlete-eye": gMatEye, "athlete-face-detail": gMatFaceDetail,
+        "athlete-skin": ghostAthlete.skinMaterial, "athlete-fabric": ghostAthlete.fabricMaterial,
+        "athlete-hair": ghostAthlete.hairMaterial, "athlete-footwear": ghostAthlete.footwearMaterial,
+        "athlete-shorts": ghostAthlete.shortsMaterial, "athlete-trim": ghostAthlete.trimMaterial,
+        "athlete-eye": ghostAthlete.eyeMaterial, "athlete-face-detail": ghostAthlete.faceDetailMaterial,
         "equipment-painted": gMatPainted, "equipment-dark": gMatDark,
         "equipment-light": gMatLight, "equipment-metal": gMatMetal,
         "equipment-rubber": gMatRubber, "equipment-grip": gMatGrip,
