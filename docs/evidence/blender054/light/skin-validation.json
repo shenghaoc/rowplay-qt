@@ -1,0 +1,288 @@
+[
+  {
+    "name": "row-catch-left-mask",
+    "hand_roi": [
+      489,
+      315,
+      915,
+      731
+    ],
+    "native_pixels": 145785,
+    "cpu_pixels": 146412,
+    "iou": 0.9956630422904601,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-catch-right-mask",
+    "hand_roi": [
+      281,
+      315,
+      708,
+      731
+    ],
+    "native_pixels": 145549,
+    "cpu_pixels": 146123,
+    "iou": 0.9960718025225324,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-middrive-left-mask",
+    "hand_roi": [
+      547,
+      308,
+      968,
+      709
+    ],
+    "native_pixels": 112954,
+    "cpu_pixels": 113908,
+    "iou": 0.9916248200301998,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-middrive-right-mask",
+    "hand_roi": [
+      244,
+      309,
+      654,
+      715
+    ],
+    "native_pixels": 111393,
+    "cpu_pixels": 112230,
+    "iou": 0.9925065934849241,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-finish-left-mask",
+    "hand_roi": [
+      560,
+      306,
+      923,
+      605
+    ],
+    "native_pixels": 86785,
+    "cpu_pixels": 87077,
+    "iou": 0.996623716667815,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-finish-right-mask",
+    "hand_roi": [
+      291,
+      307,
+      642,
+      627
+    ],
+    "native_pixels": 90417,
+    "cpu_pixels": 90624,
+    "iou": 0.997649707040948,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-halfslide-left-mask",
+    "hand_roi": [
+      540,
+      320,
+      903,
+      734
+    ],
+    "native_pixels": 109397,
+    "cpu_pixels": 109981,
+    "iou": 0.9946718553945191,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-halfslide-right-mask",
+    "hand_roi": [
+      305,
+      321,
+      662,
+      736
+    ],
+    "native_pixels": 106751,
+    "cpu_pixels": 107454,
+    "iou": 0.9934576656057476,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-approach-left-mask",
+    "hand_roi": [
+      527,
+      310,
+      934,
+      696
+    ],
+    "native_pixels": 133356,
+    "cpu_pixels": 133920,
+    "iou": 0.9957885304659498,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-approach-right-mask",
+    "hand_roi": [
+      267,
+      310,
+      673,
+      696
+    ],
+    "native_pixels": 133171,
+    "cpu_pixels": 133703,
+    "iou": 0.9960210316896405,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-plant-left-mask",
+    "hand_roi": [
+      529,
+      307,
+      924,
+      704
+    ],
+    "native_pixels": 130389,
+    "cpu_pixels": 131163,
+    "iou": 0.9940989455867889,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-plant-right-mask",
+    "hand_roi": [
+      276,
+      306,
+      671,
+      703
+    ],
+    "native_pixels": 130639,
+    "cpu_pixels": 131377,
+    "iou": 0.9943825783812996,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-pull-left-mask",
+    "hand_roi": [
+      551,
+      298,
+      967,
+      646
+    ],
+    "native_pixels": 104138,
+    "cpu_pixels": 105171,
+    "iou": 0.9901779007521084,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-pull-right-mask",
+    "hand_roi": [
+      232,
+      297,
+      649,
+      646
+    ],
+    "native_pixels": 106532,
+    "cpu_pixels": 107523,
+    "iou": 0.9907833672795588,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-release-left-mask",
+    "hand_roi": [
+      420,
+      0,
+      696,
+      425
+    ],
+    "native_pixels": 77516,
+    "cpu_pixels": 78351,
+    "iou": 0.9883023777936524,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-release-right-mask",
+    "hand_roi": [
+      507,
+      0,
+      783,
+      426
+    ],
+    "native_pixels": 76732,
+    "cpu_pixels": 77649,
+    "iou": 0.9878576395148206,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-recovery-left-mask",
+    "hand_roi": [
+      496,
+      357,
+      805,
+      724
+    ],
+    "native_pixels": 88281,
+    "cpu_pixels": 89132,
+    "iou": 0.9904523627877755,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-recovery-right-mask",
+    "hand_roi": [
+      395,
+      357,
+      705,
+      724
+    ],
+    "native_pixels": 88405,
+    "cpu_pixels": 89166,
+    "iou": 0.9914653567503309,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-top-left-mask",
+    "hand_roi": [
+      458,
+      342,
+      705,
+      751
+    ],
+    "native_pixels": 78564,
+    "cpu_pixels": 79206,
+    "iou": 0.9918191114646063,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-top-right-mask",
+    "hand_roi": [
+      495,
+      342,
+      743,
+      751
+    ],
+    "native_pixels": 87862,
+    "cpu_pixels": 88315,
+    "iou": 0.9948706335277133,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-quarter-left-mask",
+    "hand_roi": [
+      458,
+      342,
+      705,
+      751
+    ],
+    "native_pixels": 92214,
+    "cpu_pixels": 92710,
+    "iou": 0.9946499838205156,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-quarter-right-mask",
+    "hand_roi": [
+      495,
+      342,
+      743,
+      751
+    ],
+    "native_pixels": 96512,
+    "cpu_pixels": 96773,
+    "iou": 0.9973029667365898,
+    "alpha_min": 255
+  }
+]

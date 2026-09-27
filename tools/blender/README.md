@@ -461,3 +461,65 @@ The committed evidence is bounded: compressed matrices/metrics, native
 lossless masks, labelled JPEG panels, diagnostic maps and input hashes.
 Original full-size PNG/PPM captures and large inspection arrays stay in
 `build/`. Old Phase 5.1 evidence must not be regenerated for this audit.
+
+## Phase 5.4 modelled athlete candidate
+
+The authoritative source is `assets/replay/authored/rowplay-athlete-v5.blend`,
+with the exact approved CC0 base under `authored/sources/`. See ADR 0018 and
+ASSET_PROVENANCE.md for the narrow CC0 + MIT exception. The saved .blend owns
+geometry, UVs, materials, rig and weights; **there is no human generator**.
+The candidate is blocked at native acceptance; do not mark Phase 5 complete
+or begin Layer C from these outputs. `docs/blender-phase5-athlete-rebuild.md`
+records the measured fixed-posture reach blocker and remaining visual defects.
+
+Use Blender **5.2.2** and the reviewed source SHA from MANIFEST.json. Pass it
+explicitly, rather than hashing arbitrary newly edited bytes to bless them:
+
+```sh
+blender --background -noaudio --python-exit-code 1 \
+  --python tools/blender/export_athlete.py -- \
+  --source-sha256 757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4
+# For a repeat, use a new directory, retaining the basename:
+blender --background -noaudio --python-exit-code 1 \
+  --python tools/blender/export_athlete.py -- \
+  --source-sha256 757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4 \
+  --output build/athlete-repeat/rowplay-athlete-v5.glb
+cmp assets/replay/authored/rowplay-athlete-v5.glb build/athlete-repeat/rowplay-athlete-v5.glb
+cmp assets/replay/authored/rowplay-athlete-v5.contract.json build/athlete-repeat/rowplay-athlete-v5.contract.json
+```
+
+The exporter validates source identity, metres/axes/root, 19+32 hierarchy,
+inverse binds, closed topology, slivers, four normalized influences, eight
+material primitives, UV/albedo and no image dependencies/extensions. It
+rejects >75,000 triangles and reports the 60,000 target separately. It adds
+only the immutable V4 motion channels expressed in the new rest bases;
+Rust evaluates them and Balsam removes component animations. Normal builds
+use committed GLB/contract and need no Blender. Historical V4 stays untouched
+for its existing audit/parity tools and is no longer packaged.
+
+Commit all instruments and inputs before capturing, and run captures alone.
+Python needs numpy and Pillow (analysis also imports the existing audit
+module). Source `.envrc` first; use a visible native Wayland window on Linux:
+
+```sh
+QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  python3 tools/blender/capture_athlete_v5.py --output build/v5-light
+QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  python3 tools/blender/capture_athlete_v5.py --output build/v5-dark \
+  --scheme dark --tier high --selection stressed
+python3 tools/blender/athlete_v5_skin.py build/v5-light --contacts
+python3 tools/blender/athlete_v5_skin.py build/v5-dark
+cargo build -p rowplay-app # restore the production binary after instrumentation
+python3 -m unittest discover -s tools/blender -p test_athlete_v5.py
+blender -b -noaudio --python-exit-code 1 \
+  --python tools/blender/test_athlete_export_blender.py
+```
+
+Every native capture pins committed instrument ancestry, source/GLB/contract,
+equipment, exact current Cargo executable/OUT_DIR, material state and pose/
+camera matrices. Analysis rejects native/CPU hand silhouette IoU below .97.
+Hand masks come from authored surface labels independently of skin weights.
+Actual equipment triangle distance and the labelled cylinder proxy remain
+separate. `reach-bound.json` is a conservative palm reach proof with every
+descendant joint allowed arbitrary rotations, not a new contact tolerance.
+Historical V4 capture/analysis scripts and their manifests are unchanged.
