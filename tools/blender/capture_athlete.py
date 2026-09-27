@@ -34,7 +34,7 @@ def surface_palettes():
     return result
 
 
-def diagnostic_maps(out, size=512):
+def diagnostic_maps(out, size=1024):
     """Bake only presentation maps; overlapping UVs remain a measured limitation."""
     import numpy as np
     from PIL import Image, ImageDraw
@@ -42,7 +42,12 @@ def diagnostic_maps(out, size=512):
     glb=Glb(ROOT/'assets/replay/rowplay-athlete-v4.glb')
     primitive=glb.json['meshes'][0]['primitives'][0]
     att=primitive['attributes']
-    uv=glb.accessor(att['TEXCOORD_0'])
+    uv=glb.accessor(att['TEXCOORD_0']).copy()
+    # Balsam flips glTF V to Qt/OpenGL bottom-left UVs; verified against
+    # every imported position/UV tuple by verify_imported_uv below.
+    uv[:,1]=1-uv[:,1]
+    uv_min=uv.min(0); uv_span=uv.max(0)-uv_min
+    atlas_uv=(uv-uv_min)/uv_span
     colors=glb.accessor(att['COLOR_0'])[:,:3]
     triangles=glb.accessor(primitive['indices']).reshape(-1,3)
     palette=[]; roles=[]
@@ -56,22 +61,66 @@ def diagnostic_maps(out, size=512):
     roughness=np.array([.48,.86,.86,.70,.78,.70,.18,.50])
     rough=Image.new('L',(size,size),round(.7*255));draw=ImageDraw.Draw(rough)
     valid=0
-    # Keep the original UVs. Tiled/out-of-atlas and degenerate triangles use
-    # fallback .7; do not invent a new unwrap for this experiment.
+    # Fit the complete tiled UV domain with a Texture transform. Mesh UVs
+    # are unchanged. Only degenerate triangles retain the .7 fallback.
     for tri,r in zip(triangles,role):
         coords=uv[tri]
         a,b=coords[1:]-coords[0]
-        if np.any(coords<0) or np.any(coords>1) or abs(a[0]*b[1]-a[1]*b[0])<1e-14: continue
+        if abs(a[0]*b[1]-a[1]*b[0])<1e-14: continue
+        coords=atlas_uv[tri]
         draw.polygon([(float(u*(size-1)),float((1-v)*(size-1))) for u,v in coords],fill=round(roughness[r]*255));valid+=1
     rough.save(out/'roughness.png')
+    center_uv=atlas_uv[triangles].mean(1)
+    ix=np.rint(center_uv[:,0]*(size-1)).astype(int);iy=np.rint((1-center_uv[:,1])*(size-1)).astype(int)
+    actual=np.asarray(rough)[iy,ix];wanted=np.rint(roughness[role]*255).astype(int)
+    recovery={name:float(np.mean(actual[role==i]==wanted[role==i])) for i,(name,_) in enumerate(surface_palettes())}
+    positions=glb.accessor(att['POSITION']);pts=positions[triangles]
+    area=np.linalg.norm(np.cross(pts[:,1]-pts[:,0],pts[:,2]-pts[:,0]),axis=1)
+    area_recovery={name:float(area[(role==i)&(actual==wanted)].sum()/area[role==i].sum()) for i,(name,_) in enumerate(surface_palettes())}
+    if recovery['jersey']<.9 or recovery['lower']<.9:
+        raise ValueError('atlas does not preserve sufficient skin/fabric role coverage: '+str(recovery))
     y,x=np.mgrid[:size,:size]/size
     nx=.10*np.sin(2*np.pi*80*x);ny=.10*np.sin(2*np.pi*80*y)
     normal=np.stack([nx,ny,np.sqrt(1-nx*nx-ny*ny)],axis=2)
     Image.fromarray(np.uint8(np.rint((normal+1)*127.5))).save(out/'normal.png')
-    return {'size':size,'painted_triangles':valid,'roughness_by_role':roughness.tolist(),
+    return {'size':size,'painted_triangles':valid,'qt_uv_min':uv_min.tolist(),'qt_uv_span':uv_span.tolist(),
+            'texture_scale':(1/uv_span).tolist(),'texture_offset':(-uv_min/uv_span).tolist(),
+            'triangle_centroid_role_recovery':recovery,'surface_area_role_recovery':area_recovery,'roughness_by_role':roughness.tolist(),
             'normal_xy_amplitude':.10,'normal_periods':80,'normal_strength':.20,
             'overlap_policy':'GLB triangle order, last writer; original UVs retained',
             'fallback_roughness':.70}
+
+
+def verify_imported_uv():
+    """Strict proof of the importer convention for this pinned V4, no new parser.
+
+    meshdebug supplies the version/layout. Search candidate buffer starts,
+    then require equality of the ENTIRE position/UV multiset, allowing the
+    importer's vertex reordering and exact seam duplicates. Refuse drift.
+    """
+    import numpy as np
+    from contact_skin import Glb
+    glb=Glb(ROOT/'assets/replay/rowplay-athlete-v4.glb')
+    att=glb.json['meshes'][0]['primitives'][0]['attributes']
+    p=glb.accessor(att['POSITION']);uv=glb.accessor(att['TEXCOORD_0'])
+    expected=np.column_stack([p,uv[:,0],1-uv[:,1]])
+    expected=expected[np.lexsort(expected.T[::-1])]
+    paths=sorted((ROOT/'target/debug/build').glob('rowplay-app-*/out/replay-balsam/athlete/meshes/*.mesh'),key=lambda p:p.stat().st_mtime,reverse=True)
+    for path in paths:
+        layout=subprocess.check_output(['meshdebug',str(path)],stderr=subprocess.STDOUT,text=True)
+        if not all(value in layout for value in ['fileVersion: 7','stride: 80','entry count: 6','name: "attr_uv0"']): continue
+        data=path.read_bytes();start=0
+        while True:
+            offset=data.find(p[0].tobytes(),start)
+            if offset<0 or offset+len(p)*80>len(data): break
+            v=np.ndarray((len(p),20),dtype='<f4',buffer=data,offset=offset,strides=(80,4))
+            actual=np.column_stack([v[:,:3],v[:,6:8]])
+            if np.array_equal(actual[np.lexsort(actual.T[::-1])],expected):
+                return {'mesh_sha256':hashlib.sha256(data).hexdigest(),'vertices':len(p),
+                        'position_uv_tuple_max_error':0,'qt_uv':'(glTF.u, 1 - glTF.v)',
+                        'mesh_version':7,'stride':80,'uv_offset':24}
+            start=offset+1
+    raise ValueError('cannot verify the imported V4 UV convention; inspect meshdebug output')
 
 
 AUDIT = r'''
@@ -202,7 +251,7 @@ def main():
     scene=replace_once(originals[1], '    // ---- applyFrame (the per-tick frame-bundle reader) ----', DIAGNOSTIC+AUDIT+'\n    // ---- applyFrame (the per-tick frame-bundle reader) ----')
     scene=replace_once(scene, '        PerspectiveCamera { id: camera; clipNear: 0.1; clipFar: 1000 }', f'''
         DefaultMaterial {{ id: contactMaskMaterial; lighting: DefaultMaterial.NoLighting; diffuseColor: "#ff00ff"; vertexColorsEnabled: false }}
-        Texture {{ id: auditRoughness; source: "{(out/'roughness.png').as_uri()}" }}
+        Texture {{ id: auditRoughness; source: "{(out/'roughness.png').as_uri()}"; scaleU: {map_parameters['texture_scale'][0]}; scaleV: {map_parameters['texture_scale'][1]}; positionU: {map_parameters['texture_offset'][0]}; positionV: {map_parameters['texture_offset'][1]}; tilingModeHorizontal: Texture.ClampToEdge; tilingModeVertical: Texture.ClampToEdge }}
         Texture {{ id: auditNormal; source: "{(out/'normal.png').as_uri()}" }}
         PerspectiveCamera {{ id: camera; clipNear: 0.1; clipFar: 1000 }}''')
     metadata={'base':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -218,6 +267,8 @@ def main():
     try:
         for path,value in zip(paths,[main,scene]): path.write_text(value)
         subprocess.run(['cargo','build','-p','rowplay-app'],cwd=ROOT,check=True)
+        metadata['imported_uv']=verify_imported_uv()
+        (out/'manifest.json').write_text(json.dumps(metadata,indent=2)+'\n')
         env=dict(os.environ, ROWPLAY_SMOKE_GATE='1',ROWPLAY_SYNC_MOCK='1',ROWPLAY_GATE_PROFILE='full',
                  ROWPLAY_FORCE_COLOR_SCHEME='light',ROWPLAY_SMOKE_SCREENSHOT_DIR=str(out),
                  ROWPLAY_DATA_DIR=str(out/'data'),QT_MESSAGE_PATTERN='[%{time process}] %{message}')
