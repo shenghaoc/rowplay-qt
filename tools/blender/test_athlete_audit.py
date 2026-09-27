@@ -88,4 +88,36 @@ class SupplementalCaptureTests(unittest.TestCase):
         with self.assertRaises(ValueError): lower_cases(smoke=True)
 
 
+class MaterialAtlasTests(unittest.TestCase):
+    def test_bounded_palette_lookup_matches_exhaustive_including_ties(self):
+        from capture_athlete import nearest_palette_roles
+        rng=np.random.default_rng(52);p=rng.uniform(size=(18,3));p[1]=p[0]
+        points=np.vstack([rng.uniform(size=(300,3)),p]);roles=np.arange(len(p))%8
+        expected=roles[np.argmin(((points[:,None,:]-p[None,:,:])**2).sum(2),axis=1)]
+        np.testing.assert_array_equal(nearest_palette_roles(points,p,roles),expected)
+
+    @unittest.skipUnless(__import__('pathlib').Path('reference/rowplay/src/lib/replay/renderer3dV4Assets.ts').exists(), 'pinned reference checkout required')
+    def test_full_uv_domain_preserves_fabric_and_records_overlap(self):
+        from capture_athlete import diagnostic_maps
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from PIL import Image
+        with TemporaryDirectory() as temp:
+            out=Path(temp);first=diagnostic_maps(out)
+            rough=(out/'roughness.png').read_bytes();normal=(out/'normal.png').read_bytes()
+            second=diagnostic_maps(out)
+            self.assertEqual(first,second)
+            self.assertEqual(rough,(out/'roughness.png').read_bytes())
+            self.assertEqual(normal,(out/'normal.png').read_bytes())
+            # The original 0..1-only bake dropped tiled body UVs and lost all
+            # fabric pixels to later overlapping patches. This catches that.
+            self.assertEqual(first['painted_triangles'],106256-13064)
+            self.assertGreater(first['qt_uv_span'][0],8)
+            self.assertGreater(first['qt_uv_span'][1],3)
+            self.assertGreater(first['triangle_centroid_role_recovery']['jersey'],.9)
+            self.assertGreater(first['triangle_centroid_role_recovery']['lower'],.9)
+            self.assertLess(first['triangle_centroid_role_recovery']['eye'],.1)
+            self.assertIn(round(.86*255),np.unique(np.asarray(Image.open(out/'roughness.png'))))
+
+
 if __name__=='__main__': unittest.main()

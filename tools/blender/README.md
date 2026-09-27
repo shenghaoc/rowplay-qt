@@ -398,6 +398,11 @@ ZIP container timestamp as geometry. The metric JSON must match byte-for-byte
 on repeated analysis of fixed inputs. The analysis reuses Phase 5.1's
 immutable final palette archive; it never re-derives animation transforms.
 
+The material-map baker includes the complete tiled UV domain and verifies
+Balsam’s V flip against every imported position/UV tuple. `meshdebug` from
+Qt must be on PATH. The atlas test catches dropped fabric tiles and records
+remaining overlap; this is not a production material-role implementation.
+
 The publisher refuses mismatched poses/cameras/equipment/lighting in A–D,
 allows only the deliberately changed key light in L, checks all ten native
 whole-athlete silhouettes against CPU skinning (4× coverage rasterization,

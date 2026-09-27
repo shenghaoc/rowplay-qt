@@ -295,8 +295,7 @@ by `applySceneRules`; their existence is not evidence of V4 role treatment.
 
 The glTF sheen extension is also not present as a sheen property in the
 balsam-generated PrincipledMaterial. The absence of TANGENT is not itself
-a current normal-map defect, because no map is used. Qt can construct a
-basis from UVs; zero-area UVs and strained layouts make a blanket added map
+a current normal-map defect, because no map is used. The imported Qt mesh stores `(glTF.u, 1−glTF.v)`: all 57,069 position/UV tuples match exactly after that V flip, allowing vertex reordering. The verifier checks the actual version-7 `.mesh` layout with `meshdebug`. Qt can construct a basis from UVs; zero-area UVs and strained layouts make a blanket added map
 an unsafe diagnostic of authored normals. Relevant semantics are documented
 in [Qt PrincipledMaterial](https://doc.qt.io/qt-6/qml-qtquick3d-principledmaterial.html)
 and [glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html).
@@ -366,7 +365,11 @@ record the same final palettes, camera and equipment.
 
 ![Equipment-hidden lower anatomy](evidence/blender052/lower-isolated.jpg)
 
-The separate lower-anatomy supplement hides equipment and uses B clay to expose the rower’s otherwise occluded skin. It preserves all joint matrices; it is **not** a fixed-equipment A/B comparison.
+The separate lower-anatomy supplement hides equipment and uses B clay to
+expose the rower’s otherwise occluded skin. It preserves all joint matrices;
+it is **not** a fixed-equipment A/B comparison. Its older capture manifest
+records maps generated during setup, but B uses neither map; the atlas
+correction does not affect these supplemental images.
 
 **MEASUREMENT:** percentage of each region’s rest surface area compressed below 0.5×; neither volume loss nor a count of failed vertices.
 
@@ -432,18 +435,39 @@ rejected, not included as experiment evidence.
 | --- | --- |
 | A | Exact captured production material defaults |
 | B | Neutral grey, vertex colours off, roughness .9, specular .1, clearcoat 0, no map; exposes geometry without painted surface shading |
-| C | Best of these bounded experiments: original vertex colours, role-derived 512-square roughness map, specular .25, clearcoat 0; no added normal map |
+| C | Best of these bounded experiments: original vertex colours, role-derived 1024-square roughness map, specular .25, clearcoat 0; no added normal map |
 | D | C plus deterministic 80-cycle UV normal pattern, XY amplitude .10 and Qt normal strength .20; isolates added relief |
 | L | C with key-light brightness 0; identical IBL/exposure; lighting-only control |
 | A0 | A with normal map disabled/strength 0; verifies the absence of a production normal-map contribution |
 
 C uses the pinned web's eight colour palettes to classify triangle colour
-means, then bakes only a diagnostic roughness atlas: skin .48, jersey/lower
-.86, footwear/trim .70, hair .78, eye .18, face-detail .50. It preserves the
-original UVs. Degenerate/out-of-atlas triangles use .70 fallback; overlapping
-UVs use GLB order, last writer. Therefore this is an intentionally bounded
-surface experiment, **not a faithful port of web role materials** and not
-a production texture proposal. Its exact maps and parameters are archived.
+means, then bakes a diagnostic roughness atlas: skin .48, jersey/lower .86,
+footwear/trim .70, hair .78, eye .18, face-detail .50. **Mesh UVs are unchanged.**
+The atlas covers the complete imported UV domain (U 0–8.9487, V 0–3.9667)
+with Qt Texture scales .111748/.252098. Degenerate UV triangles are omitted;
+unpainted texels start at .70. Overlapping UVs use GLB order, last writer.
+
+**MEASUREMENT / instrument limit:** 93,192 nondegenerate UV triangles are
+painted. Nearest-texel sampling at triangle centroids recovers the intended
+roughness on 94.8% of jersey triangles and 95.7% of lower-body triangles
+(98.6% and 97.7% by rest area), but only 69.4% of skin triangles (77.7% by
+area). Eye/face-detail recovery is only 0.9%/3.3% by triangle count and
+8.2%/15.8% by area because their UVs overlap. Hair's zero-area UVs remain
+unsuitable for this map. Linear GPU filtering further blends atlas boundaries.
+This is useful body fabric/skin-response evidence, **not a faithful port of
+web material roles or proof of effective separate eye/hair treatment**.
+Those require a different material assignment experiment in a later task.
+
+An earlier unit-square-only atlas lost all meaningful fabric texels and
+also assumed the wrong V convention. Those presentation captures were
+rejected. The final instrument checks the imported UV multiset and refuses
+an atlas recovering less than 90% of either fabric class at triangle
+centroids; a regression test catches the original omission. This is an
+instrument-coverage guard, not a visual-quality acceptance threshold. Exact
+maps, transforms, overlap recovery and parameters accompany the final
+captures. The exact capture instrument is preserved in commit `02dbe25`;
+the subsequent bounded-memory palette lookup produces byte-identical maps.
+No production texture or future texture budget is proposed.
 
 ![Row face A/B/C/D/L](evidence/blender052/row-catch-face.jpg)
 ![Ski full athlete A/B/C/D/L](evidence/blender052/ski-release-full.jpg)
@@ -459,8 +483,9 @@ measure intervention size, **not percentage improvement in realism**. The ROI is
 **INFERENCE:** B removes painted face seams and reveals coherent underlying
 cheek/nose/lip form. C modestly separates response and reduces broad coat-like
 highlights, but the same facial patches, cap silhouette, short broad hands,
-creases and body proportions remain. D introduces visible UV/basis artifacts
-at the shoulders rather than a convincing improvement. L changes highlight
+creases and body proportions remain. D flattens the hair-cap response where
+UVs are degenerate and adds minor UV/seam artifacts rather than a convincing
+improvement. L changes highlight
 visibility without altering any outline or anatomical registration. The
 material-only benefit is thus **limited and local**, not a transformed human;
 neutral clay is diagnostic clarity, not a finished athlete. No arbitrary
@@ -547,10 +572,11 @@ Blender 5.2.2 LTS, numpy 2.3.5):
 - `cargo test --workspace` under native Wayland/OpenGL, phase shots and
   closeups enabled: **634 passed, 2 pre-existing ignored probes, 0 failed**;
   includes the full QML runtime gate, not the quick profile.
-- Python `unittest discover -s tools/blender`: **41 passed**; covers nearest
+- Python `unittest discover -s tools/blender`: **43 passed**; covers nearest
   queries against exhaustive distances, analytic triangle Jacobians,
   degeneracy, welding/boundaries, known triangle quality, palette roles,
-  required phase coverage and refusal of pose/lighting drift.
+  required phase coverage, refusal of pose/lighting drift, and deterministic
+  full-domain atlas coverage.
 - Two final Blender extractions: arrays and source metadata identical.
   Repeated numeric analysis of those fixed inputs: metric JSON identical.
 - 96 native main captures plus 10 separate lower-anatomy captures;

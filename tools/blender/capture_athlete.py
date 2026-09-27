@@ -34,6 +34,17 @@ def surface_palettes():
     return result
 
 
+def nearest_palette_roles(centers, palette, roles):
+    """Exact first-nearest palette lookup with bounded working memory."""
+    import numpy as np
+    best=np.full(len(centers),np.inf);result=np.zeros(len(centers),dtype=int)
+    for color,role in zip(np.asarray(palette),roles):
+        distance=np.sum((centers-color)**2,axis=1)
+        improve=distance<best
+        best[improve]=distance[improve];result[improve]=role
+    return result
+
+
 def diagnostic_maps(out, size=1024):
     """Bake only presentation maps; overlapping UVs remain a measured limitation."""
     import numpy as np
@@ -57,7 +68,7 @@ def diagnostic_maps(out, size=1024):
             palette.extend([c,np.where(c<=.04045,c/12.92,((c+.055)/1.055)**2.4)])
             roles.extend([role,role])
     centers=colors[triangles].mean(1)
-    role=np.array(roles)[np.argmin(((centers[:,None,:]-np.array(palette)[None,:,:])**2).sum(2),axis=1)]
+    role=nearest_palette_roles(centers,palette,roles)
     roughness=np.array([.48,.86,.86,.70,.78,.70,.18,.50])
     rough=Image.new('L',(size,size),round(.7*255));draw=ImageDraw.Draw(rough)
     valid=0
