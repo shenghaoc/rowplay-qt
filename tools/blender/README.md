@@ -383,6 +383,34 @@ cargo build -p rowplay-app  # restore the production binary after temporary capt
 python3 -m unittest discover -s tools/blender
 ```
 
+Commit capture/publisher tooling and tests **before** capturing. Both capture
+entry points refuse a dirty worktree and pin that clean HEAD plus exact hashes
+of their seven shared instrument/dependency files. Keep those files unchanged
+through publishing; the publisher requires the pinned commit to be an ancestor
+of HEAD and historical/HEAD/working bytes to agree. Commit generated evidence
+and documentation separately afterwards. A later tool edit requires recapture.
+
+The palette source is checked against the web pin in `docs/source-map.md`:
+reference HEAD must match and the palette's working bytes must equal `git show`
+at that pin. Its commit/path/hash are verified again at publication. Unrelated
+reference changes are allowed. Capture consumes the executable and OUT_DIR
+from its own Cargo JSON, using package ID and binary target metadata. It never
+searches old target directories and preserves a caller's `CARGO_TARGET_DIR`.
+For the custom-target smoke used in this repair:
+
+```sh
+CARGO_TARGET_DIR=/tmp/rowplay-pr138-target \
+  QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
+  python3 tools/blender/capture_athlete.py --smoke --output build/phase52/custom-smoke
+```
+
+The full and lower captures can use that same target. Artifact paths, hashes,
+launched executable and verified mesh are recorded in each manifest. During
+an evidence refresh, add `--previous-capture <old-native> --previous-lower
+<old-lower>` to the publisher command. This compares every raw PNG numerically
+and refuses frame/pose/camera/equipment drift. Explain content changes in the
+report before treating the regenerated images as evidence.
+
 Run captures alone, with no concurrent app builds or QML edits. Each output
 capture directory must be new. Both scripts restore the two production QML
 files in `finally`; the lower-body supplement deliberately hides equipment
@@ -403,7 +431,17 @@ Balsam’s V flip against every imported position/UV tuple. `meshdebug` from
 Qt must be on PATH. The atlas test catches dropped fabric tiles and records
 remaining overlap; this is not a production material-role implementation.
 
-The publisher refuses mismatched poses/cameras/equipment/lighting in A–D,
+The material recorder freezes untouched production state before intervention,
+including QColor as an immutable literal (a live value reference leaks B into
+later variants). `athlete_evidence.py` defines the explicit 54-field contract,
+all material-bearing nodes/instances, texture identities/sources/hashes and
+transforms. Exact A/B/C/D/L/A0 deltas are checked on every instance; extra or
+missing nodes, wrong maps and unlisted state changes refuse publication.
+L must equal C materially; A0 changes only the normal fields. The compressed
+experiment records retain baseline and actual state for independent checking,
+while `validation.json` carries compact per-variant counts and baseline hashes.
+
+The publisher also refuses mismatched poses/cameras/equipment/lighting in A–D,
 allows only the deliberately changed key light in L, checks all ten native
 whole-athlete silhouettes against CPU skinning (4× coverage rasterization,
 IoU ≥.97), refuses blank/saturated frames, and requires A/A0 pixel identity.

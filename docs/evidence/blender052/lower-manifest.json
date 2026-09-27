@@ -1,10 +1,65 @@
 {
-  "base": "63c823cb0663a4c05d72ee34159901ebd764b9d1",
+  "base": "dcec3a6baa31ea812ad5fca334253ab92c9e3f73",
+  "tooling": {
+    "commit": "dcec3a6baa31ea812ad5fca334253ab92c9e3f73",
+    "instruments": {
+      "tools/blender/capture_athlete.py": "d5f547b1f7efb66332dcde683966fdc09453d04a2ce2c287456ec910b91bab64",
+      "tools/blender/capture_athlete_lower.py": "2d5def79dad60964c51ab33f9fe7ecf5688927324896336ef7dac407e07aa816",
+      "tools/blender/athlete_evidence.py": "0ef76fe99f2a53d2904a4b285439aea11169ee5b669c2580009b35d64f796ed8",
+      "tools/blender/publish_athlete_audit.py": "7cfbfafd20fca686bd6b0896fc003c12edfd973a6e2d05f2ca5f065aea2dc406",
+      "tools/blender/capture.py": "ecd46e21c22f85821a6bca0c1b8740c231eb93368efa3ebd9aacdc6f8c29da3e",
+      "tools/blender/capture_contact.py": "09e6b0358621dad3ba7b06d49ddad1233cdecfe2e3643486dc74f31369adc504",
+      "tools/blender/contact_skin.py": "9fcb6ceb5afa97dbfd0f644dffc517c59b61dcac6227e41aca8baf359c03a037"
+    }
+  },
+  "canonical_palette": {
+    "repository": "reference/rowplay",
+    "commit": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+    "actual_head": "173c6facbcedef419ad39168c5e3e642abb7e57e",
+    "path": "src/lib/replay/renderer3dV4Assets.ts",
+    "sha256": "51f13e1092dc6d17398911f74a1f19aaa0e4b74376b6499809d2e58f2ee46a5b"
+  },
   "asset_sha256": "a564a4dbd4922e2ba76ef21a23f5bf0eb1b0180846548f9d7110e55ffd8f760e",
-  "instrument_sha256": "06fc749fce2f4c899efd7d174e228ba2007fd5b3a1bfa274992642b9569752db",
+  "instrument_sha256": "d5f547b1f7efb66332dcde683966fdc09453d04a2ce2c287456ec910b91bab64",
   "maps": {
-    "size": 512,
-    "painted_triangles": 21912,
+    "size": 1024,
+    "painted_triangles": 93192,
+    "qt_uv_min": [
+      0.0,
+      0.0
+    ],
+    "qt_uv_span": [
+      8.948707580566406,
+      3.96671199798584
+    ],
+    "texture_scale": [
+      0.11174798011779785,
+      0.2520979642868042
+    ],
+    "texture_offset": [
+      -0.0,
+      -0.0
+    ],
+    "triangle_centroid_role_recovery": {
+      "skin": 0.6936406696993856,
+      "jersey": 0.9482081911262799,
+      "lower": 0.9573639438351953,
+      "footwear": 0.9853443580729812,
+      "hair": 0.0201922300298845,
+      "trim": 0.9762428508578971,
+      "eye": 0.008536827476672622,
+      "face-detail": 0.032516703786191536
+    },
+    "surface_area_role_recovery": {
+      "skin": 0.7773029208183289,
+      "jersey": 0.9855381846427917,
+      "lower": 0.9771909117698669,
+      "footwear": 0.9906424880027771,
+      "hair": 0.32542720437049866,
+      "trim": 0.9575734734535217,
+      "eye": 0.08151550590991974,
+      "face-detail": 0.1578722894191742
+    },
     "roughness_by_role": [
       0.48,
       0.86,
@@ -22,8 +77,56 @@
     "fallback_roughness": 0.7
   },
   "map_sha256": {
-    "roughness.png": "6ec62eb227ff698d95327cfcbd970d58bd2b4526ccdb0b2c3217ef7ab1ecf136",
-    "normal.png": "a1845bcf010870f8db58ee17017994f377cf2fa9b66eaf02dbffdc47bf06f521"
+    "roughness.png": "40d18067079f2506eb5988a9b3eb54abeff9f0a97824aabd8456ddb98312f78e",
+    "normal.png": "af2f70b98327318e1c58d88ce8ea21a71e6dd86e935eefcfe03572fc5cf1ef66"
+  },
+  "diagnostic_textures": {
+    "roughness": {
+      "identity": "audit-roughness",
+      "source": "file:///home/sheng/Documents/repos/rowplay-qt/build/phase52/pr138-lower/roughness.png",
+      "sha256": "40d18067079f2506eb5988a9b3eb54abeff9f0a97824aabd8456ddb98312f78e",
+      "sourceItem": false,
+      "textureData": false,
+      "scaleU": 0.11174798011779785,
+      "scaleV": 0.2520979642868042,
+      "positionU": -0.0,
+      "positionV": -0.0,
+      "pivotU": 0,
+      "pivotV": 0,
+      "rotationUV": 0,
+      "mappingMode": 0,
+      "tilingModeHorizontal": 1,
+      "tilingModeVertical": 1,
+      "flipU": false,
+      "flipV": false,
+      "minFilter": 2,
+      "magFilter": 2,
+      "mipFilter": 0,
+      "generateMipmaps": false
+    },
+    "normal": {
+      "identity": "audit-normal",
+      "source": "file:///home/sheng/Documents/repos/rowplay-qt/build/phase52/pr138-lower/normal.png",
+      "sha256": "af2f70b98327318e1c58d88ce8ea21a71e6dd86e935eefcfe03572fc5cf1ef66",
+      "sourceItem": false,
+      "textureData": false,
+      "scaleU": 1,
+      "scaleV": 1,
+      "positionU": 0,
+      "positionV": 0,
+      "pivotU": 0,
+      "pivotV": 0,
+      "rotationUV": 0,
+      "mappingMode": 0,
+      "tilingModeHorizontal": 3,
+      "tilingModeVertical": 3,
+      "flipU": false,
+      "flipV": false,
+      "minFilter": 2,
+      "magFilter": 2,
+      "mipFilter": 0,
+      "generateMipmaps": false
+    }
   },
   "qt": "6.11.2",
   "samples": {
@@ -90,5 +193,37 @@
     "B"
   ],
   "mode": "supplemental isolated lower anatomy; equipment hidden, clay material",
-  "supplemental_instrument_sha256": "2d111f9c392dfe9f57383d679977402516f408d53454725891e2c39d7df8ebe1"
+  "supplemental_instrument_sha256": "2d5def79dad60964c51ab33f9fe7ecf5688927324896336ef7dac407e07aa816",
+  "cargo": {
+    "package_id": "path+file:///home/sheng/Documents/repos/rowplay-qt/crates/rowplay-app#0.1.0",
+    "executable": "/tmp/rowplay-pr138-target/debug/rowplay-app",
+    "out_dir": "/tmp/rowplay-pr138-target/debug/build/rowplay-app-c7440011503d7f20/out",
+    "athlete_mesh": "/tmp/rowplay-pr138-target/debug/build/rowplay-app-c7440011503d7f20/out/replay-balsam/athlete/meshes/meshes_0__mesh.mesh",
+    "generated_qml": "/tmp/rowplay-pr138-target/debug/build/rowplay-app-c7440011503d7f20/out/replay-balsam/athlete/Rowplay_athlete_v4.qml",
+    "sha256": {
+      "executable": "eacfebbd576e33032382def0a527063eddaefac1bf9524cc3d92fb28d7eb33b2",
+      "athlete_mesh": "c214c3279489c7f5360d4a53262019620e95fcdfce0755f408931f230eb9afe7",
+      "generated_qml": "c3646d43db2b998cb91aeb1783a1cd105140123a8eaadb7974c44b85381705a7"
+    },
+    "command": [
+      "cargo",
+      "build",
+      "-p",
+      "path+file:///home/sheng/Documents/repos/rowplay-qt/crates/rowplay-app#0.1.0",
+      "--message-format=json-render-diagnostics"
+    ],
+    "messages_sha256": "d6eef5ba7473bc4a5452961accffbc7e0342f87c4871991dfd27371180ef2c53",
+    "target_dir_env": "/tmp/rowplay-pr138-target",
+    "launched_executable": "/tmp/rowplay-pr138-target/debug/rowplay-app"
+  },
+  "imported_uv": {
+    "mesh_path": "/tmp/rowplay-pr138-target/debug/build/rowplay-app-c7440011503d7f20/out/replay-balsam/athlete/meshes/meshes_0__mesh.mesh",
+    "mesh_sha256": "c214c3279489c7f5360d4a53262019620e95fcdfce0755f408931f230eb9afe7",
+    "vertices": 57069,
+    "position_uv_tuple_max_error": 0,
+    "qt_uv": "(glTF.u, 1 - glTF.v)",
+    "mesh_version": 7,
+    "stride": 80,
+    "uv_offset": 24
+  }
 }

@@ -367,9 +367,9 @@ record the same final palettes, camera and equipment.
 
 The separate lower-anatomy supplement hides equipment and uses B clay to
 expose the rower’s otherwise occluded skin. It preserves all joint matrices;
-it is **not** a fixed-equipment A/B comparison. Its older capture manifest
-records maps generated during setup, but B uses neither map; the atlas
-correction does not affect these supplemental images.
+it is **not** a fixed-equipment A/B comparison. Its regenerated manifest
+pins the same committed instrument and Cargo artifact resolver as the main
+capture. B uses neither diagnostic map.
 
 **MEASUREMENT:** percentage of each region’s rest surface area compressed below 0.5×; neither volume loss nor a count of failed vertices.
 
@@ -465,9 +465,9 @@ an atlas recovering less than 90% of either fabric class at triangle
 centroids; a regression test catches the original omission. This is an
 instrument-coverage guard, not a visual-quality acceptance threshold. Exact
 maps, transforms, overlap recovery and parameters accompany the final
-captures. The exact capture instrument is preserved in commit `02dbe25`;
-the subsequent bounded-memory palette lookup produces byte-identical maps.
-No production texture or future texture budget is proposed.
+captures. The capture manifest pins the ancestor tooling commit and exact
+instrument SHA-256s; publication refuses a mismatch with historical, HEAD or
+working-tree bytes. No production texture or future texture budget is proposed.
 
 ![Row face A/B/C/D/L](evidence/blender052/row-catch-face.jpg)
 ![Ski full athlete A/B/C/D/L](evidence/blender052/ski-release-full.jpg)
@@ -490,6 +490,79 @@ visibility without altering any outline or anatomical registration. The
 material-only benefit is thus **limited and local**, not a transformed human;
 neutral clay is diagnostic clarity, not a finished athlete. No arbitrary
 numeric realism score or geometry-replacement conclusion follows.
+
+## Evidence-integrity repair after review
+
+**FACT:** all affected native captures and bounded panels were regenerated
+from the clean, locally committed tooling recorded in
+[the main manifest](evidence/blender052/manifest.json) and
+[lower manifest](evidence/blender052/lower-manifest.json), before the separate
+evidence commit. Publication verifies that the tooling commit is an ancestor
+of HEAD and that all seven instrument/dependency files match that commit,
+current HEAD and the working tree. No instrument changed after regeneration.
+
+The explicit material contract records every athlete material-bearing node,
+material count and stable instance identity, plus 54 material fields: active
+colour/PBR/coat/normal/alpha/raster state, all texture inputs and gates for
+inactive emission, height, transmission, Fresnel and vertex-colour masking.
+It excludes point/line settings and parameters behind disabled features.
+Texture records include object identity, source URI, diagnostic-map SHA-256,
+UV transforms, addressing and filtering. A frozen untouched runtime baseline
+is checked against the imported V4 settings. Exact allowed deltas are then
+checked for **every** A/B/C/D/L/A0 instance; L must equal C materially, with
+only the key light disabled. Floats use Qt's exact float32 representation.
+A0 changes normalStrength from 1 to 0 with both normal maps null; pixel
+equality is corroboration, not the intervention validator.
+
+**FACT:** the palette reader verifies documented web pin
+`173c6facbcedef419ad39168c5e3e642abb7e57e`, actual reference HEAD and byte
+identity of `src/lib/replay/renderer3dV4Assets.ts` with `git show` at that pin.
+Its SHA-256 is
+`51f13e1092dc6d17398911f74a1f19aaa0e4b74376b6499809d2e58f2ee46a5b`.
+The verified bytes alone are parsed; wrong HEAD, a modified palette or a
+mismatching recorded hash refuse capture/publication. Unrelated reference
+working-tree changes do not block it. Manifest and input hashes retain this
+identity.
+
+Cargo JSON from the current invocation supplies the exact package/target
+executable and package build-script OUT_DIR. Only that OUT_DIR's athlete
+mesh is verified, and only that executable is launched. Missing or ambiguous
+records/artifacts fail; there is no default-target search or fallback.
+A real `--smoke` run passed with `CARGO_TARGET_DIR=/tmp/rowplay-pr138-target`
+while old default-target artifacts remained present. The full and lower
+regenerations also used that custom target, as their manifests record.
+
+**MEASUREMENT — differences from the previous evidence:**
+[the raw comparison](evidence/blender052/recapture-comparison.json) compares
+all 106 images and refuses any difference in frame/pose/camera/equipment
+records. Both sets' records are identical to their predecessors. All ten
+masks, all ten main B images, and all ten lower clay images are pixel-identical.
+Both diagnostic maps are byte-identical. Provenance, material payloads and
+validation summaries change as expected.
+
+The first guarded smoke exposed a real old instrument defect: saving QML's
+QColor value reference allowed B's `#a3a3a3` base colour to leak into later
+variants. The repaired instrument stores an immutable colour literal.
+Consequently 74 main images change as expected from restoring production
+`#ffffff`: 42 later A images, all 30 C/D/L images and both A0 images. Earlier
+claims that those A images restored production colour and that C preserved
+it were incorrect; the regenerated evidence supersedes them. The first full
+A image is identical. The initial chase A has one separate difference: 909
+HUD pixels (908 in the play-button rectangle and one text pixel); its athlete
+and scene pixels are identical. This is outside the material experiment's
+hidden-HUD views. The precise native hover/focus/raster cause was not recorded,
+so it is not labelled capture noise or a geometry change.
+
+**INFERENCE after inspecting the corrected panels:** C still reduces the
+broad fabric highlights; it does not cure painted facial boundaries, cap
+shape, hand proportions, contact mismatch or joint folds. Restoring colour
+makes A/C/D/L brighter, but the layer attribution and substantive Phase 5.2
+conclusions remain unchanged. Geometry/deformation metrics do not depend on
+these material colours. The recalculated pixel differences quantify the
+corrected interventions, not a realism score. For example, the row-catch full
+view’s masked A–C mean absolute RGB difference falls from 38.5971 to 18.8918
+(on an 8-bit channel scale) after removing the unintended colour change. Silhouette IoUs remain
+.9776–.9972 and both corrected A/A0 pairs remain pixel-identical.
 
 ## Defect-attribution matrix
 
@@ -572,11 +645,12 @@ Blender 5.2.2 LTS, numpy 2.3.5):
 - `cargo test --workspace` under native Wayland/OpenGL, phase shots and
   closeups enabled: **634 passed, 2 pre-existing ignored probes, 0 failed**;
   includes the full QML runtime gate, not the quick profile.
-- Python `unittest discover -s tools/blender`: **43 passed**; covers nearest
+- Python `unittest discover -s tools/blender`: **78 passed**; covers nearest
   queries against exhaustive distances, analytic triangle Jacobians,
   degeneracy, welding/boundaries, known triangle quality, palette roles,
   required phase coverage, refusal of pose/lighting drift, and deterministic
-  full-domain atlas coverage.
+  full-domain atlas coverage, exact material deltas, palette pin/hash drift,
+  Cargo artifact ambiguity, instrument drift/ancestry and raw recapture comparison.
 - Two final Blender extractions: arrays and source metadata identical.
   Repeated numeric analysis of those fixed inputs: metric JSON identical.
 - 96 native main captures plus 10 separate lower-anatomy captures;
