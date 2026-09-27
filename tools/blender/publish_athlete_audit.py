@@ -14,6 +14,7 @@ import shutil
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from contact_skin import Glb, ROOT, skin, project, native_view, matrix, transform
+from athlete_evidence import verify_capture_manifest, validate_materials, INSTRUMENTS, PALETTE_PATH
 
 FONT='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 
@@ -23,16 +24,26 @@ def compressed(path,value): path.write_bytes(gzip.compress(json.dumps(value,sepa
 
 def validate_frames(records,experiments):
     frames={r['name']:r for r in records}; applied={r['name']:r for r in experiments}
+    if len(frames)!=len(records) or len(applied)!=len(experiments) or set(frames)!=set(applied):
+        raise ValueError('duplicate or missing frame/experiment record')
     checked=[]
     for name,a in frames.items():
         if not name.endswith('-A') or '-chase-' in name: continue
         prefix=name[:-1]
-        if prefix+'B' not in frames: continue
+        # Every stressed view must contain the complete A/B/C/D/L intervention.
+        if prefix+'B' not in frames:
+            if any(name.startswith(p+'-') for p in ['row-catch','ski-release']):
+                raise ValueError('missing controlled material variant '+prefix+'B')
+            continue
+        for required in ['C','D','L']+(['A0'] if '-face-' in name else []):
+            if prefix+required not in frames: raise ValueError('missing variant '+prefix+required)
         for variant in ['B','C','D','L','A0']:
             if prefix+variant not in frames: continue
             b=frames[prefix+variant]
             for key in ['frame','nodes','equipment','mirrored','poleGrips','rig','camera','fov','viewport','grip','contacts','tier','sport']:
                 if a[key]!=b[key]: raise ValueError(f'{prefix}{variant}: changed {key}')
+            if variant=='L' and applied[prefix+variant]['keyBrightness']!=0:
+                raise ValueError('lighting control did not disable the key')
             for key in ['probe','probeExposure']+([] if variant=='L' else ['keyBrightness']):
                 if applied[name][key]!=applied[prefix+variant][key]: raise ValueError(f'changed lighting {key}')
         checked.append(prefix)
@@ -63,6 +74,27 @@ def validate_pixels(glb,records,capture,out):
             if (img[roi].std()<1 or np.mean(np.all(img[roi]>250,axis=1))>.95): raise ValueError(f'blank/saturated {prefix}{v}')
         results.append({'name':r['name'],'iou':iou,'pixels':int(actual.sum()),'mean_abs_rgb_8bit':differences})
     return results
+
+
+def compare_captures(before, after):
+    """Compare raw PNG bytes numerically, then inspect the changed native views."""
+    old=json.loads((before/'frames.json').read_text())
+    new=json.loads((after/'frames.json').read_text())
+    if old != new:
+        raise ValueError('recapture changed frame/pose/camera/equipment data; investigate before publishing')
+    differences=[]
+    for record in new:
+        name=record['name']
+        a=np.asarray(Image.open(before/(name+'.png')).convert('RGBA'))
+        b=np.asarray(Image.open(after/(name+'.png')).convert('RGBA'))
+        if a.shape!=b.shape or np.any(a[:,:,3]!=255) or np.any(b[:,:,3]!=255):
+            raise ValueError('recapture dimensions/alpha require inspection: '+name)
+        delta=np.abs(a[:,:,:3].astype(int)-b[:,:,:3].astype(int))
+        differences.append({'name':name,'changed_pixels':int(np.any(delta,axis=2).sum()),
+                            'max_channel_difference':int(delta.max()),'mean_abs_rgb_8bit':float(delta.mean())})
+    return {'frames_identical':True,'captures':len(new),
+            'changed_captures':sum(d['changed_pixels']>0 for d in differences),
+            'per_capture':differences}
 
 
 def panel(capture,names,path,columns=3,width=400):
@@ -158,8 +190,21 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--capture',type=Path,required=True);p.add_argument('--base',type=Path,required=True)
     p.add_argument('--metrics',type=Path,required=True);p.add_argument('--lower',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--previous-capture',type=Path);p.add_argument('--previous-lower',type=Path)
     args=p.parse_args();out=args.output;out.mkdir(parents=True,exist_ok=True)
+    if bool(args.previous_capture)!=bool(args.previous_lower):
+        raise ValueError('supply both previous capture directories for comparison')
+    if args.previous_capture:
+        save_json(out/'recapture-comparison.json',{'main':compare_captures(args.previous_capture,args.capture),
+                                                  'lower':compare_captures(args.previous_lower,args.lower)})
+    manifest=json.loads((args.capture/'manifest.json').read_text())
+    lower_manifest=json.loads((args.lower/'manifest.json').read_text())
+    provenance=verify_capture_manifest(manifest,args.capture)
+    lower_provenance=verify_capture_manifest(lower_manifest,args.lower,lower=True)
     records=json.loads((args.capture/'frames.json').read_text());experiments=json.loads((args.capture/'experiment.json').read_text())
+    material_validation=validate_materials(experiments,manifest)
+    lower_experiments=json.loads((args.lower/'experiment.json').read_text())
+    lower_material_validation=validate_materials(lower_experiments,lower_manifest,lower=True)
     controlled=validate_frames(records,experiments)
     glb=Glb(ROOT/'assets/replay/rowplay-athlete-v4.glb')
     validation=validate_pixels(glb,records,args.capture,out)
@@ -188,18 +233,26 @@ def main():
             if any(previous[key].get(n)!=v for n,v in r[key].items()):
                 raise ValueError('isolated anatomy moved equipment')
     panel(args.lower,[phase+'-lower-isolated' for phase in phases],out/'lower-isolated.jpg',columns=2,width=600)
+    if {r['name'] for r in lower}!={r['name'] for r in lower_experiments}:
+        raise ValueError('lower frame/material inventory differs')
     compressed(out/'lower-frames.json.gz',lower)
+    compressed(out/'lower-experiment.json.gz',lower_experiments)
     shutil.copyfile(args.lower/'manifest.json',out/'lower-manifest.json')
     scientific_figures(args.base,args.metrics,out,records,args.capture)
     compressed(out/'frames.json.gz',records);compressed(out/'experiment.json.gz',experiments)
     compressed(out/'athlete-metrics.json.gz',json.loads((args.metrics/'athlete-metrics.json').read_text()))
     for name in ['normal.png','roughness.png','manifest.json']: shutil.copyfile(args.capture/name,out/name)
-    save_json(out/'validation.json',{'controlled_views':controlled,'silhouettes':validation,'normal_disabled':zero_checks})
+    save_json(out/'validation.json',{'controlled_views':controlled,'silhouettes':validation,'normal_disabled':zero_checks,
+              'materials':material_validation,'lower_materials':lower_material_validation,
+              'provenance':provenance,'lower_provenance':lower_provenance})
     inputs={}
-    for directory,paths in [(args.capture,list(args.capture.glob('*.png'))+list(args.capture.glob('*.json'))),(args.lower,list(args.lower.glob('*.png'))+list(args.lower.glob('*.json'))),(args.base,list(args.base.glob('*'))),(args.metrics,list(args.metrics.glob('*')))]:
+    for directory,paths in [(args.capture,list(args.capture.glob('*.png'))+list(args.capture.glob('*.json'))+list(args.capture.glob('*.jsonl'))),(args.lower,list(args.lower.glob('*.png'))+list(args.lower.glob('*.json'))+list(args.lower.glob('*.jsonl'))),(args.base,list(args.base.glob('*'))),(args.metrics,list(args.metrics.glob('*')))]:
         for path in paths: inputs[str(path.relative_to(ROOT) if path.is_absolute() else path)]=hashlib.sha256(path.read_bytes()).hexdigest()
-    for name in ['audit_athlete.py','audit_athlete_base.py','capture_athlete.py','capture_athlete_lower.py','publish_athlete_audit.py']:
-        path=ROOT/'tools/blender'/name;inputs[str(path.relative_to(ROOT))]=hashlib.sha256(path.read_bytes()).hexdigest()
+    for name in INSTRUMENTS+['tools/blender/audit_athlete.py','tools/blender/audit_athlete_base.py']:
+        path=ROOT/name;inputs[name]=hashlib.sha256(path.read_bytes()).hexdigest()
+    palette=manifest['canonical_palette']
+    inputs[palette['repository']+'/'+PALETTE_PATH]=palette['sha256']
+    inputs['canonical_palette']=palette
     save_json(out/'input-hashes.json',inputs)
     print(f'{len(controlled)} controlled views; {len(records)} frames; min silhouette IoU {min(v["iou"] for v in validation):.6f}')
 
