@@ -9,7 +9,6 @@ validation. Run alone: it temporarily instruments two QML files and restores
 both in finally. Capture tooling and inputs must first be committed.
 """
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,7 +22,8 @@ from export_athlete import ROLES
 
 INSTRUMENTS = ['tools/blender/'+name+'.py' for name in (
     'capture_athlete_v5', 'capture', 'capture_contact', 'capture_athlete',
-    'athlete_evidence', 'contact_skin', 'export_athlete', 'canonical')]
+    'athlete_evidence', 'contact_skin', 'export_athlete', 'canonical',
+    'athlete_v5_skin', 'audit_athlete')]
 INPUTS = [
     'assets/replay/authored/rowplay-athlete-v5.blend',
     'assets/replay/authored/rowplay-athlete-v5.glb',

@@ -7,9 +7,33 @@ import struct
 from tempfile import TemporaryDirectory
 import unittest
 
+import numpy as np
+
 from export_athlete import ROOT, ROLES, ContractError, read_glb, inherit_motion
 from capture_athlete_v5 import cargo_artifacts, validate_materials
 from athlete_evidence import MAP_FIELDS, SCALAR_FIELDS
+from athlete_v5_skin import Glb, skin_all, palm_reach_bound
+
+
+class SkinTests(unittest.TestCase):
+    def test_all_primitives_recover_bind_and_fit_conservative_reach_bound(self):
+        glb = Glb(ROOT/'assets/replay/authored/rowplay-athlete-v5.glb')
+        contract = json.loads((ROOT/'assets/replay/authored/rowplay-athlete-v5.contract.json').read_text())
+        rig = Glb(ROOT/'assets/replay/rowplay-rigs-v3.glb')
+        names = [glb.json['nodes'][i]['name'] for i in glb.json['skins'][0]['joints']]
+        inverse = glb.accessor(glb.json['skins'][0]['inverseBindMatrices']).reshape(-1,4,4).transpose(0,2,1)
+        def basis(m):
+            return [m[:3,3].tolist(), *[(m[:3,3]+m[:3,i]).tolist() for i in range(3)]]
+        record = dict(nodes={n:basis(m) for n,m in zip(names,np.linalg.inv(inverse))},
+                      rig=basis(np.eye(4)), name='bind-test', sport=2,
+                      equipment={'equipment:bike:frame-assembly:brake-hoods':basis(np.eye(4))})
+        posed,t,masks,rest,weights,_ = skin_all(glb,contract,record)
+        self.assertEqual(len(t),contract['measurements']['triangles'])
+        np.testing.assert_allclose(posed,rest,atol=2e-7)
+        bounds = palm_reach_bound(glb,contract,rig,record)
+        for row in bounds:
+            measured = np.linalg.norm(posed[masks[row['side']+'Palm']]-row['shoulder'],axis=1).max()
+            self.assertLessEqual(measured,row['conservative_palm_skin_radius_m']+1e-7)
 
 
 class MotionTests(unittest.TestCase):
