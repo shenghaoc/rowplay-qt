@@ -1,0 +1,652 @@
+{
+  "main": {
+    "frames_identical": true,
+    "captures": 96,
+    "changed_captures": 75,
+    "per_capture": [
+      {
+        "name": "row-catch-chase-A",
+        "changed_pixels": 909,
+        "max_channel_difference": 59,
+        "mean_abs_rgb_8bit": 0.021685069444444444
+      },
+      {
+        "name": "row-catch-full-A",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-full-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-full-C",
+        "changed_pixels": 51615,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 1.1420395833333334
+      },
+      {
+        "name": "row-catch-full-D",
+        "changed_pixels": 51603,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 1.0702496527777778
+      },
+      {
+        "name": "row-catch-full-L",
+        "changed_pixels": 51586,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 0.8364184027777778
+      },
+      {
+        "name": "row-catch-full-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-face-A",
+        "changed_pixels": 277822,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 5.5086739583333335
+      },
+      {
+        "name": "row-catch-face-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-face-C",
+        "changed_pixels": 277956,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 6.652144791666666
+      },
+      {
+        "name": "row-catch-face-D",
+        "changed_pixels": 277911,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 6.5107236111111115
+      },
+      {
+        "name": "row-catch-face-L",
+        "changed_pixels": 277833,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 4.9222013888888885
+      },
+      {
+        "name": "row-catch-face-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-torso-A",
+        "changed_pixels": 182595,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 3.7902263888888887
+      },
+      {
+        "name": "row-catch-torso-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-torso-C",
+        "changed_pixels": 182947,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 4.484035763888889
+      },
+      {
+        "name": "row-catch-torso-D",
+        "changed_pixels": 182919,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 4.454252777777778
+      },
+      {
+        "name": "row-catch-torso-L",
+        "changed_pixels": 182855,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 3.317967013888889
+      },
+      {
+        "name": "row-catch-torso-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-left-A",
+        "changed_pixels": 247991,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 4.837307986111111
+      },
+      {
+        "name": "row-catch-left-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-left-C",
+        "changed_pixels": 248551,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 5.768727083333333
+      },
+      {
+        "name": "row-catch-left-D",
+        "changed_pixels": 248610,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 5.413777777777778
+      },
+      {
+        "name": "row-catch-left-L",
+        "changed_pixels": 248403,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 4.708096527777778
+      },
+      {
+        "name": "row-catch-left-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-right-A",
+        "changed_pixels": 248439,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 5.620692361111111
+      },
+      {
+        "name": "row-catch-right-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-right-C",
+        "changed_pixels": 248992,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 6.543757291666667
+      },
+      {
+        "name": "row-catch-right-D",
+        "changed_pixels": 249007,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 6.065631944444444
+      },
+      {
+        "name": "row-catch-right-L",
+        "changed_pixels": 248815,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 4.731205902777778
+      },
+      {
+        "name": "row-catch-right-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-catch-face-A0",
+        "changed_pixels": 277822,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 5.5086739583333335
+      },
+      {
+        "name": "row-middrive-chase-A",
+        "changed_pixels": 11442,
+        "max_channel_difference": 69,
+        "mean_abs_rgb_8bit": 0.17655416666666668
+      },
+      {
+        "name": "row-middrive-full-A",
+        "changed_pixels": 56698,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.8409756944444444
+      },
+      {
+        "name": "row-middrive-torso-A",
+        "changed_pixels": 187500,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 3.5694295138888887
+      },
+      {
+        "name": "row-middrive-lower-A",
+        "changed_pixels": 95326,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 1.4520239583333334
+      },
+      {
+        "name": "row-finish-chase-A",
+        "changed_pixels": 10475,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 0.14441319444444445
+      },
+      {
+        "name": "row-finish-full-A",
+        "changed_pixels": 55410,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 0.6952809027777778
+      },
+      {
+        "name": "row-finish-torso-A",
+        "changed_pixels": 154026,
+        "max_channel_difference": 116,
+        "mean_abs_rgb_8bit": 2.3400069444444442
+      },
+      {
+        "name": "row-finish-lower-A",
+        "changed_pixels": 81053,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 0.94865
+      },
+      {
+        "name": "row-halfslide-chase-A",
+        "changed_pixels": 12073,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.21442777777777777
+      },
+      {
+        "name": "row-halfslide-full-A",
+        "changed_pixels": 55529,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.8757736111111111
+      },
+      {
+        "name": "row-halfslide-torso-A",
+        "changed_pixels": 169599,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 3.265791666666667
+      },
+      {
+        "name": "row-halfslide-lower-A",
+        "changed_pixels": 106491,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 1.5509222222222223
+      },
+      {
+        "name": "ski-approach-chase-A",
+        "changed_pixels": 30332,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.30766215277777775
+      },
+      {
+        "name": "ski-approach-full-A",
+        "changed_pixels": 58646,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 0.9341232638888889
+      },
+      {
+        "name": "ski-approach-torso-A",
+        "changed_pixels": 167306,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 2.9644864583333335
+      },
+      {
+        "name": "ski-approach-lower-A",
+        "changed_pixels": 138308,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 1.6667128472222221
+      },
+      {
+        "name": "ski-pull-chase-A",
+        "changed_pixels": 22858,
+        "max_channel_difference": 67,
+        "mean_abs_rgb_8bit": 0.19492708333333333
+      },
+      {
+        "name": "ski-pull-full-A",
+        "changed_pixels": 62111,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 1.0161402777777777
+      },
+      {
+        "name": "ski-pull-torso-A",
+        "changed_pixels": 192142,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 3.5257267361111113
+      },
+      {
+        "name": "ski-pull-lower-A",
+        "changed_pixels": 133152,
+        "max_channel_difference": 62,
+        "mean_abs_rgb_8bit": 1.76178125
+      },
+      {
+        "name": "ski-release-chase-A",
+        "changed_pixels": 15770,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 0.21738333333333335
+      },
+      {
+        "name": "ski-release-full-A",
+        "changed_pixels": 50162,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 0.6636100694444445
+      },
+      {
+        "name": "ski-release-full-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-full-C",
+        "changed_pixels": 50308,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 0.8670677083333334
+      },
+      {
+        "name": "ski-release-full-D",
+        "changed_pixels": 50260,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 0.7756302083333333
+      },
+      {
+        "name": "ski-release-full-L",
+        "changed_pixels": 50453,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.6833565972222222
+      },
+      {
+        "name": "ski-release-full-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-face-A",
+        "changed_pixels": 241234,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 4.147257986111111
+      },
+      {
+        "name": "ski-release-face-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-face-C",
+        "changed_pixels": 241339,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 5.173419791666666
+      },
+      {
+        "name": "ski-release-face-D",
+        "changed_pixels": 241234,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 5.045265277777777
+      },
+      {
+        "name": "ski-release-face-L",
+        "changed_pixels": 241303,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 4.550004513888889
+      },
+      {
+        "name": "ski-release-face-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-torso-A",
+        "changed_pixels": 143198,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 1.8074277777777779
+      },
+      {
+        "name": "ski-release-torso-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-torso-C",
+        "changed_pixels": 143471,
+        "max_channel_difference": 65,
+        "mean_abs_rgb_8bit": 2.3878225694444444
+      },
+      {
+        "name": "ski-release-torso-D",
+        "changed_pixels": 143408,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 2.3545784722222223
+      },
+      {
+        "name": "ski-release-torso-L",
+        "changed_pixels": 143644,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 1.9641114583333332
+      },
+      {
+        "name": "ski-release-torso-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-left-A",
+        "changed_pixels": 181688,
+        "max_channel_difference": 57,
+        "mean_abs_rgb_8bit": 6.848966319444444
+      },
+      {
+        "name": "ski-release-left-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-left-C",
+        "changed_pixels": 181688,
+        "max_channel_difference": 59,
+        "mean_abs_rgb_8bit": 7.546612152777778
+      },
+      {
+        "name": "ski-release-left-D",
+        "changed_pixels": 181688,
+        "max_channel_difference": 59,
+        "mean_abs_rgb_8bit": 7.545130555555556
+      },
+      {
+        "name": "ski-release-left-L",
+        "changed_pixels": 181689,
+        "max_channel_difference": 58,
+        "mean_abs_rgb_8bit": 7.436818402777778
+      },
+      {
+        "name": "ski-release-left-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-right-A",
+        "changed_pixels": 179709,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 8.371088541666667
+      },
+      {
+        "name": "ski-release-right-B",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-right-C",
+        "changed_pixels": 179708,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 8.939146527777778
+      },
+      {
+        "name": "ski-release-right-D",
+        "changed_pixels": 179708,
+        "max_channel_difference": 66,
+        "mean_abs_rgb_8bit": 8.938028472222221
+      },
+      {
+        "name": "ski-release-right-L",
+        "changed_pixels": 179725,
+        "max_channel_difference": 58,
+        "mean_abs_rgb_8bit": 7.287831944444444
+      },
+      {
+        "name": "ski-release-right-mask",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-face-A0",
+        "changed_pixels": 241234,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 4.147257986111111
+      },
+      {
+        "name": "ski-recovery-chase-A",
+        "changed_pixels": 17651,
+        "max_channel_difference": 64,
+        "mean_abs_rgb_8bit": 0.248578125
+      },
+      {
+        "name": "ski-recovery-full-A",
+        "changed_pixels": 51960,
+        "max_channel_difference": 61,
+        "mean_abs_rgb_8bit": 0.6060538194444445
+      },
+      {
+        "name": "ski-recovery-torso-A",
+        "changed_pixels": 141775,
+        "max_channel_difference": 61,
+        "mean_abs_rgb_8bit": 1.7629708333333334
+      },
+      {
+        "name": "ski-recovery-lower-A",
+        "changed_pixels": 151386,
+        "max_channel_difference": 60,
+        "mean_abs_rgb_8bit": 1.7027440972222223
+      },
+      {
+        "name": "bike-top-chase-A",
+        "changed_pixels": 31930,
+        "max_channel_difference": 58,
+        "mean_abs_rgb_8bit": 0.257590625
+      },
+      {
+        "name": "bike-top-full-A",
+        "changed_pixels": 54152,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 0.9784881944444445
+      },
+      {
+        "name": "bike-top-torso-A",
+        "changed_pixels": 146550,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 2.3891010416666667
+      },
+      {
+        "name": "bike-top-lower-A",
+        "changed_pixels": 166815,
+        "max_channel_difference": 63,
+        "mean_abs_rgb_8bit": 2.8708840277777776
+      },
+      {
+        "name": "bike-quarter-chase-A",
+        "changed_pixels": 31990,
+        "max_channel_difference": 70,
+        "mean_abs_rgb_8bit": 0.41619930555555557
+      },
+      {
+        "name": "bike-quarter-full-A",
+        "changed_pixels": 54944,
+        "max_channel_difference": 109,
+        "mean_abs_rgb_8bit": 0.7113065972222222
+      },
+      {
+        "name": "bike-quarter-torso-A",
+        "changed_pixels": 150623,
+        "max_channel_difference": 61,
+        "mean_abs_rgb_8bit": 1.801295138888889
+      },
+      {
+        "name": "bike-quarter-lower-A",
+        "changed_pixels": 165687,
+        "max_channel_difference": 59,
+        "mean_abs_rgb_8bit": 2.0260284722222224
+      }
+    ]
+  },
+  "lower": {
+    "frames_identical": true,
+    "captures": 10,
+    "changed_captures": 0,
+    "per_capture": [
+      {
+        "name": "row-catch-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-middrive-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-finish-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "row-halfslide-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-approach-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-pull-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-release-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "ski-recovery-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "bike-top-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      },
+      {
+        "name": "bike-quarter-lower-isolated",
+        "changed_pixels": 0,
+        "max_channel_difference": 0,
+        "mean_abs_rgb_8bit": 0.0
+      }
+    ]
+  }
+}
