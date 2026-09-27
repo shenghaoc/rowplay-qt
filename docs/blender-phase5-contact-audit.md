@@ -16,8 +16,10 @@ No deliberate divergence authorized the low seat/pelvis.
 
 **FACT** means a source/contract observation; **MEASUREMENT** means a recorded
 numeric or native-frame result; **INFERENCE** is an attribution not uniquely
-established by those observations; **OPEN** names work still needed. Logical
-parity, contact count and visible skin contact are distinct claims.
+established by those observations; **OPEN QUESTION** names work still needed.
+**FUTURE DECISION** identifies a later owner/architecture choice, not an
+accepted architecture. Logical parity, contact count and visible skin contact
+are distinct claims.
 
 The capture uses the existing debug guard clock, `fallback_stroke_pose` at
 30 spm, cycle = step/2000 and distance = step × 3 m. HUD time/distance still
@@ -141,7 +143,7 @@ Tolerances are for diagnosis, not a claim that an arbitrary pose is approved:
 | Gross intersection | >5 mm into the RowErg envelope | Exceeds sampling uncertainty and rubber groove relief; cannot be excused as a minor shading seam or 2 mm compression. |
 | Helper parity/contact | retain existing 1e−9 parity and 4 mm contact band | These test logical helper geometry only; never substitute them for skin acceptance. |
 
-**OPEN:** the 2 mm visual seating/compression band is a conservative diagnostic
+**OPEN QUESTION:** the 2 mm visual seating/compression band is a conservative diagnostic
 choice from this mesh resolution and native close-up scale, not an owner-approved
 final-human calibration. A future asset needs its own measured contact surfaces.
 
@@ -155,7 +157,7 @@ final-human calibration. A future asset needs its own measured contact surfaces.
 | RowErg comfort tilt | corrected channel still differs from physical shaft by 32.88° catch, 20.54° mid-drive, ≈0° finish, 21.20° recovery | wrist refinement/contact contract | Recorded; no arbitrary orientation or helper compensation. |
 | SkiErg comfort tilt | 21.0° approach, 25.94° plant, ≈0° pull, 35.15° release, ≈0° recovery | wrist refinement/contact contract | Recorded separately from pole placement and skin. |
 | SkiErg two pinkies | +6.210/+6.155 mm helper clearance versus existing ±4 mm logical contact band | digit-helper geometry and bounded closure | Reproduced; not forced to 10/10. |
-| Hand-surface calibration | abstract pad/palm values do not coincide with measured deformed skin | helper/contact-to-skin calibration; exact mesh/weight contribution remains open | Recorded at the contact-contract checkpoint; no remodel or weight edit. |
+| Hand-surface calibration | abstract pad/palm values do not coincide with measured deformed skin | helper/contact-to-skin calibration; exact mesh/weight contribution remains open | Recorded in the audit's open questions; no remodel or weight edit. |
 
 ### RowErg
 
@@ -222,7 +224,7 @@ It does not establish acceptable skin contact. The actual hood is a rounded,
 multipart V3 mesh, not the logical .018 m cylinder. The report keeps its actual
 triangle distance separate from the cylinder diagnostic.
 
-**OPEN:** surface calibration across all three sports must be resolved before
+**OPEN QUESTION:** surface calibration across all three sports must be resolved before
 accepting the grip as physically seated. Skin weights versus source hand
 geometry are not uniquely distinguishable from a single deformed surface;
 this audit does not label one of them the sole cause.
@@ -312,10 +314,57 @@ region in the JSON. These differences are stable through the phases because
 closure is installed once and the hand is then moved as a unit.
 
 **INFERENCE:** a calibration contract that uses these helpers as a skin proxy
-cannot establish the claimed visible seating. **OPEN:** which changes belong
+cannot establish the claimed visible seating. **OPEN QUESTION:** which changes belong
 to helper pivots/estimated tip length, weights, mesh shape or coupled wrist
 constraints requires an explicit later decision. The evidence does not prove
-that a replacement human is necessary. See [ADR 0018](decisions/0018-contact-calibration-checkpoint.md).
+that a replacement human is necessary. The open questions below preserve
+the evidence for the later owner decision under [ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md).
+
+## Open contact-calibration questions
+
+**FACT:** helper parity and green contact counts do not establish contact of
+the rendered skin. The audit corrected the proven equipment and wrist-frame
+handoff defects; remaining wrist tilt and helper-to-surface discrepancies
+require separate evidence. They do not prove that V4, its skeleton, its mesh
+or its skin weights must be replaced, or that SkiErg must achieve 10/10 closure.
+
+**OPEN QUESTION:** how should wrist comfort motion preserve the real shaft
+channel, including any distribution through the arm within measured reach
+limits?
+
+**OPEN QUESTION:** which palm, pad and contact points correspond to the
+chosen visible skin rather than the current abstract helper envelope?
+
+**OPEN QUESTION:** what compression allowance is physically and visually
+justified for that skin and equipment, beyond the tentative diagnostic band?
+
+**OPEN QUESTION:** do helper placement, digit lengths, hand mesh shape or
+skin weights require recalibration, and how can their contributions be
+distinguished before changing them?
+
+**FUTURE DECISION:** possible approaches include a calibrated contact surface
+on the chosen mesh, wrist relief constrained to preserve the shaft channel,
+and evidence-led helper/weight changes if measured surfaces require them.
+No approach or contact architecture is selected here. Any architectural
+decision must follow Phase 5.2's existing V4 audit, Phase 5.3's recommendation
+and the owner's athlete-route decision, and be informed by the selected/final
+athlete. Do not calibrate an architecture prematurely around an asset that
+may be replaced.
+
+Preserve the diagnostic evidence: do not recover a green contact count with
+arbitrary QML offsets, inflated grip radii, increased finger limits without
+evidence, or skin-weight edits made merely to force numerical contact. Future
+acceptance must rerun the actual-skin instrument and native Qt phase evidence;
+helper parity alone cannot establish it. These guardrails also live in the
+[Phase 5 workflow](../.kiro/specs/blender-05-athlete-contact/tasks.md#stop-after-phase-51).
+
+The stop condition remains: **Phase 5.0 complete; Phase 5.1 investigation
+complete; rendered hand contact NOT accepted; Phase 5.2+ NOT started.** The
+next sequence, requiring later authorization, is merge #137 → Phase 5.2 V4
+audit → Phase 5.3 retain/refine/replace recommendation → **OWNER DECISION** →
+any necessary contact-calibration architecture decision. This report does
+not authorize merging, further contact fixes, athlete refinement/replacement
+or Phase 6 shell fitting.
 
 ## Frozen baseline and native evidence
 

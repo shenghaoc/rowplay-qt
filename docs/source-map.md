@@ -43,8 +43,10 @@ geometry, with source/asset hashes and the pin embedded. Its file hash is in
 `tests/fixtures/manifest.json`; provenance is recorded alongside the fixture.
 
 Remaining hand-channel tilt and helper-to-skin calibration are **not newly
-approved divergences** or evidence of correct contact. See the proposed
-[contact checkpoint](decisions/0018-contact-calibration-checkpoint.md).
+approved divergences** or evidence of correct contact. See the audit's
+[open calibration questions](blender-phase5-contact-audit.md#open-contact-calibration-questions).
+They remain future owner/architecture decisions, informed by the selected
+athlete after Phase 5.2/5.3; no contact architecture is selected here.
 Phase 5.2+ and athlete/shell refinement have not started.
 
 ## Blender roadmap revision (2026-09-27; planned work only)
