@@ -14,8 +14,10 @@ needed by the callback. Debug passes; release fails. A qtbridge-only change
 to shared outbound Rust proxy receivers fixes the tested optimised reset.
 
 This report needs no RowPlay source. The attached reproducer, patch and IR
-are preserved from the completed macOS isolation work of 2026-09-29; the
-experiments were not rerun while preparing this report.
+are preserved from the completed macOS isolation work of 2026-09-29. The
+reproducer's self-check was added afterwards (see below); its three valid
+variants were rerun with it in debug, release and O0-contained release, and
+the other experiments were not rerun.
 
 ## Versions and platforms
 
@@ -45,8 +47,18 @@ wired exposure paths, selected one at a time with Cargo features:
 | `initial` (`set_initial_object` + required root property) | PASS 3/3 | FAIL 3/3 |
 
 All failures contain `Failed to borrow for role_names: BorrowError` and
-abort at the CXX FFI boundary. Success means the reset returned, the view's
-count changed from 0 to 1, and `reset survived` was printed before exit 0.
+abort (SIGABRT) at the CXX FFI boundary. A pass means all three of: the
+reset returned, the view's count changed from 0 to 1, and the process
+exited 0 after printing `reset survived`. Each valid variant checks this
+itself: its QML exits 0 only after the 0 → 1 transition, and otherwise
+prints both counts and exits 2. `src/main.rs` returns the event loop's
+status as the process status.
+
+Rerun with that check on 2026-09-29 (same macOS, Qt, Rust and locked graph),
+3/3 per variant: debug exits 0 after 0 → 1; release aborts in `role_names`
+before the check is reached; release with only qtbridge-interfaces at O0
+exits 0 after 0 → 1. A scratch copy whose reset leaves the model empty exits
+2 in all three variants without printing `reset survived`.
 
 Singleton registration is not required. The preserved `initial_selfref`
 variant is an explicitly invalid historical control: it has no required
@@ -90,7 +102,8 @@ variants. On Linux, select the installed Qt's qmake and omit
 macOS binary has no LC_RPATH, hence the explicit framework path. The
 lockfile aligns cxx-gen's patch with CXX; do not regenerate it casually.
 The relative path in Cargo.toml and its standalone `[workspace]` boundary
-are report-packaging changes only; model and QML sources are preserved.
+are report-packaging changes. The model is preserved; the valid variants'
+QML and `src/main.rs` gained only the self-check described above.
 
 Apply the attachment from the bundle root, then run the same commands with
 the O0 override absent:
@@ -208,8 +221,9 @@ has been created. Replace this status with the upstream link after filing.
 Sources: completed macOS isolation session in
 `/private/tmp/rowplay143/session2/`, with qtbridge 0.3.0 commit `d9a89bc`.
 The isolation compared the upstream crate sources with crates.io 0.3.0.
-`reproducer/` preserves the matrix Rust/QML and lockfile; only the manifest
-path and standalone workspace boundary were adapted for portability.
+`reproducer/` preserves the matrix Rust/QML and lockfile. The manifest path
+and standalone workspace boundary were adapted for portability, and the
+self-check (count assertion, exit status) was added afterwards.
 The patch is the existing tested upstream diff, not a production dependency.
 Codegen files are copied excerpts from that session, not regenerated here.
 The upstream patch retains the original Qt source licensing terms; the
