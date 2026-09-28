@@ -573,125 +573,147 @@ Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
   existing package version changed. CI supplies the Linux/macOS/Windows
   app matrix and package/launch checks required by ADR 0012.
 
-## 22. Optimised model-reset re-entry can miss the borrow handoff (0.3.0, issue #143)
+## 22. Model-proxy aliasing violates synchronous re-entry (0.3.0, issue #143)
 
-**Symptom.** A release build aborts on the first Library model reset with a
-QML view attached:
+**Classification: qtbridge model-proxy aliasing/soundness defect.** During an
+outbound model notification, qtbridge holds a live exclusive Rust reference
+(`&mut QListModelProxyRust`) while Qt synchronously re-enters that same proxy
+through its C++ back-pointer. This contradicts the exclusive-access contract.
+The optimiser may remove the borrow-handoff writes under that contract;
+the callback then falls back to `RefCell::try_borrow`, conflicts with the
+mutable slot borrow, and panics. CXX correctly aborts at the FFI boundary.
+This is neither an LLVM miscompilation nor a demonstrated CXX or CXX-Qt bug,
+and the standalone reproducer excludes RowPlay misuse.
 
-```
-thread 'main' panicked at qtbridge-interfaces-0.3.0/src/qlist_model/proxy_rust.rs:399:9:
+**Observed regression.** The release gate fails at step 5
+(`Settings.setLanguageIndex` → `Library.reload()`) with:
+
+```text
 Failed to borrow for role_names: BorrowError(BorrowError)
 panic in ffi function …QListModelProxyRust::role_names, aborting.
 ```
 
-The tested debug builds pass. Both known triggers reset the model from a mutable
-slot: the language switch (`Settings.setLanguageIndex` → `settingsChanged`
-→ `Library.reload()`, gate step 5) and Tab out of a sidebar date field
-(`QQuickItemPrivate::focusNextPrev` → `QQuickTextInput::focusOutEvent` →
-`editingFinished` → `Library.setDateRange`). Every other reset caller
-(`setSportFilter`, `setSearchText`, `toggleSort`, `refresh`) takes the same
-path. Bisect: `de9b60c` passes the release quick gate, `321168d` (the 0.3.0
-migration, entry 21) and current `main` abort at step 5. Independent macOS
-verification reproduced the same boundary: the `de9b60c` release quick gate
-passes, while the `321168d` and current `main` release quick gates fail at
-step 5 with the same `role_names` `BorrowError`; current `main` debug passes.
-The regression is therefore cross-platform, optimisation-sensitive and
-bisected to the qtbridge 0.3.0 migration. No tagged release contains 0.3.0.
+Linux x86_64 and macOS arm64 reproduce it. The completed macOS matrix is:
 
-**Chain.** QML → `invoke_slot_mut` → `try_call_rust_with_handle_mut`
-(`BorrowState::None`, so it takes `RefCell::try_borrow_mut`) → slot →
-`QListModelBase::reset` → `QListModelProxyRust::base_begin_reset_model(&mut
-self, …)` → `call_cpp_impl!(mut …)` → `try_store_handle_and_call_cpp_mut`,
-which stores `BorrowState::Mutable(ptr)` in the proxy's `Cell`, calls C++,
-and restores the old state → `beginResetModel` → `modelAboutToBeReset` →
-`QQmlDelegateModel::_q_modelAboutToBeReset`, which calls `roleNames()` on
-every reset (qtdeclarative v6.11.2, `qqmldelegatemodel.cpp:1989`, and again
-on `modelReset`) → `QListModelProxyRust::role_names` →
-`try_call_rust_with_handle`. It should find `Mutable(ptr)`. It finds `None`,
-falls back to `try_borrow` against the slot's `RefMut`, and panics across
-the FFI boundary.
+| Commit/build | Result |
+|---|---|
+| `de9b60c`, release | PASS |
+| `321168d`, qtbridge 0.3.0 migration, release | FAIL |
+| `main` at `cb26725`, release | FAIL |
+| `main` at `cb26725`, debug | PASS |
 
-**Current root-cause boundary.** The failure occurs during model-reset
-re-entry. `role_names` reaches the fallback `RefCell::try_borrow` path
-instead of successfully consuming the intended `BorrowState::Mutable`
-handoff. The critical QListModel bridge is handwritten
-`qtbridge-interfaces` code using a direct `#[cxx::bridge]`; CXX provides the
-generated transport. CXX-Qt is present in the dependency graph but does not
-author this proxy contract.
+A native Cocoa/Metal release quick gate also aborts at step 5. Tab out of a
+sidebar date field reaches the same failure through `editingFinished` →
+`Library.setDateRange`. Queuing the reset through `Qt.callLater` was tested
+and also fails: the later mutable slot still crosses the same proxy contract.
+No release containing qtbridge 0.3.0 had shipped when this was investigated.
 
-The exact reason the handoff is unavailable under optimisation remains under
-investigation. In particular, LLVM IR from the failing macOS release build
-still contains the `BorrowState::Mutable` handoff store. That evidence rules
-out the earlier claim that LLVM simply deletes the store as an established
-explanation, and this is not classified as an LLVM miscompilation. The
-`&mut self` receivers on the model `base_*` notifications and qtbridge's
-mutable dispatch history remain relevant leads, not proven causes. The 0.2
-implementation also used `&mut self`, so its passing result does not by
-itself establish why 0.3.0 fails.
+**Callback and ownership chain.** QML → `invoke_slot_mut` (holds the model's
+`RefMut`) → mutable model operation → `QListModelBase::reset` →
+`base_begin_reset_model(&mut self, …)` → `try_store_handle_and_call_cpp_mut`
+(store `BorrowState::Mutable`, call C++, restore old state) →
+Qt `beginResetModel` → synchronous `modelAboutToBeReset` →
+`QQmlDelegateModel::_q_modelAboutToBeReset` → `roleNames` →
+C++ proxy back-pointer → the same Rust proxy's `role_names`.
+The intended handoff lets that callback read the already-borrowed model.
+Without a usable handoff it takes the conflicting fallback borrow.
 
-Deferring the RowPlay reset did not contain the failure: a measured
-`Qt.callLater` variant re-entered through a later mutable slot and aborted at
-the same `role_names` fallback borrow. This narrows the observed trigger but
-does not prove whether the defect is in the receiver/handoff contract,
-optimised code generation around it, or another part of qtbridge's model
-re-entry path.
+The critical bridge is handwritten `qtbridge-interfaces` code using direct
+`#[cxx::bridge]`. CXX transports that declared contract. CXX-Qt is a
+dependency but does not author this proxy contract.
 
-**Temporary mitigation.** The workspace builds qtbridge-interfaces at
-opt-level 0 in release (`Cargo.toml`,
-`[profile.release.package.qtbridge-interfaces]`). `opt-level=0` empirically
-contains the release abort in the tested configurations. It is not yet
-established to repair the underlying aliasing/re-entry contract, so it
-remains a temporary mitigation pending upstream/root-cause confirmation.
-Resets stay synchronous: when a slot returns, the model already holds the
-new rows and the view has been reset. Everything else stays optimised:
-generic code is compiled in the crate that instantiates it, so RowPlay's
-`QListModel` impls, and every other dependency, keep opt-level 3. The
-non-generic proxy methods and qtbridge-interfaces' small C++ glue run
-unoptimised. The release gate protects the observed configuration; it does
-not prove the mitigation repairs the underlying contract. Issue #143 stays
-open while the standalone reproducer and a qtbridge-only receiver/handoff
-patch are independently verified. A passing O0 gate is not sufficient to
-close it.
+**Standalone evidence.** The completed isolation uses no RowPlay code.
+[The upstream report and attachments](upstream/qtbridge-model-reentry/README.md)
+preserve the reproducer, tested patch and codegen excerpts.
 
-**Regression coverage.**
-- The gate walk's step 45 types the date range into the sidebar with QtTest
-  key events and leaves each field with Tab
-  (`crates/rowplay-app/tests/qml/GateKeys.qml`, loaded by URL from
-  `ROWPLAY_GATE_KEYS_QML` so `import QtTest` stays out of the app's QML
-  module and its packages). The gate asserts that Tab moved the focus, that
-  Library holds the typed range, and that the list shows exactly the
-  filtered rows. With the walk jumped straight to step 45 and no
-  workaround, the release build aborted there, under
-  `QQuickDeliveryAgentPrivate::deliverKeyEvent` → `focusNextPrev` →
-  `QQuickTextInput::focusOutEvent`.
-- Step 5 (language switch → `Library.reload()`) is the deterministic
-  first failure; steps 14–20 and 44–48 cover the filter, search, unit,
-  timezone and sort resets.
-- CI's `App (ubuntu-24.04)` job runs the quick walk a second time in a
-  release build (`cargo test --release --config
-  profile.release.debug-assertions=true … --test qml_runtime_gate`; debug
-  assertions only keep the gate's hooks) and uploads its log as
-  `gate-log-release`. Cost on the 4-core Linux VM: a cold build of the
-  release test binary took 4 m 22 s (most of it the C++ glue at `-O3`);
-  after an edit to `rowplay-app`, rebuild and walk together took 37 s, the
-  walk itself about 28 s. CI's
-  `rust-cache` keeps the release dependencies between runs. Independent
-  macOS verification establishes that the same optimisation boundary exists
-  there; it does not establish a target-independent code-generation cause.
+| Correctly wired qtbridge 0.3.0 variant | Debug | Release |
+|---|---|---|
+| QML singleton | PASS 3/3 | FAIL 3/3 |
+| Creatable QML type | PASS 3/3 | FAIL 3/3 |
+| `set_initial_object` + required root property | PASS 3/3 | FAIL 3/3 |
 
-**Next investigation.** First get the qtbridge-only QListModel reproducer
-building independently and demonstrate debug-pass/release-fail on macOS.
-Then patch only qtbridge's receiver/handoff implementation while keeping
-CXX, CXX-Qt, Qt and Rust unchanged. If that independently contains the
-failure, compare patched and unpatched IR and generated code. Separately,
-build a pure documented-API CXX-Qt re-entry test to determine whether that
-lower framework independently exhibits the same class of failure. None of
-this investigation changes RowPlay's production dependencies.
+Singleton registration is not required. The earlier non-singleton reducer had
+broken QML (missing initial property and an unresolved model name), so its
+reset never executed. Its apparent pass was invalid evidence.
 
-**Upstream status.** No independently verified standalone reproducer or
-qtbridge-only fix is recorded yet. Keep issue #143 open until both exist and
-the root-cause claim is supported by their results. Record the QTBRIDGES
-issue or Gerrit change here when there is one.
+With only `qtbridge-interfaces` at O0, release passes 3/3; ordinary optimised
+release fails 3/3. Changing only qtbridge's outbound QListModel proxy wrappers
+to shared Rust receivers, and their callers from `&mut *proxy` to
+`&*proxy`, gives patched debug PASS 3/3 and patched release PASS 5/5.
+All three correctly wired variants then pass in both profiles. Patched
+release with `codegen-units=1` also passes 3/3. Qt, Rust, CXX, CXX-Qt,
+cxx-qt-lib, cxx-gen, the reproducer and QML are unchanged between each
+unpatched/patched comparison. The model stays mutable; the C++ operation
+still receives the appropriate `Pin<&mut QListModelProxyCpp>`.
+The same receiver pattern exists in QAbstractItemModel and QTableModel;
+the patch and runtime claims here cover QListModel reset only, not a full
+test of every model notification.
+
+**Optimised IR and final binary.** The unpatched Rust proxy receiver carries
+`noalias`. Its optimised `base_begin_reset_model` does not preserve the
+`BorrowState::Mutable` tag and fat-pointer stores before the synchronous
+C++ call. With the shared receiver, that exclusive `noalias` contract is
+absent, the three stores precede the C++ call, and `role_names` consumes
+the handoff successfully. The existing `base_role_names(&self, …)` is an
+in-crate control that also preserves its handoff (the immutable tag).
+
+The saved IR emission uses one codegen unit; the ordinary release binaries
+use 16. Final-binary disassembly agrees with the 0.3.0 comparison. This
+controlled comparison supersedes the earlier isolated macOS IR observation;
+the presence of a store in an earlier artifact alone was insufficient to
+establish the failing binary's behaviour. LLVM is optimising according to
+the Rust aliasing contract it was given; qtbridge violates that contract.
+
+**Controls and latent history.** A pure CXX-Qt 0.10.0 QAbstractListModel using
+the documented custom-base-class pattern passes debug 3/3 and release 3/3
+for both creatable and `qml_singleton` variants. The reset synchronously
+re-enters `roleNames` and reads Rust state. Its generated representation
+does not establish the problematic qtbridge proxy `&mut` contract. CXX-Qt
+is not implicated by this evidence. No separate CXX defect was demonstrated
+or suggested; its abort is expected handling of the panic, not the cause.
+
+qtbridge 0.2 has the same latent receiver/handoff defect. Its ordinary
+16-codegen-unit release build passes 3/3 while keeping the handoff helper
+out of line. With `codegen-units=1`, that helper inlines into the exclusive
+proxy frame and release fails 3/3. Version 0.2 was not sounder; changes in
+inlining exposed the defect in ordinary 0.3 builds.
+
+**Interim mitigation and removal.** RowPlay keeps only
+`[profile.release.package.qtbridge-interfaces] opt-level = 0`. O0 contains
+the tested optimisation exposure; it is not the source-level soundness fix.
+RowPlay's crates and other dependencies stay optimised. No production
+dependency is downgraded, upgraded, forked or vendored, and the scratch
+patch is not adopted by RowPlay. Remove the override when a fixed upstream
+qtbridge release is adopted and the release gates pass without it.
+PR #144 is temporary containment only; #143 stays open for that upstream fix.
+
+**Regression protection.** Gate step 45 types the sidebar date range with
+QtTest and leaves each field using Tab, asserting focus, range and filtered
+rows. The required Linux App job also runs the release quick gate and uploads
+`gate-log-release`; debug assertions retain the gate hooks. This remains the
+primary project protection. Until the upstream contract is fixed, the
+standalone reproducer additionally supports this inexpensive local/upstream
+bridge-upgrade probe:
+
+```sh
+cargo run --release --locked --features singleton \
+  --config profile.release.codegen-units=1
+```
+
+Run it from the report's standalone reproducer (with its documented Qt
+environment), without the O0 override. No extra permanent RowPlay CI job is
+added. An optional project probe uses the existing gate:
+
+```sh
+ROWPLAY_GATE_PROFILE=quick cargo test --release \
+  --config profile.release.debug-assertions=true \
+  --config profile.release.codegen-units=1 \
+  -p rowplay-app --test qml_runtime_gate -- --nocapture
+```
+
+**Upstream status.** See the report's duplicate-search and filing status.
+Keep #143 open after any merge of #144; closure requires adoption of the
+upstream source fix and validation without the O0 override.
 
 ## What worked
 

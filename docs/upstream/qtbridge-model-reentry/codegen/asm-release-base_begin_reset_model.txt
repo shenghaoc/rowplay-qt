@@ -1,0 +1,67 @@
+
+/private/tmp/rowplay143/session2/targets/base/release/qtbridge-reentry-repro:	file format mach-o arm64
+
+Disassembly of section __TEXT,__text:
+
+0000000100004478 <__RNvMs1_NtNtCsdlgj6ivNBuA_19qtbridge_interfaces11qlist_model10proxy_rustINtNtB9_16genericrustproxy16GenericRustProxyNtNtNtB7_16proxy_cpp_bridge3ffi18QListModelProxyCppDNtB5_17QListModelAdapterEL_E22base_begin_reset_model>:
+100004478:     	sub	sp, sp, #0x30
+10000447c:     	stp	x20, x19, [sp, #0x10]
+100004480:     	stp	x29, x30, [sp, #0x20]
+100004484:     	add	x29, sp, #0x20
+100004488:     	mov	x19, x0
+10000448c:     	ldr	x0, [x0, #0x38]
+100004490:     	cbz	x0, 0x100004504 <__RNvMs1_NtNtCsdlgj6ivNBuA_19qtbridge_interfaces11qlist_model10proxy_rustINtNtB9_16genericrustproxy16GenericRustProxyNtNtNtB7_16proxy_cpp_bridge3ffi18QListModelProxyCppDNtB5_17QListModelAdapterEL_E22base_begin_reset_model+0x8c>
+100004494:     	ldp	x8, x9, [x19]
+100004498:     	ldr	x9, [x9, #0x10]
+10000449c:     	sub	x10, x9, #0x1
+1000044a0:     	mov	w11, #0x8               ; =8
+1000044a4:     	cmp	x9, #0x8
+1000044a8:     	csel	x9, x9, x11, hi
+1000044ac:     	sub	x9, x9, #0x1
+1000044b0:     	and	x9, x9, #0xfffffffffffffff0
+1000044b4:     	and	x10, x10, #0xfffffffffffffff8
+1000044b8:     	add	x8, x8, x10
+1000044bc:     	add	x8, x8, x9
+1000044c0:     	add	x8, x8, #0x18
+1000044c4:     	cmp	x8, x1
+1000044c8:     	b.ne	0x10000451c <__RNvMs1_NtNtCsdlgj6ivNBuA_19qtbridge_interfaces11qlist_model10proxy_rustINtNtB9_16genericrustproxy16GenericRustProxyNtNtNtB7_16proxy_cpp_bridge3ffi18QListModelProxyCppDNtB5_17QListModelAdapterEL_E22base_begin_reset_model+0xa4>
+1000044cc:     	ldr	x20, [x19, #0x10]
+1000044d0:     	ldur	q0, [x19, #0x18]
+1000044d4:     	str	q0, [sp]
+1000044d8:     	sub	x8, x20, #0x1
+1000044dc:     	cmp	x8, #0x1
+1000044e0:     	b.ls	0x100004534 <__RNvMs1_NtNtCsdlgj6ivNBuA_19qtbridge_interfaces11qlist_model10proxy_rustINtNtB9_16genericrustproxy16GenericRustProxyNtNtNtB7_16proxy_cpp_bridge3ffi18QListModelProxyCppDNtB5_17QListModelAdapterEL_E22base_begin_reset_model+0xbc>
+1000044e4:     	bl	0x100004f74 <_rust$bridge$cxxbridge1$198$QListModelProxyCpp$base_begin_reset_model>
+1000044e8:     	str	x20, [x19, #0x10]
+1000044ec:     	ldr	q0, [sp]
+1000044f0:     	stur	q0, [x19, #0x18]
+1000044f4:     	ldp	x29, x30, [sp, #0x20]
+1000044f8:     	ldp	x20, x19, [sp, #0x10]
+1000044fc:     	add	sp, sp, #0x30
+100004500:     	ret
+100004504:     	adrp	x0, 0x1000df000 <dyld_stub_binder+0x1000df000>
+100004508:     	add	x0, x0, #0x160
+10000450c:     	adrp	x2, 0x100100000 <dyld_stub_binder+0x100100000>
+100004510:     	add	x2, x2, #0x490
+100004514:     	mov	w1, #0x12               ; =18
+100004518:     	bl	0x1000d6bb8 <__RNvNtCs8Mbv00yxnRz_4core6option13expect_failed>
+10000451c:     	adrp	x0, 0x1000df000 <dyld_stub_binder+0x1000df000>
+100004520:     	add	x0, x0, #0x110
+100004524:     	adrp	x2, 0x100100000 <dyld_stub_binder+0x100100000>
+100004528:     	add	x2, x2, #0x398
+10000452c:     	mov	w1, #0xa1               ; =161
+100004530:     	bl	0x1000d6df4 <__RNvNtCs8Mbv00yxnRz_4core9panicking9panic_fmt>
+100004534:     	str	x20, [x19, #0x10]
+100004538:     	ldr	q0, [sp]
+10000453c:     	stur	q0, [x19, #0x18]
+100004540:     	mov	w8, #0x2                ; =2
+100004544:     	strb	w8, [sp]
+100004548:     	adrp	x0, 0x1000df000 <dyld_stub_binder+0x1000df000>
+10000454c:     	add	x0, x0, #0x2bc
+100004550:     	adrp	x3, 0x100100000 <dyld_stub_binder+0x100100000>
+100004554:     	add	x3, x3, #0x3b0
+100004558:     	adrp	x4, 0x100100000 <dyld_stub_binder+0x100100000>
+10000455c:     	add	x4, x4, #0x490
+100004560:     	mov	x2, sp
+100004564:     	mov	w1, #0x33               ; =51
+100004568:     	bl	0x1000d6c04 <__RNvNtCs8Mbv00yxnRz_4core6result13unwrap_failed>

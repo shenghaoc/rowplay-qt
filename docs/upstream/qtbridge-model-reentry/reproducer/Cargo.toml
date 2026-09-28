@@ -1,0 +1,17 @@
+[workspace]
+
+[package]
+name = "qtbridge-reentry-matrix"
+version = "0.1.0"
+edition = "2024"
+
+# Exactly one registration variant is selected per build; the model code is shared.
+[features]
+default = []
+singleton = []        # QApp::register::<Backend>() with IS_SINGLETON = true;  QML: model: Backend
+creatable = []        # QApp::register::<Backend>() with IS_SINGLETON = false; QML: Backend { id: backend }
+initial = []          # QApp::set_initial_object("backend", rc);                QML: required property var backend
+initial_selfref = []  # the previous session's non-singleton wiring: set_initial_object("model", rc), QML `model: model`, no required property
+
+[dependencies]
+qtbridge = { path = "../qtbridge/crates/qtbridge" }
