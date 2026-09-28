@@ -14,11 +14,20 @@ Window {
     Timer {
         interval: 500; running: true
         onTriggered: {
-            console.log("count before reset:", list.count)
+            const before = list.count
+            console.log("count before reset:", before)
             root.backend.resetRows()
-            console.log("count after reset:", list.count)
+            const after = list.count
+            console.log("count after reset:", after)
+            // A pass needs the view's reset too, not only a return: exit 2
+            // unless the count went from 0 to 1.
+            if (before !== 0 || after !== 1) {
+                console.error("count went", before, "->", after, "instead of 0 -> 1")
+                Qt.exit(2)
+                return
+            }
             console.log("reset survived")
-            Qt.quit()
+            Qt.exit(0)
         }
     }
 }

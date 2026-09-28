@@ -22,6 +22,9 @@ chrono.workspace = true
 [dev-dependencies]
 # SHA-256 for the vendored-asset hash pin (tests/asset_hashes.rs).
 rowplay-fixtures.workspace = true
+# The keyboard helper's `file:` URL in the runtime gate
+# (tests/qml_runtime_gate.rs).
+percent-encoding.workspace = true
 
 [build-dependencies]
 # build.rs validates the vendored V3 rig pack against its contract and embeds

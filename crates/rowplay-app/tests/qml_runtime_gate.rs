@@ -37,6 +37,8 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
+
 mod common;
 
 const FORBIDDEN_PATTERNS: [&str; 6] = [
@@ -277,9 +279,172 @@ fn repo_root() -> PathBuf {
 /// `CARGO_MANIFEST_DIR` is absolute already; `canonicalize` would add
 /// Windows' `\\?\` prefix, which is no URL.
 fn gate_keys_url() -> String {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/qml/GateKeys.qml");
-    let path = path.to_string_lossy().replace('\\', "/");
-    format!("file:///{}", path.trim_start_matches('/'))
+    let path = format!("{}/tests/qml/GateKeys.qml", env!("CARGO_MANIFEST_DIR"));
+    file_url(&path, cfg!(windows))
+}
+
+/// Bytes a `file:` URL path segment percent-encodes: all but RFC 3986's
+/// `pchar` (unreserved, sub-delims, `:` and `@`). A checkout path's `#`,
+/// `?`, `%`, spaces, backslashes and non-ASCII bytes stay path data instead
+/// of starting a fragment or query or reading as an escape; a drive's `C:`
+/// stays literal.
+const FILE_URL_SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'~')
+    .remove(b'!')
+    .remove(b'$')
+    .remove(b'&')
+    .remove(b'\'')
+    .remove(b'(')
+    .remove(b')')
+    .remove(b'*')
+    .remove(b'+')
+    .remove(b',')
+    .remove(b';')
+    .remove(b'=')
+    .remove(b':')
+    .remove(b'@');
+
+/// An absolute native path as a `file:` URL, each segment percent-encoded.
+/// With `windows`, `\` separates segments too and a drive path becomes
+/// `file:///C:/…`; elsewhere a backslash is a file-name character.
+fn file_url(path: &str, windows: bool) -> String {
+    let path = if windows {
+        path.replace('\\', "/")
+    } else {
+        path.to_owned()
+    };
+    let mut url = String::from("file://");
+    for segment in path.strip_prefix('/').unwrap_or(&path).split('/') {
+        url.push('/');
+        url.extend(utf8_percent_encode(segment, FILE_URL_SEGMENT));
+    }
+    url
+}
+
+/// RFC 3986's five URI components, as its Appendix B parser splits them:
+/// `^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?`.
+struct UriParts<'a> {
+    scheme: Option<&'a str>,
+    authority: Option<&'a str>,
+    path: &'a str,
+    query: Option<&'a str>,
+    fragment: Option<&'a str>,
+}
+
+fn uri_parts(uri: &str) -> UriParts<'_> {
+    let (rest, fragment) = uri
+        .split_once('#')
+        .map_or((uri, None), |(r, f)| (r, Some(f)));
+    let (rest, query) = rest
+        .split_once('?')
+        .map_or((rest, None), |(r, q)| (r, Some(q)));
+    let (scheme, rest) = match rest.split_once(':') {
+        Some((scheme, rest)) if !scheme.is_empty() && !scheme.contains('/') => (Some(scheme), rest),
+        _ => (None, rest),
+    };
+    let (authority, path) = match rest.strip_prefix("//") {
+        Some(rest) => {
+            let end = rest.find('/').unwrap_or(rest.len());
+            (Some(&rest[..end]), &rest[end..])
+        }
+        None => (None, rest),
+    };
+    UriParts {
+        scheme,
+        authority,
+        path,
+        query,
+        fragment,
+    }
+}
+
+/// Whether `uri` is RFC 3986 text: every `%` opens a two-hex-digit escape
+/// and every other byte is unreserved or reserved.
+fn is_uri_text(uri: &str) -> bool {
+    let bytes = uri.as_bytes();
+    bytes.iter().enumerate().all(|(at, &byte)| match byte {
+        b'%' => bytes
+            .get(at + 1..at + 3)
+            .is_some_and(|hex| hex.iter().all(u8::is_ascii_hexdigit)),
+        _ => byte.is_ascii_alphanumeric() || b"-._~:/?#[]@!$&'()*+,;=".contains(&byte),
+    })
+}
+
+/// A checkout path's URL-syntax characters must stay path data: an RFC 3986
+/// parser finds scheme `file`, an empty host and no query or fragment, and
+/// the percent-decoded path is the native path.
+#[test]
+fn gate_keys_url_keeps_path_characters_out_of_url_syntax() {
+    // The oracle must see URL syntax, or the checks below prove nothing: the
+    // raw interpolation this helper replaced made `#` start a fragment and
+    // `?` a query.
+    assert_eq!(
+        uri_parts("file:///tmp/issue #143/GateKeys.qml").fragment,
+        Some("143/GateKeys.qml")
+    );
+    assert_eq!(
+        uri_parts("file:///tmp/why?/GateKeys.qml").query,
+        Some("/GateKeys.qml")
+    );
+
+    for (native, windows) in [
+        (
+            "/home/runner/work/rowplay-qt/crates/rowplay-app/tests/qml/GateKeys.qml",
+            false,
+        ),
+        ("/Users/Jane Doe/rowplay-qt/tests/qml/GateKeys.qml", false),
+        ("/tmp/issue #143/rowplay-qt/tests/qml/GateKeys.qml", false),
+        ("/tmp/100% done/a%20b/GateKeys.qml", false),
+        ("/tmp/why?/GateKeys.qml", false),
+        ("/tmp/back\\slash/GateKeys.qml", false),
+        ("/Users/José/rowplay-qt/tests/qml/GateKeys.qml", false),
+        (
+            r"D:\a\rowplay-qt\crates\rowplay-app/tests/qml/GateKeys.qml",
+            true,
+        ),
+        (r"C:\Users\Jane Doe\#143\GateKeys.qml", true),
+    ] {
+        let url = file_url(native, windows);
+        assert!(is_uri_text(&url), "{native:?} gave {url:?}, not URI text");
+        let parts = uri_parts(&url);
+        assert_eq!(
+            (parts.scheme, parts.authority, parts.query, parts.fragment),
+            (Some("file"), Some(""), None, None),
+            "{native:?} gave {url:?}"
+        );
+        let decoded = percent_decode_str(parts.path)
+            .decode_utf8()
+            .expect("UTF-8 path");
+        let expected = if windows {
+            format!("/{}", native.replace('\\', "/"))
+        } else {
+            native.to_owned()
+        };
+        assert_eq!(decoded, expected, "{native:?} gave {url:?}");
+        if windows {
+            // QUrl::toLocalFile drops the slash before a literal drive.
+            assert!(
+                parts.path.starts_with(&format!("/{}/", &native[..2])),
+                "{native:?} gave {url:?}"
+            );
+        }
+    }
+
+    // This checkout's own URL names the helper file.
+    let url = gate_keys_url();
+    let decoded = percent_decode_str(uri_parts(&url).path)
+        .decode_utf8()
+        .expect("UTF-8 path")
+        .into_owned();
+    let local = if cfg!(windows) {
+        decoded.trim_start_matches('/')
+    } else {
+        decoded.as_str()
+    };
+    assert!(Path::new(local).is_file(), "{url} names no file");
 }
 
 /// Strips `//` line comments and `/* … */` blocks so commented-out examples

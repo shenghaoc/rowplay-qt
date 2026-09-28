@@ -46,7 +46,7 @@ impl QmlElement for Backend {
 #[cfg(feature = "initial")]         const QML: &[u8] = include_bytes!("../qml/initial.qml");
 #[cfg(feature = "initial_selfref")] const QML: &[u8] = include_bytes!("../qml/initial_selfref.qml");
 
-fn main() {
+fn main() -> std::process::ExitCode {
     let mut app = QApp::new();
     #[cfg(any(feature = "singleton", feature = "creatable"))]
     app.register::<Backend>();
@@ -54,6 +54,9 @@ fn main() {
     app.set_initial_object("backend", std::rc::Rc::new(std::cell::RefCell::new(Backend::default())));
     #[cfg(feature = "initial_selfref")]
     app.set_initial_object("model", std::rc::Rc::new(std::cell::RefCell::new(Backend::default())));
-    app.load_qml(QML).run();
-    eprintln!("rust: event loop returned");
+    // The event loop's status is the process's: the QML exits 0 only after
+    // the count went from 0 to 1, and 2 otherwise. Codes outside 0-255 fail.
+    let code = app.load_qml(QML).run();
+    eprintln!("rust: event loop returned {code}");
+    std::process::ExitCode::from(u8::try_from(code).unwrap_or(1))
 }
