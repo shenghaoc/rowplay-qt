@@ -573,6 +573,225 @@ Validation on macOS/Apple silicon, Rust 1.98.1 and Qt 6.11.2:
   existing package version changed. CI supplies the Linux/macOS/Windows
   app matrix and package/launch checks required by ADR 0012.
 
+## 22. Model notifications take the proxy `&mut`, so optimised builds lose the re-entry borrow (0.3.0, issue #143)
+
+**Symptom.** A release build aborts on the first Library model reset with a
+QML view attached:
+
+```
+thread 'main' panicked at qtbridge-interfaces-0.3.0/src/qlist_model/proxy_rust.rs:399:9:
+Failed to borrow for role_names: BorrowError(BorrowError)
+panic in ffi function …QListModelProxyRust::role_names, aborting.
+```
+
+No debug build has failed. Both known triggers reset the model from a mutable
+slot: the language switch (`Settings.setLanguageIndex` → `settingsChanged`
+→ `Library.reload()`, gate step 5) and Tab out of a sidebar date field
+(`QQuickItemPrivate::focusNextPrev` → `QQuickTextInput::focusOutEvent` →
+`editingFinished` → `Library.setDateRange`). Every other reset caller
+(`setSportFilter`, `setSearchText`, `toggleSort`, `refresh`) takes the same
+path. Bisect: `de9b60c` passes the release quick gate, `321168d` (the 0.3.0
+migration, entry 21) and `8cb4fc4` abort at step 5. No tagged release
+contains 0.3.0.
+
+**Chain.** QML → `invoke_slot_mut` → `try_call_rust_with_handle_mut`
+(`BorrowState::None`, so it takes `RefCell::try_borrow_mut`) → slot →
+`QListModelBase::reset` → `QListModelProxyRust::base_begin_reset_model(&mut
+self, …)` → `call_cpp_impl!(mut …)` → `try_store_handle_and_call_cpp_mut`,
+which stores `BorrowState::Mutable(ptr)` in the proxy's `Cell`, calls C++,
+and restores the old state → `beginResetModel` → `modelAboutToBeReset` →
+`QQmlDelegateModel::_q_modelAboutToBeReset`, which calls `roleNames()` on
+every reset (qtdeclarative v6.11.2, `qqmldelegatemodel.cpp:1989`, and again
+on `modelReset`) → `QListModelProxyRust::role_names` →
+`try_call_rust_with_handle`. It should find `Mutable(ptr)`. It finds `None`,
+falls back to `try_borrow` against the slot's `RefMut`, and panics across
+the FFI boundary.
+
+**Root cause: an aliasing violation in qtbridge-interfaces, exploited by
+LLVM.** `base_begin_reset_model` and the other `base_*` notifications
+(`base_end_reset_model`, `base_begin/end_insert_rows`,
+`base_begin/end_remove_rows`, `base_begin/end_move_rows`,
+`base_data_changed`, `base_set_data`, `base_remove_rows`; the same in
+`qabstract_item_model` and `qtable_model`) take the Rust proxy as `&mut
+self`, and `QListModelBase` calls them through `unsafe { &mut *proxy }`.
+`&mut` is `noalias`: LLVM may assume nothing reads the proxy through
+another pointer while the function runs. The C++ call does exactly that
+through the C++ proxy's own pointer back to the Rust proxy. With
+`try_store_handle_and_call_cpp_mut` inlined, the function stores
+`Mutable(ptr)`, calls C++ (which, as far as LLVM knows, cannot see that
+memory), then stores the old state back, so the first store is dead and
+dead-store elimination removes it. Disassembly of the shipped release
+binary (`cargo build --release -p rowplay-app`, rustc 1.98.1, LLVM 22.1.8,
+x86_64):
+
+```
+base_begin_reset_model:                     emit_signal (takes &self):
+  mov 0x10(%rbx),%r15    ; old tag           mov 0x10(%rbx),%r15
+  movups 0x18(%rbx),%xmm0 ; old ptr          movups 0x18(%rbx),%xmm0
+                                             movq $0x2,0x10(%rbx) ; Mutable
+                                             mov %rsi,0x18(%rbx)  ; data ptr
+                                             mov %rdx,0x20(%rbx)  ; vtable
+  call *…beginResetModel                     call *…emit_signal_cpp
+  mov %r15,0x10(%rbx)    ; restore           mov %r15,0x10(%rbx)
+  movups %xmm0,(%r14)                        movups %xmm0,(%r14)
+```
+
+The three stores that hand `role_names` the borrow are gone from
+`base_begin_reset_model` and present in `emit_signal`, whose receiver is
+`&self` (a `Cell` behind `&` is not `noalias`), which is why signals from
+the same slots re-enter fine. Upstream already fixed this pattern for
+dispatch: [`8810523`](https://code.qt.io/cgit/qt/qtbridge-rust.git/commit/?id=88105239b22907242c034a4248e84897c6cfcc57)
+("Fix aliasing of proxy references in mutable dispatch", in 0.3.0) turned
+`invoke_slot_mut` and `write_property` from `&mut self` into `&self`
+because "dispatch re-enters the same proxy through shared references". The
+model `base_*` methods kept `&mut self`; so does `dev` at
+[`6c981cc`](https://code.qt.io/cgit/qt/qtbridge-rust.git/commit/?id=6c981ccd0e7779cc6eb7c652f3e6b02cee6ea62b)
+(2026-09-28).
+
+**Why debug survives.** At opt-level 0 no pass removes dead stores, so the
+`Mutable` state is in the `Cell` when C++ re-enters. Measured: the release
+quick gate aborts at step 5, and passes the whole walk (89 steps) with
+only qtbridge-interfaces built at opt-level 0
+(`--config 'profile.release.package.qtbridge-interfaces.opt-level=0'`);
+nothing else changed. Debug assertions make no difference: the plain
+release build has the same dead store.
+
+**Why 0.2 survived.** 0.2 had the same `&mut self` receivers. Its
+`try_store_handle_and_call_cpp_mut` began with `contains()` through the
+`SharedReferenceWithQml` enum (`Weak::upgrade` or `Rc::clone`, then a drop);
+0.3 reduced `contains()` to a pointer compare. In a 0.2 release build
+`base_begin_reset_model` stays a call to an out-of-line
+`try_store_handle_and_call_cpp_mut`, whose receiver is `&RustObjAccess`
+(not `noalias`, since it holds a `Cell`), so the store survives; the
+reproducer below prints `reset survived` against 0.2.0 in release. In 0.3
+that function is small enough to inline into the `&mut self` method, and
+the store dies. The aliasing violation was there in 0.2; 0.3's smaller
+helper let the optimiser act on it.
+
+**Not a RowPlay misuse, and not fixable by deferring the reset.**
+qtbridge documents `QListModelBase::reset` for exactly this use, and any
+`reset()` runs inside a mutable borrow: it takes `&mut self`, which only a
+slot (or a `RefCell` handle) provides. A queued reset was measured, not
+assumed: the slot marked the reset pending, QML ran `Qt.callLater(
+Library.flushModelReset)`, and the deferred slot, entered from
+`QEventLoop::exec`, aborted in the same place. Deferral moves the reset,
+not the borrow. The upstream fix is `&self` receivers on every `base_*`
+method (their callers then use `&*proxy`), as `8810523` did for dispatch.
+
+**Workaround.** The workspace builds qtbridge-interfaces at opt-level 0 in
+release (`Cargo.toml`, `[profile.release.package.qtbridge-interfaces]`).
+Resets stay synchronous: when a slot returns, the model already holds the
+new rows and the view has been reset. Everything else stays optimised:
+generic code is compiled in the crate that instantiates it, so RowPlay's
+`QListModel` impls, and every other dependency, keep opt-level 3. The
+non-generic proxy methods and qtbridge-interfaces' small C++ glue run
+unoptimised; their work per call is a few loads, a borrow-state handoff and
+one C++ call. There is no LTO in the release profile, which would re-run
+the optimiser across the crate boundary; enabling LTO would reopen the
+defect, and the release gate would say so. Remove the override with the
+qtbridge release whose `base_*` methods take `&self`, after the release
+gate passes without it. Vendoring a patched qtbridge-interfaces was
+rejected: it carries C++, and a patched fork of the bridge is a larger
+commitment than one profile line.
+
+**Regression coverage.**
+- The gate walk's step 45 types the date range into the sidebar with QtTest
+  key events and leaves each field with Tab
+  (`crates/rowplay-app/tests/qml/GateKeys.qml`, loaded by URL from
+  `ROWPLAY_GATE_KEYS_QML` so `import QtTest` stays out of the app's QML
+  module and its packages). The gate asserts that Tab moved the focus, that
+  Library holds the typed range, and that the list shows exactly the
+  filtered rows. With the walk jumped straight to step 45 and no
+  workaround, the release build aborted there, under
+  `QQuickDeliveryAgentPrivate::deliverKeyEvent` → `focusNextPrev` →
+  `QQuickTextInput::focusOutEvent`.
+- Step 5 (language switch → `Library.reload()`) is the deterministic
+  first failure; steps 14–20 and 44–48 cover the filter, search, unit,
+  timezone and sort resets.
+- CI's `App (ubuntu-24.04)` job runs the quick walk a second time in a
+  release build (`cargo test --release --config
+  profile.release.debug-assertions=true … --test qml_runtime_gate`; debug
+  assertions only keep the gate's hooks) and uploads its log as
+  `gate-log-release`. Cost on the 4-core Linux VM: a cold build of the
+  release test binary took 4 m 22 s (most of it the C++ glue at `-O3`);
+  after an edit to `rowplay-app`, rebuild and walk together took 37 s, the
+  walk itself about 28 s. CI's
+  `rust-cache` keeps the release dependencies between runs. Linux only: it
+  reproduces without a desktop, and the missing store is a property of the
+  Rust code, not of the target.
+
+**Minimal repro** (no RowPlay code; `qtbridge = "=0.3.0"` from
+crates.io, the lockfile's CXX 1.0.198 / `cxx-gen` 0.7.198): `cargo run`
+prints `reset survived`; `cargo run --release` aborts with `Failed to
+borrow for role_names`. Against `=0.2.0` both survive. With a local
+`[patch.crates-io]` whose `base_*` methods take `&self` (and whose
+`QListModelBase` / adapter callers use `&*proxy`, about a hundred lines over
+`qlist_model`, `qabstract_item_model` and `qtable_model`), the release
+build emits the store again and survives.
+
+```rust
+use qtbridge::{QApp, qobject};
+
+#[qobject(Base = QListModel)]
+mod backend {
+    use qtbridge::{QListModel, QListModelBase};
+
+    #[derive(Default)]
+    pub struct Backend {
+        items: Vec<String>,
+    }
+
+    impl QListModel for Backend {
+        type Item = String;
+        fn len(&self) -> usize { self.items.len() }
+        fn get(&self, index: usize) -> Option<&String> { self.items.get(index) }
+        fn reset_unnotified(&mut self) {}
+    }
+
+    impl Backend {
+        #[qslot(qml_name = "replaceAll")]
+        fn replace_all(&mut self) {
+            self.items = vec!["a".to_owned(), "b".to_owned()];
+            self.reset(); // the view re-enters roleNames() in here
+        }
+    }
+}
+
+fn main() {
+    QApp::new()
+        .register::<backend::Backend>()
+        .load_qml(include_bytes!("Main.qml"))
+        .run();
+}
+```
+
+```qml
+import QtQuick
+import reset_repro   // the package name
+
+Window {
+    width: 200; height: 200; visible: true
+    Backend { id: backend }
+    ListView {
+        anchors.fill: parent
+        model: backend
+        delegate: Text { required property var model; text: model.value }
+    }
+    Timer {
+        interval: 200; running: true
+        onTriggered: { backend.replaceAll(); console.log("reset survived"); Qt.quit() }
+    }
+}
+```
+
+**Upstream status.** Not reported yet. `dev` at `6c981cc` (2026-09-28)
+still has the `&mut self` receivers, and its log since 0.3.0 touches
+only clippy fixes. The Qt bug tracker and Gerrit could not be searched
+from the session that found this (both blocked by its network policy), so
+the check for an existing report and the filing are left to a person, with
+the repro and the `&self` patch above. Record the QTBRIDGES issue or
+Gerrit change here when there is one.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`

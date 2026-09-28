@@ -189,7 +189,22 @@ hooks it is compiled out of release builds.
 Which one to run:
 
 - **CI runs `full` on every pull request**, in the App (ubuntu) job and the
-  step-529 job. Nothing here changes that.
+  step-529 job. Nothing here changes that. The App (ubuntu) job then runs
+  `quick` once more in a release build (below).
+- **A change to bridge or model code, or a qtbridge, CXX or Rust toolchain
+  bump, also runs `quick` in release** before pushing. Optimisation changes
+  what qtbridge's re-entrant calls see: issue #143 aborted every release
+  build while every debug walk passed (bridge notes, entry 22).
+
+  ```bash
+  ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
+    LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a cargo test --release \
+    --config profile.release.debug-assertions=true \
+    -p rowplay-app --test qml_runtime_gate -- --nocapture
+  ```
+
+  Debug assertions only keep the gate's hooks; the rest is the shipped
+  release profile, including its `qtbridge-interfaces` opt-level override.
 - **A stacked series, validated locally:** run `quick` on the intermediate
   branches and `full` on the top branch, which contains every change below
   it. CI still runs `full` on each branch's pull request. This replaces
@@ -303,6 +318,11 @@ renames no required check. The step-529 job is informational. Rules:
 - The Linux App job and the step-529 job upload the gate's timestamped
   app log (`gate-log`, `gate-log-step529`) whenever the walk writes one,
   also when it fails.
+- The Linux App job ends with the quick walk in a release build (debug
+  assertions on, for the gate's hooks) and uploads its log as
+  `gate-log-release`. It is part of the required `App (ubuntu-24.04)`
+  check: a defect that only optimisation exposes fails the pull request
+  (issue #143, bridge notes entry 22).
 - The Windows App job also runs four quick walks in a real window (the
   Windows style and FluentWinUI3, light and dark, the replay on D3D11) and
   uploads their captures as `screenshots-windows`. They are informational
