@@ -105,3 +105,19 @@ manual_midpoint = "allow"
 # Raising MSRV to 1.88 enables let-chain style suggestions.
 # Keep the existing port structure during the qtbridge API migration.
 collapsible_if = "allow"
+
+# qtbridge-interfaces 0.3.0 is built without optimisation in release builds
+# (issue #143, docs/qt-bridges-notes.md entry 22). Its model notifications
+# (`QListModelProxyRust::base_begin_reset_model` and the other `base_*`
+# calls) take the Rust proxy as `&mut self`, but C++ re-enters that proxy
+# through its own pointer while the call runs (a view reads `roleNames()`
+# inside `beginResetModel()`). Under the `&mut` no-alias guarantee LLVM
+# deletes the store that hands the re-entrant call the slot's borrow, so an
+# optimised build panics with "Failed to borrow for role_names" and aborts.
+# At opt-level 0 no pass removes that store. The workspace crates and every
+# other dependency keep full optimisation; the release-profile gate in
+# ci.yml fails if this is removed while the defect remains. Remove it with
+# the qtbridge release that takes `&self` there, as upstream already did for
+# `invoke_slot_mut`.
+[profile.release.package.qtbridge-interfaces]
+opt-level = 0
