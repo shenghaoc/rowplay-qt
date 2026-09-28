@@ -54,6 +54,21 @@ echo "== rowplay-qt $VERSION, Linux $ARCH, Qt $("$QMAKE" -query QT_VERSION)"
 # aborts loudly. Ubuntu 24.04 (the release runner) is unaffected. On such a
 # host, prefix with NO_STRIP=1 for a local, unstripped test build; release
 # artifacts still come only from the release workflow.
+# On Fedora 44 (measured 2026-09-28) NO_STRIP=1 is not enough: the AppImage
+# builds but crashes before main, because linuxdeploy rewrites RUNPATH on
+# the RELR-packed system libraries it deploys (libpcre2-8 faulted in _init).
+# That is this host's toolchain, not the app. Build local comparison
+# packages in the release runner's OS instead, with rootless podman and the
+# checkout's own Qt, Cargo and rustup mounted in; mount a separate
+# directory over /src/target, so the host's build stays untouched:
+#   podman run --rm --security-opt label=disable -v "$PWD":/src \
+#     -v "$HOME/.cache/rowplay-ubuntu2404-target":/src/target \
+#     -v "$HOME/Qt":"$HOME/Qt":ro -v "$HOME/.cargo":"$HOME/.cargo" \
+#     -v "$HOME/.rustup":"$HOME/.rustup" -w /src ubuntu:24.04 bash -c '...'
+# where the script installs the apt packages release.yml does, plus
+# build-essential, curl, python3, git, libgl-dev and the X11 / Wayland /
+# GLib runtime libraries the hosted image has, then exports HOME, PATH,
+# QMAKE and LD_LIBRARY_PATH for that Qt and runs this script (ADR 0018).
 LINUXDEPLOY_URL=https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
 LINUXDEPLOY_SHA256=c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d
 PLUGIN_QT_URL=https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage

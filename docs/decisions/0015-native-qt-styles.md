@@ -1,6 +1,7 @@
 # ADR 0015 — Native Qt styles for standard controls; our identity in the content
 
-Status: accepted (2026-09-25). Supersedes ADR 0013's control layer (its
+Status: accepted (2026-09-25); decisions 5 and 6 amended by ADR 0018
+(2026-09-28). Supersedes ADR 0013's control layer (its
 decisions on the Basic style and the shared controls). ADR 0013's type scale,
 lengths from the system font, width classes, focus ring on our own
 focusables, contrast floors and platform-behaviour layer stay.
@@ -126,12 +127,20 @@ What Qt 6.11.2 does, read from its sources at the tag:
 5. **Linux: Fusion with the system palette.** The platform theme supplies
    the palette: in the AppImage the desktop portal's (colour scheme and
    contrast), with a distribution's own Qt the GTK or KDE theme's.
+   *Amended by ADR 0018:* under Plasma the AppImage's Qt uses qtbase's
+   built-in KDE theme, which reads `kdeglobals`, not the portal. That theme
+   leaves the accent at black, and `Theme` reads the highlight instead.
 6. **Platform symbols on macOS and Windows, original SVGs on Linux.** Tool
    buttons name an SF Symbol on macOS and a Segoe glyph on Windows
    (`Glyphs.qml`). On Linux they use SVG data URLs built from the same
    original paths. A nonempty `icon.source` wins over `icon.name`, so the
    freedesktop theme is not consulted for those buttons. The AppImage
    deploys Qt Svg's image plugin and library; no image asset is added.
+   *Amended by ADR 0018:* that precedence holds only for the platform icon
+   engine. An icon-theme file for `icon.name` wins over the source, so on
+   Linux the theme's icon shows where the theme has the name. The names
+   are now limited to the freedesktop standard actions, and the SVG is the
+   fallback.
 7. **One step at a time.** The switch comes first, with the shared
    controls pinned to Basic by an explicit import so nothing is drawn half
    native; each area's pull request then replaces its controls with stock

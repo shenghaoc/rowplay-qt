@@ -1343,6 +1343,9 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
      theme reports a contrast preference, so a high-contrast Plasma
      scheme does not engage the app's high-contrast variant. Not tried on
      a Plasma desktop.
+     *Corrected by ADR 0018 (measured on Fedora 44 Plasma):* the
+     AppImage's Qt uses qtbase's own KDE theme, not KDE's plugin, and its
+     accent is black; the app now reads the highlight there.
    - Still open: macOS under "Increase contrast" (the owner's switch),
      and Windows' contrast themes, focus ring, Snap layouts and text
      sizes (#81, where the round's checklist additions are posted).
@@ -1450,3 +1453,41 @@ requests on the round-2 stack's composed top:
       `qml/+windows/qtquickcontrols2.conf` names FluentWinUI3 for Windows
       alone, beside a base file that names no style.
     - No Rust and no packaging change. ADR 0015's decision 1 is amended.
+
+## Plasma integration (ADR 0018)
+
+The Linux desktop's own manners under KDE Plasma, through Qt and
+freedesktop interfaces. The portable AppImage keeps Fusion. The spec is
+`.kiro/specs/kde-plasma-integration/`. Probes began on Debian 13
+(Plasma 6.3.6), which was abandoned because the machine was unstable.
+Fedora 44 KDE Plasma (Plasma 6.6.4, KF 6.25, Wayland, Intel UHD 630) is the
+native test host.
+
+- Baseline on Fedora, `main` before the change, natively on Wayland with
+  hardware GL: the quick gate walk passed in 32.8 s with 14 captures, and
+  the full walk, phase shots and close-ups included, in 118.2 s with 70
+  captures; the machine stayed healthy.
+  - The baseline AppImage, built in `ubuntu:24.04` as the release runner
+    builds it, is 69,532,152 bytes. It holds no KDE, Kirigami or host Qt
+    file; its one platform-theme plugin is the desktop portal's.
+- Findings, and what changed:
+  - **Identity:** KWin recorded the window as `rowplay-qt`, a desktop
+    entry that does not exist. `rowplay-app` now names
+    `io.github.shenghaoc.rowplay` at start-up (cxx-qt-lib's
+    `setDesktopFileName`; qt-bridges-notes #23).
+  - **Accent:** qtbase's KDE theme leaves `QPalette::Accent` black, and
+    `Theme` took the black. `Theme.resolveAccent` now reads an accent that
+    is one of Qt's defaults as unset, and uses the highlight. The gate
+    checks the rule on fixed palettes and on the palette it runs under.
+  - **Icons:** a theme file for `icon.name` wins over `icon.source`, which
+    ADR 0015 had backwards. The Linux names are now the freedesktop
+    standard actions only; a full-colour category icon had turned the
+    Settings button into a silhouette.
+  - **Contrast:** Plasma reports none to Qt 6.11.2; documented, not
+    guessed.
+  - **Services and menus:** the Secret Service (ksecretd) round trip
+    passed; no portal, KIO, notification or global-menu work is needed.
+- Local packaging on a Fedora 44 host produces a broken AppImage.
+  linuxdeploy's pinned tools corrupt RELR-packed system libraries, and
+  `NO_STRIP=1` does not help. Package comparisons are built in
+  `ubuntu:24.04` (`tools/package/linux.sh`'s header).

@@ -18,7 +18,7 @@ rowplay-viewmodel.workspace = true
 qtbridge = { workspace = true, features = ["serde_json"] }
 # Direct, not through qtbridge's re-export: the desktop identity
 # (`QGuiApplication::setDesktopFileName`) is not on qtbridge's `QApp`
-# (ADR 0018, qt-bridges-notes #22). Linux only in use; declared for every
+# (ADR 0018, qt-bridges-notes #23). Linux only in use; declared for every
 # target because the crate already links it everywhere through qtbridge.
 cxx-qt-lib.workspace = true
 serde_json.workspace = true
