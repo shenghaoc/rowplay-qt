@@ -18,6 +18,13 @@ use std::process::ExitCode;
 
 use qtbridge::QApp;
 
+/// The freedesktop application ID: the desktop entry's file name without
+/// `.desktop`, the AppStream component ID and the macOS bundle identifier
+/// (`packaging/`). ADR 0018. Read at run time on Linux only; the tests pin
+/// it to `packaging/` on every platform.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+const APP_ID: &str = "io.github.shenghaoc.rowplay";
+
 /// The `qml/` tree, compiled to a binary Qt resource by `build.rs`.
 static RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowplay.rcc"));
 /// The `i18n/` catalogues, compiled by `build.rs` with `lrelease` to
@@ -35,9 +42,24 @@ static REPLAY_RESOURCES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/rowpl
 static ENVIRONMENT_RESOURCES: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/rowplay_environments.rcc"));
 
+/// Names the desktop entry that launches this process (ADR 0018). Without it
+/// Qt falls back to the executable's name: the Wayland `app_id` and X11's
+/// `_KDE_NET_WM_DESKTOP_FILE` / `_GTK_APPLICATION_ID` read `rowplay-qt`
+/// (`rowplay-app` under Cargo), which names no desktop entry, so a task
+/// manager or dock has to guess which launcher, icon and pin a window
+/// belongs to. Qt reads the name when it creates a window, so it is set
+/// before any QML loads. Linux only: macOS takes the identity from the
+/// bundle's `Info.plist` and Windows from the executable, and neither
+/// platform reads this value.
+fn set_desktop_identity() {
+    #[cfg(target_os = "linux")]
+    cxx_qt_lib::QGuiApplication::set_desktop_file_name(&cxx_qt_lib::QString::from(APP_ID));
+}
+
 fn main() -> ExitCode {
     let mut app = QApp::new();
     app.application_name("rowplay-qt");
+    set_desktop_identity();
     // The registered data must outlive the application: a `static` guarantees that.
     assert!(
         qtbridge::qresource::register_bytes(RESOURCES),
@@ -78,4 +100,32 @@ fn main() -> ExitCode {
         .load_qml_from_file(root)
         .run();
     ExitCode::from(u8::try_from(code.clamp(0, 255)).unwrap_or(1))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::APP_ID;
+
+    fn packaging(path: &str) -> String {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../packaging/");
+        std::fs::read_to_string(format!("{root}{path}"))
+            .unwrap_or_else(|error| panic!("read packaging/{path}: {error}"))
+    }
+
+    /// The name Qt hands the window system must name the desktop entry the
+    /// AppImage ships, the AppStream component and the macOS bundle.
+    #[test]
+    fn the_desktop_identity_matches_the_packaging() {
+        let desktop = packaging(&format!("linux/{APP_ID}.desktop"));
+        assert!(
+            desktop.lines().any(|line| line == format!("Icon={APP_ID}")),
+            "the desktop entry's icon is not {APP_ID}"
+        );
+        let metainfo = packaging(&format!("linux/{APP_ID}.metainfo.xml"));
+        assert!(metainfo.contains(&format!("<id>{APP_ID}</id>")));
+        assert!(metainfo.contains(&format!(
+            "<launchable type=\"desktop-id\">{APP_ID}.desktop</launchable>"
+        )));
+        assert!(packaging("macos/Info.plist").contains(&format!("<string>{APP_ID}</string>")));
+    }
 }

@@ -1464,6 +1464,7 @@ name = "rowplay-app"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "cxx-qt-lib",
  "percent-encoding",
  "qtbridge",
  "rowplay-core",
