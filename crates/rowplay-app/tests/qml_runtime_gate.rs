@@ -273,6 +273,15 @@ fn repo_root() -> PathBuf {
         .expect("repo root")
 }
 
+/// `tests/qml/GateKeys.qml` as the `file:` URL the gate's `Loader` takes.
+/// `CARGO_MANIFEST_DIR` is absolute already; `canonicalize` would add
+/// Windows' `\\?\` prefix, which is no URL.
+fn gate_keys_url() -> String {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/qml/GateKeys.qml");
+    let path = path.to_string_lossy().replace('\\', "/");
+    format!("file:///{}", path.trim_start_matches('/'))
+}
+
 /// Strips `//` line comments and `/* … */` blocks so commented-out examples
 /// cannot produce false positives.
 fn strip_comments(source: &str) -> String {
@@ -412,6 +421,9 @@ fn shell_walk_produces_no_qml_runtime_errors() {
             std::env::var_os("QT_QPA_PLATFORM").unwrap_or_else(|| "offscreen".into()),
         )
         .env("LANG", "C.UTF-8")
+        // The date fields are driven by real key events (issue #143) from a
+        // QtTest helper that stays out of the app's QML module.
+        .env("ROWPLAY_GATE_KEYS_QML", gate_keys_url())
         // The member checklist is scanned from qml/ right here, so a property
         // reference added to any screen is probed on the next gate run without
         // anybody maintaining a hand-written list.
@@ -552,6 +564,43 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate replay reopened: screen 3 block 0"),
         "Replay must open again after settings closed it\n\napp log:\n{}",
         common::gate_log_lines(&combined)
+    );
+
+    // Issue #143: the range typed into the date fields and committed with
+    // Tab. Each Tab emits editingFinished, whose setDateRange resets the
+    // list model while the view re-enters roleNames(); a release build
+    // aborted there. The list must then show exactly the filtered rows.
+    let tab_line = combined
+        .lines()
+        .find_map(|line| {
+            line.split_once("gate date range via Tab: ")
+                .map(|(_, rest)| rest)
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "the date range Tab step did not run\n\napp log:\n{}",
+                common::gate_log_lines(&combined)
+            )
+        });
+    let fields: Vec<&str> = tab_line.split_whitespace().collect();
+    let count = |label: &str| -> i64 {
+        fields
+            .iter()
+            .position(|field| *field == label)
+            .and_then(|at| fields.get(at + 1))
+            .and_then(|value| value.parse().ok())
+            .unwrap_or_else(|| panic!("no {label} count in \"{tab_line}\""))
+    };
+    assert!(
+        tab_line.starts_with("focus moved | range 2026-05-20 2026-05-31 |"),
+        "Tab did not move the focus to the To field, or the typed range did \
+         not reach Library: \"{tab_line}\""
+    );
+    let (rows, total, view) = (count("rows"), count("of"), count("view"));
+    assert!(
+        rows > 0 && rows < total && view == rows,
+        "the typed range must filter some rows, and the list must show them \
+         after the reset: \"{tab_line}\""
     );
 
     // A date the range refuses marks its own field, and the timezone

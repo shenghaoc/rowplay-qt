@@ -746,6 +746,15 @@ ApplicationWindow {
         }
     }
 
+    // The gate's keyboard (issue #143): QtTest key events from a helper
+    // outside this module (tests/qml/GateKeys.qml), loaded only when the
+    // gate test names it, so the app's own QML never imports QtTest.
+    Loader {
+        id: gateKeys
+        active: root.gateMode && Settings.gateKeysUrl !== ""
+        source: Settings.gateKeysUrl
+    }
+
     // Safety-net poll for the worker thread's cross-thread pokes: while a
     // sync runs, drain the event pump from a timer too (qt-bridges-notes).
     Timer {
@@ -1272,9 +1281,26 @@ ApplicationWindow {
                 }
                 break
             case 44: Library.toggleSort(3); break        // pace ascending
-            // The date range through the sidebar's fields: a range, a
+            // The date range through the sidebar's fields: a range typed
+            // and committed with Tab (real key events, issue #143), a
             // refused From (marked on that field alone), then cleared.
-            case 45: sidebarColumn.enterDateRange("2024-01-01", "2024-12-31"); break
+            case 45:
+                if (gateKeys.item) {
+                    // The second Tab carries the focus on into the list;
+                    // give it back so later captures show no focus ring.
+                    const focused = root.activeFocusItem
+                    console.log("gate date range via Tab:",
+                                sidebarColumn.typeDateRange(gateKeys.item,
+                                                            "2026-05-20", "2026-05-31"))
+                    if (focused)
+                        focused.forceActiveFocus()
+                    else
+                        root.contentItem.forceActiveFocus()
+                } else {
+                    console.log("gate date range via Tab: keys unavailable")
+                    sidebarColumn.enterDateRange("2026-05-20", "2026-05-31")
+                }
+                break
             case 46:
                 sidebarColumn.enterDateRange("nope", "")
                 console.log("gate date range: from",
