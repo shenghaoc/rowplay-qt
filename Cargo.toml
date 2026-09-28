@@ -106,15 +106,10 @@ manual_midpoint = "allow"
 # Keep the existing port structure during the qtbridge API migration.
 collapsible_if = "allow"
 
-# qtbridge-interfaces 0.3.0 is built without optimisation in release builds
-# (issue #143, docs/qt-bridges-notes.md entry 22). Optimised builds can reach
-# QListModel's role_names fallback borrow during model-reset re-entry instead
-# of consuming the intended mutable-borrow handoff, then abort at the CXX FFI
-# boundary. The exact reason that handoff is unavailable is still under
-# investigation. opt-level=0 empirically contains the abort in the tested
-# configurations; it is a temporary mitigation pending independent
-# verification of the minimal reproducer and a qtbridge-only fix. The
-# workspace crates and every other dependency keep full optimisation, and
-# the release-profile gate in ci.yml guards the observed regression.
+# Temporary containment for qtbridge's model-proxy aliasing/soundness defect
+# (issue #143, docs/qt-bridges-notes.md entry 22). O0 contains its optimisation
+# exposure; it does not repair the exclusive proxy receiver across re-entry.
+# The release quick gate guards this workaround. Remove the override when a
+# fixed qtbridge release is adopted and the gates pass without it.
 [profile.release.package.qtbridge-interfaces]
 opt-level = 0
