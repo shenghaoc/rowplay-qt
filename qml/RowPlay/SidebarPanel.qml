@@ -56,6 +56,28 @@ Pane {
         applyDateRange()
     }
 
+    /// The runtime-error gate types a date range as a person does (issue
+    /// #143): each field focused, typed into with `keys` (real key events)
+    /// and left with Tab, so editingFinished and the Library model reset
+    /// run from key delivery. Returns what the gate asserts: where Tab took
+    /// the focus, the range Library holds and the rows the list shows.
+    function typeDateRange(keys, from, to) {
+        dateFromField.clear()
+        dateToField.clear()
+        dateFromField.forceActiveFocus(Qt.TabFocusReason)
+        keys.type(from)
+        keys.tab()
+        const tabbedToTo = dateToField.activeFocus
+        if (!tabbedToTo)
+            dateToField.forceActiveFocus(Qt.TabFocusReason)
+        keys.type(to)
+        keys.tab()
+        return "focus " + (tabbedToTo ? "moved" : "stayed")
+                + " | range " + Library.dateFrom + " " + Library.dateTo
+                + " | rows " + Library.filteredCount + " of " + Library.totalCount
+                + " | view " + listView.count
+    }
+
     /// The runtime-error gate opens the sort menu once.
     function showSortMenu(open) {
         if (open) {

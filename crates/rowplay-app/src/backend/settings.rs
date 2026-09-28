@@ -43,6 +43,10 @@ pub struct SettingsBackend {
     /// The quick gate profile (`ROWPLAY_GATE_PROFILE=quick`): the walk stops
     /// after the first replay capture. The default is the full walk.
     gate_quick: bool,
+    /// URL of the gate's keyboard helper (`ROWPLAY_GATE_KEYS_QML`, set by
+    /// `tests/qml_runtime_gate.rs`): QtTest key events, kept out of the app's
+    /// QML module (issue #143). Empty outside the gate.
+    gate_keys_url: String,
     /// Replay quality tier index (0 Low, 1 Medium, 2 High, 3 Ultra).
     quality_index: i32,
     /// Quality tier labels for the Settings picker.
@@ -153,6 +157,7 @@ impl Default for SettingsBackend {
                 .unwrap_or_default(),
             gate_quick: crate::backend::test_env("ROWPLAY_GATE_PROFILE")
                 .is_some_and(|profile| profile == "quick"),
+            gate_keys_url: crate::backend::test_env("ROWPLAY_GATE_KEYS_QML").unwrap_or_default(),
             quality_index: i32::from(prefs.replay_quality.unwrap_or(1)),
             quality_labels: vec![
                 "Low".to_owned(),
@@ -251,6 +256,9 @@ impl SettingsBackend {
     // Quick gate profile: shell, languages, member check, mock syncs and one
     // replay load (AGENTS.md, "Gate profiles").
     qproperty!("gateQuick", Member = gate_quick, Constant);
+    // The gate's keyboard helper (tests/qml/GateKeys.qml): real key events
+    // for the date fields' Tab path (issue #143).
+    qproperty!("gateKeysUrl", Member = gate_keys_url, Constant);
     // Replay quality: 0 Low, 1 Medium, 2 High, 3 Ultra.
     qproperty!(
         "qualityIndex",

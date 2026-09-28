@@ -421,6 +421,36 @@ jobs:
             artifacts/*-compact.png
             artifacts/replay-gap-compact-*.png
           if-no-files-found: error
+      # The quick walk again, in a release build (issue #143). qtbridge
+      # 0.3.0's model notifications aborted optimised builds on the first
+      # Library reset (a language switch, or Tab out of a date field) while
+      # every debug walk passed: the defect exists only after LLVM's
+      # optimisations (docs/qt-bridges-notes.md, entry 22). Debug assertions
+      # stay on because they keep the gate's hooks (`backend::test_env`);
+      # everything else is the release profile the packages ship. Linux
+      # only: it reproduces without a desktop, and the store was removed by
+      # a target-independent LLVM pass. It runs last, so a failure
+      # here cannot hold back the debug walk's uploads.
+      - name: Release-profile runtime gate (quick walk, Xvfb + Mesa)
+        if: env.RUN_APP != 'false' && runner.os == 'Linux'
+        env:
+          ROWPLAY_GATE_PROFILE: quick
+          ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts-release
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          LANG: C.UTF-8
+        run: >-
+          xvfb-run -a -s "-screen 0 1280x800x24"
+          cargo test --release --config profile.release.debug-assertions=true
+          -p rowplay-app --test qml_runtime_gate -- --nocapture
+      - name: Upload the release-profile gate log
+        if: always() && env.RUN_APP != 'false' && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: gate-log-release
+          path: artifacts-release/gate-log.txt
+          if-no-files-found: ignore
 
   # The SkiErg wrap windows (steps 529 / 1377) and the guard conversion that
   # exposed them: issue #40 reduced the coupling ~11x, so the guard is green
