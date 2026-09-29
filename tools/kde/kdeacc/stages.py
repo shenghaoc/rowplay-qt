@@ -329,10 +329,10 @@ def stage_generic(ctx):
         merged = {k: v for k, v in run_env.items()}
         for var in scrubbed_vars():
             merged[var] = None
-        done = ctx.runner.in_tree(tree, [*XVFB, "cargo", "test", "-p", "rowplay-app", "--", "--nocapture"], env=merged,
+        done = ctx.runner.in_tree(tree, [*XVFB, "cargo", "test", "-p", "rowplay-app", "--test", "qml_runtime_gate", "--", "--nocapture"], env=merged,
                                   timeout=1800, tag=f"generic-{label}", logfile=d / "test-output.txt")
         log = (d / "gate-log.txt").read_text(errors="replace") if (d / "gate-log.txt").exists() else ""
-        r = gates.parse_gate(f"{label}-xvfb", "cargo test -p rowplay-app (CI's Linux recipe, desktop variables scrubbed)", done.rc, done.seconds,
+        r = gates.parse_gate(f"{label}-xvfb", "cargo test -p rowplay-app --test qml_runtime_gate (CI's Linux recipe, desktop variables scrubbed)", done.rc, done.seconds,
                              done.text, log, captures=len(list(d.glob("*.png"))), output_file=f"generic/{label}-xvfb/test-output.txt")
         problems = gates.gate_problems(r, hardware=False, expect_full=True, baseline=(label == "main"))
         theme = re.search(r'Successfully created platform theme "([^"]+)"', log)
@@ -536,7 +536,7 @@ def stage_identity(ctx):
            "not achievable without a privileged or interactive channel: synthesizer tools installed: "
            f"{survey['synthesizer_tools_installed'] or 'none'}; /dev/uinput writable without privilege: {survey['uinput_writable_without_privilege']}; "
            "the RemoteDesktop portal is present but needs a consent dialog every session. Replaced by: the gate's real QtTest key events on the "
-           "same release code path (native stage) plus AT-SPI focus and action driving of the exact AppImage (below)", **survey)
+           "same release code path (native stage) plus AT-SPI focus and action driving of the exact AppImage (below)", survey)
     launcher = out / "launch.sh"
     logs = out / "app-logs"
     logs.mkdir(exist_ok=True)

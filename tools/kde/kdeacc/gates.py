@@ -23,6 +23,7 @@ RENDERER_RE = re.compile(r"OpenGL VENDOR: (.+?) RENDERER: (.+?) VERSION: (.+)")
 STARVED_RE = re.compile(r"holds that ran out their tick bound: (\d+) \(steps ([^)]*)\)")
 ACCENT_RE = re.compile(r"accent: palette accent (#\w+), highlight (#\w+), resolved (#\w+)")
 KEYS_RE = re.compile(r"keyboard contract: (\d+) lines, all ok, ended by (.+)")
+KEYS_SKIPPED_RE = re.compile(r"keyboard contract: skipped, no active window under (\w+)")
 SOFTWARE = ("llvmpipe", "softpipe", "swrast", "software rasterizer")
 # What must never appear in a healthy run's output. #143's abort, in every spelling.
 SIGNATURES = re.compile(
@@ -93,6 +94,9 @@ def parse_gate(name, command, exit_code, wall, output, gate_log, captures=0, out
         result.starved_holds = {"count": int(m.group(1)), "steps": m.group(2)}
     if m := KEYS_RE.search(output):
         result.keyboard = {"lines": int(m.group(1)), "ended_by": m.group(2).strip()}
+    elif m := KEYS_SKIPPED_RE.search(output):
+        # A display with no window manager never activates a window, and shortcuts fire only in one.
+        result.keyboard = {"lines": 0, "ended_by": f"skipped: no active window under {m.group(1)}", "skipped": True}
     result.signatures = sorted({m.group(0) for m in SIGNATURES.finditer(output + "\n" + gate_log)})
     result.warnings = dict(find_warnings(gate_log).most_common(10))
     return result
@@ -114,6 +118,9 @@ def gate_problems(result, hardware=False, expect_full=False, baseline=False):
         problems.append("no `gate walk` timing line: the walk did not finish")
     if not baseline and not result.keyboard:
         problems.append("no keyboard-contract summary")
+    if hardware and result.keyboard.get("skipped"):
+        problems.append("the keyboard contract was skipped on a native run: the gate window was not active "
+                        "(a compositor that did not raise it); a skip is accepted only on a display with no window manager")
     if not baseline and not result.accent:
         problems.append("no accent-rule summary")
     if hardware and result.starved_holds:

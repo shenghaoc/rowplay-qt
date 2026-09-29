@@ -121,6 +121,15 @@ class GateParsing(unittest.TestCase):
         self.assertTrue(any("exit status 101" in p for p in gates.gate_problems(self.parsed(rc=101), hardware=True)))
         self.assertTrue(any("captures" in p for p in gates.gate_problems(self.parsed(captures=14), hardware=True, expect_full=True)))
 
+    def test_a_skipped_shortcut_contract_is_fine_without_a_window_manager_and_a_failure_natively(self):
+        out = GATE_OUT.replace("keyboard contract: 20 lines, all ok, ended by Ctrl+Q",
+                               "keyboard contract: skipped, no active window under xcb (no window manager)")
+        r = self.parsed(out=out)
+        self.assertEqual(r.keyboard["skipped"], True)
+        self.assertEqual(gates.gate_problems(r, hardware=False, expect_full=True), [])      # generic Xvfb run
+        problems = gates.gate_problems(r, hardware=True, expect_full=True)                # a native run
+        self.assertTrue(any("skipped on a native run" in p for p in problems), problems)
+
     def test_a_starved_window_is_named_as_the_reason_not_left_to_look_like_an_app_bug(self):
         out = GATE_OUT + "  holds that ran out their tick bound: 11 (steps 2, 4, 13, 49)\n"
         r = self.parsed(out=out)
