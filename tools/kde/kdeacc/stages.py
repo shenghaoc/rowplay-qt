@@ -39,6 +39,7 @@ class Ctx:
     host: dict = field(default_factory=dict)
     run_started: float = 0.0
     inhibitor: object = None
+    launched_pids: set = field(default_factory=set)   # processes this run started; the only ones it may end
 
     def sub(self, name):
         path = self.out / name
@@ -88,6 +89,8 @@ def stage_probe(ctx):
     st.passed("the bundled Qt's platform theme and icon theme", f"theme names {info['platformThemeNames']}, created "
               f"{info['platformThemeCreated']!r}, icon theme {info['iconTheme']!r}, platform {info['platform']}", **{
                   k: info[k] for k in ("platform", "platformThemeNames", "platformThemeCreated", "iconTheme")})
+    st.expect("the bundled Qt selected its KDE platform theme (this is a Plasma acceptance run)", info["platformThemeCreated"] == "kde",
+              "platform theme 'kde' created", f"platform theme {info['platformThemeCreated']!r} was created: these are not Plasma results")
     st.passed("the palette Qt reports", ", ".join(f"{k} {info[k]}" for k in ("window", "windowText", "base", "button", "highlight", "accent"))
               + f"; scheme {info['colorSchemeName']}; font {info['fontFamily']} {info['fontPointSize']} pt", palette=info)
     ok, story = qtprobe.accent_condition(info)
@@ -505,6 +508,20 @@ class DesktopEntry:
         return all((p.read_bytes() if p.exists() else None) == d for p, d in self.saved.items())
 
 
+def alive_pids(pids):
+    """The subset of pids that are running processes."""
+    out = []
+    for pid in sorted(pids):
+        try:
+            os.kill(pid, 0)
+            out.append(pid)
+        except ProcessLookupError:
+            pass
+        except PermissionError:  # not ours to signal, but it exists
+            out.append(pid)
+    return out
+
+
 def pinned(app_id):
     text = (Path.home() / ".config/plasma-org.kde.plasma.desktop-appletsrc")
     return text.exists() and f"applications:{app_id}.desktop" in text.read_text(errors="replace")
@@ -537,6 +554,7 @@ def stage_identity(ctx):
         st.failed("no RowPlay window is open before the run", "close RowPlay first (or KWin could not be asked)")
         return st
     app_id = ctx.app_id()
+    launched = ctx.launched_pids   # the only processes this stage may ever end: the windows KWin reported
     survey = key_injection_survey(ctx.runner)
     (out / "key-injection-survey.json").write_text(json.dumps(survey, indent=2) + "\n")
     st.add("key-press injection into the exact AppImage", Status.UNAVAILABLE,
@@ -559,6 +577,7 @@ def stage_identity(ctx):
         try:
             launch()
             first = kwin.wait_for_windows(ctx.runner, 1)
+            launched.update(w["pid"] for w in first or [])
             ok = first is not None and len(first) == 1
             st.expect("launching once through the desktop entry opens exactly one RowPlay window", ok, f"{first}", f"KWin reports {first}")
             if ok:
@@ -581,6 +600,7 @@ def stage_identity(ctx):
                 st.expect("the app survived the AT-SPI walk", kwin.rowplay_windows(ctx.runner) not in (None, []), "the window is still there", "the window is gone")
                 launch()
                 two = kwin.wait_for_windows(ctx.runner, 2)
+                launched.update(w["pid"] for w in two or [])
                 ok2 = two is not None and len(two) == 2
                 st.expect("a second launch opens a second window", ok2, f"{len(two or [])} windows", f"KWin reports {two}")
                 if ok2:
@@ -594,10 +614,13 @@ def stage_identity(ctx):
             gone = kwin.wait_for_windows(ctx.runner, 0, timeout=30)
             st.expect("closing the windows through KWin ends every RowPlay window", gone == [], "no window left", f"KWin still lists {gone}")
             time.sleep(3)
-            left = ctx.runner.run(["pgrep", "-x", "AppRun.wrapped"], env=host_env()).out.split()
-            for pid in left:  # never leave a helper behind
-                ctx.runner.run(["kill", pid], env=host_env())
-            st.expect("no RowPlay process remains after the windows close", not left, "none", f"processes {left} were still running (killed)")
+            # Only the PIDs KWin reported for the windows this run launched: another AppImage that
+            # shares the generic `AppRun.wrapped` name is never touched.
+            left = alive_pids(launched)
+            for pid in left:
+                ctx.runner.run(["kill", str(pid)], env=host_env())
+            st.expect("no RowPlay process this run launched remains after the windows close", not left, "none",
+                      f"processes {left} were still running (ended: they are the ones this run launched)")
         st.add("Task Manager pin / unpin", Status.MANUAL_OPTIONAL,
                f"not automated: the panel is the user's configuration. Currently pinned: {pinned(app_id)}. Visual confirmation stays an optional manual smoke.",
                {"currently_pinned": pinned(app_id)})
@@ -770,8 +793,11 @@ def stage_leftovers(ctx):
                   "no screen-locker activity in the journal since the run began",
                   f"the screen locker ran during the run ({len(locked)} journal lines; first: {first}): the idle inhibition did not hold",
                   inhibition_taken=ctx.inhibitor.cookie is not None or ctx.inhibitor.note == "")
-    pattern = r"AppRun\.wrapped|rowplay-app|rowplay-qt|kdeacc-probe|bin/qml .*probe|atspi_walk"
-    out = ctx.runner.run(["pgrep", "-af", pattern], env=host_env(), tag="leftovers").out
-    mine = [ln for ln in out.splitlines() if "pgrep" not in ln and "acceptance.py" not in ln]
+    # By executable name and by the PIDs this run launched: never the generic AppImage wrapper name,
+    # which another linuxdeploy-built application shares.
+    by_name = ctx.runner.run(["pgrep", "-a", "-x", "rowplay-app|rowplay-qt"], env=host_env(), tag="leftovers").out
+    by_name += ctx.runner.run(["pgrep", "-af", r"kdeacc-probe|bin/qml .*probe|atspi_walk"], env=host_env(), tag="leftovers").out
+    mine = [ln for ln in by_name.splitlines() if "pgrep" not in ln and "acceptance.py" not in ln]
+    mine += [f"{pid} (launched by this run)" for pid in alive_pids(ctx.launched_pids)]
     st.expect("no helper or RowPlay process remains", not mine, "none", "; ".join(mine[:5]))
     return st

@@ -266,8 +266,33 @@ class Leftovers(unittest.TestCase):
         self.assertIn("kscreenlocker_greet[1]: started", bad[0].detail)
 
     def test_a_left_behind_process_fails(self):
-        st = stages.stage_leftovers(self.ctx([], pgrep="4242 /tmp/x/AppRun.wrapped\n"))
-        self.assertTrue(any(c.status == Status.FAIL and "AppRun.wrapped" in c.detail for c in st.checks))
+        st = stages.stage_leftovers(self.ctx([], pgrep="4242 rowplay-app\n"))
+        self.assertTrue(any(c.status == Status.FAIL and "rowplay-app" in c.detail for c in st.checks))
+
+    def test_only_a_pid_this_run_launched_counts_and_an_unrelated_apprun_never_does(self):
+        import os
+        c = self.ctx([])
+        c.launched_pids = {2 ** 22 + 12345}      # long gone
+        self.assertEqual([x.status for x in stages.stage_leftovers(c).checks], [Status.PASS, Status.PASS])
+        c = self.ctx([])
+        c.launched_pids = {os.getpid()}          # alive: this test process stands in for a launched app
+        bad = [x for x in stages.stage_leftovers(c).checks if x.status == Status.FAIL]
+        self.assertEqual(len(bad), 1)
+        self.assertIn("launched by this run", bad[0].detail)
+
+    def test_alive_pids_lists_only_running_processes(self):
+        import os
+        self.assertEqual(stages.alive_pids({os.getpid(), 2 ** 22 + 54321}), [os.getpid()])
+        self.assertEqual(stages.alive_pids(set()), [])
+
+    def test_no_pgrep_or_kill_in_the_harness_uses_the_generic_wrapper_name(self):
+        """Another linuxdeploy-built AppImage shares `AppRun.wrapped`: matching it by name could end someone's application."""
+        import re
+        for path in (Path(stages.__file__), Path(stages.__file__).with_name("kwin.py")):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                if line.lstrip().startswith("#"):
+                    continue
+                self.assertFalse(re.search(r"(pgrep|pkill|killall).*AppRun", line), f"{path.name}:{number}: {line.strip()}")
 
 
 class Cli(unittest.TestCase):

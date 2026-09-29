@@ -112,4 +112,15 @@ def host_gaps(host):
         gaps.append("fedora")
     if host["session"].get("type") != "wayland":
         gaps.append("session is not Wayland")
+    if not is_plasma_session(host["session"]):
+        # Plasma's packages can be installed under GNOME or Sway: every version above would
+        # resolve and the run would present another desktop's results as native Plasma evidence.
+        gaps.append(f"session is not KDE Plasma (desktop {host['session'].get('desktop')!r}, "
+                    f"XDG_CURRENT_DESKTOP {host['session'].get('xdg_current_desktop')!r})")
     return gaps
+
+
+def is_plasma_session(session):
+    """Whether the login session is a KDE Plasma one: logind's Desktop or XDG_CURRENT_DESKTOP names KDE."""
+    names = [session.get("desktop") or "", session.get("xdg_current_desktop") or ""]
+    return any("KDE" in part.upper().split(":") for name in names for part in [name])

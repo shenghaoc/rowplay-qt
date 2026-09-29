@@ -31,7 +31,7 @@ class HostParsing(unittest.TestCase):
         self.assertEqual(host.parse_session("Type=wayland\nDesktop=KDE\n"), {"Type": "wayland", "Desktop": "KDE"})
 
     def test_gaps_are_named(self):
-        full = {"fedora": {"version_id": "44"}, "session": {"type": "wayland"}}
+        full = {"fedora": {"version_id": "44"}, "session": {"type": "wayland", "desktop": "KDE", "xdg_current_desktop": "KDE"}}
         for k in ("kernel", "plasma", "kwin", "kde_frameworks", "host_qt", "bundled_qt", "mesa", "gpu_renderer",
                   "xdg_desktop_portal", "xdg_desktop_portal_kde"):
             full[k] = "x"
@@ -39,6 +39,31 @@ class HostParsing(unittest.TestCase):
         full["plasma"] = None
         full["session"]["type"] = "x11"
         self.assertEqual(host.host_gaps(full), ["plasma", "session is not Wayland"])
+
+
+class PlasmaSessionGate(unittest.TestCase):
+    """Plasma's packages can be installed under GNOME or Sway: only a KDE session is Plasma evidence."""
+
+    def host(self, desktop, xdg, type_="wayland"):
+        h = {"fedora": {"version_id": "44"}, "session": {"type": type_, "desktop": desktop, "xdg_current_desktop": xdg}}
+        for k in ("kernel", "plasma", "kwin", "kde_frameworks", "host_qt", "bundled_qt", "mesa", "gpu_renderer",
+                  "xdg_desktop_portal", "xdg_desktop_portal_kde"):
+            h[k] = "x"
+        return h
+
+    def test_kde_sessions_are_plasma(self):
+        self.assertEqual(host.host_gaps(self.host("KDE", "KDE")), [])
+        self.assertEqual(host.host_gaps(self.host(None, "KDE")), [])
+        self.assertEqual(host.host_gaps(self.host("", "plasma:KDE")), [])
+
+    def test_gnome_sway_and_unknown_sessions_are_not(self):
+        for desktop, xdg in (("gnome", "GNOME"), ("sway", "sway"), (None, None), ("", "ubuntu:GNOME")):
+            gaps = host.host_gaps(self.host(desktop, xdg))
+            self.assertEqual(len(gaps), 1, (desktop, xdg, gaps))
+            self.assertIn("not KDE Plasma", gaps[0])
+
+    def test_an_x11_plasma_session_is_still_not_wayland(self):
+        self.assertEqual(host.host_gaps(self.host("KDE", "KDE", type_="x11")), ["session is not Wayland"])
 
 
 class PlasmaParsing(unittest.TestCase):
