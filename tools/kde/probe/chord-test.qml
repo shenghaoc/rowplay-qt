@@ -22,6 +22,11 @@ Item {
             ["⌘[", Qt.Key_BracketLeft, C],         // Back on macOS
             ["⌃⌘S", Qt.Key_S, M | C],         // sidebar on macOS (Control is Qt's Meta)
             ["⌘⇧F", Qt.Key_F, C | S],
+            ["⌥←", Qt.Key_Left, A],                     // Back on a Mac under the null theme (Option+Left arrow)
+            ["⌘→", Qt.Key_Right, C],
+            ["⌘⌫", Qt.Key_Backspace, C],
+            ["⎋", Qt.Key_Escape, 0],
+            ["⇧⇥", Qt.Key_Tab, S],
             ["Ctrl+Alt+Del", Qt.Key_Delete, C | A],
             ["Escape", Qt.Key_Escape, 0]
         ]

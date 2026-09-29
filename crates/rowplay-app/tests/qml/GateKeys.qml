@@ -68,7 +68,12 @@ Item {
                         "Esc": Qt.Key_Escape, "Escape": Qt.Key_Escape, "Tab": Qt.Key_Tab, "Space": Qt.Key_Space,
                         "Backspace": Qt.Key_Backspace, "Del": Qt.Key_Delete, "Delete": Qt.Key_Delete,
                         "Return": Qt.Key_Return, "Enter": Qt.Key_Enter, "Home": Qt.Key_Home, "End": Qt.Key_End,
-                        "PgUp": Qt.Key_PageUp, "PgDown": Qt.Key_PageDown }
+                        "PgUp": Qt.Key_PageUp, "PgDown": Qt.Key_PageDown,
+                        // macOS prints these keys as symbols: the arrows, Escape, Delete, Tab, Return...
+                        "\u2190": Qt.Key_Left, "\u2192": Qt.Key_Right, "\u2191": Qt.Key_Up, "\u2193": Qt.Key_Down,
+                        "\u238b": Qt.Key_Escape, "\u232b": Qt.Key_Backspace, "\u2326": Qt.Key_Delete,
+                        "\u21a9": Qt.Key_Return, "\u2324": Qt.Key_Enter, "\u21e5": Qt.Key_Tab,
+                        "\u21de": Qt.Key_PageUp, "\u21df": Qt.Key_PageDown, "\u2196": Qt.Key_Home, "\u2198": Qt.Key_End }
         if (named[name] !== undefined)
             return named[name]
         const f = /^F([0-9]{1,2})$/.exec(name)
