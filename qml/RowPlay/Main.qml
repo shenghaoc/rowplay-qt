@@ -1587,9 +1587,16 @@ ApplicationWindow {
                     // The second Tab carries the focus on into the list;
                     // give it back so later captures show no focus ring.
                     const focused = root.activeFocusItem
+                    // At large text the sidebar is a modal drawer, and its date fields are
+                    // there only while it is open: open it for the typing, close it after.
+                    const openedDrawer = root.sidebarInDrawer && !sidebarDrawer.shown
+                    if (openedDrawer)
+                        sidebarDrawer.open()
                     console.log("gate date range via Tab:",
                                 sidebarColumn.typeDateRange(gateKeys.item,
                                                             "2026-05-20", "2026-05-31"))
+                    if (openedDrawer)
+                        sidebarDrawer.close()
                     if (focused)
                         focused.forceActiveFocus()
                     else
