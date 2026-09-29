@@ -1001,15 +1001,21 @@ ApplicationWindow {
             console.log("gate keys: unavailable")
             return
         }
+        // Shortcuts fire only in the active window. A display with no window manager (Xvfb, the
+        // generic CI path) never activates one, and activating it just for the test would change
+        // how Fusion draws every capture (inactive selection colours), so the contract says it was
+        // skipped, and qml_runtime_gate.rs accepts that on xcb only. Wayland and the offscreen
+        // platform must have an active window: there a skip is a failure.
+        if (!root.active) {
+            console.log("gate keys: window not active, shortcut contract skipped")
+            root.gateKeyState = { skipped: true }
+            return
+        }
+        root.gateKey("the gate window is the active window", true, "")
         const search = Tr.t("workoutList.searchComments")
         const from = Tr.t("workoutList.dateFrom")
         const to = Tr.t("workoutList.dateTo")
         root.gateKeyState = { focus: root.activeFocusItem, screen: root.screenIndex, sidebar: root.sidebarShown }
-
-        // Shortcuts and focus need the window to be the active one; a compositor that did not
-        // grant that (a window mapped behind another) makes every check below meaningless.
-        root.gateKey("the gate window is the active window", root.active,
-                     "the compositor has not made it active; the walk needs it frontmost")
 
         // Ctrl+F: the search field takes the keyboard.
         keys.press(Qt.Key_F, Qt.ControlModifier)
@@ -1054,6 +1060,9 @@ ApplicationWindow {
             return
         }
         const before = root.gateKeyState
+        if (before.skipped) {
+            return
+        }
         if (root.sidebarInDrawer) {
             root.gateKey("the sidebar drawer has finished closing", !sidebarDrawer.visible,
                          "it is still visible: its exit animation blocks the shortcuts behind it")
@@ -1114,6 +1123,10 @@ ApplicationWindow {
             console.log("gate keys: replay contract unavailable")
             return
         }
+        if (!root.active) {
+            console.log("gate keys: window not active, replay shortcut contract skipped")
+            return
+        }
         const playing = Replay.playing
         const progress = Replay.progress
         const speed = Replay.speedIndex
@@ -1165,19 +1178,19 @@ ApplicationWindow {
     }
 
     /// The walk's exit is a person's Ctrl+Q where the platform has that
-    /// chord (Linux under a desktop or Xvfb's generic theme). The offscreen
+    /// chord (Linux under a desktop or Xvfb's generic theme) and an active window. The offscreen
     /// platform and Windows define no Quit chord and macOS gives it to the
     /// application menu, so the walk exits directly there and says so. If
     /// the chord does not quit within three seconds the walk reports it and
     /// exits non-zero.
     function gateQuit() {
         gateTimer.running = false
-        if (gateKeys.item && quitShortcut.enabled && quitShortcut.nativeText.length > 0) {
+        if (gateKeys.item && root.active && quitShortcut.enabled && quitShortcut.nativeText.length > 0) {
             console.log("gate keys: Ctrl+Q sent", quitShortcut.nativeText)
             gateKeys.item.press(Qt.Key_Q, Qt.ControlModifier)
             gateQuitFallback.start()
         } else {
-            console.log("gate keys: no Quit chord on this platform")
+            console.log("gate keys: no Quit chord (the platform has none, or the window is not active)")
             Qt.exit(0)
         }
     }
@@ -1750,8 +1763,9 @@ ApplicationWindow {
             case 208:
                 // Back is Alt+Left (StandardKey.Back on Linux and Windows),
                 // sent as a real key event; the handler is called only where
-                // the helper is unavailable.
-                if (gateKeys.item)
+                // the helper is unavailable or the window is not active (no
+                // window manager: shortcuts do not fire).
+                if (gateKeys.item && root.active)
                     gateKeys.item.press(Qt.Key_Left, Qt.AltModifier)
                 else
                     root.goBack()
@@ -1765,7 +1779,7 @@ ApplicationWindow {
                 break
             case 209:
                 // Escape closes the replay route (a real key event).
-                if (gateKeys.item && Library.isReplayPresented) {
+                if (gateKeys.item && root.active && Library.isReplayPresented) {
                     gateKeys.item.press(Qt.Key_Escape)
                     root.gateKey("Esc closes the replay", !Library.isReplayPresented,
                                  "replay still presented")

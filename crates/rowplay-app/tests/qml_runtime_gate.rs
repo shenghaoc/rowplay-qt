@@ -233,6 +233,25 @@ fn assert_keyboard_contract(log: &str) {
         "the gate's key helper did not load, so no key was sent:\n{}",
         lines.join("\n")
     );
+    let platform = std::env::var("QT_QPA_PLATFORM").unwrap_or_default();
+    // Shortcuts fire only in the active window. A display with no window manager (Xvfb, CI's
+    // generic path) never activates one, so there the shortcut contract says it was skipped,
+    // and that is accepted on xcb only: under Wayland and offscreen the window is active, and a
+    // skip there is a failure (a compositor that did not raise it, not something to excuse).
+    let skipped = lines
+        .iter()
+        .any(|line| line.contains("gate keys: window not active, shortcut contract skipped"));
+    if skipped {
+        assert!(
+            platform.starts_with("xcb"),
+            "the gate window was not active under {platform}: the shortcut contract cannot run there:\n{}",
+            lines.join("\n")
+        );
+        println!(
+            "keyboard contract: skipped, no active window under {platform} (no window manager)"
+        );
+        return;
+    }
     for name in KEYBOARD_CONTRACT {
         let want = format!("gate keys: {name} ok");
         assert!(
@@ -276,12 +295,11 @@ fn assert_keyboard_contract(log: &str) {
         .any(|line| line.contains("gate keys: Ctrl+Q sent"));
     let absent = lines
         .iter()
-        .any(|line| line.contains("gate keys: no Quit chord on this platform"));
+        .any(|line| line.contains("gate keys: no Quit chord"));
     assert!(
         sent != absent,
         "the walk must end one way, sent={sent} absent={absent}"
     );
-    let platform = std::env::var("QT_QPA_PLATFORM").unwrap_or_default();
     if platform.starts_with("xcb") || platform.starts_with("wayland") {
         assert!(
             sent,
