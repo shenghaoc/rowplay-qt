@@ -38,7 +38,7 @@ use rowplay_viewmodel::replay::equipment::{
 };
 use rowplay_viewmodel::replay::frame;
 use rowplay_viewmodel::replay::grip::{
-    closure_options, collect_hand_chains, grip_frames, solve_grip_table, warped_cycle,
+    closure_options, collect_hand_chains, grip_frames, solve_grip_table_with_frame, warped_cycle,
 };
 use rowplay_viewmodel::replay::hud::{hud_bundle, hud_numbers, hud_strings, race_finished};
 use rowplay_viewmodel::replay::pose::{PoseSolver, clip_fraction, rig_targets};
@@ -204,15 +204,17 @@ impl Default for ReplayBackend {
             eprintln!("replay assets failed validation: {error_text}");
         }
 
+        let athlete = assets::embedded_athlete();
         let mut specs = Vec::new();
         for role in materials::ALL_ROLES {
             let spec = role.spec();
+            let authored = athlete.material_parameters.get(role.as_id());
             specs.push(serde_json::json!({
                 "id": role.as_id(),
                 "themeKey": spec.theme_key,
                 "venue": spec.venue,
-                "metalness": spec.metalness,
-                "roughness": spec.roughness,
+                "metalness": authored.map_or(f64::from(spec.metalness), |p| p.metalness),
+                "roughness": authored.map_or(f64::from(spec.roughness), |p| p.roughness),
                 "ghostOpacity": spec.ghost_opacity(role),
             }));
         }
@@ -240,7 +242,6 @@ impl Default for ReplayBackend {
         let anchors = build_anchors(0);
         let mirror_anchors = build_anchors(1);
 
-        let athlete = assets::embedded_athlete();
         let (solver, load_state, error_text) = match PoseSolver::new(&athlete) {
             Ok(solver) => (Some(solver), load_state, error_text),
             Err(error) if load_state != "error" => {
@@ -1027,11 +1028,16 @@ impl ReplayBackend {
                 continue;
             };
             let options = closure_options(sport, side);
-            let table = solve_grip_table(&chains, &options, &|helper| {
-                self.athlete
-                    .joint_index(helper)
-                    .map(|index| self.athlete.joints[index].rotation)
-            });
+            let table = solve_grip_table_with_frame(
+                &chains,
+                &options,
+                &|helper| {
+                    self.athlete
+                        .joint_index(helper)
+                        .map(|index| self.athlete.joints[index].rotation)
+                },
+                self.athlete.hand_frame(side),
+            );
             for (helper, rotation) in &table.poses {
                 poses.insert(
                     helper.clone(),

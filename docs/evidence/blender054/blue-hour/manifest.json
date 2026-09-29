@@ -1,0 +1,143 @@
+{
+  "schema": "rowplay.athlete-v5.native.v1",
+  "tooling": {
+    "commit": "5f7f0c6977ab2fa71912758bfd63a1f1bfdf3145",
+    "instruments": {
+      "tools/blender/capture_athlete_v5.py": "a8e4902d2591defb43f94c01933ef5bc60bd78335de8b33ec0e9f7b635a9bdf7",
+      "tools/blender/capture.py": "ecd46e21c22f85821a6bca0c1b8740c231eb93368efa3ebd9aacdc6f8c29da3e",
+      "tools/blender/capture_contact.py": "09e6b0358621dad3ba7b06d49ddad1233cdecfe2e3643486dc74f31369adc504",
+      "tools/blender/capture_athlete.py": "d5f547b1f7efb66332dcde683966fdc09453d04a2ce2c287456ec910b91bab64",
+      "tools/blender/athlete_evidence.py": "0ef76fe99f2a53d2904a4b285439aea11169ee5b669c2580009b35d64f796ed8",
+      "tools/blender/contact_skin.py": "9fcb6ceb5afa97dbfd0f644dffc517c59b61dcac6227e41aca8baf359c03a037",
+      "tools/blender/export_athlete.py": "38cfa24dab29581178fdc90245e39523b3cabd4bceba1a3efc8f29e034c25efc",
+      "tools/blender/canonical.py": "74ce09d2c588b1d0bfc6ea0ef168e699934c9e1e23ec88109a464ceaa3b2eba7",
+      "tools/blender/athlete_v5_skin.py": "92baff54923c47740288429c27764f9440e44228e607b58f690ea35e2eea8a09",
+      "tools/blender/audit_athlete.py": "2e069e774f07e21badcfd06f76543629a8e2237aa01d73916d568146911c3e1f"
+    }
+  },
+  "inputs": {
+    "assets/replay/authored/rowplay-athlete-v5.blend": "757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4",
+    "assets/replay/authored/rowplay-athlete-v5.glb": "99300aaa716a8df2cff2fa35b4df44f6d5bfe60d8358866cce94b1c89ca928eb",
+    "assets/replay/authored/rowplay-athlete-v5.contract.json": "24c7fc21f10f50e66570ae4cad051ddbba2cb910f26a49399d177d0f150d5069",
+    "assets/replay/authored/sources/rowplay-human-base-male-v1.4.1.blend": "1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457",
+    "assets/replay/authored/rowing-shell.glb": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d",
+    "assets/replay/rowplay-rigs-v3.glb": "31418f4808b30fa786830129b0b637fc025b6e5ddbb539d848fc8cab74806925",
+    "qml/RowPlay/Theme.qml": "9277276e82f251cb96e59c2ec29aa4e544f60ed280f5c95c0fe1aa1579a9fdd0",
+    "qml/RowPlay/Replay/ReplayScene.qml": "c8e6fb0ffd32b4e9be1d651f490e2a404af773102186595eaa7b355e610517cf",
+    "qml/RowPlay/Main.qml": "28bcecbf0e84d7ae2b6e9bdd0bc921fd1d0ce50f6acfc7ecec2ade28851bdd30"
+  },
+  "instrumented_qml": {
+    "qml/RowPlay/Main.qml": "c0f4e675afec0519000a423b140f0bcdc00d7a6fc4685e382da186c5d5f5ebad",
+    "qml/RowPlay/Replay/ReplayScene.qml": "ad5ebc370f42718c2181a527fe6d9f48b172df3686d23d4e2c2d09a62d514c23"
+  },
+  "qt": "6.11.2",
+  "scheme": "dark",
+  "tier": "high",
+  "samples": {
+    "1001": [
+      [
+        "row-catch",
+        0
+      ],
+      [
+        "row-middrive",
+        380
+      ],
+      [
+        "row-finish",
+        760
+      ],
+      [
+        "row-halfslide",
+        1380
+      ]
+    ],
+    "1003": [
+      [
+        "ski-approach",
+        1900
+      ],
+      [
+        "ski-plant",
+        0
+      ],
+      [
+        "ski-pull",
+        300
+      ],
+      [
+        "ski-release",
+        540
+      ],
+      [
+        "ski-recovery",
+        1100
+      ]
+    ],
+    "1004": [
+      [
+        "bike-top",
+        0
+      ],
+      [
+        "bike-quarter",
+        500
+      ]
+    ]
+  },
+  "expected": [
+    "row-catch-chase",
+    "row-catch-upper",
+    "row-catch-lower",
+    "row-catch-face",
+    "row-catch-left",
+    "row-catch-left-mask",
+    "row-catch-right",
+    "row-catch-right-mask",
+    "ski-release-chase",
+    "ski-release-upper",
+    "ski-release-lower",
+    "ski-release-face",
+    "ski-release-left",
+    "ski-release-left-mask",
+    "ski-release-right",
+    "ski-release-right-mask",
+    "bike-quarter-chase",
+    "bike-quarter-upper",
+    "bike-quarter-lower",
+    "bike-quarter-face",
+    "bike-quarter-left",
+    "bike-quarter-left-mask",
+    "bike-quarter-right",
+    "bike-quarter-right-mask"
+  ],
+  "renderer": "opengl",
+  "platform": "wayland",
+  "clock": "fallback 30 spm; phase=step/2000*tau; distance=step*3 m",
+  "acceptance": "measurement capture; no automatic visual/contact acceptance claim",
+  "cargo": {
+    "package_id": "path+file:///home/sheng/repos/rowplay-qt/crates/rowplay-app#0.1.0",
+    "out_dir": "/home/sheng/repos/rowplay-qt/target/debug/build/rowplay-app-c7440011503d7f20/out",
+    "executable": "/home/sheng/repos/rowplay-qt/target/debug/rowplay-app",
+    "generated_qml": "/home/sheng/repos/rowplay-qt/target/debug/build/rowplay-app-c7440011503d7f20/out/replay-balsam/athlete/Rowplay_athlete_v5.qml",
+    "athlete_mesh": "/home/sheng/repos/rowplay-qt/target/debug/build/rowplay-app-c7440011503d7f20/out/replay-balsam/athlete/meshes/rowplayAthleteV5_mesh.mesh",
+    "runtime_athlete": "/home/sheng/repos/rowplay-qt/target/debug/build/rowplay-app-c7440011503d7f20/out/replay_athlete_v4.json",
+    "sha256": {
+      "executable": "2cc174a631a91e2d15679b61d453b42c0ec8d2f103c008de6b3b0357b5db3134",
+      "generated_qml": "c80edb92b415ee4e2fb4afa50c35b42ca025292e62211114114adfae3bb73131",
+      "athlete_mesh": "c33c81ea8457593215ddf41eb3c3d8a9095d8e98aa577a7065b8b0d44b9f13c7",
+      "runtime_athlete": "9efd787ab8f870498e1be897880257b435fa01b2e7e365e70a7fd127e744ab96"
+    },
+    "command": [
+      "cargo",
+      "build",
+      "--locked",
+      "-p",
+      "path+file:///home/sheng/repos/rowplay-qt/crates/rowplay-app#0.1.0",
+      "--message-format=json-render-diagnostics"
+    ],
+    "messages_sha256": "98ef9b2fd5d9f65450de18c82dd524277372c6e9799d5af051753b0b7ed2fd3b",
+    "target_dir_env": null,
+    "launched_executable": "/home/sheng/repos/rowplay-qt/target/debug/rowplay-app"
+  }
+}

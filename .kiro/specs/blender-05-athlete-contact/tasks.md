@@ -240,6 +240,16 @@ governance first (documentation only), authored athlete/runtime integration
 second, final contact calibration/acceptance third. Do not merge the stack
 or request/retrigger AI/code-bot review; normal CI runs on each PR.
 
+Current implementation: V5 candidate source, deterministic outputs and static
+Qt integration are committed on the draft Layer B. **Acceptance is blocked**;
+see the [native reach/deformation report](../../../docs/blender-phase5-athlete-rebuild.md).
+At bike quarter-cycle, even unrestricted rotations cannot bring any candidate
+palm skin within 18.8 mm of the actual hood with the fixed shoulder posture.
+The current skin gap is 83.2 mm. Native deformation also needs refinement.
+The checklist remains open as a whole; Layer C/final calibration has not
+started. No tolerance, equipment, replay posture or phase boundary is changed
+to evade the failure. Route 4 has not been invoked.
+
 - [ ] Implement only the selected route. An artistically modeled human uses a
   reviewed `.blend` source plus deterministic export/validation tooling.
   It stores the final anatomy, skeleton, helpers and all newly authored skin

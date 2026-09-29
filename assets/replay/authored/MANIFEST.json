@@ -53,6 +53,22 @@
       "bytes": 912596,
       "sha256": "d9e884f0f7f253c6f0fbc82178a5b7c8677ced08e1cda9c6eb4697654cd55b0d"
     },
+    "rowplay-athlete-v5.blend": {
+      "bytes": 1758599,
+      "sha256": "757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4"
+    },
+    "rowplay-athlete-v5.contract.json": {
+      "bytes": 136134,
+      "sha256": "24c7fc21f10f50e66570ae4cad051ddbba2cb910f26a49399d177d0f150d5069"
+    },
+    "rowplay-athlete-v5.glb": {
+      "bytes": 2028700,
+      "sha256": "99300aaa716a8df2cff2fa35b4df44f6d5bfe60d8358866cce94b1c89ca928eb"
+    },
+    "sources/rowplay-human-base-male-v1.4.1.blend": {
+      "bytes": 2246454,
+      "sha256": "1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457"
+    },
     "vegetation.json": {
       "bytes": 39939,
       "sha256": "45bc39b7679cb2888538caa924a5749a9e6e95bd68ff7131c55b26b44947e736"
@@ -273,5 +289,24 @@
         "ultra": 30000
       }
     }
+  },
+  "athlete": {
+    "identity": "rowplay-athlete-v5",
+    "blender": "5.2.2 LTS",
+    "targetTriangles": 60000,
+    "ceilingTriangles": 75000,
+    "triangles": 48632,
+    "regionalTriangles": {
+      "arms": 9608,
+      "eyes": 596,
+      "feet": 1058,
+      "hair": 766,
+      "hands": 10992,
+      "headNeck": 6984,
+      "legs": 11392,
+      "torso": 7236
+    },
+    "source": "rowplay-athlete-v5.blend",
+    "exporter": "tools/blender/export_athlete.py"
   }
 }

@@ -18,9 +18,9 @@
 
 use crate::models::Sport;
 use crate::replay::hand_grip::{
-    Quat, Vec3, add_scaled, axis_angle, dot, hand_channel_centre, hand_curl_axis_thumbward,
-    hand_long_axis, hand_palm_normal_out, length, normalize, quat_inverse, quat_mul, quat_rotate,
-    scale,
+    HandFrame, Quat, Vec3, add_scaled, axis_angle, dot, hand_channel_centre,
+    hand_curl_axis_thumbward, hand_long_axis, length, normalize, quat_inverse, quat_mul,
+    quat_rotate, scale,
 };
 
 /// Wrist twist budget: pronation/supination share the wrist itself may carry
@@ -100,14 +100,53 @@ pub fn orient_hand_to_grip_channel(
     roll_reference: Vec3,
     roll_vector_local: Option<Vec3>,
 ) -> Quat {
+    orient_to_channel(
+        base,
+        hand_curl_axis_thumbward(side),
+        hand_channel_centre(radius, side),
+        shaft_thumbward,
+        roll_reference,
+        roll_vector_local,
+    )
+}
+
+/// Orient using an athlete's measured local hand frame.
+#[must_use]
+pub fn orient_hand_with_frame(
+    base: Quat,
+    side: f64,
+    radius: f64,
+    shaft_thumbward: Vec3,
+    roll_reference: Vec3,
+    roll_vector_local: Option<Vec3>,
+    frame: HandFrame,
+) -> Quat {
+    orient_to_channel(
+        base,
+        frame.thumbward(side),
+        frame.channel_centre(radius),
+        shaft_thumbward,
+        roll_reference,
+        roll_vector_local,
+    )
+}
+
+fn orient_to_channel(
+    base: Quat,
+    thumbward: Vec3,
+    channel: Vec3,
+    shaft_thumbward: Vec3,
+    roll_reference: Vec3,
+    roll_vector_local: Option<Vec3>,
+) -> Quat {
     let mut hand = base;
-    let axis = quat_rotate(hand, hand_curl_axis_thumbward(side));
+    let axis = quat_rotate(hand, thumbward);
     let target = normalize(shaft_thumbward);
     hand = quat_mul(quat_from_unit_vectors(axis, target), hand);
 
     let mut local = match roll_vector_local {
         Some(vector) => normalize(vector),
-        None => normalize(hand_channel_centre(radius, side)),
+        None => normalize(channel),
     };
     local = quat_rotate(hand, local);
     let mut reference = normalize(roll_reference);
@@ -138,8 +177,26 @@ pub fn refine_grip_spin_for_wrist(
     forearm_dir: Vec3,
     max_palm_deviation: f64,
 ) -> Quat {
+    refine_grip_spin_with_axis(
+        hand,
+        hand_long_axis(side),
+        shaft_dir,
+        forearm_dir,
+        max_palm_deviation,
+    )
+}
+
+/// Spend axial spin using the current athlete's measured hand long axis.
+#[must_use]
+pub fn refine_grip_spin_with_axis(
+    hand: Quat,
+    long_axis: Vec3,
+    shaft_dir: Vec3,
+    forearm_dir: Vec3,
+    max_palm_deviation: f64,
+) -> Quat {
     let shaft = normalize(shaft_dir);
-    let mut long = quat_rotate(hand, hand_long_axis(side));
+    let mut long = quat_rotate(hand, long_axis);
     long = add_scaled(long, shaft, -dot(long, shaft));
     let mut forearm = add_scaled(forearm_dir, shaft, -dot(forearm_dir, shaft));
     if dot(long, long) < 1e-8 || dot(forearm, forearm) < 1e-6 {
@@ -167,8 +224,28 @@ pub fn refine_grip_tilt_for_wrist(
     max_tilt: f64,
     strength: f64,
 ) -> Quat {
-    let normal = normalize(quat_rotate(hand, hand_palm_normal_out(side)));
-    let mut long = quat_rotate(hand, hand_long_axis(side));
+    refine_grip_tilt_with_frame(
+        hand,
+        HandFrame::legacy(side),
+        forearm_dir,
+        comfort,
+        max_tilt,
+        strength,
+    )
+}
+
+/// Relieve wrist bend in the current athlete's measured palm plane.
+#[must_use]
+pub fn refine_grip_tilt_with_frame(
+    hand: Quat,
+    frame: HandFrame,
+    forearm_dir: Vec3,
+    comfort: f64,
+    max_tilt: f64,
+    strength: f64,
+) -> Quat {
+    let normal = normalize(quat_rotate(hand, frame.palm_normal));
+    let mut long = quat_rotate(hand, frame.long_axis);
     long = add_scaled(long, normal, -dot(long, normal));
     let mut forearm = add_scaled(forearm_dir, normal, -dot(forearm_dir, normal));
     if dot(long, long) < 1e-8 || dot(forearm, forearm) < 1e-6 {
@@ -367,7 +444,9 @@ pub fn ski_humerus_roll(excess_twist: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::replay::hand_grip::{hand_channel_centre, hand_curl_axis_thumbward};
+    use crate::replay::hand_grip::{
+        hand_channel_centre, hand_curl_axis_thumbward, hand_palm_normal_out,
+    };
 
     /// Shortest-arc angle between two orientations (three.js `angleTo`).
     fn quat_angle(left: Quat, right: Quat) -> f64 {

@@ -1,0 +1,67 @@
+Phase 5.4 candidate validation — 2026-09-27
+Status: blocked before Layer C. No final athlete/contact acceptance.
+
+Environment: Debian 13, Qt 6.11.2, Blender 5.2.2 LTS d13f752e3b9c,
+Rust 1.98.1. Native captures: Wayland / OpenGL / Mesa software rendering.
+No macOS/Windows visual claim.
+
+Source:
+757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4  rowplay-athlete-v5.blend
+99300aaa716a8df2cff2fa35b4df44f6d5bfe60d8358866cce94b1c89ca928eb  rowplay-athlete-v5.glb
+24c7fc21f10f50e66570ae4cad051ddbba2cb910f26a49399d177d0f150d5069  rowplay-athlete-v5.contract.json
+Approved raw base:
+1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457
+
+Deterministic export:
+blender --background -noaudio --python-exit-code 1
+  --python tools/blender/export_athlete.py --
+  --source-sha256 757365b6794199812a5832e247b397d13b433ae1600e06f9d5441f4969f7f6c4
+  --output build/phase54/export-repeat/rowplay-athlete-v5.glb
+PASS: cmp GLB and contract against committed outputs, both byte-identical.
+Incorrect supplied source hash rejected before opening the source.
+48,632 complete runtime triangles: below 60,000 target / 75,000 ceiling.
+Source manifoldness, degenerates, duplicates, slivers, weights, hierarchy,
+inverse binds, roles, UVs, dependencies and path leakage validated.
+
+Python / Blender:
+python3 -m unittest discover -s tools/blender
+PASS: 90 host-Python tests before adding the separate Blender-only suite.
+blender -b -noaudio --python-exit-code 1
+  --python tools/blender/test_athlete_export_blender.py
+PASS: 10 tests, including >75k rejection, invalid bind/weights, NaN position,
+missing UV, duplicate material role, external images, unsupported extension,
+and source-path leakage. These ten skip under host Python without mathutils.
+
+Rust:
+cargo fmt --all -- --check: PASS
+cargo clippy --workspace --all-targets -- -D warnings: PASS
+cargo test --locked: PASS, 603 passed, 0 failed, 2 pre-existing ignored.
+Includes V4 parity and V5 world-motion / timing / hierarchy preservation.
+cargo test --locked -p rowplay-app --test asset_hashes: PASS, 8 tests.
+
+Full Qt workspace run:
+LANG=C.UTF-8 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl
+LIBGL_ALWAYS_SOFTWARE=1 ROWPLAY_QT_SMOKE=1
+ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/build/phase54/b-workspace-gate
+ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/build/phase54/b-workspace-gate
+xvfb-run -a cargo test --locked --workspace
+FAIL: existing qml_runtime_gate expects RowErg 10/10 helper contacts;
+candidate reports 8/10. App walk completed (104.9 seconds of log), but
+acceptance is not passed. No assertion was changed. 20 app tests, 8 asset
+tests and 2 runtime-instrument tests passed before that failure. The full
+command stops there, so Qt-free tests were also run separately above.
+The earlier native Wayland quick gate fails on the same unchanged assertion.
+
+Native evidence:
+88 light/Medium and 24 blue-hour/High captures from exact current Cargo
+artifacts. All 8 material roles on 84 production views passed state checks.
+28 raw hand masks retained; minimum IoU light 0.9878576395148206,
+blue-hour 0.9883026762252213 (required >=.97).
+The repeated light captures' complete native palette records are byte-identical.
+The final captures pin all capture/analysis tools at committed ancestor 5f7f0c6.
+Actual triangle contact and deformation results are diagnostics, not acceptance.
+
+No Phase 3/4 asset generation was rerun. Historical V4 bytes and evidence
+remain unchanged. No replay fixture, equipment geometry, corrected seat/pelvis,
+225-float frame, stroke timing or semantic bone/helper hierarchy was changed.
+Phases 6/7 and Layer C are unstarted; Route 4 not invoked.
