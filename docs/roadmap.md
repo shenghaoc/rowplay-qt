@@ -9,8 +9,12 @@ Blender Phases 1–4 are merged and complete. Their delivered scope and evidence
 below remain historical; [ADR 0017](decisions/0017-athlete-contact-truth-and-hero-fit.md)
 records the revised remaining plan (2026-09-27), superseding ADR 0016's
 consequence that dropped replacement-rower work and exempted its budget.
-The current V4 athlete remains
-the baseline pending Phase 5's audit and owner route decision. The 7.8 m shell
+The owner has accepted Route 3A under
+[ADR 0018](decisions/0018-reviewed-cc0-athlete-source.md): rebuild from the
+exact reviewed CC0 Human Base Meshes v1.4.1 snapshot, with a 60k exported
+triangle target and 75k hard ceiling. Phase 5.4 is authorized, not complete;
+V4 remains the production baseline until the replacement is integrated and
+accepted. The 7.8 m shell
 contract, chase camera and loop remain the baseline too.
 See `docs/blender-audit.md` and `tools/blender/README.md` for completed work.
 Missing SkiErg/BikeErg venue furniture remains tracked in #121. Do not claim
@@ -22,7 +26,7 @@ macOS verification from Linux captures.
 | [2](../.kiro/specs/blender-02-shell-oars/tasks.md) | Shell and oars | Complete |
 | [3](../.kiro/specs/blender-03-environment-water/tasks.md) | Environment and water | Complete |
 | [4](../.kiro/specs/blender-04-course-dressing/tasks.md) | Course dressing and venue furniture | Complete |
-| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0–5.2 complete; 5.3 recommendation made, owner decision pending; 5.4 not started |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0–5.3 complete; Route 3A and 60k/75k budget accepted; 5.4 authorized, open |
 | [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | Hero-fit integration | Planned |
 | [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish | Planned |
 
@@ -30,6 +34,15 @@ Correct the authoritative seat/pelvis reference and understand hand/equipment
 contact failures before deciding which athlete asset to keep; then fit the
 shell around the final athlete. **Do not fit the boat twice.** These Blender
 phase numbers are separate from the original implementation roadmap below.
+
+Phase 5.4 proceeds through governance, authored athlete/runtime integration,
+then actual-skin/native Qt contact acceptance in a `gh-stack`. The `.blend`
+owns anatomy, bone/helper geometry and new weights; Rust retains replay
+truth, the motion graph and 225-float frame. Native deformation acceptance
+precedes final contact calibration. The corrected Phase 5.0 seat/pelvis and
+equipment remain frozen; Phases 6 and 7 have not started. Route 4 needs a
+further owner decision. Historical audit/recommendation evidence below is
+unchanged and does not constitute acceptance of the replacement.
 
 ### Blender Phase 1: Direction C pipeline (complete)
 
@@ -86,7 +99,7 @@ drawn any more. The frame, the camera, the rig and the loop are unchanged.
 Scope, the audit, budgets, evidence and measurements are in
 `.kiro/specs/blender-04-course-dressing/tasks.md` and `docs/blender-audit.md`.
 
-### Blender Phase 5: seat/pelvis, contact truth and athlete (recommendation awaiting owner decision)
+### Blender Phase 5: seat/pelvis, contact truth and athlete (5.4 authorized)
 
 [Phase 5.0–5.1 report](blender-phase5-contact-audit.md): #130 corrected and
 baseline frozen; stale rowing wrist frame and pole leaf fit corrected;
@@ -105,15 +118,19 @@ reviewed `.blend` (fallback: an owner-authored sculpt on the same
 pipeline) — with a 60,000 exported-triangle target and 75,000 hard
 ceiling, and records what is reusable (semantic contracts, instruments)
 versus re-derived (bone transforms, helper geometry, weight values).
-**No route is selected until the owner decides**; nothing is imported and
-no ADR is created. Phase 5.4, Phase 6 and Phase 7 have not started.
+The owner accepted that Route 3A and budget on 2026-09-27.
+[ADR 0018](decisions/0018-reviewed-cc0-athlete-source.md) records the exact
+CC0 source exception and satisfies the owner checkpoint. The governance
+layer imports no human bytes. Phase 5.4 is authorized and open; Phases 6 and
+7 have not started.
 
 ADR 0017 governs the Phase 5–7 athlete/contact/hero-fit sequence. ADR 0016
 continues to govern procedural versus modelled Blender source of truth;
-ADR 0002 governs common-asset licensing and provenance.
+ADR 0002 governs common-asset licensing and provenance with ADR 0018's narrow
+source exception.
 The [Blender tooling guide](../tools/blender/README.md) follows ADR 0017:
-V4 remains the audit baseline, and Phase 5 establishes a fresh measured
-athlete triangle budget before substantial modeling. The old 40k proposal
+V4 remains the audit baseline, and the 60k target / 75k ceiling is approved
+before substantial modeling. The old 40k proposal
 is historical, not an active budget.
 
 [Phase 5's spec](../.kiro/specs/blender-05-athlete-contact/tasks.md) starts
@@ -128,10 +145,12 @@ Only then does 5.2 audit V4 geometry, proportions, rigging/deformation and
 presentation, including a material/normal-only experiment in Qt. Recommend
 retaining, refining, replacing from a permissive base, or an owner-authored
 sculpt; report skeleton/helper/digit/weight reuse and set an athlete triangle
-budget before substantial modeling. **Stop for owner decision.** Implementation
-and final-mesh contact calibration follow only after approval. Current licence
-terms and ADR 0002's import prohibition must be addressed before any new base
-is incorporated; CC0 base and MIT RowPlay modifications remain distinct.
+budget before substantial modeling. That sequence and owner checkpoint are
+complete. Implement the approved modelled source next, accept its native Qt
+deformation, then calibrate final skin contact. The governance commit must
+precede source incorporation in the stack; CC0 base and MIT RowPlay
+modifications remain distinct. The protected replay contracts and frozen
+equipment remain fixed, and Route 4 requires a further owner choice.
 
 ### Blender Phase 6: hero-fit integration (planned)
 

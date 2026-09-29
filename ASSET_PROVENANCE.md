@@ -1,10 +1,14 @@
 # Asset provenance
 
-Every visual asset rowplay-qt ships is either authored inside the rowplay
-repositories or a CC0 material map with recorded provenance. No downloaded
-human model, third-party character, scan, likeness, avatar-generator output or
-user image contributes to any shipped asset (policy inherited from rowplay's
-`static/replay-assets/README.md` and rowplay-studio's `ASSET_PROVENANCE.md`).
+Every visual asset rowplay-qt ships has recorded provenance below. The vendored
+V4 athlete already records its CC0 anatomical base separately from RowPlay's
+MIT work. [ADR 0018](docs/decisions/0018-reviewed-cc0-athlete-source.md) now
+permits that exact reviewed Human Base Meshes v1.4.1 male snapshot as the
+modelled-source input of its replacement: **CC0 base + MIT RowPlay
+modifications**. This is the sole exception to ADR 0002's human-source
+prohibition. Other downloaded humans, third-party characters, generator
+outputs, scans, likenesses and user images remain prohibited; the exception
+does not authorize morphs, clothing/hair packs or third-party textures.
 
 Runtime 3D assets are glTF 2.0 `.glb` only (ADR 0003). Image-based lighting is
 procedural (ADRs 0004 and 0016): downloaded, imported or scanned HDRIs remain
@@ -16,11 +20,12 @@ runtime probes.
 | What | Licence |
 | --- | --- |
 | Application source: Rust, QML, build scripts and `tools/`, including the Blender generation, export and validation tooling | GPL-3.0-or-later (`LICENSE`) |
-| Common RowPlay-family assets authored here: everything under `assets/replay/authored/` | MIT (`LICENSES/MIT-rowplay.txt`) |
+| Original common RowPlay-family assets authored here | MIT (`LICENSES/MIT-rowplay.txt`) |
+| Approved replacement athlete, when incorporated under ADR 0018 | CC0 anatomical base + MIT RowPlay modifications (`MIT AND CC0-1.0`); file-level rows/hashes required at incorporation |
 | Assets vendored from rowplay: the V3 rig pack, the V4 athlete's RowPlay work, the baked venues, the icon | MIT (rowplay) |
 | Third-party inputs: the V4 athlete's Human Base Meshes base mesh, the Poly Haven material maps | CC0-1.0 (`LICENSES/CC0-1.0.txt`) |
 
-ADR 0002 sets the rule. A visual asset meant for reuse across rowplay,
+ADR 0002 sets the rule, with ADR 0018's exact-source exception. A visual asset meant for reuse across rowplay,
 rowplay-studio and rowplay-qt is MIT when two things hold: the owner holds its
 copyright, and its provenance is clean. Clean means every input it takes from
 elsewhere is recorded, with a licence that allows MIT. How the asset was made
@@ -352,3 +357,19 @@ The venue `.glb` files are baked from the pinned rowplay checkout by `tools/bake
 | `assets/replay/venues/rowplay-venue-skierg-ultra.json` | rowplay (generated) | `tools/bake-venues/bake.mjs` (contract sidecar) | `011e8303b66b` | `70c9fc4842732e4f254435a92b9ee5bd0c222bf7dcc9e3dd54915e49e56fbb6c` | MIT (rowplay, generated contract) (163323 B) |
 
 ## Reference sources (not vendored)
+
+The Phase 5.4 governance layer approves the following input but does not
+incorporate it into the tracked asset tree. Its bytes are available in the
+ignored reference checkout and match both the pinned Git object and the
+Phase 5.2 source hash. The official [Blender demo listing](https://www.blender.org/download/demo-files/)
+was rechecked on 2026-09-27: Human Base Meshes v1.4.1 is distributed as CC0.
+The pinned extraction records Dan Ulrich / Blender Studio as its source.
+
+| Approved input | Source | Version / commit | SHA-256 | Licence / scope |
+| --- | --- | --- | --- | --- |
+| Reviewed male anatomical source, 2,246,454 bytes | `rowplay:static/replay-assets/source/rowplay-human-base-male-v1.4.1.blend`; [official bundle](https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip) | Human Base Meshes v1.4.1; web `173c6facbcedef419ad39168c5e3e642abb7e57e` | `1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457` | CC0-1.0 (`LICENSES/CC0-1.0.txt`); only this snapshot under ADR 0018 |
+
+No upstream archive SHA is claimed: the existing verifiable identity is the
+reviewed extracted `.blend`. Use those exact bytes instead of redownloading.
+Future authored-source/output rows must preserve the CC0/MIT distinction and
+pin their own paths and hashes. All existing V4 rows and bytes stay unchanged.

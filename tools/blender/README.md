@@ -254,11 +254,20 @@ the two `.blend` files are the environment's and the dressing's own sources. Gen
 
 The earlier retained-athlete / dropped-replacement decision is historical:
 [ADR 0017](../../docs/decisions/0017-athlete-contact-truth-and-hero-fit.md)
-supersedes it and restores athlete/contact work as Blender Phase 5. V4 remains
-the baseline until the audit and owner checkpoint. Phase 5 must establish a
-fresh measured athlete triangle budget before substantial modelling; the old
-40k proposal is not an active budget. Follow the
+supersedes it and restores athlete/contact work as Blender Phase 5.
+[ADR 0018](../../docs/decisions/0018-reviewed-cc0-athlete-source.md) records
+the accepted Route 3A source exception and **60,000 exported-triangle target /
+75,000 hard ceiling** for the entire athlete. Reject exports above 75k;
+60,001–75,000 needs measured justification. Regional allocations are guidance,
+not independent hard caps or minimums; the old 40k proposal is inactive.
+Phase 5.4 is authorized, not complete. V4 remains active until replacement
+integration/acceptance and stays an immutable audit input afterwards. Follow the
 [Phase 5 work order](../../.kiro/specs/blender-05-athlete-contact/tasks.md).
+The final reviewed `.blend` owns anatomy, rig/helpers and all new skin weights.
+The exporter validates/exports it; no Python body generator or V4 region-scaling
+adaptation is authorized. Ordinary builds consume committed GLB/contract data
+through Balsam. Native deformation acceptance must precede final actual-skin
+contact calibration; keep the corrected Phase 5.0 equipment/reference fixed.
 [ADR 0016](../../docs/decisions/0016-authored-overcast-lighting.md) still governs
 Blender source-of-truth rules;
 [ADR 0002](../../docs/decisions/0002-gpl-3-licence-and-asset-provenance.md)

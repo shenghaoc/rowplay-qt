@@ -23,6 +23,36 @@ Reference check for the docs-only Blender roadmap revision (2026-09-27):
 fetched both repositories' current `main` and checked out the two SHAs above;
 both remain unchanged. No source, asset or fixture was copied or regenerated.
 
+## Blender Phase 5.4 governance (2026-09-27)
+
+Started from verified live `main`
+`8cb4fc48a1a78ddf8905c17ba72c737b15dfaccc` (merged recommendation #139),
+checking GitHub's API and remote ref before starting. Both reference
+repositories' current `main` still match the pins above; the ignored local
+checkouts are at those commits.
+
+[ADR 0018](decisions/0018-reviewed-cc0-athlete-source.md) records the owner's
+accepted Route 3A and complete-athlete 60k target / 75k ceiling. Its source
+exception is only `rowplay`'s
+`static/replay-assets/source/rowplay-human-base-male-v1.4.1.blend` at the web
+pin: 2,246,454 bytes, SHA-256
+`1defdfb22b53ce3bd779acfa96278ccfdff17f0e1178fa94967d600a9e27c457`.
+The working file matches its pinned Git object and the immutable Phase 5.2
+source record. CC0 anatomical base and MIT RowPlay modifications keep their
+distinct provenance; tooling remains GPL. The governance layer incorporates
+no human asset bytes and changes no runtime, fixture or historical evidence.
+
+The approved replacement is an intentional visual divergence. It preserves
+Rust replay state/timing, motion graph, 225-float frame, sport semantics,
+equipment/target ownership, 19 semantic bones, 32 helper roles/hierarchy and
+the digit-chain/solver concepts. Actual transforms, helper geometry, digit
+lengths, closure calibration, all weights and final skin acceptance must be
+re-derived from the final modelled anatomy. V4 remains active pending those
+implementation and acceptance gates; its bytes and audit evidence remain
+historical inputs after switching. Phase 5.4 is authorized, not complete;
+Phase 5.0's corrected reference and equipment stay fixed, with whole-system
+fit deferred to Phase 6 and water effects to Phase 7.
+
 ## Blender Phase 5.0–5.1 contact audit (2026-09-27)
 
 Started from live `main` `2b13e718f4102add40b461d8d581fd5a87cd2da5`;
