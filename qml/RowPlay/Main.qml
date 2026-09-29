@@ -808,6 +808,7 @@ ApplicationWindow {
         onActivated: root.showSettings()
     }
     Shortcut {
+        id: quitShortcut
         // Linux: Ctrl+Q. macOS: the application menu's Quit item owns ⌘Q.
         // Windows has no Quit chord (the window's Alt+F4 closes the app).
         sequences: [StandardKey.Quit]
@@ -921,6 +922,272 @@ ApplicationWindow {
         console.log("gate accent system:", Theme.systemPalette.accent,
                     Theme.systemPalette.highlight, "->", Theme.systemAccent,
                     "| accentColor", Theme.accentColor)
+    }
+
+    // The keyboard contract (issue #143, ADR 0018): every chord the shell
+    // documents, sent to the window as real key events by the gate's
+    // helper (tests/qml/GateKeys.qml), never by calling the handler. Each
+    // check logs one line, "gate keys: <chord> ok" or "... FAILED <why>",
+    // and qml_runtime_gate.rs asserts them all. Every contract returns the
+    // shell to the state it found, so the captures that follow are the ones
+    // they always were.
+    function gateKey(name, ok, why) {
+        console.log("gate keys:", name, ok ? "ok" : "FAILED " + why)
+    }
+
+    /// The placeholder of the focused text field ("" for any other item):
+    /// the search field and the two date fields have distinct ones.
+    function gateFocusedField() {
+        const item = root.activeFocusItem
+        return item && item.placeholderText !== undefined ? item.placeholderText : ""
+    }
+
+    /// A native shortcut text ("Ctrl+Shift+,", "Ctrl+,") as a key and its
+    /// modifiers, for sending it as the chord it names (a single character
+    /// key: the chords the shell uses are letters and punctuation).
+    function gateChord(text) {
+        const parts = text.split("+")
+        let key = parts[parts.length - 1]
+        if (key === "" && parts.length > 1) {
+            key = "+"
+        }
+        let modifiers = Qt.NoModifier
+        for (let i = 0; i < parts.length - 1; ++i) {
+            if (parts[i] === "Ctrl") modifiers |= Qt.ControlModifier
+            else if (parts[i] === "Shift") modifiers |= Qt.ShiftModifier
+            else if (parts[i] === "Alt") modifiers |= Qt.AltModifier
+            else if (parts[i] === "Meta") modifiers |= Qt.MetaModifier
+        }
+        return { text: text, key: key.toUpperCase().charCodeAt(0), modifiers: modifiers }
+    }
+
+    /// Whether nothing inside the window has keyboard focus: the window's invisible root item
+    /// (parent null) or the application window's content item hold it, and no control does.
+    function gateFocusIsBase(item) {
+        return !item || item === root.contentItem || item.parent === null
+    }
+
+    /// Puts keyboard focus back where a contract found it, and says whether it is there.
+    /// Measured in the real window: forceActiveFocus() on the invisible root does nothing while a
+    /// Tab-reached list view holds focus (the list then painted its selected row as focused in
+    /// every later capture), and giving the content item focus lands on a different item from the
+    /// one the walk started with, which changes how the walk's later steps (step 45's own restore)
+    /// behave. So when nothing but the base held focus before, the focus a contract took is
+    /// cleared up its scope chain until the invisible root (the item with no parent) has it
+    /// again, exactly as at the start; a control is restored itself.
+    function gateRestoreFocus(target) {
+        if (root.activeFocusItem === target) {
+            return true
+        }
+        if (target && !root.gateFocusIsBase(target)) {
+            target.forceActiveFocus()
+            return root.activeFocusItem === target
+        }
+        for (let i = 0; i < 12 && root.activeFocusItem && root.activeFocusItem.parent !== null; ++i) {
+            root.activeFocusItem.focus = false
+        }
+        return root.activeFocusItem === target
+    }
+
+    // The shell contract runs in two halves, in two gate steps (6 and 10), because a modal drawer
+    // stays visible through its exit animation and keeps the shortcuts behind it quiet until that
+    // is over (measured: still visible 205 ms after Escape): a person cannot press a key in the
+    // same instant Escape closed it, and neither can a synchronous function. What the halves share:
+    property var gateKeyState: ({})
+
+    function gateKeyContractShell() {
+        const keys = gateKeys.item
+        if (!keys) {
+            console.log("gate keys: unavailable")
+            return
+        }
+        const search = Tr.t("workoutList.searchComments")
+        const from = Tr.t("workoutList.dateFrom")
+        const to = Tr.t("workoutList.dateTo")
+        root.gateKeyState = { focus: root.activeFocusItem, screen: root.screenIndex, sidebar: root.sidebarShown }
+
+        // Shortcuts and focus need the window to be the active one; a compositor that did not
+        // grant that (a window mapped behind another) makes every check below meaningless.
+        root.gateKey("the gate window is the active window", root.active,
+                     "the compositor has not made it active; the walk needs it frontmost")
+
+        // Ctrl+F: the search field takes the keyboard.
+        keys.press(Qt.Key_F, Qt.ControlModifier)
+        root.gateKey("Ctrl+F focuses the search field", root.gateFocusedField() === search,
+                     "focus is on '" + root.gateFocusedField() + "'")
+
+        // Tab walks the sidebar's chain to the From field, on to To, and
+        // Shift+Tab walks back one.
+        let presses = 0
+        while (root.gateFocusedField() !== from && presses < 8) {
+            keys.tab()
+            ++presses
+        }
+        root.gateKey("Tab reaches the From date field", root.gateFocusedField() === from,
+                     "after " + presses + " presses focus is on '" + root.gateFocusedField() + "'")
+        keys.tab()
+        root.gateKey("Tab moves from From to To", root.gateFocusedField() === to,
+                     "focus is on '" + root.gateFocusedField() + "'")
+        keys.shiftTab()
+        root.gateKey("Shift+Tab moves from To back to From", root.gateFocusedField() === from,
+                     "focus is on '" + root.gateFocusedField() + "'")
+        // Leaving both fields by Tab commits each: the range resets the
+        // list model from inside a focus-out handler, the path issue #143
+        // aborted release builds on.
+        keys.tab()
+        keys.tab()
+        root.gateKey("Tab out of both date fields resets the list without aborting",
+                     Library.filteredCount === Library.totalCount,
+                     "rows " + Library.filteredCount + " of " + Library.totalCount)
+
+        // At the compact and medium widths (a large window at large text is one) the sidebar is
+        // a modal drawer, and Ctrl+F opened it: it holds the keyboard until Escape closes it.
+        if (root.sidebarInDrawer) {
+            keys.press(Qt.Key_Escape)
+            root.gateKey("Esc closes the sidebar drawer", !sidebarDrawer.shown, "the drawer is still open")
+        }
+    }
+
+    function gateKeyContractShortcuts() {
+        const keys = gateKeys.item
+        if (!keys) {
+            return
+        }
+        const before = root.gateKeyState
+        if (root.sidebarInDrawer) {
+            root.gateKey("the sidebar drawer has finished closing", !sidebarDrawer.visible,
+                         "it is still visible: its exit animation blocks the shortcuts behind it")
+        }
+
+        // F5 reloads the library once (libraryChanged fires).
+        let reloads = 0
+        const counted = function() { ++reloads }
+        Library.libraryChanged.connect(counted)
+        keys.press(Qt.Key_F5)
+        Library.libraryChanged.disconnect(counted)
+        root.gateKey("F5 reloads the library", reloads >= 1, "libraryChanged fired " + reloads + " times")
+
+        // Settings: Escape leaves, the platform's Preferences chord opens, Alt+Left goes back,
+        // and the chord returns to where the walk was.
+        keys.press(Qt.Key_Escape)
+        root.gateKey("Esc leaves the settings", root.screenIndex !== 2, "screen " + root.screenIndex)
+        // The platform's own Preferences chord: Qt maps one on macOS and
+        // KDE (Ctrl+Shift+, under Plasma); Ctrl+, is only the fallback where
+        // the platform has none. The chord is read from the shortcut, never
+        // assumed.
+        const chord = root.gateChord(preferencesShortcut.nativeText.length > 0
+                                     ? preferencesShortcut.nativeText : preferencesFallback.nativeText)
+        console.log("gate keys: Preferences chord is", chord.text)
+        keys.press(chord.key, chord.modifiers)
+        root.gateKey("the Preferences chord opens the settings", root.screenIndex === 2,
+                     chord.text + " left screen " + root.screenIndex)
+        keys.press(Qt.Key_Left, Qt.AltModifier)
+        root.gateKey("Alt+Left goes back from the settings", root.screenIndex !== 2,
+                     "screen " + root.screenIndex)
+        if (before.screen === 2) {
+            keys.press(chord.key, chord.modifiers)
+        }
+
+        // F9 hides the sidebar and brings it back; in a drawer it opens it, and Escape closes it.
+        if (root.sidebarInDrawer) {
+            keys.press(Qt.Key_F9)
+            root.gateKey("F9 opens the sidebar drawer", sidebarDrawer.shown, "the drawer is closed")
+            keys.press(Qt.Key_Escape)
+            root.gateKey("Esc closes the sidebar drawer again", !sidebarDrawer.shown, "the drawer is still open")
+        } else {
+            keys.press(Qt.Key_F9)
+            root.gateKey("F9 hides the sidebar", root.sidebarShown !== before.sidebar,
+                         "sidebarShown " + root.sidebarShown)
+            keys.press(Qt.Key_F9)
+            root.gateKey("F9 shows the sidebar again", root.sidebarShown === before.sidebar,
+                         "sidebarShown " + root.sidebarShown)
+        }
+
+        root.gateKey("the shell contract leaves keyboard focus where it found it",
+                     root.gateRestoreFocus(before.focus),
+                     "focus is on " + root.activeFocusItem + ", was " + before.focus)
+    }
+
+    function gateKeyContractReplay() {
+        const keys = gateKeys.item
+        if (!keys || !Replay.hasWorkout || root.screenIndex !== 3) {
+            console.log("gate keys: replay contract unavailable")
+            return
+        }
+        const playing = Replay.playing
+        const progress = Replay.progress
+        const speed = Replay.speedIndex
+        const focusBefore = root.activeFocusItem
+        // The checked speed chip owns keyboard focus and consumes Space and
+        // the arrows (a button's own keys); the transport shortcuts are for
+        // when focus is elsewhere, as it is for a person who clicked the
+        // scene. Give the window the focus, and hand it back at the end.
+        root.contentItem.forceActiveFocus()
+
+        keys.press(Qt.Key_Space)
+        root.gateKey("Space toggles play and pause", Replay.playing !== playing,
+                     "playing " + Replay.playing)
+        keys.press(Qt.Key_Space)
+        root.gateKey("Space toggles it back", Replay.playing === playing, "playing " + Replay.playing)
+
+        // Seeking is measured while paused, so playback adds nothing.
+        if (Replay.playing) {
+            Replay.pause()
+        }
+        Replay.seek(0.5)
+        const middle = Replay.progress
+        keys.press(Qt.Key_Right)
+        const after = Replay.progress
+        root.gateKey("Right seeks forward", after > middle, "progress " + middle + " -> " + after)
+        keys.press(Qt.Key_Left)
+        root.gateKey("Left seeks back", Replay.progress < after, "progress " + after + " -> " + Replay.progress)
+
+        keys.press(Qt.Key_BracketLeft)
+        const slower = Replay.speedIndex
+        keys.press(Qt.Key_BracketRight)
+        const faster = Replay.speedIndex
+        root.gateKey("[ slows the replay", slower < speed || speed === 0,
+                     "speed " + speed + " -> " + slower)
+        root.gateKey("] speeds it up", faster > slower || slower === Replay.speedLabels.length - 1,
+                     "speed " + slower + " -> " + faster)
+
+        // The replay is as the walk left it.
+        Replay.setSpeedIndex(speed)
+        Replay.seek(progress)
+        if (playing) {
+            Replay.play()
+        } else {
+            Replay.pause()
+        }
+        root.gateKey("the replay contract leaves keyboard focus where it found it",
+                     root.gateRestoreFocus(focusBefore),
+                     "focus is on " + root.activeFocusItem + ", was " + focusBefore)
+    }
+
+    /// The walk's exit is a person's Ctrl+Q where the platform has that
+    /// chord (Linux under a desktop or Xvfb's generic theme). The offscreen
+    /// platform and Windows define no Quit chord and macOS gives it to the
+    /// application menu, so the walk exits directly there and says so. If
+    /// the chord does not quit within three seconds the walk reports it and
+    /// exits non-zero.
+    function gateQuit() {
+        gateTimer.running = false
+        if (gateKeys.item && quitShortcut.enabled && quitShortcut.nativeText.length > 0) {
+            console.log("gate keys: Ctrl+Q sent", quitShortcut.nativeText)
+            gateKeys.item.press(Qt.Key_Q, Qt.ControlModifier)
+            gateQuitFallback.start()
+        } else {
+            console.log("gate keys: no Quit chord on this platform")
+            Qt.exit(0)
+        }
+    }
+    Timer {
+        id: gateQuitFallback
+        interval: 3000
+        onTriggered: {
+            console.log("gate keys: Ctrl+Q FAILED to quit")
+            Qt.exit(1)
+        }
     }
 
     // CI runtime-error gate: walk the screens, flip through all six
@@ -1196,6 +1463,9 @@ ApplicationWindow {
             // replay load, then teardown and the closing steps from 200 on
             // (menus, sidebar, settings over a replay, dialogs). No other
             // sport, ghost, tiers, phase shots or strip.
+            // The replay's keys run once, after the first replay's capture,
+            // in both profiles (the full walk carries on at step 55).
+            if (root.gateStep === 55) root.gateKeyContractReplay()
             if (Settings.gateQuick && root.gateStep === 55) root.gateStep = 84
             if (root.gateStep === 1)
                 console.log("gate profile:", Settings.gateQuick ? "quick" : "full")
@@ -1217,11 +1487,17 @@ ApplicationWindow {
             case 5: Settings.setLanguageIndex(1); break   // zh
             case 6:
                 console.log("gate i18n zh:", Tr.t("nav.dashboard"))
+                root.gateKeyContractShell()
                 break
             case 7: Settings.setLanguageIndex(2); break   // de
             case 8: Settings.setLanguageIndex(3); break   // es
             case 9: Settings.setLanguageIndex(4); break   // fr
-            case 10: Settings.setLanguageIndex(5); break  // ja
+            case 10:
+                // The shell contract's second half: a second after the first, when a modal
+                // drawer's exit animation is over (200 ms is not enough: it still blocks).
+                root.gateKeyContractShortcuts()
+                Settings.setLanguageIndex(5)   // ja
+                break
             case 11: Settings.setLanguageIndex(0); break  // en
             case 12:
                 // 1001 is already selected at startup (demo default); pick a
@@ -1465,7 +1741,13 @@ ApplicationWindow {
                 break
             case 207: root.showSettings(); break
             case 208:
-                root.goBack()
+                // Back is Alt+Left (StandardKey.Back on Linux and Windows),
+                // sent as a real key event; the handler is called only where
+                // the helper is unavailable.
+                if (gateKeys.item)
+                    gateKeys.item.press(Qt.Key_Left, Qt.AltModifier)
+                else
+                    root.goBack()
                 console.log("gate settings over the replay: screen", root.screenIndex,
                             Library.isReplayPresented ? "presented" : "closed")
                 Library.requestReplay(false)
@@ -1474,7 +1756,16 @@ ApplicationWindow {
                 root.gateReplayWaits = 0
                 root.gateAwaitingReplay = true
                 break
-            case 209: Library.closeReplay(); Library.clearSelection(); break
+            case 209:
+                // Escape closes the replay route (a real key event).
+                if (gateKeys.item && Library.isReplayPresented) {
+                    gateKeys.item.press(Qt.Key_Escape)
+                    root.gateKey("Esc closes the replay", !Library.isReplayPresented,
+                                 "replay still presented")
+                }
+                Library.closeReplay()
+                Library.clearSelection()
+                break
             // The logout dialog (demo mode never shows the button); held
             // open for one extra tick so a screen capture can see it.
             case 210:
@@ -1550,7 +1841,7 @@ ApplicationWindow {
             // The localized gap must fit together with all four gauges at the
             // compact width. Check every locale after live retranslation.
             case 232:
-                if (Settings.gateQuick) { gateTimer.running = false; Qt.exit(0); break }
+                if (Settings.gateQuick) { root.gateQuit(); break }
                 Library.requestReplay(false)
                 root.gateAwaitingReplay = true
                 root.width = Theme.px(480)
@@ -1576,8 +1867,7 @@ ApplicationWindow {
                 root.width = 1200
                 break
             default:
-                gateTimer.running = false
-                Qt.exit(0)
+                root.gateQuit()
             }
         }
     }

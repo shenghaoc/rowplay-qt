@@ -182,6 +182,124 @@ fn assert_accent_rule(log: &str) {
     println!("accent: palette accent {accent}, highlight {highlight}, resolved {resolved}");
 }
 
+/// The keyboard contract (`Main.qml`'s `gateKeyContractShell` and
+/// `gateKeyContractReplay`, and the walk's own Esc, Alt+Left and Ctrl+Q):
+/// every chord the shell documents, sent as a real key event by
+/// `tests/qml/GateKeys.qml`. Each line is `gate keys: <chord> ok`; a check
+/// that fails says `FAILED` and why. Every line here must be present, so a
+/// contract step the walk skipped fails the test instead of passing silently.
+const KEYBOARD_CONTRACT: [&str; 19] = [
+    "the gate window is the active window",
+    "Ctrl+F focuses the search field",
+    "Tab reaches the From date field",
+    "Tab moves from From to To",
+    "Shift+Tab moves from To back to From",
+    "Tab out of both date fields resets the list without aborting",
+    "F5 reloads the library",
+    "Esc leaves the settings",
+    "the Preferences chord opens the settings",
+    "Alt+Left goes back from the settings",
+    "Space toggles play and pause",
+    "Space toggles it back",
+    "Right seeks forward",
+    "Left seeks back",
+    "[ slows the replay",
+    "] speeds it up",
+    "Esc closes the replay",
+    "the shell contract leaves keyboard focus where it found it",
+    "the replay contract leaves keyboard focus where it found it",
+];
+
+fn assert_keyboard_contract(log: &str) {
+    let lines: Vec<&str> = log
+        .lines()
+        .filter(|line| line.contains("gate keys: "))
+        .collect();
+    let failed: Vec<&str> = lines
+        .iter()
+        .copied()
+        .filter(|line| line.contains("FAILED"))
+        .collect();
+    assert!(
+        failed.is_empty(),
+        "the keyboard contract failed:\n{}",
+        failed.join("\n")
+    );
+    assert!(
+        !lines
+            .iter()
+            .any(|line| line.contains("gate keys: unavailable")
+                || line.contains("replay contract unavailable")),
+        "the gate's key helper did not load, so no key was sent:\n{}",
+        lines.join("\n")
+    );
+    for name in KEYBOARD_CONTRACT {
+        let want = format!("gate keys: {name} ok");
+        assert!(
+            lines.iter().any(|line| line.ends_with(&want)),
+            "no \"{want}\" in the walk's key checks:\n{}",
+            lines.join("\n")
+        );
+    }
+    // The sidebar is beside the content or, at the compact and medium widths (a large window at
+    // large text is medium), a modal drawer that holds the shortcuts behind it until Escape
+    // closes it. Each mode has its own checks and one of the two sets must be complete.
+    let drawer = lines
+        .iter()
+        .any(|line| line.contains("gate keys: F9 opens the sidebar drawer"));
+    let layout: &[&str] = if drawer {
+        &[
+            "Esc closes the sidebar drawer",
+            "the sidebar drawer has finished closing",
+            "F9 opens the sidebar drawer",
+            "Esc closes the sidebar drawer again",
+        ]
+    } else {
+        &["F9 hides the sidebar", "F9 shows the sidebar again"]
+    };
+    for name in layout {
+        let want = format!("gate keys: {name} ok");
+        assert!(
+            lines.iter().any(|line| line.ends_with(&want)),
+            "no \"{want}\" ({} layout) in the walk's key checks:\n{}",
+            if drawer { "drawer" } else { "beside" },
+            lines.join("\n")
+        );
+    }
+    // The walk ends with a real Ctrl+Q where the platform has the chord,
+    // and the process must then exit 0 (the exit status assertion above).
+    // The offscreen platform and Windows define none (StandardKey.Quit is
+    // empty there) and macOS's application menu owns it: the walk says so
+    // and exits directly.
+    let sent = lines
+        .iter()
+        .any(|line| line.contains("gate keys: Ctrl+Q sent"));
+    let absent = lines
+        .iter()
+        .any(|line| line.contains("gate keys: no Quit chord on this platform"));
+    assert!(
+        sent != absent,
+        "the walk must end one way, sent={sent} absent={absent}"
+    );
+    let platform = std::env::var("QT_QPA_PLATFORM").unwrap_or_default();
+    if platform.starts_with("xcb") || platform.starts_with("wayland") {
+        assert!(
+            sent,
+            "under {platform} the walk must end with Ctrl+Q:\n{}",
+            lines.join("\n")
+        );
+    }
+    println!(
+        "keyboard contract: {} lines, all ok, ended by {}",
+        lines.len(),
+        if sent {
+            "Ctrl+Q"
+        } else {
+            "a direct exit (no Quit chord)"
+        }
+    );
+}
+
 /// `(seconds, text)` for every log line that carries the pattern's stamp.
 fn timed_lines(log: &str) -> Vec<(f64, &str)> {
     log.lines()
@@ -764,6 +882,7 @@ fn shell_walk_produces_no_qml_runtime_errors() {
     );
 
     assert_accent_rule(&combined);
+    assert_keyboard_contract(&combined);
 
     // The mock sync must complete and land in the cache, not the demo data.
     assert!(

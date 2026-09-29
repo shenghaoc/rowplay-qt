@@ -29,4 +29,17 @@ Item {
     function tab() {
         events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
     }
+
+    /// Presses and releases Shift+Tab (Qt Quick's backwards focus chain
+    /// listens for Key_Backtab).
+    function shiftTab() {
+        events.keyClick(Qt.Key_Backtab, Qt.ShiftModifier, -1)
+    }
+
+    /// Presses and releases any key with modifiers, as a person's chord.
+    /// Shortcuts see it the way they see a keystroke: QtTest hands the
+    /// event to the window's own key path, ShortcutOverride included.
+    function press(key, modifiers) {
+        events.keyClick(key, modifiers === undefined ? Qt.NoModifier : modifiers, -1)
+    }
 }
