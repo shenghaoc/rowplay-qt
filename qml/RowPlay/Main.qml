@@ -833,6 +833,7 @@ ApplicationWindow {
         onActivated: Library.reload()
     }
     Shortcut {
+        id: backShortcut
         // `sequence`, not `sequences`: only the platform's primary chord
         // (Alt+Left; ⌘[ on macOS). Windows also lists Backspace, which
         // belongs to the text fields.
@@ -942,25 +943,6 @@ ApplicationWindow {
         return item && item.placeholderText !== undefined ? item.placeholderText : ""
     }
 
-    /// A native shortcut text ("Ctrl+Shift+,", "Ctrl+,") as a key and its
-    /// modifiers, for sending it as the chord it names (a single character
-    /// key: the chords the shell uses are letters and punctuation).
-    function gateChord(text) {
-        const parts = text.split("+")
-        let key = parts[parts.length - 1]
-        if (key === "" && parts.length > 1) {
-            key = "+"
-        }
-        let modifiers = Qt.NoModifier
-        for (let i = 0; i < parts.length - 1; ++i) {
-            if (parts[i] === "Ctrl") modifiers |= Qt.ControlModifier
-            else if (parts[i] === "Shift") modifiers |= Qt.ShiftModifier
-            else if (parts[i] === "Alt") modifiers |= Qt.AltModifier
-            else if (parts[i] === "Meta") modifiers |= Qt.MetaModifier
-        }
-        return { text: text, key: key.toUpperCase().charCodeAt(0), modifiers: modifiers }
-    }
-
     /// Whether nothing inside the window has keyboard focus: the window's invisible root item
     /// (parent null) or the application window's content item hold it, and no control does.
     function gateFocusIsBase(item) {
@@ -1068,48 +1050,68 @@ ApplicationWindow {
                          "it is still visible: its exit animation blocks the shortcuts behind it")
         }
 
-        // F5 reloads the library once (libraryChanged fires).
+        // The platform's own chords, read from the shortcuts (F5, F9 and Alt+Left on Linux and
+        // Windows; ⌘R, ⌃⌘S and ⌘[ on macOS), never assumed.
+        const refresh = keys.chord(refreshShortcut.nativeText)
+        const back = keys.chord(backShortcut.nativeText)
+        const sidebarChord = keys.chord(sidebarShortcut.nativeText)
+        console.log("gate keys: chords: refresh", refresh.text, "| back", back.text, "| sidebar", sidebarChord.text)
+
+        // The Refresh chord reloads the library once (libraryChanged fires).
         let reloads = 0
         const counted = function() { ++reloads }
         Library.libraryChanged.connect(counted)
-        keys.press(Qt.Key_F5)
+        keys.press(refresh.key, refresh.modifiers)
         Library.libraryChanged.disconnect(counted)
-        root.gateKey("F5 reloads the library", reloads >= 1, "libraryChanged fired " + reloads + " times")
+        root.gateKey("the Refresh chord reloads the library", reloads >= 1,
+                     refresh.text + ": libraryChanged fired " + reloads + " times")
 
         // Settings: Escape leaves, the platform's Preferences chord opens, Alt+Left goes back,
         // and the chord returns to where the walk was.
         keys.press(Qt.Key_Escape)
         root.gateKey("Esc leaves the settings", root.screenIndex !== 2, "screen " + root.screenIndex)
-        // The platform's own Preferences chord: Qt maps one on macOS and
-        // KDE (Ctrl+Shift+, under Plasma); Ctrl+, is only the fallback where
-        // the platform has none. The chord is read from the shortcut, never
-        // assumed.
-        const chord = root.gateChord(preferencesShortcut.nativeText.length > 0
-                                     ? preferencesShortcut.nativeText : preferencesFallback.nativeText)
-        console.log("gate keys: Preferences chord is", chord.text)
-        keys.press(chord.key, chord.modifiers)
-        root.gateKey("the Preferences chord opens the settings", root.screenIndex === 2,
-                     chord.text + " left screen " + root.screenIndex)
-        keys.press(Qt.Key_Left, Qt.AltModifier)
-        root.gateKey("Alt+Left goes back from the settings", root.screenIndex !== 2,
-                     "screen " + root.screenIndex)
-        if (before.screen === 2) {
+        // The Preferences chord: Qt maps one on macOS and KDE (Ctrl+Shift+, under Plasma);
+        // Ctrl+, is only the fallback where the platform has none. On macOS the application
+        // menu owns it and the shortcut is disabled: the walk says so and opens the settings
+        // directly.
+        const platformChord = preferencesShortcut.enabled && preferencesShortcut.nativeText.length > 0
+        const menuOwned = !platformChord && !preferencesFallback.enabled
+        const chord = menuOwned ? null : keys.chord(platformChord ? preferencesShortcut.nativeText
+                                                                  : preferencesFallback.nativeText)
+        if (chord) {
+            console.log("gate keys: Preferences chord is", chord.text)
             keys.press(chord.key, chord.modifiers)
+            root.gateKey("the Preferences chord opens the settings", root.screenIndex === 2,
+                         chord.text + " left screen " + root.screenIndex)
+        } else {
+            console.log("gate keys: the Preferences chord belongs to the application menu on this platform")
+            root.showSettings()
+        }
+        keys.press(back.key, back.modifiers)
+        root.gateKey("the Back chord goes back from the settings", root.screenIndex !== 2,
+                     back.text + " left screen " + root.screenIndex)
+        if (before.screen === 2) {
+            if (chord)
+                keys.press(chord.key, chord.modifiers)
+            else
+                root.showSettings()
         }
 
-        // F9 hides the sidebar and brings it back; in a drawer it opens it, and Escape closes it.
+        // The sidebar chord hides the sidebar and brings it back; in a drawer it opens it, and
+        // Escape closes it.
         if (root.sidebarInDrawer) {
-            keys.press(Qt.Key_F9)
-            root.gateKey("F9 opens the sidebar drawer", sidebarDrawer.shown, "the drawer is closed")
+            keys.press(sidebarChord.key, sidebarChord.modifiers)
+            root.gateKey("the sidebar chord opens the sidebar drawer", sidebarDrawer.shown,
+                         sidebarChord.text + ": the drawer is closed")
             keys.press(Qt.Key_Escape)
             root.gateKey("Esc closes the sidebar drawer again", !sidebarDrawer.shown, "the drawer is still open")
         } else {
-            keys.press(Qt.Key_F9)
-            root.gateKey("F9 hides the sidebar", root.sidebarShown !== before.sidebar,
-                         "sidebarShown " + root.sidebarShown)
-            keys.press(Qt.Key_F9)
-            root.gateKey("F9 shows the sidebar again", root.sidebarShown === before.sidebar,
-                         "sidebarShown " + root.sidebarShown)
+            keys.press(sidebarChord.key, sidebarChord.modifiers)
+            root.gateKey("the sidebar chord hides the sidebar", root.sidebarShown !== before.sidebar,
+                         sidebarChord.text + ": sidebarShown " + root.sidebarShown)
+            keys.press(sidebarChord.key, sidebarChord.modifiers)
+            root.gateKey("the sidebar chord shows the sidebar again", root.sidebarShown === before.sidebar,
+                         sidebarChord.text + ": sidebarShown " + root.sidebarShown)
         }
 
         root.gateKey("the shell contract leaves keyboard focus where it found it",
@@ -1765,10 +1767,12 @@ ApplicationWindow {
                 // sent as a real key event; the handler is called only where
                 // the helper is unavailable or the window is not active (no
                 // window manager: shortcuts do not fire).
-                if (gateKeys.item && root.active)
-                    gateKeys.item.press(Qt.Key_Left, Qt.AltModifier)
-                else
+                if (gateKeys.item && root.active) {
+                    const back = gateKeys.item.chord(backShortcut.nativeText)
+                    gateKeys.item.press(back.key, back.modifiers)
+                } else {
                     root.goBack()
+                }
                 console.log("gate settings over the replay: screen", root.screenIndex,
                             Library.isReplayPresented ? "presented" : "closed")
                 Library.requestReplay(false)

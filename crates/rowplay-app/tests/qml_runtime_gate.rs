@@ -195,10 +195,10 @@ const KEYBOARD_CONTRACT: [&str; 19] = [
     "Tab moves from From to To",
     "Shift+Tab moves from To back to From",
     "Tab out of both date fields resets the list without aborting",
-    "F5 reloads the library",
+    "the Refresh chord reloads the library",
     "Esc leaves the settings",
     "the Preferences chord opens the settings",
-    "Alt+Left goes back from the settings",
+    "the Back chord goes back from the settings",
     "Space toggles play and pause",
     "Space toggles it back",
     "Right seeks forward",
@@ -253,6 +253,16 @@ fn assert_keyboard_contract(log: &str) {
         return;
     }
     for name in KEYBOARD_CONTRACT {
+        // The application menu owns the Preferences chord on macOS: the shortcut is disabled there
+        // and the walk says so (and opens the settings directly).
+        if name == "the Preferences chord opens the settings"
+            && cfg!(target_os = "macos")
+            && lines.iter().any(|line| {
+                line.ends_with("gate keys: the Preferences chord belongs to the application menu on this platform")
+            })
+        {
+            continue;
+        }
         let want = format!("gate keys: {name} ok");
         assert!(
             lines.iter().any(|line| line.ends_with(&want)),
@@ -265,16 +275,19 @@ fn assert_keyboard_contract(log: &str) {
     // closes it. Each mode has its own checks and one of the two sets must be complete.
     let drawer = lines
         .iter()
-        .any(|line| line.contains("gate keys: F9 opens the sidebar drawer"));
+        .any(|line| line.contains("gate keys: the sidebar chord opens the sidebar drawer"));
     let layout: &[&str] = if drawer {
         &[
             "Esc closes the sidebar drawer",
             "the sidebar drawer has finished closing",
-            "F9 opens the sidebar drawer",
+            "the sidebar chord opens the sidebar drawer",
             "Esc closes the sidebar drawer again",
         ]
     } else {
-        &["F9 hides the sidebar", "F9 shows the sidebar again"]
+        &[
+            "the sidebar chord hides the sidebar",
+            "the sidebar chord shows the sidebar again",
+        ]
     };
     for name in layout {
         let want = format!("gate keys: {name} ok");

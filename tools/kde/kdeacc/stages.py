@@ -96,6 +96,13 @@ def stage_probe(ctx):
               unusable_accent_reproduced=info["accent"].lower() in qtprobe.UNUSABLE_ACCENTS)
     st.expect("Fusion is the style in use", info["fusion"], f"Button background is {info['buttonBackground'].split('(')[0]}",
               f"Button background is {info['buttonBackground']}, not Fusion's ButtonPanel")
+    chords = ctx.runner.run([f"{ctx.qt_dir}/bin/qml", str(TOOLS / "probe" / "chord-test.qml"), "--apptype", "gui"],
+                            env=host_env({"LD_LIBRARY_PATH": f"{ctx.qt_dir}/lib", "QT_QPA_PLATFORM": "offscreen", "QT_FORCE_STDERR_LOGGING": "1"}),
+                            tag="chord-test", timeout=60)
+    summary = re.search(r"CHORD summary: (\d+) of (\d+) correct", chords.text)
+    st.expect("the gate's chord parser reads every platform's shortcut strings (Linux, Windows, macOS glyphs)",
+              bool(summary) and summary.group(1) == summary.group(2), summary.group(0) if summary else "",
+              "the chord parser is wrong for: " + "; ".join(l.split("qml: ")[-1] for l in chords.text.splitlines() if "CHORD FAIL" in l) or "no summary line")
     portal = plasma.Plasma(ctx.runner, lambda: None).read_portal()
     limitation = info["contrast"] == 0
     st.passed("contrast preference", ("Qt reports NoPreference and the portal's contrast key is "

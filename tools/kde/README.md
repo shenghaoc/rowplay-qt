@@ -96,8 +96,9 @@ environment variable, no app change) and driven through AT-SPI: the walk moves *
 and both date fields and invokes **actions** (Replay, Play, Pause). Leaving a date field is what a Tab does
 to it, and it runs the same `editingFinished` → `Library.setDateRange` → model reset path issue #143
 aborted release builds on. The key **chords** are covered where key events are real, in the gate: `GateKeys.qml`
-sends `QKeyEvent`s (Ctrl+F, Tab and Shift+Tab through both date fields, F5, Esc, the platform's Preferences
-chord, Alt+Left, F9, Space, Left, Right, `[`, `]`, and a real Ctrl+Q ending the walk) through the same key
+sends `QKeyEvent`s (Ctrl+F, Tab and Shift+Tab through both date fields, Esc, the platform's Refresh, Preferences,
+Back and sidebar chords (read from the shortcuts, F5/F9/Alt+Left on Linux and Windows, ⌘R/⌃⌘S/⌘[ on a Mac),
+Space, Left, Right, `[`, `]`, and a real Ctrl+Q ending the walk) through the same key
 path, on the same release code (the release quick gate), and `qml_runtime_gate.rs` asserts every one.
 
 ## Restoring the desktop
