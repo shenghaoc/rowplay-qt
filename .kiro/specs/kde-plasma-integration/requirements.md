@@ -87,3 +87,8 @@ native test host.
   compared, it is launch-checked, and it is run natively.
 - R7.4 Every claim is labelled by evidence kind: source, automated, native
   Fedora Plasma, or historical Debian.
+- R7.5 The acceptance is repeatable: one harness runs every stage, writes a
+  self-contained evidence directory, restores anything it changes and verifies
+  that, and exits nonzero when a check fails (`tools/kde/`).
+- R7.6 Expected visual differences are spatial, derived from real captures,
+  and leave zero unexpected pixels; the global noise bounds are not weakened.

@@ -19,9 +19,12 @@ Ticked in the pull request that delivers them (`kde/plasma-integration`).
   - [x] T2.3 Plasma's accent reaches Qt through `[Colors:Selection]` as the
     highlight, not through `AccentColor`. Measured with a sandboxed
     `kdeglobals`; Breeze Dark reports Dark.
-  - [ ] T2.4 The same through System Settings, live and in fresh
-    processes. The first run recorded no change at all (kdeglobals was
-    never written in its window), so it is repeated in T6.
+  - [x] T2.4 The same live and in fresh processes: the appearance stage
+    changes the accent, scheme and font with Plasma's own tools
+    (`plasma-apply-colorscheme`, `kwriteconfig6`) and reads what a fresh Qt
+    process reports; the earlier System Settings run recorded no change
+    because its Apply never reached kdeglobals. The System Settings panel
+    itself is not driven.
 - [x] T3 Identity (R3.1, R3.2).
   - [x] T3.1 `setDesktopFileName` in `rowplay-app`'s bootstrap; cxx-qt-lib
     as a direct, exact pin; qt-bridges-notes #23.
@@ -40,8 +43,30 @@ Ticked in the pull request that delivers them (`kde/plasma-integration`).
     `qquickiconimage.cpp` and natively with static buttons.
   - [x] T5.2 The Linux names limited to the standard actions. The Settings
     silhouette is gone: 294 dark pixels before, 111 after.
-- [ ] T6 Native acceptance on Fedora Plasma Wayland (R7.1, R7.2).
-- [ ] T7 AppImage rebuilt, compared and run natively (R7.3).
+- [x] T6 Native acceptance on Fedora Plasma Wayland (R7.1, R7.2): the harness's
+  `native`, `visual`, `identity` and `appearance` stages, all passing on
+  2026-09-30 (Plasma 6.7.5); the visual contract has 0 unexpected pixels.
+- [x] T7 AppImage rebuilt, compared and run natively (R7.3): post-#144 `main`
+  69,585,400 bytes against the branch's 69,593,592 (+8,192; the binary grows
+  20,552 and squashfs pads), 2,319 files each, no KDE stack; the exact
+  AppImage runs through a desktop entry.
 - [x] T8 Docs: ADR 0018; ADR 0015 decisions 5 and 6 and ADR 0013's Plasma
   note amended; `design-system.md`, `qt-bridges-notes.md`, `roadmap.md`,
   AGENTS.md, and `linux.sh`'s header.
+- [x] T9 The acceptance harness (`tools/kde/`): host and Qt probe, guards,
+  services, native gates, the spatial visual contract with derived rules and a
+  measured native-hardware noise profile, generic Xvfb/Fusion, the Ubuntu
+  24.04 package comparison, the exact AppImage (KWin, AT-SPI), and appearance
+  changes with verified restoration; 69 unit tests, run in CI.
+  - [x] T9.1 Session-changing stages are opt-in and transactional (snapshot,
+    change, restore exact bytes, verify); SIGINT and SIGTERM restore too.
+  - [x] T9.2 A locked or starved run is a named failure: the screen is kept
+    awake with `org.freedesktop.ScreenSaver.Inhibit`, KWin keeps the window
+    frontmost, and the journal is checked for a screen lock.
+  - [ ] T9.3 Task Manager pin/unpin: not automated (the user's panel), an
+    optional manual smoke.
+- [x] T10 The gate's keyboard contract: real key events for the documented
+  chords, in the shell (two halves, around a modal drawer's exit animation)
+  and the replay, restoring focus and state, ending with a real Ctrl+Q; the
+  date-range step opens the drawer at large text; skipped, and said so, where
+  no window is active (Xvfb).

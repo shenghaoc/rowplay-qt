@@ -1565,7 +1565,8 @@ Checked in native Metal captures and in the tools' output:
     - the generic theme and `offscreen` keep `qt_fusionPalette()`'s
       `#308cc6` (`qplatformtheme.cpp`);
     - **qtbase's KDE theme (`QKdeTheme`) reports `#000000`**, measured under
-      Plasma 6.6.4 with the AppImage's Qt (ADR 0018). It starts from
+      Plasma 6.6.4 with the AppImage's Qt, and re-measured unchanged on
+      Plasma 6.7.5 (ADR 0018). It starts from
       `QPalette()`, which before the application palette exists is Qt's
       black palette, where `qt_ensure_default_accent_color` marks the
       accent as set (black). It then writes Highlight from `kdeglobals`'
@@ -1595,8 +1596,8 @@ Checked in native Metal captures and in the tools' output:
     `colorScheme()` but not `contrastPreference()` (master `276324f5`): a
     high-contrast Plasma colour scheme reaches the app as palette colours
     only, and the app keeps its own ramps there.
-    Measured on Fedora 44 Plasma 6.6.4 (ADR 0018): `NoPreference`, and
-    xdg-desktop-portal-kde supplies no `contrast` key.
+    Measured on Fedora 44 Plasma 6.6.4 and again on 6.7.5 (ADR 0018):
+    `NoPreference`, and the portal's `contrast` key is 0.
   - **Probed here:** under `xcb` on Xvfb with no desktop, and under
     `offscreen`, the probe reads accent `#308cc6`, `NoPreference`, colour
     scheme `Unknown` and a 9 pt (12 px) "Sans Serif" system font. The macOS

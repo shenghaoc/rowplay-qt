@@ -72,6 +72,8 @@ ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
   ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
 git diff --check
+tools/kde/acceptance.py --help                # Fedora KDE Plasma native acceptance (ADR 0018; tools/kde/README.md)
+python3 -B -m unittest discover -s tools/kde/tests -t tools/kde   # that harness's tests (CI runs them too)
 tools/package/macos.sh                        # Phase 9: dist/rowplay-qt.app + .dmg (macOS)
 tools/package/linux.sh                        # Phase 9: dist/*.AppImage (Linux x86_64; xvfb-run when headless)
 pwsh tools/package/windows.ps1                # Phase 9: dist/*-setup.exe + .zip (Windows; Inno Setup 6)
@@ -320,6 +322,10 @@ renames no required check. The step-529 job is informational. Rules:
   means updating the ruleset. Never skip a required job with a job-level
   `if:`: a matrix job skipped at job level does not report its per-OS
   check names, which blocks merging. Skip its steps instead.
+- The Qt-free job also runs the KDE acceptance harness's unit tests
+  (`tools/kde/tests`, no desktop needed). The Plasma acceptance run itself is local
+  by design: a hosted runner is not a Plasma desktop on a real GPU, and an Xvfb job
+  is not Plasma-native evidence (`tools/kde/README.md`).
 - The Linux App job and the step-529 job upload the gate's timestamped
   app log (`gate-log`, `gate-log-step529`) whenever the walk writes one,
   also when it fails.
@@ -858,3 +864,29 @@ Each rule exists because the failure happened.
   (`macos.sh`'s `otool | grep -F`) is the safe orientation — it fails the
   build on the *presence* of a leak signature, not on the absence of a
   success marker.
+- **A native walk needs a screen that is awake, an active window and a
+  frontmost one.** On Plasma the screen locker engages after five idle minutes
+  (nobody touches the machine during a gate), and a locked session stops frame
+  callbacks to every window: random gates ran out every hold (2026-09-30). A
+  window KWin maps behind another starves the same way. `tools/kde/` holds
+  `org.freedesktop.ScreenSaver.Inhibit`, raises the window with a KWin script and
+  fails a starved or locked run by name. By hand: keep the window frontmost and the
+  screen awake, and read the "holds that ran out their tick bound" line.
+- **The walk has to be run at large text, not only at the default.** At 150 %
+  text a 1200 px window is the medium width class and the sidebar is a modal
+  drawer, so the date-range step (which assumed the sidebar beside the content)
+  failed, and a modal drawer keeps every shortcut behind it quiet until its exit
+  animation ends (still visible 205 ms after Escape). The macOS 150 % matrix
+  never met this because it never ran that step there. `tools/kde/`'s appearance
+  stage runs the full gate at 150 % on Plasma.
+- **`root.forceActiveFocus()` does not take focus back from a Tab-reached list
+  view.** A test that moves focus must restore it and check that it did (the
+  keyboard contract's `leaves keyboard focus where it found it`): the leak drew the
+  selected sidebar row as focused in every later capture, and only the pixel
+  contract noticed. Shortcuts also fire only in an active window, which a display
+  with no window manager (Xvfb) never has: the contract says it was skipped there,
+  and a skip anywhere else is a failure.
+- **Native hardware captures carry delta-1 dithering the Xvfb bound was not
+  measured on** (two same-tree runs: 2D up to 450 px, 3D up to 76 px, never above
+  delta 1). `tools/kde/expected-visual-diff.json` holds a named noise profile for
+  them; the global capture-diff bounds are unchanged.

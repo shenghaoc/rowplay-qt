@@ -1,7 +1,8 @@
 # ADR 0018 — Plasma integration through Qt and freedesktop, with Fusion in the portable AppImage
 
-Status: accepted (2026-09-28). Refines ADR 0015's Linux decisions 5 and 6.
-ADR 0013's note on Plasma's accent is corrected here.
+Status: accepted (2026-09-28; acceptance evidence and the harness added
+2026-09-30). Refines ADR 0015's Linux decisions 5 and 6. ADR 0013's note on
+Plasma's accent is corrected here.
 
 ## Context
 
@@ -13,10 +14,15 @@ covers the work that did try: probes on Debian 13 (Plasma 6.3.6), which
 were abandoned because that machine was unstable, and then a Fedora 44 KDE
 Plasma machine, which is now the native Plasma test host:
 
-- Fedora 44 KDE Plasma Desktop Edition, kernel 6.19.10, Wayland;
-- Plasma and KWin 6.6.4, KDE Frameworks 6.25.0;
-- host Qt 6.10.2, Mesa 26.2.3 on Intel UHD 630;
-- the app on Qt 6.11.2 from aqt, as CI and the AppImage use.
+- Fedora 44 KDE Plasma Desktop Edition on Wayland, Mesa 26.2.3 on Intel
+  UHD 630 (hardware GL), the app on Qt 6.11.2 from aqt as CI and the
+  AppImage use. The findings below were first measured on Plasma and KWin
+  6.6.4 with KDE Frameworks 6.25.0, kernel 6.19.10 and host Qt 6.10.2. The
+  host was then updated, and the acceptance run (below) re-measured every one
+  of them on **Plasma and KWin 6.7.5, KDE Frameworks 6.30.0, kernel 7.2.7,
+  xdg-desktop-portal 1.22.1 / KDE 6.7.5 and host Qt 6.11.2** (now the same
+  version as the bundled Qt, which changes nothing: the bundled Qt is still a
+  separate build from Fedora's). The update changed none of them.
 
 The evidence is labelled by kind: **source** (read from the Qt 6.11.2 tags),
 **native** (run on that Fedora Plasma Wayland session), **automated** (tests
@@ -169,9 +175,93 @@ What the AppImage's Qt sees under Plasma:
   would serve if it ever does.
 - KStatusNotifierItem / a tray icon, MPRIS, KNotifications: the app has no
   background activity, media session or notification to show.
+- Plasma widgets (plasmoids): the app is a window, not a panel applet.
+- Loading the host's KDE QML modules, Frameworks or Breeze style into the
+  bundled Qt, or copying them into the AppImage: they are built against
+  another Qt (the undefined-symbol and incomplete-rendering findings in the
+  context), and would give up self-containment for a look. Not tried again
+  on Fedora, where the finding was already settled.
 - Detecting Plasma, by `XDG_CURRENT_DESKTOP` or anything else, in product
   code or tests: the accent, contrast and icon rules are Qt's and
-  freedesktop's, and hold on any desktop that implements them.
+  freedesktop's, and hold on any desktop that implements them. The
+  acceptance harness is a Plasma tool and may name Plasma; the app and its
+  tests do not.
+
+## Acceptance
+
+The decisions above are checked by a repeatable harness, `tools/kde/acceptance.py`
+(`tools/kde/README.md`), and not by a one-off manual walk. Its evidence directory
+is local and git-ignored; what it measured on 2026-09-30, from a clean branch
+worktree on post-#144 `main` (046c2e3), with every stage passing:
+
+- **Native gates** (Wayland, hardware GL): the debug quick, release quick
+  (#144's, no `BorrowError`) and full gates pass; the full walk takes 115.5 s
+  with 70 captures, a 0.7 s replay entry and a 2.48 % shadow check. `main`'s
+  own full walk takes the same 115.5 s.
+- **Visual contract:** 40 of 70 captures exceed the generic noise bound, but
+  every changed pixel is confined to a recorded region; **0 unexpected
+  pixels**. The 30 replay captures change only in the scrubber's fill
+  (`#000000` to the accent), the 9 toolbar screens only in the 16x16 Settings
+  icon, and `detail-nostrokes` in the sidebar list's focus ring (a band, no
+  interior). The other 30 are noise. Accent-vs-default: 6 of 14 captures
+  change, only in the Replay button, a switch, the selected row and the focus
+  ring. Native hardware captures carry delta-1 dithering the Xvfb bound was
+  not measured on (two same-tree runs: 2D up to 450 px, 3D up to 76 px, never
+  above delta 1), so the rules file holds a named noise profile; the global
+  bounds are unchanged.
+- **Appearance**, on the live desktop and then restored (kdeglobals'
+  SHA-256, scheme, portal keys, font and what Qt reports all equal the
+  snapshot): a loud accent (`plasma-apply-colorscheme --accent-color #f67400`)
+  moves Qt's Highlight `#3daee9` to `#f89d4c` while Accent stays `#000000`, and
+  `Theme.accentColor` and the focus ring follow; Breeze Dark reaches Qt
+  (`colorScheme` Dark, portal `color-scheme` 1); the general font at 150 %
+  (10 to 15 pt) reaches a fresh Qt process and the full gate passes.
+- **The exact AppImage** launched through a desktop entry: KWin reports
+  `desktopFileName=io.github.shenghaoc.rowplay` on a native Wayland window;
+  one launch is one window, a second is a second window with the same
+  association; the app's own Qt log shows platform theme `kde`, icon theme
+  `breeze` and themed lookups of the standard command icons; an AT-SPI walk
+  moves focus out of the date fields (the list resets, 17 to 5 matching, without
+  aborting) and toggles Play and Pause; it closes cleanly with no core dump.
+- **Generic Linux** (Xvfb, every desktop variable removed): no KDE theme is
+  created (`generic`, icon theme `hicolor`), Fusion is the style, the palette
+  falls back by the same rule to the brand blue, the 70 captures match `main`'s
+  within capture-diff's own bounds, and X11's `_KDE_NET_WM_DESKTOP_FILE` and
+  `_GTK_APPLICATION_ID` are the ID while `WM_CLASS` is unchanged.
+- **Packages**, both built by `linux.sh` unchanged in `ubuntu:24.04`, each with
+  its own target directory: post-#144 `main` 69,585,400 bytes (SHA-256
+  `5d7e24af...`), the branch 69,593,592 bytes (`6ac11160...`), 2,319 files
+  each, only `usr/bin/rowplay-qt` differing (+20,552 bytes; the AppImage grows
+  8,192 because squashfs pads to blocks). Neither bundles a KDE Frameworks,
+  Kirigami, Plasma, Breeze QML, KConfig, KI18n or KIO file, and no ELF file
+  needs a KDE library; the only platform-theme plugin is the desktop portal's.
+  The earlier "+4,096 bytes" was measured before #144 and is not comparable.
+
+What running it found, beyond the decisions:
+
+- **A locked screen starves the gate.** Nobody touches the machine during a
+  run, so Plasma's screen locker engaged after five idle minutes, and a locked
+  session stops frame callbacks to every window: random gates ran out every
+  hold. The harness holds `org.freedesktop.ScreenSaver.Inhibit`, keeps the
+  window frontmost with a KWin script, and fails a starved or locked run by name.
+- **Large text turns the sidebar into a modal drawer**, at 150 % text a 1200 px
+  window is the medium width class. The walk's date-range step assumed the
+  sidebar beside the content and failed there; it now opens the drawer first.
+  The walk had only ever run at the default text size.
+- **Shortcuts fire only in an active window.** Xvfb has no window manager, so
+  the shortcut contract is skipped there (and says so); under Wayland and
+  offscreen a skip is a failure. Platform chords differ (Preferences is
+  Ctrl+Shift+, under KDE; Ctrl+Q does not exist offscreen), and the gate reads
+  them from the shortcuts.
+
+Key presses cannot be injected into the exact packaged AppImage on this
+session without a privileged or interactive channel (no synthesizer tool is
+installed, `/dev/uinput` is root-only, the RemoteDesktop portal needs a consent
+dialog each session), and none is added. The chords are covered where key
+events are real, in the gate (`GateKeys.qml`, on the release code path, through
+`qml_runtime_gate.rs`), and the exact AppImage is driven through AT-SPI focus
+and actions. Pinning to the Task Manager is the user's panel and stays an
+optional manual smoke.
 
 ## Consequences
 
@@ -188,6 +278,14 @@ What the AppImage's Qt sees under Plasma:
 - The AppImage's inventory is unchanged: no KDE, Kirigami or host Qt file
   is bundled. The one new dependency is a direct edge to a crate the app
   already linked.
+- **Portal and desktop services need no code** (read from the source by
+  the harness): the app opens no URL, file dialog or notification, has no tray
+  icon or MPRIS service, and creates its only menu bar on macOS; the one service
+  it uses is the Secret Service through `keyring` (ksecretd on Plasma), whose
+  opt-in round trip passes there.
+- **Contrast stays a platform limitation.** Qt reports `NoPreference` on
+  Plasma 6.7.5 and the portal's `contrast` key is 0; nothing is inferred
+  from the palette.
 - **Packaging-host limitation** (native, local only): `tools/package/linux.sh`
   on a Fedora 44 host produces an AppImage that crashes before `main`.
   linuxdeploy's pinned tools rewrite `RUNPATH` on Fedora's RELR-packed
