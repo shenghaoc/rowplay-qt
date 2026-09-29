@@ -47,8 +47,9 @@ Ticked in the pull request that delivers them (`kde/plasma-integration`).
   `native`, `visual`, `identity` and `appearance` stages, all passing on
   2026-09-30 (Plasma 6.7.5); the visual contract has 0 unexpected pixels.
 - [x] T7 AppImage rebuilt, compared and run natively (R7.3): post-#144 `main`
-  69,585,400 bytes against the branch's 69,593,592 (+8,192; the binary grows
-  20,552 and squashfs pads), 2,319 files each, no KDE stack; the exact
+  69,581,304 bytes against the branch's 69,597,688 (the binary grows exactly
+  20,552; the AppImage total varies by 4,096 bytes between builds of one tree, so
+  its delta is +8 to +16 KiB), 2,319 files each, no KDE stack; the exact
   AppImage runs through a desktop entry.
 - [x] T8 Docs: ADR 0018; ADR 0015 decisions 5 and 6 and ADR 0013's Plasma
   note amended; `design-system.md`, `qt-bridges-notes.md`, `roadmap.md`,

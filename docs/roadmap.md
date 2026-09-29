@@ -1490,9 +1490,10 @@ and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
   pixel inside a recorded region, 0 unexpected); the exact AppImage through a
   desktop entry on Plasma Wayland; a loud accent, Breeze Dark and 150 % text on
   the live desktop, restored and verified; generic Xvfb/Fusion with every desktop
-  variable removed; and both AppImages in `ubuntu:24.04` (69,585,400 bytes on
-  post-#144 `main`, 69,593,592 on the branch, 2,319 files each, no KDE stack in
-  either).
+  variable removed; and both AppImages in `ubuntu:24.04` (69,581,304 bytes on
+  post-#144 `main`, 69,597,688 on the branch, 2,319 files each, only the binary
+  differing, by 20,552 bytes; AppImage totals vary by 4,096 bytes between builds
+  of one tree; no KDE stack in either).
 - What running it found: a locked screen starves the gate (the harness inhibits
   it); large text turns the sidebar into a modal drawer, which the walk's date-range
   step had never met (it now opens it); shortcuts fire only in an active window,

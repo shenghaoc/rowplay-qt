@@ -229,10 +229,14 @@ worktree on post-#144 `main` (046c2e3), with every stage passing:
   within capture-diff's own bounds, and X11's `_KDE_NET_WM_DESKTOP_FILE` and
   `_GTK_APPLICATION_ID` are the ID while `WM_CLASS` is unchanged.
 - **Packages**, both built by `linux.sh` unchanged in `ubuntu:24.04`, each with
-  its own target directory: post-#144 `main` 69,585,400 bytes (SHA-256
-  `5d7e24af...`), the branch 69,593,592 bytes (`6ac11160...`), 2,319 files
-  each, only `usr/bin/rowplay-qt` differing (+20,552 bytes; the AppImage grows
-  8,192 because squashfs pads to blocks). Neither bundles a KDE Frameworks,
+  its own target directory: post-#144 `main` 69,581,304 bytes (SHA-256
+  `d8e6d463...`), the branch 69,597,688 bytes (`fd86256e...`), 2,319 files
+  each, only `usr/bin/rowplay-qt` differing. The binary grows by exactly 20,552
+  bytes (41,197,440 to 41,217,992), the same in every build; the AppImage's own
+  size is not reproducible to the byte: two builds of the same `main` differed by
+  4,096 bytes (69,585,400 and 69,581,304), so its delta reads +8,192 in one pair
+  of builds and +16,384 in the next. Read the binary, and treat the AppImage
+  delta as +8 to +16 KiB. Neither bundles a KDE Frameworks,
   Kirigami, Plasma, Breeze QML, KConfig, KI18n or KIO file, and no ELF file
   needs a KDE library; the only platform-theme plugin is the desktop portal's.
   The earlier "+4,096 bytes" was measured before #144 and is not comparable.
