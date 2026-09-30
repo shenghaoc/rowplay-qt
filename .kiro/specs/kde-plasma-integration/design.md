@@ -47,6 +47,17 @@ sidebar, menu, calendar and "more" names are cleared, and the standard
 action names stay. `iconSource` is unchanged, so every button keeps its SVG
 fallback. `CommandButton` and the sort button are the only users.
 
+## Acceptance harness (`tools/kde/`)
+
+`acceptance.py` orchestrates the stages (README there lists them); `kdeacc/`
+holds the parsers and engines, each unit-tested without a desktop. The visual
+contract lives in `expected-visual-diff.json` (regions, ring bands, `must_change`,
+a native-hardware noise profile), derived by `derive_rules.py`. Appearance and
+identity are transactions (`kdeacc/plasma.py`). The gate's keyboard contract is
+in `Main.qml` (`gateKeyContractShell`, `gateKeyContractShortcuts`,
+`gateKeyContractReplay`, `gateQuit`) with `GateKeys.qml`'s helper, asserted by
+`qml_runtime_gate.rs`.
+
 ## Not built
 
 Global menu, portal calls, notifications, tray, MPRIS, KIO, KConfig, KI18n,
