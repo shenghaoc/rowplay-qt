@@ -23,6 +23,11 @@ QT_LOADER_VARS = (
     "LD_LIBRARY_PATH", "QML2_IMPORT_PATH", "QML_IMPORT_PATH", "QT_PLUGIN_PATH",
     "QT_QPA_PLATFORMTHEME", "QT_QPA_PLATFORM", "QT_STYLE_OVERRIDE", "QTDIR", "QMAKE",
     "QSG_RHI_BACKEND", "QT_QUICK_CONTROLS_STYLE", "QT_LOGGING_RULES",
+    # Where Qt looks for platform plugins, styles and their configuration, and which backend it
+    # draws with: any of these inherited from a developer shell that set up the bundled Qt
+    # would make a host tool (plasmashell, kwin_wayland, the host's Qt) load the wrong plugins.
+    "QT_QPA_PLATFORM_PLUGIN_PATH", "QT_QPA_GENERIC_PLUGINS", "QT_QUICK_CONTROLS_CONF",
+    "QT_QUICK_CONTROLS_FALLBACK_STYLE", "QT_QUICK_BACKEND", "QT_FILE_SELECTORS", "QT_XCB_GL_INTEGRATION",
 )
 # Variables that make Qt pick a desktop's platform theme (qgenericunixtheme.cpp
 # reads the desktop from these, XDG_CURRENT_DESKTOP first), or that describe a
@@ -42,6 +47,16 @@ def host_env(extra=None):
     return env
 
 
+def bundled_qt_env(qt_dir, extra=None):
+    """The environment for a process that runs the repository's bundled Qt.
+
+    Starts from host_env (no inherited Qt variable at all) and adds only what that Qt needs: its
+    own library directory. Callers add the platform, style and logging variables they mean."""
+    env = host_env({"LD_LIBRARY_PATH": f"{qt_dir}/lib"})
+    env.update(extra or {})
+    return env
+
+
 def generic_env(extra=None):
     """The environment for the generic Linux run: host_env without any desktop."""
     env = {k: v for k, v in host_env().items() if k not in DESKTOP_VARS}
@@ -55,6 +70,15 @@ def scrubbed_vars(environ=None):
     return sorted(k for k in DESKTOP_VARS if k in environ)
 
 
+def text_of(value):
+    """Captured output as text: subprocess reports it as bytes (or None) when a command times out."""
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
 @dataclass
 class Done:
     argv: list
@@ -62,6 +86,7 @@ class Done:
     out: str
     err: str
     seconds: float
+    timed_out: bool = False
 
     @property
     def ok(self):
@@ -97,11 +122,12 @@ class Runner:
             )
             done = Done(argv, proc.returncode, proc.stdout, proc.stderr, time.time() - started)
         except subprocess.TimeoutExpired as exc:
-            done = Done(argv, 124, exc.stdout or "", (exc.stderr or "") + f"\ntimeout after {timeout}s", time.time() - started)
+            done = Done(argv, 124, text_of(exc.stdout), text_of(exc.stderr) + f"\ntimeout after {timeout}s", time.time() - started,
+                        timed_out=True)
         except FileNotFoundError as exc:
             done = Done(argv, 127, "", str(exc), time.time() - started)
         self._log({"tag": tag, "argv": argv, "cwd": str(cwd) if cwd else None,
-                   "rc": done.rc, "seconds": round(done.seconds, 2)})
+                   "rc": done.rc, "seconds": round(done.seconds, 2), **({"timed_out": True} if done.timed_out else {})})
         return done
 
     def in_tree(self, tree, argv, env=None, timeout=None, tag="", logfile=None):
