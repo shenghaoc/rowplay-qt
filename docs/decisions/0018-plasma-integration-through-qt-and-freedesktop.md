@@ -109,9 +109,9 @@ What the AppImage's Qt sees under Plasma:
    a possible future package, not this one.
 2. **The accent is read by Qt's palette rules, never by desktop.**
    `Theme.resolveAccent(accent, highlight)` uses the palette's accent
-   unless it is one of Qt's own defaults: Fusion's `#308cc6`, or the
-   `#000000` of the uninitialised palette a theme starts from. For either,
-   it uses the highlight, which is Qt's documented default for an unset
+   unless it is transparent (nothing set) or one of Qt's own defaults:
+   Fusion's `#308cc6`, or the `#000000` of the uninitialised palette a theme
+   starts from. For any of them, it uses the highlight, which is Qt's documented default for an unset
    accent, unless the highlight is Fusion's default too. Otherwise the brand
    blue applies, as before. On macOS and Windows the platform sets the
    accent, so nothing changes there. Under Plasma the accent is the
