@@ -1484,7 +1484,9 @@ and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
     a tray icon, MPRIS, Plasma widgets, and host-module injection.
 - What checks it (`tools/kde/acceptance.py`, `tools/kde/README.md`): a repeatable
   native harness with a self-contained evidence directory; its unit tests run in CI.
-  The run of 2026-09-30, from a clean worktree, passed every stage: the debug
+  It compares with an acceptance baseline that is a commit (`046c2e3`, proved by
+  SHA, a detached worktree is fine), not the moving `main`. The run of
+  2026-09-30, from a clean worktree, passed every stage: the debug
   quick, release quick and full native gates (115.5 s, 70 captures); a spatial
   visual contract (40 of 70 captures exceed the generic noise bound, every changed
   pixel inside a recorded region, 0 unexpected); the exact AppImage through a

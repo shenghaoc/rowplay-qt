@@ -58,14 +58,25 @@ Ticked in the pull request that delivers them (`kde/plasma-integration`).
   services, native gates, the spatial visual contract with derived rules and a
   measured native-hardware noise profile, generic Xvfb/Fusion, the Ubuntu
   24.04 package comparison, the exact AppImage (KWin, AT-SPI), and appearance
-  changes with verified restoration; 69 unit tests, run in CI.
+  changes with verified restoration; 134 unit tests, run in CI.
   - [x] T9.1 Session-changing stages are opt-in and transactional (snapshot,
-    change, restore exact bytes, verify); SIGINT and SIGTERM restore too.
+    change, restore exact bytes, verify); SIGINT, SIGTERM and SIGHUP restore
+    too, and then the run stops: the restoration evidence is recorded, no later
+    stage runs, the processes it launched are ended by PID, and it exits 128 + the
+    signal.
   - [x] T9.2 A locked or starved run is a named failure: the screen is kept
     awake with `org.freedesktop.ScreenSaver.Inhibit`, KWin keeps the window
     frontmost, and the journal is checked for a screen lock.
   - [ ] T9.3 Task Manager pin/unpin: not automated (the user's panel), an
     optional manual smoke.
+  - [x] T9.4 Review hardening of the harness: the comparison baseline is a
+    commit (`046c2e3`, validated by SHA, detached worktrees welcome), not the
+    moving `main`; the visual rules carry their `baseline_sha` and are applied
+    only to captures whose provenance matches it (no worktree needed for a
+    capture-only run); host probes run with no inherited Qt variable; gate
+    variables are pinned (the generic walk is always the full profile); a
+    timed-out command is a named result; a probe with no measured icon theme
+    fails; a ring band is as thick as its border pixels only.
 - [x] T10 The gate's keyboard contract: real key events for the documented
   chords, in the shell (two halves, around a modal drawer's exit animation)
   and the replay, restoring focus and state, ending with a real Ctrl+Q; the
