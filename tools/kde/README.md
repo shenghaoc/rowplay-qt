@@ -86,11 +86,11 @@ named noise profile with its calibration (two same-tree runs: 2D up to 450 px, 3
 
 What the two committed sets record (each derived from a real pair, both on Fedora 44 Plasma 6.7.5, hardware GL):
 
-* **`main-vs-branch`**, the branch's full native walk against post-#144 `main`'s: 40 of 70 captures exceed the
+* **`baseline-vs-branch`** (`baseline_sha` `046c2e3`), the branch's full native walk against the acceptance baseline's (post-#144 `main`): 40 of 70 captures exceed the
   generic noise bound, in three families and nowhere else. The 30 replay captures (`phase-*`, `replay-gap-*`)
   differ only in the scrubber's fill, `#000000` → the accent, plus a dozen anti-aliasing pixels beside it; the
   9 toolbar screens differ only in the 16×16 Settings icon (our glyph replaces a full-colour category icon,
-  where `main` drew a solid silhouette); and `detail-nostrokes` has the sidebar list's focus ring, a band 5 px
+  where the baseline drew a solid silhouette); and `detail-nostrokes` has the sidebar list's focus ring, a band 5 px
   thick with no interior, going from black to the fitted accent (its toolbar icon aside). The other 30 are noise.
 * **`accent-vs-default`**, the quick walk under Plasma's default accent against a loud one: 6 of 14 captures
   change, in four accent-driven places: the prominent Replay button's fill, a settings switch, the selected
@@ -99,7 +99,19 @@ What the two committed sets record (each derived from a real pair, both on Fedor
 The rules are **derived from real capture pairs**, never guessed (`derive_rules.py`), and a changed rule is a
 reviewed change: the diff of that file shows which pixels a change may now move. Re-derive after an
 intended visual change, look at the family summary it prints (the commonest before→after colours), and
-commit the file with the change.
+commit the file with the change. A ring is a cluster with at least 98 % of its pixels within a few pixels of its
+border: the band is as thick as those border pixels, and the few deeper ones stay exact, as padded regions of their own.
+
+**The rules belong to one baseline.** `baseline-vs-branch` describes a change made on top of `046c2e3` and records it as
+`baseline_sha`; once the stack's layers merge, `main` already contains that change and applying the rules to it would
+report dozens of missing changes. The `native` stage therefore writes a `provenance.json` (role, commit, clean or not) beside
+every capture directory it takes, and `visual` checks the *baseline captures'* provenance against the rules' `baseline_sha`,
+and the rules' against this run's baseline, before it applies one rule. A mismatch fails once, by name (`baseline mismatch`);
+missing provenance fails as an evidence error saying what to add. Neither needs a Git worktree, so
+`acceptance.py visual --baseline-captures DIR --branch-captures DIR` classifies copied evidence on a machine with one
+checkout (`--main-captures` is the old name). `derive_rules.py` takes the commit from the `before` directory's provenance
+(and refuses a dirty tree or a disagreeing `--baseline-sha`); `--stamp-baseline SHA` records it on a set derived earlier without
+touching a coordinate. A set derived between two states of one tree (`accent-vs-default`) names no baseline.
 
 ## Driving the exact AppImage (`atspi_walk.py`)
 

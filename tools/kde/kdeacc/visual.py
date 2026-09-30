@@ -283,8 +283,15 @@ def derive_rule(name, before, after, capture_diff):
         box = _bbox(group)
         w, h = box[2] - box[0] + 1, box[3] - box[1] + 1
         dist = [min(x - box[0], box[2] - x, y - box[1], box[3] - y) for x, y in group]
-        if min(w, h) >= RING_MIN_SIDE and sum(d < RING_BAND for d in dist) >= RING_SHARE * len(group):
-            bands.append({"outer": box, "thickness": max(dist) + 2})
+        on_border = [d for d in dist if d < RING_BAND]
+        if min(w, h) >= RING_MIN_SIDE and len(on_border) >= RING_SHARE * len(group):
+            # The band is as thick as its border pixels are and no thicker: the few pixels deeper inside (under
+            # 2 %) must not widen it towards a filled rectangle. They stay exact, as padded regions of their own.
+            bands.append({"outer": box, "thickness": max(on_border) + 2})
+            inside = [(x, y, 0) for (x, y), d in zip(group, dist) if d >= RING_BAND]
+            for outliers in _clusters(inside):
+                ob = _bbox(outliers)
+                regions.append([max(0, ob[0] - PAD), max(0, ob[1] - PAD), min(wa - 1, ob[2] + PAD), min(ha - 1, ob[3] + PAD)])
         else:
             regions.append([max(0, box[0] - PAD), max(0, box[1] - PAD),
                             min(wa - 1, box[2] + PAD), min(ha - 1, box[3] + PAD)])
