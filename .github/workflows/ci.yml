@@ -337,6 +337,9 @@ jobs:
           ROWPLAY_PHASE_SHOTS: '1'
           ROWPLAY_PHASE_CLOSEUPS: '1'
           QT_QPA_PLATFORM: xcb
+          # Xvfb has no window manager, so no window is ever active: the keyboard contract
+          # is skipped there and the gate accepts that only with this marker.
+          ROWPLAY_GATE_NO_WINDOW_MANAGER: '1'
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: '1'
           LANG: C.UTF-8
@@ -437,6 +440,9 @@ jobs:
           ROWPLAY_GATE_PROFILE: quick
           ROWPLAY_SMOKE_ARTIFACT_DIR: ${{ github.workspace }}/artifacts-release
           QT_QPA_PLATFORM: xcb
+          # Xvfb has no window manager, so no window is ever active: the keyboard contract
+          # is skipped there and the gate accepts that only with this marker.
+          ROWPLAY_GATE_NO_WINDOW_MANAGER: '1'
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: '1'
           LANG: C.UTF-8
@@ -492,6 +498,9 @@ jobs:
           ROWPLAY_PHASE_SHOTS: '1'
           ROWPLAY_PHASE_CLOSEUPS: '1'
           QT_QPA_PLATFORM: xcb
+          # Xvfb has no window manager, so no window is ever active: the keyboard contract
+          # is skipped there and the gate accepts that only with this marker.
+          ROWPLAY_GATE_NO_WINDOW_MANAGER: '1'
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: '1'
           LANG: C.UTF-8
