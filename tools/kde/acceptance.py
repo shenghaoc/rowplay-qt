@@ -119,11 +119,12 @@ def main(argv=None):
         write_manifest(run, out / "manifest.json")
         (out / "summary.md").write_text(render_summary(run))
 
-    def on_signal(signum, _frame):
-        raise KeyboardInterrupt(f"signal {signum}")
+    def signals_ignored():
+        for sig in session.INTERRUPT_SIGNALS:
+            signal.signal(sig, signal.SIG_IGN)
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, on_signal)
+    for sig in session.INTERRUPT_SIGNALS:   # SIGINT, SIGTERM and SIGHUP (a closed terminal): all end the run the same way
+        signal.signal(sig, session.raise_interrupted)
     ctx.run_started = time.time()
     inhibitor = session.IdleInhibitor().__enter__()
     ctx.inhibitor = inhibitor
@@ -154,17 +155,28 @@ def main(argv=None):
                 if c.status == Status.FAIL:
                     print(f"   FAIL {c.name}: {c.detail}")
             write_manifest(run, out / "manifest.json")
-        try:
-            left = stages.stage_leftovers(ctx)
-        except Exception as exc:  # recorded like any stage's error: never a crash that skips the manifest
-            left = Stage("leftovers", error=f"{type(exc).__name__}: {exc}")
-        run.stages.append(left)
+            if ctx.interrupted is not None:
+                # A stage caught the interruption to finish its own evidence (the appearance stage's restoration).
+                # That is now recorded: stop here, exactly as if the signal had arrived between stages.
+                raise ctx.interrupted
     except KeyboardInterrupt as exc:
-        print(f"interrupted: {exc}", file=sys.stderr)
-    finally:
-        inhibitor.__exit__(None, None, None)
-        finish()
-    print(f"\n{'FAILED' if run.failed else 'PASSED'}: {out}/summary.md")
+        run.interrupted = str(exc)
+        run.interrupt_signal = getattr(exc, "signum", 0)
+        print(f"interrupted: {exc}: no further stage runs", file=sys.stderr)
+        # No stage runs now; the desktop was restored by its own transaction. End what this run launched.
+        signals_ignored()
+        ended = stages.end_owned_processes(ctx)
+        if ended:
+            print(f"ended the processes this run launched: {ended}", file=sys.stderr)
+    signals_ignored()   # the last check and the manifest are not interruptible: a second signal must not lose them
+    try:
+        left = stages.stage_leftovers(ctx)   # after an interruption too: nothing this run started may survive it
+    except Exception as exc:  # recorded like any stage's error: never a crash that skips the manifest
+        left = Stage("leftovers", error=f"{type(exc).__name__}: {exc}")
+    run.stages.append(left)
+    inhibitor.__exit__(None, None, None)
+    finish()
+    print(f"\n{'INTERRUPTED' if run.interrupted else 'FAILED' if run.failed else 'PASSED'}: {out}/summary.md")
     return run.exit_code()
 
 

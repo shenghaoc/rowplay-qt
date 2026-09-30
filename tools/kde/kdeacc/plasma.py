@@ -29,6 +29,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .session import INTERRUPT_SIGNALS, raise_interrupted
 from .shell import host_env
 
 KDEGLOBALS = Path.home() / ".config" / "kdeglobals"
@@ -201,10 +202,8 @@ class SessionTransaction:
         if not self.allow:
             raise PermissionError("changing the desktop session needs --allow-session-changes")
         self.snap = self.plasma.snapshot()
-        def stop(signum, _frame):
-            raise KeyboardInterrupt(f"signal {signum}")
-        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
-            self._old[sig] = signal.signal(sig, stop)
+        for sig in INTERRUPT_SIGNALS:
+            self._old[sig] = signal.signal(sig, raise_interrupted)
         return self
 
     def __exit__(self, exc_type, exc, tb):
