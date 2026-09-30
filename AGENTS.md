@@ -60,7 +60,7 @@ cargo run -p rowplay-app                      # the Phase 4 shell (demo data by 
 cargo test -p rowplay-app --test qml_runtime_gate        # QML runtime-error gate (any QPA)
 # headless screenshot + gate test (Linux, Mesa):
 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
-  ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  ROWPLAY_GATE_NO_WINDOW_MANAGER=1 ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
   ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   xvfb-run -a cargo test -p rowplay-app
 # on a Wayland desktop the same tests run without Xvfb:
@@ -68,7 +68,7 @@ QT_QPA_PLATFORM=wayland QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
   ROWPLAY_QT_SMOKE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts cargo test -p rowplay-app
 # the quick gate profile (intermediate branches of a stack, see "Gate profiles"):
 ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
-  LIBGL_ALWAYS_SOFTWARE=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
+  LIBGL_ALWAYS_SOFTWARE=1 ROWPLAY_GATE_NO_WINDOW_MANAGER=1 ROWPLAY_SMOKE_ARTIFACT_DIR=$PWD/artifacts \
   ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
 git diff --check
@@ -160,6 +160,11 @@ mapping, not a contrast theme) and
 `ROWPLAY_SMOKE_SCREENSHOT_DIR` saves per-screen PNGs during the gate walk;
 these are plain environment reads, documented overrides that change nothing
 but the look (the screenshot directory is used only by the gate walk).
+`ROWPLAY_GATE_NO_WINDOW_MANAGER=1` tells the gate test that the xcb display has no window
+manager (Xvfb), so the keyboard contract's "window not active" skip is accepted; without it
+that skip fails the test, on a real X11 desktop too (it is read by the test, not the app).
+An Xvfb display with a window manager (for example `openbox`) activates the window, so leave the
+variable unset there and the whole contract runs, ending with the Quit chord (24 checks, 2026-09-30).
 `ROWPLAY_EXIT_AFTER_FRAMES=N` is the one hook read in every build: the shell
 quits with status 0 after N rendered frames, which is how the packaged
 release bundles are proven to start (`tools/package/launch-check.py`); it can
@@ -198,7 +203,7 @@ Which one to run:
 
   ```bash
   ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
-    LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a cargo test --release \
+    LIBGL_ALWAYS_SOFTWARE=1 ROWPLAY_GATE_NO_WINDOW_MANAGER=1 xvfb-run -a cargo test --release \
     --config profile.release.debug-assertions=true \
     -p rowplay-app --test qml_runtime_gate -- --nocapture
   ```

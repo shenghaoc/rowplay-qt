@@ -1190,8 +1190,9 @@ ApplicationWindow {
     function gateQuit() {
         gateTimer.running = false
         if (gateKeys.item && root.active && quitShortcut.enabled && quitShortcut.nativeText.length > 0) {
-            console.log("gate keys: Ctrl+Q sent", quitShortcut.nativeText)
-            gateKeys.item.press(Qt.Key_Q, Qt.ControlModifier)
+            const quit = gateKeys.item.chord(quitShortcut.nativeText)
+            console.log("gate keys: Ctrl+Q sent", quit.text)
+            gateKeys.item.press(quit.key, quit.modifiers)
             gateQuitFallback.start()
         } else {
             console.log("gate keys: no Quit chord (the platform has none, or the window is not active)")
