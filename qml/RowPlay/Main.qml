@@ -902,6 +902,29 @@ ApplicationWindow {
         }
     }
 
+    /// The accent rule (Theme.resolveAccent, ADR 0018) over fixed palettes,
+    /// so every platform checks every branch, and then what this platform's
+    /// own palette resolves to. The test asserts both; it never names a
+    /// desktop, only Qt's palette defaults.
+    function logGateAccent() {
+        const cases = [
+            ["#3d7eff", "#aabbcc"],   // a platform accent is used as is
+            ["#308cc6", "#308cc6"],   // Fusion's defaults: no accent
+            ["#000000", "#f67400"],   // an unset accent: the highlight
+            ["#000000", "#308cc6"],   // unset, and the highlight a default
+            ["#308cc6", "#f67400"],   // Fusion's accent, a platform highlight
+            ["#00000000", "#f67400"], // a transparent accent is unset: the highlight
+            ["#00000000", "#308cc6"]  // ... and with a default highlight too: none
+        ]
+        for (let i = 0; i < cases.length; ++i) {
+            console.log("gate accent case:", cases[i][0], cases[i][1], "->",
+                        Theme.resolveAccent(cases[i][0], cases[i][1]))
+        }
+        console.log("gate accent system:", Theme.systemPalette.accent,
+                    Theme.systemPalette.highlight, "->", Theme.systemAccent,
+                    "| accentColor", Theme.accentColor)
+    }
+
     // CI runtime-error gate: walk the screens, flip through all six
     // languages (live retranslation), grab per-screen PNGs when
     // ROWPLAY_SMOKE_SCREENSHOT_DIR is set, and exit. Any QML TypeError /
@@ -1188,6 +1211,7 @@ ApplicationWindow {
                                  { n: Library.filteredCount }),
                             "| uiLanguage:", Qt.uiLanguage)
                 root.checkGateMembers()
+                root.logGateAccent()
                 break
             case 2: root.grabScreen("dashboard"); break
             case 3: root.showSettings(); break
