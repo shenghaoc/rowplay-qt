@@ -3,18 +3,23 @@
 """Fedora KDE Plasma native acceptance for rowplay-qt.
 
 Runs the checks that make the Plasma integration (ADR 0018) repeatable: the host and Qt probe, the
-repository guards, the services audit and the repository's own checks. The native, package, identity and
-appearance stages arrive in later layers of the stack. Evidence goes to
+repository's own native gates, generic Linux, the AppImage packages,
+the exact AppImage on Plasma Wayland, and appearance changes with verified restoration. Evidence goes to
 one self-contained directory: manifest.json (the source of truth), summary.md, host.json, commands.log.
 
 Modes (stages), any number of them:
   probe    host record, the bundled Qt's platform theme, palette, accent, contrast
   guards   clean trees, #143's containment, no KDE dependency, nothing else touched
   services URL opening, file chooser, notifications, tray, menu, MPRIS, secret store: from the source
+  native   debug quick, release quick and full hardware-GL gates (branch), full gate (the acceptance baseline)
+  generic  Xvfb + Fusion with every desktop variable removed; X11 identity properties
+  package  both AppImages in ubuntu:24.04, inventory, comparison, KDE-bundle scan
+  identity the exact AppImage through a desktop entry: KWin identity, AT-SPI focus walk, grouping (--allow-session-changes)
+  appearance accent, dark, 150 % font, restore and verify (--allow-session-changes)
   checks   harness tests, fmt, clippy, cargo test, cargo test --workspace, git diff --check
   all      everything above, in dependency order
 
-Nothing here changes the desktop. --dry-run prints the plan and runs nothing.
+Nothing changes the desktop without --allow-session-changes. --dry-run prints the plan and runs nothing.
 Exit status is nonzero when any check FAILED. See tools/kde/README.md.
 """
 
@@ -32,9 +37,12 @@ from kdeacc import baseline, session, stages  # noqa: E402
 from kdeacc.results import Run, Stage, Status, now_iso, render_summary, write_manifest  # noqa: E402
 from kdeacc.shell import Runner, scrubbed_vars  # noqa: E402
 
-ORDER = ["probe", "guards", "services", "checks"]
-FUNCS = {"probe": stages.stage_probe, "guards": stages.stage_guards, "services": stages.stage_services, "checks": stages.stage_repo_checks}
-
+ORDER = ["probe", "guards", "services", "native", "generic", "package", "identity", "appearance", "checks"]
+FUNCS = {"probe": stages.stage_probe, "guards": stages.stage_guards, "services": stages.stage_services, "native": stages.stage_native,
+         "generic": stages.stage_generic, "package": stages.stage_package,
+         "identity": stages.stage_identity, "appearance": stages.stage_appearance, "checks": stages.stage_repo_checks}
+NEEDS_SESSION = {"identity", "appearance"}
+DEPENDS = {"identity": ["package"]}
 
 
 def parse(argv):
@@ -52,6 +60,9 @@ def parse(argv):
     p.add_argument("--qt-dir", type=Path, default=Path.home() / "Qt/6.11.2/gcc_64", help="the repository's Qt (README: aqt linux_gcc_64)")
     p.add_argument("--output", type=Path, help="evidence directory (default: <repo>/artifacts/kde/acceptance-<timestamp>)")
     p.add_argument("--dry-run", action="store_true", help="print the plan and the commands' shape; run nothing and change nothing")
+    p.add_argument("--allow-session-changes", action="store_true", help="permit stages that change the live Plasma session (identity, appearance)")
+    p.add_argument("--appimage", type=Path, help="use this branch AppImage for `identity` instead of building one")
+    p.add_argument("--reuse-container-target", action="store_true", help="package: keep the container build's target directory (faster; not a cold build)")
     return p.parse_args(argv)
 
 
@@ -63,7 +74,7 @@ def plan(names):
     return wanted
 
 
-NEEDS_BASELINE = {"guards"}   # the stages that compare the tree under test with a baseline checkout
+NEEDS_BASELINE = {"guards", "native", "generic", "package"}   # the stages that run or compare the acceptance baseline checkout
 
 
 def main(argv=None):
@@ -74,13 +85,15 @@ def main(argv=None):
     out = (args.output or repo / "artifacts" / "kde" / f"acceptance-{stamp}").resolve()
     needs_baseline = any(n in NEEDS_BASELINE for n in names)
     print(f"plan: {' '.join(names)}\nrepo: {repo}\nevidence: {out}")
+    session_stages = [n for n in names if n in NEEDS_SESSION]
     if args.dry_run:
         print("dry run: nothing is run or changed.")
         # Nothing is resolved or validated here: a plan must be printable from any checkout.
         print("baseline: " + (f"would be required by {', '.join(n for n in names if n in NEEDS_BASELINE)}: "
                               f"{baseline.describe_requirement(args.baseline_sha)}" if needs_baseline else "not required by these stages"))
         for n in names:
-            print(f"  - {n}")
+            note = " (would change the live session; needs --allow-session-changes)" if n in NEEDS_SESSION else ""
+            print(f"  - {n}{note}")
         return 0
     baseline_tree = None
     if needs_baseline:
@@ -88,11 +101,14 @@ def main(argv=None):
         if baseline_tree is None:
             raise SystemExit(f"no acceptance baseline checkout: {baseline.describe_requirement(args.baseline_sha)}")
     out.mkdir(parents=True, exist_ok=True)
+    for sub in ("native", "generic", "package", "appearance", "identity"):
+        (out / sub).mkdir(exist_ok=True)
     runner = Runner(out / "commands.log")
     ctx = stages.Ctx(repo, Path(baseline_tree).resolve() if baseline_tree else None, args.qt_dir, out, runner, args,
                      baseline_sha=args.baseline_sha)
     run = Run(started=now_iso(), argv=sys.argv)
-    run.context = {"harness": "tools/kde/acceptance.py", "scrubbed_desktop_variables_in_generic_runs": ", ".join(scrubbed_vars())}
+    run.context = {"harness": "tools/kde/acceptance.py", "scrubbed_desktop_variables_in_generic_runs": ", ".join(scrubbed_vars()),
+                   "session_changes_allowed": args.allow_session_changes}
 
     def finish():
         run.finished = now_iso()
@@ -115,6 +131,10 @@ def main(argv=None):
         # guards first: it records the SHAs every other stage's context wants
         order = ["guards"] + [n for n in names if n != "guards"] if "guards" in names or "all" in args.stages else names
         for name in order:
+            if name in DEPENDS and not all(d in names for d in DEPENDS[name]):
+                need = [d for d in DEPENDS[name] if d not in names]
+                if not (name == "identity" and args.appimage):
+                    print(f"note: {name} needs {' '.join(need)}; pass those stages or the matching --appimage option")
             print(f"== {name}", flush=True)
             started = time.time()
             try:

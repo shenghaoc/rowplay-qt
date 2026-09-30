@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.dont_write_bytecode = True
 
 import acceptance  # noqa: E402
-from kdeacc import gates, services, stages  # noqa: E402
+from kdeacc import gates, kwin, package, services, stages  # noqa: E402
 from kdeacc.results import Run, Stage, Status, render_summary, write_manifest  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
@@ -153,6 +153,58 @@ class GateParsing(unittest.TestCase):
                                                      "-p", "rowplay-app", "--test", "qml_runtime_gate", "--", "--nocapture"])
 
 
+class PackageClassification(unittest.TestCase):
+    def test_kde_stack_paths_are_caught_and_qts_own_names_are_not(self):
+        bad = ["usr/lib/libKF6ConfigCore.so.6", "usr/qml/org/kde/kirigami/Kirigami.qml", "usr/plugins/platformthemes/KDEPlasmaPlatformTheme6.so",
+               "usr/qml/org/kde/desktop/Button.qml", "usr/share/icons/breeze/actions/16/x.svg", "usr/lib/libKF5KIOCore.so.5",
+               "usr/plugins/kf6/kio/file.so", "usr/lib/libplasma-framework.so"]
+        hits = package.forbidden_in_paths(bad)
+        self.assertEqual(len(hits), len(bad), [p for p in bad if p not in [h[1] for h in hits]])
+        fine = ["usr/qml/QtQuick/Controls/Basic/CheckDelegate.qml", "usr/qml/QtQuick/Controls/Fusion/Button.qml", "usr/lib/libQt6Core.so.6",
+                "usr/plugins/platformthemes/libqxdgdesktopportal.so", "usr/plugins/platforms/libqwayland.so", "usr/lib/libKeyutils.so.1",
+                "usr/lib/libkeyutils.so.1", "usr/plugins/iconengines/libqsvgicon.so", "usr/bin/rowplay-qt"]
+        self.assertEqual(package.forbidden_in_paths(fine), [])
+
+    def test_needed_libraries(self):
+        text = (" 0x0000000000000001 (NEEDED)             Shared library: [libQt6Core.so.6]\n"
+                " 0x0000000000000001 (NEEDED)             Shared library: [libKF6ConfigCore.so.6]\n"
+                " 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n")
+        libs = package.needed_libs(text)
+        self.assertEqual(libs, ["libQt6Core.so.6", "libKF6ConfigCore.so.6", "libc.so.6"])
+        self.assertEqual(package.forbidden_needed(libs), ["libKF6ConfigCore.so.6"])
+        self.assertEqual(package.forbidden_needed(["libQt6Gui.so.6", "libKeyutils.so.1"]), [])
+
+    def test_comparison_and_plugin_inventory(self):
+        a = {"bytes": 100, "files": 3, "inventory": {"usr/bin/x": 10, "usr/plugins/platforms/libqxcb.so": 5, "old": 1}}
+        b = {"bytes": 104, "files": 3, "inventory": {"usr/bin/x": 14, "usr/plugins/platforms/libqxcb.so": 5, "new": 1}}
+        c = package.compare(a, b)
+        self.assertEqual((c["bytes"]["delta"], c["files"]["delta"], c["added"], c["removed"], c["size_changed"]),
+                         (4, 0, ["new"], ["old"], [("usr/bin/x", 10, 14)]))
+        self.assertEqual(package.plugin_inventory(a["inventory"])["plugins"], {"platforms": ["libqxcb.so"]})
+
+    def test_launch_check_line(self):
+        self.assertEqual(package.launch_check_line("a\nlaunch-check: ok - x rendered 30 frames\nb"), "launch-check: ok - x rendered 30 frames")
+        self.assertIsNone(package.launch_check_line("nothing"))
+
+
+class KWinAndX11(unittest.TestCase):
+    def test_window_lines(self):
+        marker = "ROWPLAY-KWIN-abc"
+        text = ('noise\n' + marker + ' caption="rowplay" resourceClass="io.github.shenghaoc.rowplay" resourceName="rowplay-qt" '
+                'desktopFileName="io.github.shenghaoc.rowplay" pid=74250 wayland=true width=1200 height=800\n'
+                + marker + " end\n")
+        wins = kwin.parse_windows(text, marker)
+        self.assertEqual(len(wins), 1)
+        self.assertEqual((wins[0]["desktopFileName"], wins[0]["pid"], wins[0]["wayland"], wins[0]["width"]), ("io.github.shenghaoc.rowplay", 74250, True, 1200))
+        self.assertEqual(kwin.parse_windows("nothing", marker), [])
+
+    def test_xprop(self):
+        text = ('WM_CLASS(STRING) = "rowplay-app", "rowplay-qt"\n_KDE_NET_WM_DESKTOP_FILE(UTF8_STRING) = "io.github.shenghaoc.rowplay"\n'
+                '_GTK_APPLICATION_ID(UTF8_STRING) = "io.github.shenghaoc.rowplay"\n')
+        self.assertEqual(stages.parse_xprop(text), {"WM_CLASS": ["rowplay-app", "rowplay-qt"],
+                                                    "_KDE_NET_WM_DESKTOP_FILE": "io.github.shenghaoc.rowplay", "_GTK_APPLICATION_ID": "io.github.shenghaoc.rowplay"})
+
+
 class ServicesAudit(unittest.TestCase):
     def tree(self, files):
         d = tempfile.TemporaryDirectory()
@@ -236,7 +288,7 @@ class Leftovers(unittest.TestCase):
     def test_no_pgrep_or_kill_in_the_harness_uses_the_generic_wrapper_name(self):
         """Another linuxdeploy-built AppImage shares `AppRun.wrapped`: matching it by name could end someone's application."""
         import re
-        for path in (Path(stages.__file__),):
+        for path in (Path(stages.__file__), Path(stages.__file__).with_name("kwin.py")):
             for number, line in enumerate(path.read_text().splitlines(), 1):
                 if line.lstrip().startswith("#"):
                     continue
@@ -246,7 +298,7 @@ class Leftovers(unittest.TestCase):
 class Cli(unittest.TestCase):
     def test_plan_orders_and_rejects_unknown_stages(self):
         self.assertEqual(acceptance.plan(["all"]), acceptance.ORDER)
-        self.assertEqual(acceptance.plan(["checks", "probe"]), ["probe", "checks"])
+        self.assertEqual(acceptance.plan(["identity", "probe"]), ["probe", "identity"])
         with self.assertRaises(SystemExit):
             acceptance.plan(["nonsense"])
 
@@ -255,6 +307,15 @@ class Cli(unittest.TestCase):
             code = acceptance.main(["--dry-run", "--output", str(Path(d) / "out"), "all"])
             self.assertEqual(code, 0)
             self.assertFalse((Path(d) / "out").exists())
+
+    def test_session_stages_are_skipped_without_permission(self):
+        class Args:
+            allow_session_changes = False
+        ctx = stages.Ctx(REPO, REPO, Path("/x"), Path("/tmp"), None, Args())
+        for fn in (stages.stage_appearance, stages.stage_identity):
+            st = fn(ctx)
+            self.assertEqual([c.status for c in st.checks], [Status.SKIPPED])
+            self.assertIn("--allow-session-changes", st.checks[0].detail)
 
 
 if __name__ == "__main__":
