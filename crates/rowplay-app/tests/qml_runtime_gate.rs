@@ -924,6 +924,13 @@ fn shell_walk_produces_no_qml_runtime_errors() {
 
     assert_accent_rule(&combined);
     assert_keyboard_contract(&combined);
+    // A gate tick that fires while a step runs must be dropped (Main.qml, gateTimer): the key contracts
+    // process events, and a slow machine once ran the next step in the middle of one.
+    assert!(
+        combined.contains("gate tick re-entrancy: ok")
+            && !combined.contains("gate tick re-entrancy: FAILED"),
+        "the gate timer let a tick run inside another\noutput:\n{combined}"
+    );
 
     // The mock sync must complete and land in the cache, not the demo data.
     assert!(
