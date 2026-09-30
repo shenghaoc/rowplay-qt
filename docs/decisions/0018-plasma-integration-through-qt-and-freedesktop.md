@@ -192,7 +192,12 @@ What the AppImage's Qt sees under Plasma:
 The decisions above are checked by a repeatable harness, `tools/kde/acceptance.py`
 (`tools/kde/README.md`), and not by a one-off manual walk. Its evidence directory
 is local and git-ignored; what it measured on 2026-09-30, from a clean branch
-worktree on post-#144 `main` (046c2e3), with every stage passing:
+worktree against the acceptance baseline, post-#144 `main` (046c2e3), with every
+stage passing. The baseline is that *commit*, not the branch called `main`,
+which moves once these changes merge: the harness proves a baseline checkout by
+its SHA (a detached worktree is fine), the visual rules record it as
+`baseline_sha`, and the captures carry a `provenance.json` naming the commit they
+were taken at:
 
 - **Native gates** (Wayland, hardware GL): the debug quick, release quick
   (#144's, no `BorrowError`) and full gates pass; the full walk takes 115.5 s

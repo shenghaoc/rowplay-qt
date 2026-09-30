@@ -895,3 +895,10 @@ Each rule exists because the failure happened.
   measured on** (two same-tree runs: 2D up to 450 px, 3D up to 76 px, never above
   delta 1). `tools/kde/expected-visual-diff.json` holds a named noise profile for
   them; the global capture-diff bounds are unchanged.
+- **A comparison baseline is a commit, never a branch name.** The KDE acceptance
+  compared the branch with "the checkout on `main`", which is the acceptance
+  baseline only until the first layer of the stack merges; after that `main`
+  contains the change, every comparison is against itself, and the visual rules'
+  `must_change` fail forty times. `tools/kde/` names `046c2e3`, proves a checkout by
+  its SHA (a detached worktree is the intended one) and records the commit on the
+  rules and beside the captures, so evidence is judged by what it was taken at.
