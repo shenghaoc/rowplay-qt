@@ -3,9 +3,11 @@
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -238,9 +240,9 @@ class Timeouts(unittest.TestCase):
             self.assertTrue(entry["timed_out"] and entry["rc"] == 124)
 
     def test_a_real_timeout_keeps_what_the_command_printed(self):
+        # sh, not a Python child: nothing that has to start up before it prints, so a loaded machine cannot beat the timeout
         runner = shell.Runner()
-        done = runner.run([sys.executable, "-c", "import sys, time; sys.stdout.write('partial'); sys.stdout.flush(); "
-                           "sys.stderr.write('diag'); sys.stderr.flush(); time.sleep(20)"], timeout=1)
+        done = runner.run(["sh", "-c", "printf partial; printf diag >&2; exec sleep 30"], timeout=2)
         self.assertEqual((done.rc, done.timed_out), (124, True))
         self.assertIn("partial", done.out)
         self.assertIn("diag", done.err)
@@ -253,6 +255,53 @@ class Timeouts(unittest.TestCase):
 
     def test_text_of(self):
         self.assertEqual([shell.text_of(v) for v in (None, b"a", "b", b"\xff")], ["", "a", "b", "�"])
+
+
+class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
+    """The leftovers check once matched any command line that contained `atspi_walk`: a clean run failed whenever a shell,
+    editor or grep on the machine merely mentioned it (found when the suite failed once, unexplained, while the invoking
+    command line said `tools/kde/atspi_walk.py`)."""
+
+    PATTERN = re.compile(stages.HELPER_PROCESS_PATTERN)
+    HELPERS = ("/home/u/Qt/6.11.2/gcc_64/bin/qml -I /tmp/kdeacc-probe-x1/mod /r/tools/kde/probe/probe.qml --apptype gui",
+               "qml /r/tools/kde/probe/chord-test.qml --apptype gui",
+               "/usr/bin/python3 /r/tools/kde/atspi_walk.py --timeout 40",
+               "python3.11 atspi_walk.py")
+    BYSTANDERS = ("vim tools/kde/atspi_walk.py", "bash -c git diff --stat tools/kde/atspi_walk.py", "grep -rn atspi_walk .",
+                  "less /tmp/kdeacc-probe-1/mod/Theme.qml", "python3 -m unittest discover -s tools/kde/tests -t tools/kde",
+                  "/usr/bin/python3 -c print('atspi_walk.py')", "tail -f /tmp/atspi_walk.py.log", "qmllint tools/kde/probe/probe.qml")
+
+    def test_the_pattern_reads_helpers_and_not_bystanders(self):
+        for line in self.HELPERS:
+            self.assertRegex(line, self.PATTERN, line)
+        for line in self.BYSTANDERS:
+            self.assertNotRegex(line, self.PATTERN, line)
+
+    def leftovers(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        ctx = stages.Ctx(REPO, None, Path("/x"), Path(tmp.name), shell.Runner(), None)
+        return stages.stage_leftovers(ctx), Path(tmp.name)
+
+    def spawn(self, argv):
+        proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(lambda: (proc.kill(), proc.wait()))
+        time.sleep(0.3)
+        return proc
+
+    def test_a_process_that_only_mentions_the_helper_is_not_a_leftover(self):
+        self.spawn(["sh", "-c", "sleep 30 # tools/kde/atspi_walk.py kdeacc-probe /kde/probe/"])
+        st, _ = self.leftovers()
+        self.assertEqual([c.status for c in st.checks], [Status.PASS], [(c.name, c.detail) for c in st.checks])
+
+    def test_a_real_walk_process_is_a_leftover(self):
+        script = Path(tempfile.mkdtemp()) / "atspi_walk.py"
+        self.addCleanup(lambda: __import__("shutil").rmtree(script.parent, ignore_errors=True))
+        script.write_text("import time\ntime.sleep(30)\n")
+        self.spawn([sys.executable, str(script)])
+        st, _ = self.leftovers()
+        self.assertEqual(st.status, Status.FAIL)
+        self.assertIn("atspi_walk.py", st.checks[-1].detail)
 
 
 class IconThemeEvidence(unittest.TestCase):
