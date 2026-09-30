@@ -107,4 +107,6 @@ recorded in the manifest and summary; **no later stage runs** (`checks` in parti
 **Gate variables.** A run the harness calls a gate owns every variable that changes what the walk does (`gates.GATE_VARS`: profile, smoke and
 exit-after-frames hooks, scale and font, renderer, capture directories, forced scheme and contrast): it sets the value it means or removes the
 caller's, so a shell exporting `ROWPLAY_GATE_PROFILE=quick` cannot turn the generic walk, which is the *full* profile, into a quick one.
+`ROWPLAY_GATE_NO_WINDOW_MANAGER` is one of them: the generic Xvfb walk sets it (no window manager, so the keyboard contract's
+inactive-window skip is expected), and a native walk removes it, so an inherited value can never excuse a skipped contract on Plasma.
 The X11 identity probe runs with the Qt given by `--qt-dir`.
