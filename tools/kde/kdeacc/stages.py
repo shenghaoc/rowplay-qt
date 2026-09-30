@@ -18,11 +18,12 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import baseline, gates, host, kwin, package, plasma, qtprobe, services, session
+from . import baseline, gates, host, kwin, package, plasma, provenance, qtprobe, services, session, visual
 from .results import Stage, Status
 from .shell import Runner, bundled_qt_env, generic_env, host_env, scrubbed_vars
 
 TOOLS = Path(__file__).resolve().parent.parent
+VISUAL_RULES = TOOLS / "expected-visual-diff.json"
 APP_ID_RE = re.compile(r'const APP_ID: &str = "([^"]+)"')
 
 
@@ -255,6 +256,11 @@ def stage_native(ctx):
         raiser.__exit__(None, None, None)
 
 
+def _record_provenance(ctx, tree, role, directory):
+    """Write what a capture directory is (the commit, clean or not) beside it: the visual stage reads this, not a worktree."""
+    provenance.write(directory, role, git_state(ctx.runner, tree))
+
+
 def _native_gates(ctx, st, base, raiser):
     st.expect("KWin keeps the gate window frontmost during the native runs", raiser.active,
               "a KWin script raises each RowPlay window as it appears, and is unloaded afterwards",
@@ -265,11 +271,70 @@ def _native_gates(ctx, st, base, raiser):
     _gate_checks(st, "release quick gate (branch, native Wayland; #144's)", r, release=True)
     r = gates.run_gate(ctx.runner, ctx.repo, base, "branch-full", "full", native=True, release=False, phase_shots=True)
     _gate_checks(st, "full native gate (branch, hardware GL, phase shots and close-ups)", r, expect_full=True)
+    _record_provenance(ctx, ctx.repo, "branch", base / "branch-full")
     ctx.captures["branch-full"] = base / "branch-full"
     r = gates.run_gate(ctx.runner, ctx.baseline_tree, base, "baseline-full", "full", native=True, release=False, phase_shots=True)
     _gate_checks(st, "full native gate (the acceptance baseline, the visual baseline)", r, expect_full=True, baseline=True)
+    _record_provenance(ctx, ctx.baseline_tree, "baseline", base / "baseline-full")
     ctx.captures["baseline-full"] = base / "baseline-full"
+    if getattr(ctx.args, "calibrate_noise", False):
+        r = gates.run_gate(ctx.runner, ctx.baseline_tree, base, "baseline-full-run2", "full", native=True, phase_shots=True)
+        _gate_checks(st, "second full native gate of the baseline (noise calibration)", r, expect_full=True, baseline=True)
+        _record_provenance(ctx, ctx.baseline_tree, "baseline", base / "baseline-full-run2")
+        ctx.captures["baseline-full-run2"] = base / "baseline-full-run2"
     return st
+
+
+# --------------------------------------------------------------------------- visual contract
+
+def stage_visual(ctx):
+    """Classify the branch's captures against the baseline's with the derived rules.
+
+    Needs no Git worktree: the captures' own provenance says what commit the baseline captures were taken at, and that is
+    checked against the rule set's `baseline_sha` before any rule is applied. A baseline mismatch fails here, once and by
+    name, rather than as dozens of misleading "the expected change is missing" results."""
+    st = Stage("visual")
+    out = ctx.sub("visual")
+    before, after = ctx.captures.get("baseline-full"), ctx.captures.get("branch-full")
+    if not before or not after or not before.exists() or not after.exists():
+        st.add("baseline and branch full native captures", Status.UNAVAILABLE,
+               "run the `native` stage first (or pass --baseline-captures/--branch-captures)")
+        return st
+    cd = visual.load_capture_diff(ctx.repo)
+    rules, profile = visual.load_rules(VISUAL_RULES, "baseline-vs-branch", "native-hardware")
+    checks = provenance.check_baseline_captures(before, rules, ctx.baseline_sha)
+    for name, ok, detail_ok, detail_bad in checks:
+        st.expect(name, ok, detail_ok, detail_bad)
+    if not all(ok for _, ok, _, _ in checks):
+        st.failed("the visual rules were not applied", "they describe a change made on the acceptance baseline, and these captures are not "
+                  "shown to be its captures: every result would be about the wrong pair")
+        return st
+    branch_record = provenance.read(after)
+    if branch_record and branch_record.get("dirty"):
+        st.failed("the branch captures come from a clean tree", "the branch tree had uncommitted changes when the captures were taken")
+    results = visual.compare_dirs(before, after, rules, cd, profile=profile)
+    (out / "results.json").write_text(json.dumps([r.__dict__ for r in results], indent=1) + "\n")
+    (out / "table.md").write_text(visual_table(results))
+    summary = visual.summarize(results)
+    st.expect("every capture is either noise or a listed change confined to its allowed area", not summary["failed"],
+              f"{summary['captures']} captures; {summary['expected_changes']} exceed the generic noise bound and are listed changes; "
+              f"{summary['noise_only']} are noise; {summary['unexpected_pixels']} unexpected pixels",
+              "failed: " + ", ".join(summary["failed"][:12]), **summary)
+    st.expect("zero unexpected changed pixels", summary["unexpected_pixels"] == 0, "0", str(summary["unexpected_pixels"]))
+    if "baseline-full-run2" in ctx.captures:
+        cal = visual.compare_dirs(before, ctx.captures["baseline-full-run2"], {"captures": {}}, cd, profile=profile)
+        st.expect("the native-hardware noise profile covers same-tree run-to-run differences", all(r.status == "PASS" for r in cal),
+                  f"{len(cal)} captures of the baseline vs the baseline: all within the profile {profile}",
+                  "outside: " + ", ".join(r.name for r in cal if r.status == "FAIL"))
+    return st
+
+
+def visual_table(results):
+    lines = ["| capture | status | kind | changed px | inside | outside | bbox | colours (before→after, px) | detail |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for r in results:
+        colours = "; ".join(f"{a}→{b} ×{n}" for a, b, n in r.colours[:2])
+        lines.append(f"| {r.name} | {r.status} | {r.kind} | {r.changed} | {r.inside} | {r.outside} | {r.bbox} | {colours} | {r.detail} |")
+    return "\n".join(lines) + "\n"
 
 
 # --------------------------------------------------------------------------- generic Linux
@@ -361,6 +426,14 @@ def stage_generic(ctx):
                (f"walk {r.walk_seconds} s, {r.captures} captures, platform theme {theme.group(1) if theme else 'none created'}, accent {r.accent}, "
                 f"keyboard ended by {r.keyboard.get('ended_by')}") if not problems else "; ".join(problems), {"result": r.__dict__}, [r.output_file])
         dirs[label] = d
+    if len(dirs) == 2:
+        cd = visual.load_capture_diff(ctx.repo)
+        results = visual.compare_dirs(dirs["baseline"], dirs["branch"], {"captures": {}}, cd)
+        (out / "capture-diff.json").write_text(json.dumps([r.__dict__ for r in results], indent=1) + "\n")
+        summary = visual.summarize(results)
+        st.expect("generic captures: branch vs baseline within the repository's noise bounds", not summary["failed"],
+                  f"{summary['captures']} captures compared with capture-diff's own bounds; every one is noise; 0 outside",
+                  "outside the bound: " + ", ".join(summary["failed"][:10]), **summary)
     idents = {}
     for label, tree in (("baseline", ctx.baseline_tree), ("branch", ctx.repo)):
         idents[label] = x11_identity(ctx.runner, tree, out, ctx.qt_dir)
@@ -693,6 +766,8 @@ def stage_appearance(ctx):
         st.add("a Wayland session", Status.UNAVAILABLE, "no Wayland session in the environment")
         return st
     pl = plasma.Plasma(ctx.runner, ctx.probe_info)
+    cd = visual.load_capture_diff(ctx.repo)
+    derive = getattr(ctx.args, "derive", False)
     tx = plasma.SessionTransaction(pl, allow=True)
     error = None
     raiser = kwin.Raiser(ctx.runner).__enter__()
@@ -721,6 +796,16 @@ def stage_appearance(ctx):
                       f"Theme.accentColor {base['themeAccentColor']} -> {after['themeAccentColor']}; focus ring {base['themeFocusRing']} -> {after['themeFocusRing']}", story)
             g = gates.run_gate(ctx.runner, ctx.repo, out, "accent-quick", "quick", native=True)
             _gate_checks(st, f"accent {accent}: quick gate", g)
+            if derive:
+                (out / "derived-accent-rules.json").write_text(json.dumps(visual.derive_set(out / "default-quick", out / "accent-quick", cd), indent=1))
+            else:
+                rules, profile = visual.load_rules(VISUAL_RULES, "accent-vs-default", "native-hardware")
+                res = visual.compare_dirs(out / "default-quick", out / "accent-quick", rules, cd, profile=profile)
+                (out / "accent-visual.md").write_text(visual_table(res))
+                summ = visual.summarize(res)
+                st.expect("the accent change is confined to the listed accent-driven regions", not summ["failed"],
+                          f"{summ['expected_changes']} of {summ['captures']} captures changed, only inside their regions; {summ['unexpected_pixels']} unexpected pixels",
+                          "failed: " + ", ".join(summ["failed"]), **summ)
             _copy_shots(out / "accent-quick", out / "screenshots" / "accent")
             # ---- dark
             dark = _dark_scheme(ctx.runner)
