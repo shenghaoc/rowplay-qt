@@ -209,19 +209,38 @@ QtObject {
     readonly property SystemPalette systemPalette: SystemPalette {
         colorGroup: SystemPalette.Active
     }
-    /// macOS and Windows report the user's accent. Where the platform
-    /// supplies none (no Linux theme sets one in Qt 6.11, nor does the
-    /// offscreen platform), Qt reports its Fusion default #308cc6, which
-    /// means "no accent" here (docs/qt-bridges-notes.md).
-    readonly property bool systemAccentAvailable: systemPalette.accent.a > 0
-                                                  && !Qt.colorEqual(systemPalette.accent, "#308cc6")
+    /// macOS and Windows report the user's accent. Where a platform theme
+    /// sets no accent, the palette's accent is one of Qt's own defaults,
+    /// never the user's: Fusion's #308cc6 (the generic and offscreen
+    /// themes), or the black of the uninitialised palette a theme starts
+    /// from (qtbase's KDE theme, which sets the highlight but never the
+    /// accent), or a transparent one (nothing was set: the check the code
+    /// had before this rule). Any of them means "no accent set", and then
+    /// the accent is the highlight, which is Qt's documented default for an
+    /// unset accent, unless the highlight is Fusion's default too. No
+    /// desktop is named:
+    /// ADR 0018, docs/qt-bridges-notes.md.
+    /// Pure, so the gate can check the rule on every platform with fixed
+    /// palettes (`gate accent`), not only with the palette it runs under.
+    function resolveAccent(accent, highlight) {
+        // Qt.tint with transparent returns the colour itself, as a color.
+        const a = Qt.tint(accent, "transparent")
+        const h = Qt.tint(highlight, "transparent")
+        if (a.a > 0 && !Qt.colorEqual(a, "#308cc6") && !Qt.colorEqual(a, "#000000")) {
+            return a
+        }
+        return h.a > 0 && !Qt.colorEqual(h, "#308cc6") ? h : Qt.tint("transparent", "transparent")
+    }
+    /// The platform's accent, or transparent when the platform has none.
+    readonly property color systemAccent: resolveAccent(systemPalette.accent,
+                                                        systemPalette.highlight)
+    readonly property bool systemAccentAvailable: systemAccent.a > 0
     /// Monitor Blue (DESIGN.md: primary actions and the accent colour role).
     readonly property color brandBlue: dark ? "#0A84FF" : "#0066CC"
     /// Selection, switch-on and prominent buttons; the system highlight
     /// under high contrast.
     readonly property color accentColor: highContrast ? hcHighlight
-                                         : (systemAccentAvailable ? systemPalette.accent
-                                                                  : brandBlue)
+                                         : (systemAccentAvailable ? systemAccent : brandBlue)
 
     // MARK: - Colour palette (DESIGN.md "The PM5 Palette"; under high
     // contrast each colour stays only where it reaches 4.5:1, see hcFit)
