@@ -298,7 +298,7 @@ class Leftovers(unittest.TestCase):
 class Cli(unittest.TestCase):
     def test_plan_orders_and_rejects_unknown_stages(self):
         self.assertEqual(acceptance.plan(["all"]), acceptance.ORDER)
-        self.assertEqual(acceptance.plan(["identity", "probe"]), ["probe", "identity"])
+        self.assertEqual(acceptance.plan(["visual", "probe"]), ["probe", "visual"])
         with self.assertRaises(SystemExit):
             acceptance.plan(["nonsense"])
 

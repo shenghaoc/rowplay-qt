@@ -1,0 +1,1576 @@
+{
+ "schema": 1,
+ "noise_profiles": {
+  "native-hardware": {
+   "max_delta": 1,
+   "max_pixels_2d": 700,
+   "max_pixels_3d": 250,
+   "calibration": "Two full native gate walks of the same tree (post-#144 main 046c2e3) on the same host and session, back to back, 2026-09-29, Fedora 44 Plasma 6.7.5 Wayland, Mesa 26.2.3 on Intel UHD 630 (hardware GL): 2D screens differed by up to 450 px and 3D captures by up to 76 px, every differing pixel at delta 1, none above. The bounds add margin. The global capture-diff bound (400 px, measured under Xvfb + llvmpipe) is unchanged and still applies to the generic runs; this profile applies only to native hardware captures."
+  }
+ },
+ "sets": {
+  "main-vs-branch": {
+   "captures": {
+    "dashboard-compact": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       410,
+       16,
+       429,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "dashboard-medium": {
+     "size": [
+      720,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       650,
+       16,
+       669,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "dashboard": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "detail-compact": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       410,
+       16,
+       429,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "detail-full": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "detail-nostrokes": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 4209,
+     "colours_observed": [
+      [
+       "000000",
+       "368bb7",
+       3892
+      ],
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true,
+     "bands": [
+      {
+       "outer": [
+        7,
+        104,
+        312,
+        797
+       ],
+       "thickness": 5
+      }
+     ]
+    },
+    "detail": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-catch-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1056
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-catch": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1056
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-finish-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1058
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-finish": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1058
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-middrive-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1072,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1060
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-middrive": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1072,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1060
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       323,
+       700,
+       594,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-midrecovery-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1056
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       324,
+       700,
+       595,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-bike-midrecovery": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1070,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1056
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       324,
+       700,
+       595,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-catch-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1124,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1110
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       316,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-catch": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1124,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1110
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       316,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-finish-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1130,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       601,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-finish": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1130,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       601,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-middrive-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1128,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-middrive": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1128,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-midrecovery-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1132,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1120
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       601,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-row-midrecovery": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1132,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1120
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       601,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-catch-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1124,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1112
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       599,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-catch": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1124,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1112
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       599,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-finish-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1116,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1102
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       316,
+       700,
+       598,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-finish": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1116,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1102
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       316,
+       700,
+       598,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-middrive-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1128,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-middrive": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1128,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1116
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       600,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-midrecovery-closeup": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1134,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1122
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       602,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "phase-ski-midrecovery": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 1134,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       1122
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       315,
+       700,
+       602,
+       707
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-de": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       588,
+       234,
+       595
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-en": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       588,
+       234,
+       595
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-es": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       588,
+       234,
+       595
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-fr": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       588,
+       234,
+       595
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-ja": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       585,
+       234,
+       592
+      ]
+     ],
+     "must_change": true
+    },
+    "replay-gap-compact-zh": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 448,
+     "colours_observed": [
+      [
+       "000000",
+       "3daee9",
+       436
+      ],
+      [
+       "909191",
+       "a6d0e6",
+       2
+      ],
+      [
+       "303030",
+       "60b9e8",
+       2
+      ]
+     ],
+     "regions": [
+      [
+       119,
+       588,
+       234,
+       595
+      ]
+     ],
+     "must_change": true
+    },
+    "settings-compact": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "dfdfdf",
+       114
+      ],
+      [
+       "232629",
+       "b0b1b1",
+       13
+      ],
+      [
+       "232629",
+       "dedede",
+       12
+      ]
+     ],
+     "regions": [
+      [
+       410,
+       16,
+       429,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "settings": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "dfdfdf",
+       114
+      ],
+      [
+       "232629",
+       "b0b1b1",
+       13
+      ],
+      [
+       "232629",
+       "dedede",
+       12
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true
+    },
+    "sidebar-hidden": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 217,
+     "colours_observed": [
+      [
+       "232629",
+       "f3f4f5",
+       52
+      ],
+      [
+       "232629",
+       "f5f6f7",
+       46
+      ],
+      [
+       "232629",
+       "f4f5f6",
+       26
+      ]
+     ],
+     "regions": [
+      [
+       1130,
+       16,
+       1149,
+       35
+      ]
+     ],
+     "must_change": true
+    }
+   },
+   "derived": {
+    "note": "post-#144 main 046c2e3 (native/main-full, 2026-09-29) vs kde/plasma-integration with the keyboard contract and focus restore; full native Wayland gates with phase shots and close-ups, hardware GL, Fedora 44 Plasma 6.7.5, Mesa 26.2.3 Intel UHD 630, bundled Qt 6.11.2",
+    "before": "main-full",
+    "after": "branch-full",
+    "date": "2026-09-30",
+    "captures_with_a_change": 40,
+    "captures_compared": 70
+   }
+  },
+  "accent-vs-default": {
+   "captures": {
+    "detail-compact": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 591,
+     "colours_observed": [
+      [
+       "5ab7e6",
+       "e29c5e",
+       196
+      ],
+      [
+       "f0f6f9",
+       "f9f4f0",
+       76
+      ],
+      [
+       "f0f6fa",
+       "faf4f0",
+       76
+      ]
+     ],
+     "regions": [
+      [
+       374,
+       75,
+       457,
+       104
+      ]
+     ],
+     "must_change": true
+    },
+    "detail-full": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 15194,
+     "colours_observed": [
+      [
+       "3daee9",
+       "f89d4c",
+       11521
+      ],
+      [
+       "4cb4eb",
+       "e59146",
+       611
+      ],
+      [
+       "5ab7e6",
+       "e29c5e",
+       196
+      ]
+     ],
+     "regions": [
+      [
+       1094,
+       75,
+       1177,
+       104
+      ],
+      [
+       8,
+       446,
+       311,
+       499
+      ]
+     ],
+     "must_change": true
+    },
+    "detail-nostrokes": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 3992,
+     "colours_observed": [
+      [
+       "368bb7",
+       "b07540",
+       3892
+      ],
+      [
+       "b5cedb",
+       "d7c7b9",
+       6
+      ],
+      [
+       "5c9fc2",
+       "bc8e64",
+       6
+      ]
+     ],
+     "regions": [],
+     "must_change": true,
+     "bands": [
+      {
+       "outer": [
+        7,
+        104,
+        312,
+        797
+       ],
+       "thickness": 5
+      }
+     ]
+    },
+    "detail": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 591,
+     "colours_observed": [
+      [
+       "5ab7e6",
+       "e29c5e",
+       196
+      ],
+      [
+       "f0f6f9",
+       "f9f4f0",
+       76
+      ],
+      [
+       "f0f6fa",
+       "faf4f0",
+       76
+      ]
+     ],
+     "regions": [
+      [
+       1094,
+       75,
+       1177,
+       104
+      ]
+     ],
+     "must_change": true
+    },
+    "settings-compact": {
+     "size": [
+      480,
+      800
+     ],
+     "changed_pixels_observed": 324,
+     "colours_observed": [
+      [
+       "52a7d1",
+       "cd8d56",
+       48
+      ],
+      [
+       "41b1eb",
+       "f9a152",
+       19
+      ],
+      [
+       "43b3ec",
+       "f9a355",
+       19
+      ]
+     ],
+     "regions": [
+      [
+       396,
+       192,
+       439,
+       211
+      ]
+     ],
+     "must_change": true
+    },
+    "settings": {
+     "size": [
+      1200,
+      800
+     ],
+     "changed_pixels_observed": 324,
+     "colours_observed": [
+      [
+       "52a7d1",
+       "cd8d56",
+       48
+      ],
+      [
+       "41b1eb",
+       "f9a152",
+       19
+      ],
+      [
+       "43b3ec",
+       "f9a355",
+       19
+      ]
+     ],
+     "regions": [
+      [
+       1021,
+       192,
+       1064,
+       211
+      ]
+     ],
+     "must_change": true
+    }
+   },
+   "derived": {
+    "note": "the same branch tree, quick native gate under Breeze Light with Plasma's default accent vs a loud accent applied with plasma-apply-colorscheme --accent-color #f67400 (Selection/BackgroundNormal #3daee9 -> #f89d4c), 2026-09-30, Fedora 44 Plasma 6.7.5 Wayland, hardware GL",
+    "before": "default-quick",
+    "after": "accent-quick",
+    "date": "2026-09-30",
+    "captures_with_a_change": 6,
+    "captures_compared": 14
+   }
+  }
+ }
+}
