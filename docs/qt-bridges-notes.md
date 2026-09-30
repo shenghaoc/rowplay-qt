@@ -715,6 +715,29 @@ ROWPLAY_GATE_PROFILE=quick cargo test --release \
 Keep #143 open after any merge of #144; closure requires adoption of the
 upstream source fix and validation without the O0 override.
 
+## 23. `QApp` cannot name the desktop entry (`QGuiApplication::desktopFileName`)
+
+qtbridge 0.3.0's `QApp` exposes `application_name` and nothing else of
+`QGuiApplication`'s identity: no `desktopFileName`, organisation name or
+domain, display name or window icon. Its `QGuiApplication` is a private
+field. On Linux the desktop file name is what Qt hands the window system:
+the Wayland `app_id`, and X11's `_KDE_NET_WM_DESKTOP_FILE` and
+`_GTK_APPLICATION_ID`. Without it Qt uses the executable's name, and task
+managers (KWin, measured on Plasma 6.6.4) cannot match the window to its
+`.desktop` entry. The organisation-domain fallback cannot help either: it
+yields `<reversed domain>.<executable>`, not a chosen ID. ADR 0018.
+
+Repro: `QApp::new().application_name("app").load_qml_from_file(...).run()`
+under Plasma Wayland; a KWin script prints `window.desktopFileName` as the
+executable name, whatever the shipped `.desktop` file is called.
+
+Workaround (no C++, no `unsafe`): cxx-qt-lib 0.10.0 binds the static setter,
+and qtbridge 0.3.0 already locks that release, so `rowplay-app` declares it
+as a direct dependency at the same exact version and calls
+`cxx_qt_lib::QGuiApplication::set_desktop_file_name(&QString::from(id))`
+before loading QML. Request: `QApp::desktop_file_name(&str)` beside
+`application_name`, or access to the wrapped `QGuiApplication`.
+
 ## What worked
 
 - `QApp::new().register::<T>().add_import_path("qrc:/qt/qml").load_qml_from_file(...)`
@@ -926,12 +949,15 @@ Checked in native Metal captures and in the tools' output:
   the items from the widest yourself. `RowLayout` has no such property;
   assigning it fails the load ("Cannot assign to non-existent property"),
   which leaves the app blocking with no window (note 16).
-- A Qt Quick Controls icon asks the platform's icon engine (SF Symbols on
-  macOS, Segoe glyphs on Windows) only while its `source` is empty
-  (`QQuickIconImage::updateIcon`, Qt 6.11). A nonempty source wins over
-  `icon.name`: `Glyphs.iconSource` therefore supplies the SVG directly on
-  Linux, while macOS and Windows leave the source empty. The AppImage
-  deploys Qt Svg's image plugin so the Linux command icons render (ADR 0015).
+- A Qt Quick Controls icon first loads an icon-theme file for `icon.name`,
+  even with a nonempty `icon.source`. If the theme has no matching file and
+  the source is empty, it asks the platform icon engine (SF Symbols on
+  macOS, Segoe glyphs on Windows); otherwise it uses the source
+  ([`QQuickIconImage::load`, Qt 6.11.2](https://github.com/qt/qtdeclarative/blob/v6.11.2/src/quickcontrolsimpl/qquickiconimage.cpp)).
+  `Glyphs.iconSource` supplies Linux's SVG fallback when the theme lacks
+  the standard action icon; macOS and Windows keep the source empty for
+  their platform engines. The AppImage deploys Qt Svg's image plugin for
+  those SVGs. ADR 0018 corrects ADR 0015's earlier precedence claim.
 - Popups (Dialog, Drawer, Menu) live in the window's overlay, not under the
   shell's `Item`, so a grab of that item never shows them; grab the popup's
   own item (`contentItem.parent`).
@@ -1535,21 +1561,30 @@ Checked in native Metal captures and in the tools' output:
     registry value (`qwindowstheme.cpp`, `qt_accentColor`): AccentDark1 in
     light mode, AccentLight2 in dark mode.
   - **Accent on Linux: none from qtbase.** No platform theme in qtbase sets
-    `QPalette::Accent`: not the generic theme, the desktop portal,
-    GNOME / gtk3 or KDE. The portal's `accent-color` is not read up to
-    qtbase `dev` of 2026-09-23. The palette therefore keeps
-    `qt_fusionPalette()`'s `#308cc6` (`qplatformtheme.cpp`), and so does
-    `offscreen`. `Theme.qml` reads `#308cc6` as "no system accent" and uses
-    the brand blue. **Plasma is the exception** (round 2, read from the
-    sources, not run): a Plasma session loads KDE's own platform theme
-    (plasma-integration, not qtbase), which builds the palette with
-    `KColorScheme::createApplicationPalette`, and that sets
-    `QPalette::Accent` to the colour scheme's selection colour
-    (kcolorscheme, master `b44cfeac`). So under Plasma the app follows the
-    user's accent, with `Theme.qml`'s two fallbacks: a selection colour of
-    exactly `#308cc6` still reads as "no accent" (the brand blue), and an
-    accent under 3:1 against the window draws the focus ring in the
-    primary text colour.
+    `QPalette::Accent`: not the generic theme, the desktop portal, GNOME /
+    gtk3 or KDE. The portal theme reads `color-scheme` and `contrast` only;
+    the portal's `accent-color` is unused (qtbase `v6.11.2`). What the
+    palette holds then depends on the theme:
+    - the generic theme and `offscreen` keep `qt_fusionPalette()`'s
+      `#308cc6` (`qplatformtheme.cpp`);
+    - **qtbase's KDE theme (`QKdeTheme`) reports `#000000`**, measured under
+      Plasma 6.6.4 with the AppImage's Qt, and re-measured unchanged on
+      Plasma 6.7.5 (ADR 0018). It starts from
+      `QPalette()`, which before the application palette exists is Qt's
+      black palette, where `qt_ensure_default_accent_color` marks the
+      accent as set (black). It then writes Highlight from `kdeglobals`'
+      `[Colors:Selection] BackgroundNormal` but never Accent, so Qt's
+      documented "accent defaults to highlight" never applies. Plasma's
+      accent therefore reaches this Qt through the highlight only. A Qt
+      defect, to report upstream (qtbase, `qkdetheme.cpp:346`): set Accent
+      from the selection colour, or start from a palette with no accent set.
+
+    `Theme.resolveAccent` reads either default as "no accent set" and
+    uses the highlight when it is not `#308cc6` too, else the brand blue.
+    **Correction (2026-09-28):** this entry used to say Plasma sets the
+    accent because a Plasma session loads plasma-integration's theme. That
+    holds only for a distribution's Qt. The AppImage's Qt never loads the
+    host's plugin and gets `QKdeTheme` instead.
   - **Contrast:** `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10)
     is `HighContrast`:
     - on macOS under "Increase contrast"

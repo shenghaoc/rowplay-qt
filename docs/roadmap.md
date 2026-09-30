@@ -1343,6 +1343,9 @@ stack of five PRs merged bottom-up (spec, "Round 2"):
      theme reports a contrast preference, so a high-contrast Plasma
      scheme does not engage the app's high-contrast variant. Not tried on
      a Plasma desktop.
+     *Corrected by ADR 0018 (measured on Fedora 44 Plasma):* the
+     AppImage's Qt uses qtbase's own KDE theme, not KDE's plugin, and its
+     accent is black; the app now reads the highlight there.
    - Still open: macOS under "Increase contrast" (the owner's switch),
      and Windows' contrast themes, focus ring, Snap layouts and text
      sizes (#81, where the round's checklist additions are posted).
