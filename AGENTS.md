@@ -281,6 +281,11 @@ and on `v*` tags, where it drafts a GitHub release. Rules:
   release PR says what was looked at, where.
 - Icons live under `assets/icon/`, pinned like the replay assets; regenerate
   the `.icns`/`.ico` with `tools/package/gen-icons.py` and re-pin.
+- `linux.sh` on a Fedora 44 host builds an AppImage that crashes before
+  `main`: linuxdeploy corrupts the RELR-packed system libraries it deploys.
+  It is a local host limitation, not an app defect. Build local comparison
+  packages in `ubuntu:24.04`, the release runner's OS, with the recipe in
+  `linux.sh`'s header (ADR 0018).
 
 ## Continuous integration
 
