@@ -252,7 +252,7 @@ class Cli(unittest.TestCase):
 
     def test_dry_run_runs_nothing_and_changes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
-            code = acceptance.main(["--dry-run", "--output", str(Path(d) / "out"), "--main-tree", str(REPO), "all"])
+            code = acceptance.main(["--dry-run", "--output", str(Path(d) / "out"), "all"])
             self.assertEqual(code, 0)
             self.assertFalse((Path(d) / "out").exists())
 
