@@ -200,7 +200,11 @@ assessed but not implemented (#104).
   Quick Controls as the KDE desktop does, a platform look and only on
   KDE. Either would be a new dependency and a second visual system. What
   the app takes from Plasma instead is its palette:
-  - **The accent follows Plasma's, with two fallbacks.** KDE's platform
+  - **The accent follows Plasma's, with two fallbacks.** *Corrected by
+    ADR 0018:* what follows holds only for a distribution's Qt, which loads
+    plasma-integration's theme. The AppImage's Qt uses qtbase's own KDE
+    theme, whose accent is black; `Theme` reads the highlight, Plasma's
+    selection colour, instead. KDE's platform
     theme builds the palette with
     `KColorScheme::createApplicationPalette`, which sets
     `QPalette::Accent` to the colour scheme's selection colour
