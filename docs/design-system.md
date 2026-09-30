@@ -68,12 +68,13 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 | Scroll bars (transient or not, as the system says) | the style's `ScrollBar`, through `ScrollView` | the screens and the sidebar |
 | Keyboard shortcuts | `Shortcut { sequences: [StandardKey.Find] }`, `StandardKey.Refresh`, `.Preferences`, `.Back`, `.Quit`, `.Close` | `Main.qml` |
 | A shortcut in the platform's notation | `Shortcut.nativeText` in the tooltip | `CommandButton` |
-| Icons | `icon.name` uses SF Symbols through `QAppleIconEngine` and Segoe glyphs through `QWindowsIconEngine`; on Linux `icon.source` directly uses an SVG of our glyph, decoded by packaged Qt Svg. A nonempty source takes precedence over the name. | `Glyphs.qml`, `CommandButton` |
+| Icons | `icon.name` uses SF Symbols through `QAppleIconEngine` and Segoe glyphs through `QWindowsIconEngine`. On Linux `icon.name` is a freedesktop standard action name, drawn from the desktop's icon theme where it has one, and `icon.source`, an SVG of our glyph decoded by packaged Qt Svg, is the fallback: Qt loads a theme file for the name before the source (ADR 0018). Glyphs with no standard action name use the SVG. | `Glyphs.qml`, `CommandButton` |
 | A dialog's buttons and their order | `Dialog.standardButtons`, renamed with web strings as the dialog opens | About, the logout confirmation |
 | The macOS menu bar | `Qt.labs.platform` `MenuBar` with `AboutRole`, `PreferencesRole`, `QuitRole` | `Main.qml` (a `ToolButton` and `Menu` elsewhere) |
+| The desktop entry a window belongs to (Linux) | `QGuiApplication::setDesktopFileName` with the app ID, which becomes the Wayland `app_id` and X11's `_KDE_NET_WM_DESKTOP_FILE` / `_GTK_APPLICATION_ID` | `rowplay-app`'s `main.rs` (ADR 0018) |
 | The system palette | `SystemPalette` (active, inactive and disabled groups), composited opaque | `Theme.qml`, the sidebar's selection |
 | Light or dark | the palette in use (`Theme.dark` from its window colour); `Qt.styleHints.colorScheme` only to pin it in tests | `Theme.qml`, `Main.qml` |
-| The accent | `SystemPalette.accent`, with the brand blue where a platform reports none | `Theme.accentColor` |
+| The accent | `SystemPalette.accent`; where it is one of Qt's defaults (Fusion's `#308cc6`, or the uninitialised palette's black), the highlight, Qt's documented default for an unset accent; else the brand blue (ADR 0018) | `Theme.resolveAccent`, `Theme.accentColor` |
 | High contrast | `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10) | `Theme.highContrast` |
 | Text size | `Qt.application.font`, as a ratio of a 13 px reference | `Theme.px`, `Theme.fontPx` |
 | Reduce motion | none in Qt 6.11; the app's own preference drives the motion tokens | `Theme.durationShort/Medium/Long` |
@@ -88,8 +89,8 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 |---|---|---|---|
 | Style | macOS (NSView-drawn) | FluentWinUI3, named by `qml/+windows/qtquickcontrols2.conf`; CI also captures the Windows style | Fusion |
 | Controls the style lacks | Basic | Basic (the drawer, panes, labels, the split view) | (Fusion has them) |
-| Icons | SF Symbols | Segoe Fluent Icons (Windows 11), Segoe MDL2 Assets | our original SVG, decoded by Qt Svg in the AppImage |
-| Palette | the system's | the system's | the platform theme's: the desktop portal's in the AppImage, the GTK or KDE theme's with a distribution's Qt |
+| Icons | SF Symbols | Segoe Fluent Icons (Windows 11), Segoe MDL2 Assets | the icon theme's standard action icons where it has them (Breeze under Plasma), otherwise our original SVG, decoded by Qt Svg in the AppImage |
+| Palette | the system's | the system's | the platform theme's. In the AppImage under Plasma, qtbase's KDE theme reads `kdeglobals`, and the accent comes through the highlight (ADR 0018). Elsewhere the generic or GNOME theme's, and the portal only for the colour scheme and contrast when forced or sandboxed |
 | How it is checked | natively, with the gate walk and scratch probes | CI captures in a real window (#81) | CI under Xvfb; dark through Fusion on macOS (Xvfb has no theme to ask) |
 | Known issues | the style's spinner needs the WebP plugin; the slider's track beyond the knob all but vanishes on a grey surface | none known from CI's captures; the Windows style, no longer used, was unreadable under the dark scheme | GTK 3 platform-theme integration remains separate; the AppImage already carries Qt Svg for its command icons |
 
