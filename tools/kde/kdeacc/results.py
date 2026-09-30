@@ -87,6 +87,8 @@ class Run:
     argv: list = field(default_factory=list)
     stages: list = field(default_factory=list)
     context: dict = field(default_factory=dict)  # SHAs, tree state, host summary
+    interrupted: str = ""        # why the run stopped early ("" when it ran to the end): a signal, after the current stage was recorded
+    interrupt_signal: int = 0    # that signal's number, for the exit status
 
     def stage(self, name) -> Stage:
         stage = Stage(name)
@@ -95,10 +97,12 @@ class Run:
 
     @property
     def failed(self) -> bool:
-        return any(stage.status == Status.FAIL for stage in self.stages)
+        return bool(self.interrupted) or any(stage.status == Status.FAIL for stage in self.stages)
 
     def exit_code(self) -> int:
-        """Nonzero when any check failed or any stage died: never best effort."""
+        """Nonzero when any check failed, any stage died or the run was interrupted (128 + the signal, as a shell reports it)."""
+        if self.interrupted:
+            return 128 + self.interrupt_signal if self.interrupt_signal else 130
         return 1 if self.failed else 0
 
     def to_dict(self):
@@ -110,7 +114,7 @@ class Run:
         body = asdict(self)
         for stage, live in zip(body["stages"], self.stages):
             stage["status"] = live.status.value
-        body["overall"] = "FAIL" if self.failed else "PASS"
+        body["overall"] = "INTERRUPTED" if self.interrupted else "FAIL" if self.failed else "PASS"
         return json.loads(json.dumps(body, default=encode))
 
 
@@ -129,6 +133,8 @@ def render_summary(run: Run) -> str:
     data = run.to_dict()
     lines = [f"# KDE Plasma native acceptance: {data['overall']}", ""]
     lines.append(f"- started {data['started']}, finished {data['finished']}")
+    if data["interrupted"]:
+        lines.append(f"- **interrupted: {data['interrupted']}**: the stage that was running was recorded (with any desktop restoration), and no later stage ran")
     for key, value in data["context"].items():
         if isinstance(value, (str, int, float, bool)) or value is None:
             lines.append(f"- {key}: {value}")
