@@ -22,7 +22,7 @@ source .envrc                                   # the repository's Qt 6.11 (aqt)
 tools/kde/acceptance.py --help                  # every mode and option
 tools/kde/acceptance.py --dry-run all           # the plan; runs and changes nothing
 tools/kde/acceptance.py probe guards services   # quick, read-only
-tools/kde/acceptance.py all --allow-session-changes \
+tools/kde/acceptance.py all --allow-session-changes --calibrate-noise \
     --output artifacts/kde/acceptance-$(date +%Y%m%d-%H%M%S)
 ```
 
@@ -46,7 +46,8 @@ no root, and each `cargo` runs in its own tree, so each worktree keeps its own C
 | `guards` | clean trees; #143's `[profile.release.package.qtbridge-interfaces] opt-level = 0` intact and identical to the baseline's; no new lockfile package; no KDE/KF/Kirigami crate among `rowplay-app`'s production dependencies and no new dependency in core, platform or view-model; the Blender stack untouched; `git diff --check`. |
 | `services` | URL opening, file chooser, notifications, tray, global menu, MPRIS and the Secret Service, classified from the source: *Qt/XDG sufficient*, *not applicable* or *needs code* (a failure). |
 | `native` | the repository's own gate, unmodified, natively on Wayland with hardware GL: debug quick and release quick (#144's: fails on `BorrowError`, `role_names`, a panic or an abort) and full with phase shots and close-ups on the branch, and full at the acceptance baseline for the visual baseline. `LIBGL_ALWAYS_SOFTWARE` is removed and a software renderer fails the run. |
-| `generic` | CI's Linux recipe under Xvfb with every desktop variable removed: no KDE theme is created, Fusion is the style, the palette falls back by the same rule; the X11 identity properties. |
+| `visual` | the spatial contract below. |
+| `generic` | CI's Linux recipe under Xvfb with every desktop variable removed: no KDE theme is created, Fusion is the style, the palette falls back by the same rule; the captures against the acceptance baseline's within capture-diff's own bounds; the X11 identity properties. |
 | `package` | both AppImages built by `tools/package/linux.sh` unchanged in `ubuntu:24.04` (`ubuntu-package.sh`), each with its own target directory; size, SHA-256, file count, plugin and QML inventory; a scan of every path and every ELF `NEEDED` entry for KDE Frameworks, Kirigami, Plasma, `org.kde.desktop`, Breeze QML, KConfig, KI18n, KIO; the launch check; `desktop-file-validate` and `appstreamcli`. Fedora-host packaging is not canonical: linuxdeploy corrupts RELR-packed libraries there. |
 | `identity` | (`--allow-session-changes`) the exact branch AppImage launched through a temporary desktop entry: KWin's `desktopFileName`, one window, then two windows with one association, the AT-SPI walk below, a clean shutdown, no core dump, the app's own Qt log (theme, icon theme, themed icon lookups). The entry and icon are removed and any previous ones restored byte for byte. |
 | `appearance` | (`--allow-session-changes`) a loud accent, a dark scheme and the general font at 150 %, each verified to reach a fresh Qt process and each followed by a native gate; then restoration, verified. |
@@ -71,6 +72,53 @@ Each run writes one self-contained directory (`artifacts/kde/acceptance-<timesta
 line per command, with exit status and time), and a subdirectory per stage with the gate logs, captures,
 probe JSON, package inventories, KWin and AT-SPI reports and the representative screenshots for a person to
 look at (`appearance/screenshots/{accent,dark,font150}/`, `identity/*-fullscreen.png`).
+
+## The visual contract (`expected-visual-diff.json`)
+
+`tools/capture-diff.py` says whether a capture is within the repository's noise bound. A *meant* change (the
+replay scrubber's fill turning from black to the accent, a theme icon replacing ours, a focus ring) is far
+outside it, and waving those captures through would also wave through a wrong pixel beside them. So each
+expected change is described spatially:
+
+* `regions`: inclusive rectangles where pixels may change;
+* `bands`: the outline of a rectangle, some pixels thick, never its interior (a focus ring);
+* `must_change`: the capture must actually change inside the allowed area, so a fix that quietly stops
+  working fails as loudly as a stray pixel.
+
+A capture with no rule is held to capture-diff's own bound. A pixel is *changed* when its channel delta
+exceeds that capture type's noise delta. Acceptance requires **zero unexpected pixels**. Native
+hardware-GL captures carry delta-1 dithering the Xvfb + llvmpipe bound was not measured on, so the file also holds a
+named noise profile with its calibration (two same-tree runs: 2D up to 450 px, 3D up to 76 px, all delta 1);
+`--calibrate-noise` re-measures it on every run. The global bounds are untouched.
+
+What the two committed sets record (each derived from a real pair, both on Fedora 44 Plasma 6.7.5, hardware GL):
+
+* **`baseline-vs-branch`** (`baseline_sha` `046c2e3`), the branch's full native walk against the acceptance baseline's (post-#144 `main`): 40 of 70 captures exceed the
+  generic noise bound, in three families and nowhere else. The 30 replay captures (`phase-*`, `replay-gap-*`)
+  differ only in the scrubber's fill, `#000000` → the accent, plus a dozen anti-aliasing pixels beside it; the
+  9 toolbar screens differ only in the 16×16 Settings icon (our glyph replaces a full-colour category icon,
+  where the baseline drew a solid silhouette); and `detail-nostrokes` has the sidebar list's focus ring, a band 5 px
+  thick with no interior, going from black to the fitted accent (its toolbar icon aside). The other 30 are noise.
+* **`accent-vs-default`**, the quick walk under Plasma's default accent against a loud one: 6 of 14 captures
+  change, in four accent-driven places: the prominent Replay button's fill, a settings switch, the selected
+  sidebar row's highlight and the focus ring.
+
+The rules are **derived from real capture pairs**, never guessed (`derive_rules.py`), and a changed rule is a
+reviewed change: the diff of that file shows which pixels a change may now move. Re-derive after an
+intended visual change, look at the family summary it prints (the commonest before→after colours), and
+commit the file with the change. A ring is a cluster with at least 98 % of its pixels within a few pixels of its
+border: the band is as thick as those border pixels, and the few deeper ones stay exact, as padded regions of their own.
+
+**The rules belong to one baseline.** `baseline-vs-branch` describes a change made on top of `046c2e3` and records it as
+`baseline_sha`; once the stack's layers merge, `main` already contains that change and applying the rules to it would
+report dozens of missing changes. The `native` stage therefore writes a `provenance.json` (role, commit, clean or not) beside
+every capture directory it takes, and `visual` checks the *baseline captures'* provenance against the rules' `baseline_sha`,
+and the rules' against this run's baseline, before it applies one rule. A mismatch fails once, by name (`baseline mismatch`);
+missing provenance fails as an evidence error saying what to add. Neither needs a Git worktree, so
+`acceptance.py visual --baseline-captures DIR --branch-captures DIR` classifies copied evidence on a machine with one
+checkout (`--main-captures` is the old name). `derive_rules.py` takes the commit from the `before` directory's provenance
+(and refuses a dirty tree or a disagreeing `--baseline-sha`); `--stamp-baseline SHA` records it on a set derived earlier without
+touching a coordinate. A set derived between two states of one tree (`accent-vs-default`) names no baseline.
 
 ## Driving the exact AppImage (`atspi_walk.py`)
 
