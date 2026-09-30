@@ -72,6 +72,8 @@ ROWPLAY_GATE_PROFILE=quick QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl \
   ROWPLAY_SMOKE_SCREENSHOT_DIR=$PWD/artifacts \
   xvfb-run -a cargo test -p rowplay-app --test qml_runtime_gate -- --nocapture
 git diff --check
+tools/kde/acceptance.py --help                # Fedora KDE Plasma native acceptance (ADR 0018; tools/kde/README.md)
+python3 -B -m unittest discover -s tools/kde/tests -t tools/kde   # that harness's tests (CI runs them too)
 tools/package/macos.sh                        # Phase 9: dist/rowplay-qt.app + .dmg (macOS)
 tools/package/linux.sh                        # Phase 9: dist/*.AppImage (Linux x86_64; xvfb-run when headless)
 pwsh tools/package/windows.ps1                # Phase 9: dist/*-setup.exe + .zip (Windows; Inno Setup 6)
@@ -320,6 +322,10 @@ renames no required check. The step-529 job is informational. Rules:
   means updating the ruleset. Never skip a required job with a job-level
   `if:`: a matrix job skipped at job level does not report its per-OS
   check names, which blocks merging. Skip its steps instead.
+- The Qt-free job also runs the KDE acceptance harness's unit tests
+  (`tools/kde/tests`, no desktop needed). The Plasma acceptance run itself is local
+  by design: a hosted runner is not a Plasma desktop on a real GPU, and an Xvfb job
+  is not Plasma-native evidence (`tools/kde/README.md`).
 - The Linux App job and the step-529 job upload the gate's timestamped
   app log (`gate-log`, `gate-log-step529`) whenever the walk writes one,
   also when it fails.
