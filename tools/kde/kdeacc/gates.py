@@ -105,7 +105,7 @@ def parse_gate(name, command, exit_code, wall, output, gate_log, captures=0, out
 def gate_problems(result, hardware=False, expect_full=False, baseline=False):
     """[str] of everything that makes a gate result unacceptable; empty means it passed.
 
-    baseline is for the comparison tree (post-#144 main), which by definition has neither the
+    baseline is for the comparison tree (the acceptance baseline), which by definition has neither the
     keyboard contract nor the accent rule this branch adds: those two summaries are not asked of it."""
     problems = []
     if result.exit_code != 0:
