@@ -120,9 +120,11 @@ fn gate_profile_is_quick() -> bool {
 /// (transparent, and `Theme` falls back to the brand blue).
 fn expected_accent<'a>(accent: &'a str, highlight: &'a str) -> &'a str {
     const FUSION: &str = "#308cc6";
-    if accent != FUSION && accent != "#000000" {
+    // A transparent accent (`#00000000`) is unset too, as it always was.
+    let transparent = |c: &str| c.len() == 9 && c.starts_with("#00"); // #AARRGGBB with alpha 00
+    if accent != FUSION && accent != "#000000" && !transparent(accent) {
         accent
-    } else if highlight != FUSION && !(highlight.len() == 9 && highlight.starts_with("#00")) {
+    } else if highlight != FUSION && !transparent(highlight) {
         highlight
     } else {
         "#00000000"
@@ -133,12 +135,14 @@ fn expected_accent<'a>(accent: &'a str, highlight: &'a str) -> &'a str {
 /// runs, and this platform's own palette (whatever it is: the rule, not a
 /// colour, is the invariant).
 fn assert_accent_rule(log: &str) {
-    const CASES: [(&str, &str, &str); 5] = [
+    const CASES: [(&str, &str, &str); 7] = [
         ("#3d7eff", "#aabbcc", "#3d7eff"),
         ("#308cc6", "#308cc6", "#00000000"),
         ("#000000", "#f67400", "#f67400"),
         ("#000000", "#308cc6", "#00000000"),
         ("#308cc6", "#f67400", "#f67400"),
+        ("#00000000", "#f67400", "#f67400"),
+        ("#00000000", "#308cc6", "#00000000"),
     ];
     let lines = |tag: &str| -> Vec<Vec<String>> {
         log.lines()

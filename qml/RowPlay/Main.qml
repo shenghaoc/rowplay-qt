@@ -912,7 +912,9 @@ ApplicationWindow {
             ["#308cc6", "#308cc6"],   // Fusion's defaults: no accent
             ["#000000", "#f67400"],   // an unset accent: the highlight
             ["#000000", "#308cc6"],   // unset, and the highlight a default
-            ["#308cc6", "#f67400"]    // Fusion's accent, a platform highlight
+            ["#308cc6", "#f67400"],   // Fusion's accent, a platform highlight
+            ["#00000000", "#f67400"], // a transparent accent is unset: the highlight
+            ["#00000000", "#308cc6"]  // ... and with a default highlight too: none
         ]
         for (let i = 0; i < cases.length; ++i) {
             console.log("gate accent case:", cases[i][0], cases[i][1], "->",

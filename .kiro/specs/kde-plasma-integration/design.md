@@ -35,7 +35,8 @@ window is created.
 `systemAccent` / `systemAccentAvailable` are built on it. `accentColor`
 keeps its high-contrast and brand-blue branches. The Qt defaults it
 recognises are Fusion's `#308cc6` and the uninitialised palette's
-`#000000`. `Main.qml`'s gate logs five fixed cases and the system palette
+`#000000`, and a transparent accent counts as unset, as it did before the
+rule. `Main.qml`'s gate logs seven fixed cases and the system palette
 (`gate accent`), and `qml_runtime_gate.rs`'s `assert_accent_rule` checks
 both against the same rule.
 

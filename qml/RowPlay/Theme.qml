@@ -214,9 +214,11 @@ QtObject {
     /// never the user's: Fusion's #308cc6 (the generic and offscreen
     /// themes), or the black of the uninitialised palette a theme starts
     /// from (qtbase's KDE theme, which sets the highlight but never the
-    /// accent). Either means "no accent set", and then the accent is the
-    /// highlight, which is Qt's documented default for an unset accent,
-    /// unless the highlight is Fusion's default too. No desktop is named:
+    /// accent), or a transparent one (nothing was set: the check the code
+    /// had before this rule). Any of them means "no accent set", and then
+    /// the accent is the highlight, which is Qt's documented default for an
+    /// unset accent, unless the highlight is Fusion's default too. No
+    /// desktop is named:
     /// ADR 0018, docs/qt-bridges-notes.md.
     /// Pure, so the gate can check the rule on every platform with fixed
     /// palettes (`gate accent`), not only with the palette it runs under.
@@ -224,7 +226,7 @@ QtObject {
         // Qt.tint with transparent returns the colour itself, as a color.
         const a = Qt.tint(accent, "transparent")
         const h = Qt.tint(highlight, "transparent")
-        if (!Qt.colorEqual(a, "#308cc6") && !Qt.colorEqual(a, "#000000")) {
+        if (a.a > 0 && !Qt.colorEqual(a, "#308cc6") && !Qt.colorEqual(a, "#000000")) {
             return a
         }
         return h.a > 0 && !Qt.colorEqual(h, "#308cc6") ? h : Qt.tint("transparent", "transparent")

@@ -74,7 +74,7 @@ and the history is in the spec `.kiro/specs/ui-native-styles/`.
 | The desktop entry a window belongs to (Linux) | `QGuiApplication::setDesktopFileName` with the app ID, which becomes the Wayland `app_id` and X11's `_KDE_NET_WM_DESKTOP_FILE` / `_GTK_APPLICATION_ID` | `rowplay-app`'s `main.rs` (ADR 0018) |
 | The system palette | `SystemPalette` (active, inactive and disabled groups), composited opaque | `Theme.qml`, the sidebar's selection |
 | Light or dark | the palette in use (`Theme.dark` from its window colour); `Qt.styleHints.colorScheme` only to pin it in tests | `Theme.qml`, `Main.qml` |
-| The accent | `SystemPalette.accent`; where it is one of Qt's defaults (Fusion's `#308cc6`, or the uninitialised palette's black), the highlight, Qt's documented default for an unset accent; else the brand blue (ADR 0018) | `Theme.resolveAccent`, `Theme.accentColor` |
+| The accent | `SystemPalette.accent`; where it is one of Qt's defaults (Fusion's `#308cc6`, the uninitialised palette's black, or transparent), the highlight, Qt's documented default for an unset accent; else the brand blue (ADR 0018) | `Theme.resolveAccent`, `Theme.accentColor` |
 | High contrast | `Qt.styleHints.accessibility.contrastPreference` (Qt 6.10) | `Theme.highContrast` |
 | Text size | `Qt.application.font`, as a ratio of a 13 px reference | `Theme.px`, `Theme.fontPx` |
 | Reduce motion | none in Qt 6.11; the app's own preference drives the motion tokens | `Theme.durationShort/Medium/Long` |
