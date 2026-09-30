@@ -12,6 +12,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -39,6 +40,7 @@ class Ctx:
     host: dict = field(default_factory=dict)
     run_started: float = 0.0
     inhibitor: object = None
+    interrupted: BaseException | None = None   # a stage caught the interruption itself (to finish its restoration evidence); the run stops after recording it
     baseline_validated: bool | None = None   # whether baseline_tree was proved to be the acceptance baseline (once per run)
     baseline_sha: str = baseline.BASELINE_SHA         # the commit the integration is compared with (not "whatever main is today")
     launched_pids: set = field(default_factory=set)   # processes this run started; the only ones it may end
@@ -289,18 +291,34 @@ def parse_xprop(text):
     return out
 
 
-def x11_identity(runner, tree, out):
+def x11_identity(runner, tree, out, qt_dir):
     binary = Path(tree) / "target" / "debug" / "rowplay-app"
     if not binary.exists():
         return None
     script = (f'ROWPLAY_DATA_DIR=$(mktemp -d) QT_QPA_PLATFORM=xcb "{binary}" >/dev/null 2>&1 & p=$!; '
               'for i in $(seq 1 30); do xprop -name rowplay WM_NAME >/dev/null 2>&1 && break; sleep 1; done; sleep 1; '
               'xprop -name rowplay WM_CLASS _KDE_NET_WM_DESKTOP_FILE _GTK_APPLICATION_ID; kill $p; wait $p 2>/dev/null')
-    env = generic_env({"LD_LIBRARY_PATH": None})
-    env["LD_LIBRARY_PATH"] = f"{Path.home()}/Qt/6.11.2/gcc_64/lib"
+    env = generic_env({"LD_LIBRARY_PATH": f"{qt_dir}/lib"})   # the configured Qt (--qt-dir), through the generic helper
     done = runner.run([*XVFB, "bash", "-c", script], env=env, tag="x11-identity", timeout=120)
     (Path(out) / f"x11-identity-{Path(tree).name}.txt").write_text(done.text)
     return parse_xprop(done.out)
+
+
+def generic_gate_env(artifact_dir):
+    """The overrides for one generic walk: CI's Linux recipe under Xvfb, the *full* profile, no desktop, no inherited gate variable.
+
+    Runner.in_tree merges os.environ underneath these, so anything not set here would be inherited: every gate variable is
+    pinned (gates.pinned_gate_env) and the desktop variables are removed by name."""
+    env = dict(generic_env(gates.pinned_gate_env({
+        "ROWPLAY_GATE_PROFILE": "full",
+        "QT_QPA_PLATFORM": "xcb", "QSG_RHI_BACKEND": "opengl", "LIBGL_ALWAYS_SOFTWARE": "1", "ROWPLAY_QT_SMOKE": "1",
+        "ROWPLAY_PHASE_SHOTS": "1", "ROWPLAY_PHASE_CLOSEUPS": "1", "QT_LOGGING_RULES": "qt.qpa.theme=true",
+        "ROWPLAY_SMOKE_ARTIFACT_DIR": str(artifact_dir), "ROWPLAY_SMOKE_SCREENSHOT_DIR": str(artifact_dir),
+        "LANG": "C.UTF-8",
+    })))
+    for var in scrubbed_vars():
+        env[var] = None
+    return env
 
 
 def stage_generic(ctx):
@@ -324,18 +342,11 @@ def stage_generic(ctx):
         st.expect("Fusion is the style in use", info["fusion"], "Button background is Fusion's ButtonPanel", f"got {info['buttonBackground']}")
         ok, story = qtprobe.accent_condition(info)
         st.expect("the generic palette resolves by the same rule", ok, story + f"; Theme.accentColor {info['themeAccentColor']}", story)
-    ci = {"QT_QPA_PLATFORM": "xcb", "QSG_RHI_BACKEND": "opengl", "LIBGL_ALWAYS_SOFTWARE": "1", "ROWPLAY_QT_SMOKE": "1",
-          "ROWPLAY_PHASE_SHOTS": "1", "ROWPLAY_PHASE_CLOSEUPS": "1", "LANG": "C.UTF-8", "QT_LOGGING_RULES": "qt.qpa.theme=true"}
     dirs = {}
     for label, tree in (("baseline", ctx.baseline_tree), ("branch", ctx.repo)):
         d = out / f"{label}-xvfb"
         d.mkdir(parents=True, exist_ok=True)
-        run_env = dict(generic_env(ci))
-        run_env.update({"ROWPLAY_SMOKE_ARTIFACT_DIR": str(d), "ROWPLAY_SMOKE_SCREENSHOT_DIR": str(d)})
-        # in_tree merges os.environ, so the desktop variables are removed by name (None) as well.
-        merged = {k: v for k, v in run_env.items()}
-        for var in scrubbed_vars():
-            merged[var] = None
+        merged = generic_gate_env(d)
         done = ctx.runner.in_tree(tree, [*XVFB, "cargo", "test", "-p", "rowplay-app", "--test", "qml_runtime_gate", "--", "--nocapture"], env=merged,
                                   timeout=1800, tag=f"generic-{label}", logfile=d / "test-output.txt")
         log = (d / "gate-log.txt").read_text(errors="replace") if (d / "gate-log.txt").exists() else ""
@@ -351,7 +362,7 @@ def stage_generic(ctx):
         dirs[label] = d
     idents = {}
     for label, tree in (("baseline", ctx.baseline_tree), ("branch", ctx.repo)):
-        idents[label] = x11_identity(ctx.runner, tree, out)
+        idents[label] = x11_identity(ctx.runner, tree, out, ctx.qt_dir)
     app_id = ctx.app_id()
     b, m = idents.get("branch"), idents.get("baseline")
     if b is None:
@@ -511,6 +522,28 @@ def alive_pids(pids):
         except PermissionError:  # not ours to signal, but it exists
             out.append(pid)
     return out
+
+
+def end_owned_processes(ctx, grace=3.0):
+    """End the processes this run launched (ctx.launched_pids), and only those: TERM, then KILL after `grace` seconds.
+
+    Returns the PIDs that had to be ended. Never matches by name: another application built the same way shares
+    the generic AppImage wrapper's name."""
+    mine = alive_pids(ctx.launched_pids)
+    for pid in mine:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+    deadline = time.time() + grace
+    while alive_pids(mine) and time.time() < deadline:
+        time.sleep(0.1)
+    for pid in alive_pids(mine):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    return mine
 
 
 def pinned(app_id):
@@ -726,7 +759,12 @@ def stage_appearance(ctx):
             st.expect("the three width classes still lay out at 150 % text", len(widths) == 3 and all("FAILED" not in w for w in widths), "; ".join(w.split("qml: ")[-1] for w in widths),
                       str(widths))
             _copy_shots(out / "font150-full", out / "screenshots" / "font150")
-    except BaseException as exc:  # the transaction has already restored; record and re-raise after reporting
+    except KeyboardInterrupt as exc:  # SIGINT, SIGTERM, SIGHUP: the transaction has already restored the desktop
+        # Do not raise from here: the restoration evidence below must reach the manifest first. The run
+        # stops after recording this stage (ctx.interrupted), and no later stage runs.
+        ctx.interrupted = exc
+        error = f"interrupted ({exc}) after the desktop was restored; nothing later runs"
+    except BaseException as exc:  # the transaction has already restored; record it
         error = f"{type(exc).__name__}: {exc}"
     finally:
         raiser.__exit__(None, None, None)

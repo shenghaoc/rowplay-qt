@@ -79,7 +79,7 @@ Back and sidebar chords (read from the shortcuts, F5/F9/Alt+Left on Linux and Wi
 Space, Left, Right, `[`, `]`, and a real Ctrl+Q ending the walk) through the same key
 path, on the same release code (the release quick gate), and `qml_runtime_gate.rs` asserts every one.
 
-## Restoring the desktop
+## Restoring the desktop, and interruption
 
 `appearance` and `identity` change the live session, so each is a transaction (`kdeacc/plasma.py`): snapshot,
 change, and on every way out (success, failed check, exception, SIGINT, SIGTERM) re-apply the snapshot's
@@ -97,3 +97,14 @@ still changed. Panel pinning is never touched; it stays a manual optional smoke.
 * **Key chords into the packaged binary** (see above): covered by the gate on the same code path and by
   AT-SPI focus/actions on the exact AppImage.
 * **Whether the screenshots look right** is a person's judgement; they are saved for that.
+
+**Interruption.** SIGINT, SIGTERM and SIGHUP (a closed terminal) end a run the same way, whichever stage they arrive in, including inside
+the appearance transaction. The transaction restores and verifies the desktop first; that stage, with its restoration evidence, is then
+recorded in the manifest and summary; **no later stage runs** (`checks` in particular); the processes this run launched are ended by PID
+(never by the generic AppImage wrapper's name); the leftovers check and the manifest are written; and the command exits `128 + signal`
+(130, 143, 129), the manifest's `overall` being `INTERRUPTED`.
+
+**Gate variables.** A run the harness calls a gate owns every variable that changes what the walk does (`gates.GATE_VARS`: profile, smoke and
+exit-after-frames hooks, scale and font, renderer, capture directories, forced scheme and contrast): it sets the value it means or removes the
+caller's, so a shell exporting `ROWPLAY_GATE_PROFILE=quick` cannot turn the generic walk, which is the *full* profile, into a quick one.
+The X11 identity probe runs with the Qt given by `--qt-dir`.

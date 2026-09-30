@@ -12,7 +12,26 @@ locker's greeter starting after the run began.
 
 from __future__ import annotations
 
+import signal
+
 from .shell import host_env
+
+# What ends a run early. The run, and the session transaction inside it, treat all three the same way:
+# SIGHUP is a closed terminal, and a live-desktop change must be restored then too.
+INTERRUPT_SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+
+
+class Interrupted(KeyboardInterrupt):
+    """A termination signal, as an exception that knows which signal it was (for the exit status)."""
+
+    def __init__(self, signum):
+        super().__init__(f"signal {signum} ({signal.Signals(signum).name})")
+        self.signum = signum
+
+
+def raise_interrupted(signum, _frame=None):
+    raise Interrupted(signum)
+
 
 DEST = ("org.freedesktop.ScreenSaver", "/ScreenSaver", "org.freedesktop.ScreenSaver")
 

@@ -142,6 +142,28 @@ def gate_problems(result, hardware=False, expect_full=False, baseline=False):
     return problems
 
 
+# Every variable that changes what a gate walk does or measures: its profile, how it renders, what it captures and
+# where, the scale and font it draws with. A run the harness calls a gate owns all of them: it sets the value it means
+# or removes the variable, and never inherits the caller's. (A caller's ROWPLAY_GATE_PROFILE=quick made the
+# "full" Xvfb walks quick ones, and a leftover ROWPLAY_EXIT_AFTER_FRAMES would end any walk early.)
+GATE_VARS = (
+    "ROWPLAY_GATE_PROFILE", "ROWPLAY_QT_SMOKE", "ROWPLAY_SMOKE_GATE", "ROWPLAY_SYNC_MOCK", "ROWPLAY_EXIT_AFTER_FRAMES",
+    "ROWPLAY_FORCE_COLOR_SCHEME", "ROWPLAY_FORCE_CONTRAST", "ROWPLAY_PHASE_SHOTS", "ROWPLAY_PHASE_CLOSEUPS",
+    "ROWPLAY_SMOKE_ARTIFACT_DIR", "ROWPLAY_SMOKE_SCREENSHOT_DIR",
+    "QT_QPA_PLATFORM", "QSG_RHI_BACKEND", "QSG_INFO", "LIBGL_ALWAYS_SOFTWARE", "QT_LOGGING_RULES",
+    "QT_SCALE_FACTOR", "QT_FONT_DPI", "QT_AUTO_SCREEN_SCALE_FACTOR", "QT_ENABLE_HIGHDPI_SCALING",
+)
+
+
+def pinned_gate_env(settings):
+    """The environment overrides for a gate run: None (remove) for every gate variable, then `settings`.
+
+    Runner.in_tree treats None as "remove from the inherited environment"."""
+    env = {name: None for name in GATE_VARS}
+    env.update(settings)
+    return env
+
+
 def cargo_command(release):
     argv = ["cargo", "test"]
     if release:
@@ -158,13 +180,14 @@ def run_gate(runner, tree, out_dir, name, profile="quick", native=True, release=
         "ROWPLAY_SMOKE_ARTIFACT_DIR": str(out),
         "ROWPLAY_SMOKE_SCREENSHOT_DIR": str(out),
         "QSG_INFO": "1",
-        "LIBGL_ALWAYS_SOFTWARE": None,  # native means the GPU
+        # LIBGL_ALWAYS_SOFTWARE stays removed (pinned_gate_env): native means the GPU
     }
     if native:
         env.update({"QT_QPA_PLATFORM": "wayland", "QSG_RHI_BACKEND": "opengl"})
     if phase_shots:
         env.update({"ROWPLAY_PHASE_SHOTS": "1", "ROWPLAY_PHASE_CLOSEUPS": "1"})
     env.update(extra_env or {})
+    env = pinned_gate_env(env)
     argv = cargo_command(release)
     done = runner.in_tree(tree, argv, env=env, timeout=timeout, tag=f"gate-{name}", logfile=out / "test-output.txt")
     log_path = out / "gate-log.txt"
