@@ -3,7 +3,7 @@
 """Fedora KDE Plasma native acceptance for rowplay-qt.
 
 Runs the checks that make the Plasma integration (ADR 0018) repeatable: the host and Qt probe, the
-repository's own native gates, generic Linux, the AppImage packages,
+repository's own native gates, the visual-difference contract, generic Linux, the AppImage packages,
 the exact AppImage on Plasma Wayland, and appearance changes with verified restoration. Evidence goes to
 one self-contained directory: manifest.json (the source of truth), summary.md, host.json, commands.log.
 
@@ -12,6 +12,7 @@ Modes (stages), any number of them:
   guards   clean trees, #143's containment, no KDE dependency, nothing else touched
   services URL opening, file chooser, notifications, tray, menu, MPRIS, secret store: from the source
   native   debug quick, release quick and full hardware-GL gates (branch), full gate (the acceptance baseline)
+  visual   the spatial contract over the branch's captures against the acceptance baseline's (needs `native`)
   generic  Xvfb + Fusion with every desktop variable removed; X11 identity properties
   package  both AppImages in ubuntu:24.04, inventory, comparison, KDE-bundle scan
   identity the exact AppImage through a desktop entry: KWin identity, AT-SPI focus walk, grouping (--allow-session-changes)
@@ -37,12 +38,12 @@ from kdeacc import baseline, session, stages  # noqa: E402
 from kdeacc.results import Run, Stage, Status, now_iso, render_summary, write_manifest  # noqa: E402
 from kdeacc.shell import Runner, scrubbed_vars  # noqa: E402
 
-ORDER = ["probe", "guards", "services", "native", "generic", "package", "identity", "appearance", "checks"]
+ORDER = ["probe", "guards", "services", "native", "visual", "generic", "package", "identity", "appearance", "checks"]
 FUNCS = {"probe": stages.stage_probe, "guards": stages.stage_guards, "services": stages.stage_services, "native": stages.stage_native,
-         "generic": stages.stage_generic, "package": stages.stage_package,
+         "visual": stages.stage_visual, "generic": stages.stage_generic, "package": stages.stage_package,
          "identity": stages.stage_identity, "appearance": stages.stage_appearance, "checks": stages.stage_repo_checks}
 NEEDS_SESSION = {"identity", "appearance"}
-DEPENDS = {"identity": ["package"]}
+DEPENDS = {"visual": ["native"], "identity": ["package"]}
 
 
 def parse(argv):
@@ -62,6 +63,10 @@ def parse(argv):
     p.add_argument("--dry-run", action="store_true", help="print the plan and the commands' shape; run nothing and change nothing")
     p.add_argument("--allow-session-changes", action="store_true", help="permit stages that change the live Plasma session (identity, appearance)")
     p.add_argument("--appimage", type=Path, help="use this branch AppImage for `identity` instead of building one")
+    p.add_argument("--baseline-captures", type=Path, help="use these baseline captures for `visual` instead of running `native`")
+    p.add_argument("--branch-captures", type=Path, help="use these branch captures for `visual` instead of running `native`")
+    p.add_argument("--calibrate-noise", action="store_true", help="run the baseline's full gate a second time and check the noise profile against it")
+    p.add_argument("--derive", action="store_true", help="appearance: write derived rules for review instead of checking against the committed ones")
     p.add_argument("--reuse-container-target", action="store_true", help="package: keep the container build's target directory (faster; not a cold build)")
     return p.parse_args(argv)
 
@@ -101,11 +106,15 @@ def main(argv=None):
         if baseline_tree is None:
             raise SystemExit(f"no acceptance baseline checkout: {baseline.describe_requirement(args.baseline_sha)}")
     out.mkdir(parents=True, exist_ok=True)
-    for sub in ("native", "generic", "package", "appearance", "identity"):
+    for sub in ("native", "generic", "package", "appearance", "identity", "visual"):
         (out / sub).mkdir(exist_ok=True)
     runner = Runner(out / "commands.log")
     ctx = stages.Ctx(repo, Path(baseline_tree).resolve() if baseline_tree else None, args.qt_dir, out, runner, args,
                      baseline_sha=args.baseline_sha)
+    if args.baseline_captures:
+        ctx.captures["baseline-full"] = args.baseline_captures
+    if args.branch_captures:
+        ctx.captures["branch-full"] = args.branch_captures
     run = Run(started=now_iso(), argv=sys.argv)
     run.context = {"harness": "tools/kde/acceptance.py", "scrubbed_desktop_variables_in_generic_runs": ", ".join(scrubbed_vars()),
                    "session_changes_allowed": args.allow_session_changes}
@@ -134,8 +143,8 @@ def main(argv=None):
         for name in order:
             if name in DEPENDS and not all(d in names for d in DEPENDS[name]):
                 need = [d for d in DEPENDS[name] if d not in names]
-                if not (name == "identity" and args.appimage):
-                    print(f"note: {name} needs {' '.join(need)}; pass those stages or the matching --appimage option")
+                if not (name == "visual" and args.baseline_captures and args.branch_captures) and not (name == "identity" and args.appimage):
+                    print(f"note: {name} needs {' '.join(need)}; pass those stages or the matching --*-captures/--appimage option")
             print(f"== {name}", flush=True)
             started = time.time()
             try:
