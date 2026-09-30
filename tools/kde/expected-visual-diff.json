@@ -9,7 +9,8 @@
   }
  },
  "sets": {
-  "main-vs-branch": {
+  "baseline-vs-branch": {
+   "baseline_sha": "046c2e30062f7ca38c725307ecc73c6ea62777d2",
    "captures": {
     "dashboard-compact": {
      "size": [

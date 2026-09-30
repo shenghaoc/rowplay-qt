@@ -186,6 +186,38 @@ class Derivation(unittest.TestCase):
         paint(b, (70, 50, 70, 50), (0, 0, 0))
         self.assertEqual(visual.classify("detail-nostrokes", cap(a), cap(b), rule, CD).status, "FAIL")
 
+    def test_interior_outliers_do_not_widen_a_ring_and_stay_exact(self):
+        # A large ring, 98 %+ of whose changed pixels lie on its border band, plus a few pixels deeper inside. They must
+        # touch the ring's 16 px cell grid to be part of its cluster at all, so they sit 8 px in from the left edge.
+        a, b = canvas(), canvas()
+        outer = (5, 5, 194, 114)
+        ring(b, outer, 4, (54, 139, 183))
+        paint(b, (13, 60, 14, 61), (0, 0, 0))                    # 4 pixels, dist 8: past RING_BAND, well under 2 % of the ring
+        rule = visual.derive_rule("detail-nostrokes", cap(a), cap(b), CD)
+        (band,) = rule["bands"]
+        self.assertEqual(band["outer"], list(outer))
+        self.assertEqual(band["thickness"], 5, "the border pixels make the band 4 + 1 = 5 thick; an interior outlier must not widen it")
+        self.assertEqual(rule["regions"], [[11, 58, 16, 63]], "the outliers are a padded region of their own")
+        self.assertEqual(visual.classify("detail-nostrokes", cap(a), cap(b), rule, CD).status, "PASS")
+        # ... and the interior is still not allowed anywhere else: a pixel near the centre, and one just inside the band
+        # (with the old, widened band this second one would have been allowed)
+        stray = bytearray(b)
+        paint(stray, (100, 60, 100, 60), (0, 0, 0))
+        result = visual.classify("detail-nostrokes", cap(a), cap(stray), rule, CD)
+        self.assertEqual((result.status, result.outside), ("FAIL", 1))
+        near = bytearray(b)
+        paint(near, (20, 30, 20, 30), (0, 0, 0))     # 15 px in from the left edge, past the band's 5 px and outside the outlier region
+        result = visual.classify("detail-nostrokes", cap(a), cap(near), rule, CD)
+        self.assertEqual((result.status, result.outside), ("FAIL", 1))
+        # the ring is not a filled rectangle: the band's own interior is still outside it
+        self.assertLess(band["thickness"] * 2, min(outer[2] - outer[0], outer[3] - outer[1]))
+
+    def test_a_ring_with_no_outliers_derives_as_before(self):
+        a, b = canvas(), canvas()
+        ring(b, (5, 5, 194, 114), 4, (54, 139, 183))
+        rule = visual.derive_rule("detail-nostrokes", cap(a), cap(b), CD)
+        self.assertEqual((rule["bands"], rule["regions"]), ([{"outer": [5, 5, 194, 114], "thickness": 5}], []))
+
     def test_two_far_apart_changes_are_two_regions_and_a_noise_only_pair_has_no_rule(self):
         a, b = canvas(), canvas()
         paint(b, (5, 5, 20, 20), (0, 0, 0))

@@ -12,7 +12,7 @@ Modes (stages), any number of them:
   guards   clean trees, #143's containment, no KDE dependency, nothing else touched
   services URL opening, file chooser, notifications, tray, menu, MPRIS, secret store: from the source
   native   debug quick, release quick and full hardware-GL gates (branch), full gate (the acceptance baseline)
-  visual   the spatial contract over the branch's captures against the acceptance baseline's (needs `native`)
+  visual   the spatial contract over the branch's captures against the acceptance baseline's (needs `native`, or --baseline-captures and --branch-captures)
   generic  Xvfb + Fusion with every desktop variable removed; X11 identity properties
   package  both AppImages in ubuntu:24.04, inventory, comparison, KDE-bundle scan
   identity the exact AppImage through a desktop entry: KWin identity, AT-SPI focus walk, grouping (--allow-session-changes)
@@ -63,7 +63,10 @@ def parse(argv):
     p.add_argument("--dry-run", action="store_true", help="print the plan and the commands' shape; run nothing and change nothing")
     p.add_argument("--allow-session-changes", action="store_true", help="permit stages that change the live Plasma session (identity, appearance)")
     p.add_argument("--appimage", type=Path, help="use this branch AppImage for `identity` instead of building one")
-    p.add_argument("--baseline-captures", type=Path, help="use these baseline captures for `visual` instead of running `native`")
+    p.add_argument("--baseline-captures", "--main-captures", dest="baseline_captures", type=Path,
+                   help="use these baseline captures for `visual` instead of running `native`: a directory of the baseline's gate captures with the "
+                        "provenance.json the native stage writes (it names the commit they were taken at; no baseline worktree is needed). "
+                        "--main-captures is the old name of this option.")
     p.add_argument("--branch-captures", type=Path, help="use these branch captures for `visual` instead of running `native`")
     p.add_argument("--calibrate-noise", action="store_true", help="run the baseline's full gate a second time and check the noise profile against it")
     p.add_argument("--derive", action="store_true", help="appearance: write derived rules for review instead of checking against the committed ones")
