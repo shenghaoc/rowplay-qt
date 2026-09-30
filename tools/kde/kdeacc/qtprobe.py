@@ -16,7 +16,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from .shell import host_env
+from .shell import bundled_qt_env, host_env
 
 UNUSABLE_ACCENTS = ("#000000", "#308cc6")  # Qt's palette defaults: Theme.resolveAccent's list
 THEME_RE = re.compile(r'Successfully created platform theme "([^"]+)"')
@@ -42,6 +42,18 @@ def parse_probe_output(text):
     info["contrastName"] = CONTRAST.get(info.get("contrast"), "?")
     info["fusion"] = "ButtonPanel" in info.get("buttonBackground", "")
     return info
+
+
+def icon_theme_evidence(info):
+    """(ok, detail): whether Qt's own log gave a usable icon-theme name.
+
+    The invariant is that the theme was measured, never which theme it is: a user may
+    legitimately run any freedesktop icon theme."""
+    theme = (info.get("iconTheme") or "").strip()
+    if theme:
+        return True, f"Qt initialised its icon loader with system theme {theme!r}"
+    return False, ("no icon theme was measured: Qt's icon-loader diagnostic ('Initialized icon loader with system "
+                   "theme ...') is missing from the probe's output, or its format changed")
 
 
 def accent_condition(info):

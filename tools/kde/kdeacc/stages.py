@@ -17,9 +17,9 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import host, qtprobe, services, session
+from . import baseline, host, qtprobe, services, session
 from .results import Stage, Status
-from .shell import Runner, generic_env, host_env, scrubbed_vars
+from .shell import Runner, bundled_qt_env, generic_env, host_env, scrubbed_vars
 
 TOOLS = Path(__file__).resolve().parent.parent
 APP_ID_RE = re.compile(r'const APP_ID: &str = "([^"]+)"')
@@ -28,17 +28,18 @@ APP_ID_RE = re.compile(r'const APP_ID: &str = "([^"]+)"')
 @dataclass
 class Ctx:
     repo: Path                 # the worktree under test (the KDE branch)
-    main_tree: Path            # a checkout of post-#144 main (the baseline)
+    baseline_tree: Path | None  # a checkout of the acceptance baseline commit (baseline.BASELINE_SHA), detached is fine; None until a stage needs it
     qt_dir: Path
     out: Path
     runner: Runner
     args: object
     shas: dict = field(default_factory=dict)
     captures: dict = field(default_factory=dict)   # label -> capture directory
-    appimages: dict = field(default_factory=dict)  # 'main' / 'branch' -> path
+    appimages: dict = field(default_factory=dict)  # 'baseline' / 'branch' -> path
     host: dict = field(default_factory=dict)
     run_started: float = 0.0
     inhibitor: object = None
+    baseline_sha: str = baseline.BASELINE_SHA         # the commit the integration is compared with (not "whatever main is today")
     launched_pids: set = field(default_factory=set)   # processes this run started; the only ones it may end
 
     def sub(self, name):
@@ -86,9 +87,12 @@ def stage_probe(ctx):
         st.failed("the bundled Qt's probe ran", (done.text or "no output")[-300:])
         return st
     (ctx.out / "qt-probe.json").write_text(json.dumps(info, indent=2) + "\n")
-    st.passed("the bundled Qt's platform theme and icon theme", f"theme names {info['platformThemeNames']}, created "
-              f"{info['platformThemeCreated']!r}, icon theme {info['iconTheme']!r}, platform {info['platform']}", **{
-                  k: info[k] for k in ("platform", "platformThemeNames", "platformThemeCreated", "iconTheme")})
+    st.passed("the bundled Qt's platform theme", f"theme names {info['platformThemeNames']}, created "
+              f"{info['platformThemeCreated']!r}, platform {info['platform']}", **{
+                  k: info[k] for k in ("platform", "platformThemeNames", "platformThemeCreated")})
+    icon_ok, icon_story = qtprobe.icon_theme_evidence(info)
+    st.expect("the bundled Qt reported its icon theme (measured; which theme it is is the user's choice)", icon_ok, icon_story, icon_story,
+              iconTheme=info.get("iconTheme"))
     st.expect("the bundled Qt selected its KDE platform theme (this is a Plasma acceptance run)", info["platformThemeCreated"] == "kde",
               "platform theme 'kde' created", f"platform theme {info['platformThemeCreated']!r} was created: these are not Plasma results")
     st.passed("the palette Qt reports", ", ".join(f"{k} {info[k]}" for k in ("window", "windowText", "base", "button", "highlight", "accent"))
@@ -100,12 +104,15 @@ def stage_probe(ctx):
     st.expect("Fusion is the style in use", info["fusion"], f"Button background is {info['buttonBackground'].split('(')[0]}",
               f"Button background is {info['buttonBackground']}, not Fusion's ButtonPanel")
     chords = ctx.runner.run([f"{ctx.qt_dir}/bin/qml", str(TOOLS / "probe" / "chord-test.qml"), "--apptype", "gui"],
-                            env=host_env({"LD_LIBRARY_PATH": f"{ctx.qt_dir}/lib", "QT_QPA_PLATFORM": "offscreen", "QT_FORCE_STDERR_LOGGING": "1"}),
+                            env=bundled_qt_env(ctx.qt_dir, {"QT_QPA_PLATFORM": "offscreen", "QT_FORCE_STDERR_LOGGING": "1"}),
                             tag="chord-test", timeout=60)
     summary = re.search(r"CHORD summary: (\d+) of (\d+) correct", chords.text)
+    failures = [line.split("qml: ")[-1] for line in chords.text.splitlines() if "CHORD FAIL" in line]
+    detail = ("the chord parser is wrong for: " + "; ".join(failures) if failures
+              else f"{summary.group(0) if summary else 'no summary line'} (exit {chords.rc}, timed_out={chords.timed_out}): {chords.text[-250:]}")
     st.expect("the gate's chord parser reads every platform's shortcut strings (Linux, Windows, macOS glyphs)",
-              bool(summary) and summary.group(1) == summary.group(2), summary.group(0) if summary else "",
-              "the chord parser is wrong for: " + "; ".join(l.split("qml: ")[-1] for l in chords.text.splitlines() if "CHORD FAIL" in l) or "no summary line")
+              chords.ok and not chords.timed_out and bool(summary) and summary.group(1) == summary.group(2),
+              summary.group(0) if summary else "", detail, exit_code=chords.rc, timed_out=chords.timed_out)
     limitation = info["contrast"] == 0
     st.passed("contrast preference", ("Qt reports NoPreference: a platform limitation, high contrast engages only when Qt reports it; "
                                       "nothing is inferred from the palette"
@@ -128,33 +135,44 @@ def _app_deps(meta):
 
 def stage_guards(ctx):
     st = Stage("guards")
-    repo, main = ctx.repo, ctx.main_tree
-    for label, tree in (("branch", repo), ("main", main)):
+    repo, base = ctx.repo, ctx.baseline_tree
+    if base is None:
+        st.failed("the acceptance baseline checkout", "none supplied or found: this stage compares with " + baseline.describe_requirement(ctx.baseline_sha))
+        return st
+    for label, tree in (("branch", repo), ("baseline", base)):
         state = git_state(ctx.runner, tree)
         ctx.shas[label] = state
         if label == "branch":
             st.expect("the branch worktree is clean", not state["dirty"], f"{state['branch']} at {state['short']}, clean",
                       "uncommitted changes: " + "; ".join(state["dirty_paths"][:6]), **state)
         else:
-            st.expect("the baseline main checkout is clean", not state["dirty"], f"{state['branch']} at {state['short']}, clean",
+            st.expect("the baseline checkout is clean", not state["dirty"], f"{state['branch']} at {state['short']}, clean",
                       "uncommitted changes: " + "; ".join(state["dirty_paths"][:6]), **state)
-    text, main_text = (repo / "Cargo.toml").read_text(), (main / "Cargo.toml").read_text()
+    checks = baseline.check_baseline(ctx.runner, repo, base, ctx.baseline_sha)
+    for check in checks:
+        st.expect(check.name, check.ok, check.detail_ok, check.detail_bad)
+    if not all(check.ok for check in checks):
+        # A comparison with the wrong tree would report PASS for everything: say so and stop.
+        st.failed("the baseline comparisons were not run", "every dependency and diff guard below compares the tree under test with the "
+                  "baseline, so none of them means anything until the baseline is the acceptance baseline")
+        return st
+    text, base_text = (repo / "Cargo.toml").read_text(), (base / "Cargo.toml").read_text()
     section = re.compile(r"\[profile\.release\.package\.qtbridge-interfaces\]\nopt-level = 0")
-    st.expect("#143's containment is intact and identical to main's",
-              bool(section.search(text)) and bool(section.search(main_text)),
+    st.expect("#143's containment is intact and identical to the baseline's",
+              bool(section.search(text)) and bool(section.search(base_text)),
               "[profile.release.package.qtbridge-interfaces] opt-level = 0 present in both",
               "the containment section is missing or changed")
-    lock, main_lock = (repo / "Cargo.lock").read_text(), (main / "Cargo.lock").read_text()
+    lock, base_lock = (repo / "Cargo.lock").read_text(), (base / "Cargo.lock").read_text()
     names = lambda t: set(re.findall(r'^name = "([^"]+)"', t, re.M))
-    new_packages = sorted(names(lock) - names(main_lock))
-    st.expect("the lockfile gains no package", not new_packages, "same package set as main (an edge, not a package)",
+    new_packages = sorted(names(lock) - names(base_lock))
+    st.expect("the lockfile gains no package", not new_packages, "same package set as the baseline (an edge, not a package)",
               "new packages: " + ", ".join(new_packages))
     meta_b = _runner_json(ctx.runner, repo, ["cargo", "metadata", "--locked", "--format-version", "1"])
-    meta_m = _runner_json(ctx.runner, main, ["cargo", "metadata", "--locked", "--format-version", "1"])
+    meta_m = _runner_json(ctx.runner, base, ["cargo", "metadata", "--locked", "--format-version", "1"])
     if meta_b and meta_m:
         added = sorted(set(_app_deps(meta_b)) - set(_app_deps(meta_m)))
         kde = [n for n in added if re.search(r"^(kf|kirigami|plasma|kde|kio|kconfig|ki18n)", n, re.I)]
-        st.expect("rowplay-app's production dependencies added over main: no KDE, KF or Kirigami crate", not kde,
+        st.expect("rowplay-app's production dependencies added over the baseline: no KDE, KF or Kirigami crate", not kde,
                   "added: " + (", ".join(added) or "none"), "KDE-like production dependency: " + ", ".join(kde), added=added)
         for crate in ("rowplay-core", "rowplay-platform", "rowplay-viewmodel"):
             d_b = sorted(d["name"] for p in meta_b["packages"] if p["name"] == crate for d in p["dependencies"] if d["kind"] in (None, "normal"))
@@ -162,11 +180,11 @@ def stage_guards(ctx):
             st.expect(f"{crate} gained no dependency", d_b == d_m, "unchanged", f"{sorted(set(d_b) ^ set(d_m))}")
     else:
         st.failed("cargo metadata --locked", "could not read the dependency graphs")
-    diff_paths = git(ctx.runner, repo, "diff", "--name-only", f"{ctx.shas['main']['sha']}...HEAD").splitlines()
+    diff_paths = git(ctx.runner, repo, "diff", "--name-only", f"{ctx.baseline_sha}...HEAD").splitlines()
     forbidden = [p for p in diff_paths if re.search(r"(^|/)(blender|athlete)|hero-fit", p, re.I)]
     st.expect("the branch does not touch the Blender / athlete stack", not forbidden, f"{len(diff_paths)} changed paths, none in the Blender stack",
               "touches: " + ", ".join(forbidden))
-    st.expect("the diff is whitespace-clean", ctx.runner.run(["git", "-C", str(repo), "diff", "--check", f"{ctx.shas['main']['sha']}...HEAD"], env=host_env()).ok,
+    st.expect("the diff is whitespace-clean", ctx.runner.run(["git", "-C", str(repo), "diff", "--check", f"{ctx.baseline_sha}...HEAD"], env=host_env()).ok,
               "git diff --check passes", "git diff --check reports problems")
     return st
 
@@ -194,7 +212,7 @@ def stage_repo_checks(ctx):
         ("cargo clippy --workspace --all-targets -- -D warnings", ["cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"], {}),
         ("cargo test (Qt-free crates)", ["cargo", "test"], {}),
         ("cargo test --workspace", ["cargo", "test", "--workspace"], {}),
-        ("git diff --check (against main)", ["git", "diff", "--check", f"{ctx.shas.get('main', {}).get('sha', 'main')}...HEAD"], {}),
+        ("git diff --check (against the acceptance baseline)", ["git", "diff", "--check", f"{ctx.baseline_sha}...HEAD"], {}),
     ]
     for name, argv, env in steps:
         done = ctx.runner.in_tree(ctx.repo, argv, env=env, tag="repo-check", timeout=1800, logfile=out / (re.sub(r"\W+", "-", name)[:40] + ".log"))
@@ -219,6 +237,13 @@ def alive_pids(pids):
     return out
 
 
+# Helpers this harness starts, recognised by what they *are*: the process's own command line begins with the
+# interpreter or the tool. A pattern that merely occurs somewhere in a command line matches every shell, editor and
+# `grep` that mentions atspi_walk or a probe directory, and fails a clean run. (POSIX ERE, as pgrep -f reads it.)
+HELPER_PROCESS_PATTERN = (r"^([^ ]*/)?qml .*(kdeacc-probe|/kde/probe/)"
+                          r"|^([^ ]*/)?[Pp]ython[0-9.]* ([^ ]*/)?atspi_walk\.py( |$)")
+
+
 def stage_leftovers(ctx):
     st = Stage("leftovers")
     time.sleep(1)
@@ -231,8 +256,9 @@ def stage_leftovers(ctx):
                   inhibition_taken=ctx.inhibitor.cookie is not None or ctx.inhibitor.note == "")
     # By executable name and by the PIDs this run launched: never the generic AppImage wrapper name,
     # which another linuxdeploy-built application shares.
-    by_name = ctx.runner.run(["pgrep", "-a", "-x", "rowplay-app|rowplay-qt"], env=host_env(), tag="leftovers").out
-    by_name += ctx.runner.run(["pgrep", "-af", r"kdeacc-probe|bin/qml .*probe|atspi_walk"], env=host_env(), tag="leftovers").out
+    # -l lists names on both procps and BSD; BSD's -a includes ancestors instead.
+    by_name = ctx.runner.run(["pgrep", "-l", "-x", "rowplay-app|rowplay-qt"], env=host_env(), tag="leftovers").out
+    by_name += ctx.runner.run(["pgrep", "-fl", HELPER_PROCESS_PATTERN], env=host_env(), tag="leftovers").out
     mine = [ln for ln in by_name.splitlines() if "pgrep" not in ln and "acceptance.py" not in ln]
     mine += [f"{pid} (launched by this run)" for pid in alive_pids(ctx.launched_pids)]
     st.expect("no helper or RowPlay process remains", not mine, "none", "; ".join(mine[:5]))
