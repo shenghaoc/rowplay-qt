@@ -28,7 +28,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kdeacc import session, stages  # noqa: E402
+from kdeacc import baseline, session, stages  # noqa: E402
 from kdeacc.results import Run, Stage, Status, now_iso, render_summary, write_manifest  # noqa: E402
 from kdeacc.shell import Runner, scrubbed_vars  # noqa: E402
 
@@ -43,7 +43,12 @@ def parse(argv):
     p.add_argument("stages", nargs="*", default=["all"], help="stages to run: " + " ".join(ORDER) + " all (default: all)")
     root = Path(__file__).resolve().parents[2]
     p.add_argument("--repo", type=Path, default=root, help="the worktree under test (default: this checkout)")
-    p.add_argument("--main-tree", type=Path, help="a checkout of post-#144 main, the baseline (default: the worktree on branch main)")
+    p.add_argument("--baseline-tree", "--main-tree", dest="baseline_tree", type=Path,
+                   help="a checkout of the acceptance baseline commit (see --baseline-sha; a detached worktree is fine, its branch name "
+                        "does not matter; default: a worktree already at that commit). --main-tree is the old name of this option.")
+    p.add_argument("--baseline-sha", default=baseline.BASELINE_SHA,
+                   help=f"the commit the integration is compared with (default {baseline.BASELINE_SHA}: {baseline.BASELINE_NOTE}). "
+                        "Not `main`, which moves once the stack merges.")
     p.add_argument("--qt-dir", type=Path, default=Path.home() / "Qt/6.11.2/gcc_64", help="the repository's Qt (README: aqt linux_gcc_64)")
     p.add_argument("--output", type=Path, help="evidence directory (default: <repo>/artifacts/kde/acceptance-<timestamp>)")
     p.add_argument("--dry-run", action="store_true", help="print the plan and the commands' shape; run nothing and change nothing")
@@ -58,36 +63,34 @@ def plan(names):
     return wanted
 
 
-def main_tree_of(repo):
-    import subprocess
-    out = subprocess.run(["git", "-C", str(repo), "worktree", "list", "--porcelain"], capture_output=True, text=True).stdout
-    path = None
-    for line in out.splitlines():
-        if line.startswith("worktree "):
-            path = line.split(" ", 1)[1]
-        elif line == "branch refs/heads/main" and path:
-            return Path(path)
-    return None
+NEEDS_BASELINE = {"guards"}   # the stages that compare the tree under test with a baseline checkout
 
 
 def main(argv=None):
     args = parse(argv if argv is not None else sys.argv[1:])
     names = plan(args.stages)
     repo = args.repo.resolve()
-    main_tree = (args.main_tree or main_tree_of(repo))
-    if main_tree is None:
-        raise SystemExit("no checkout of main found: pass --main-tree")
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out = (args.output or repo / "artifacts" / "kde" / f"acceptance-{stamp}").resolve()
-    print(f"plan: {' '.join(names)}\nrepo: {repo}\nmain: {main_tree}\nevidence: {out}")
+    needs_baseline = any(n in NEEDS_BASELINE for n in names)
+    print(f"plan: {' '.join(names)}\nrepo: {repo}\nevidence: {out}")
     if args.dry_run:
         print("dry run: nothing is run or changed.")
+        # Nothing is resolved or validated here: a plan must be printable from any checkout.
+        print("baseline: " + (f"would be required by {', '.join(n for n in names if n in NEEDS_BASELINE)}: "
+                              f"{baseline.describe_requirement(args.baseline_sha)}" if needs_baseline else "not required by these stages"))
         for n in names:
             print(f"  - {n}")
         return 0
+    baseline_tree = None
+    if needs_baseline:
+        baseline_tree = args.baseline_tree or baseline.find_baseline_tree(Runner(), repo, args.baseline_sha)
+        if baseline_tree is None:
+            raise SystemExit(f"no acceptance baseline checkout: {baseline.describe_requirement(args.baseline_sha)}")
     out.mkdir(parents=True, exist_ok=True)
     runner = Runner(out / "commands.log")
-    ctx = stages.Ctx(repo, Path(main_tree).resolve(), args.qt_dir, out, runner, args)
+    ctx = stages.Ctx(repo, Path(baseline_tree).resolve() if baseline_tree else None, args.qt_dir, out, runner, args,
+                     baseline_sha=args.baseline_sha)
     run = Run(started=now_iso(), argv=sys.argv)
     run.context = {"harness": "tools/kde/acceptance.py", "scrubbed_desktop_variables_in_generic_runs": ", ".join(scrubbed_vars())}
 
@@ -95,7 +98,8 @@ def main(argv=None):
         run.finished = now_iso()
         run.context.update({f"{k}_sha": v["sha"] for k, v in ctx.shas.items()})
         run.context.update({f"{k}_dirty": v["dirty"] for k, v in ctx.shas.items()})
-        run.context.update({"branch": ctx.shas.get("branch", {}).get("branch"), "kde_tree": str(repo), "main_tree": str(ctx.main_tree)})
+        run.context.update({"branch": ctx.shas.get("branch", {}).get("branch"), "kde_tree": str(repo), "baseline_tree": str(ctx.baseline_tree) if ctx.baseline_tree else None,
+                            "baseline_sha_expected": ctx.baseline_sha})
         write_manifest(run, out / "manifest.json")
         (out / "summary.md").write_text(render_summary(run))
 
