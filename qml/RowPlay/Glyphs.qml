@@ -13,9 +13,15 @@
 // - Windows: Qt's Windows icon engine maps freedesktop names to Segoe
 //   Fluent Icons (Windows 11) or Segoe MDL2 Assets glyphs, and draws a
 //   one-character name as that glyph;
-// - elsewhere, an SVG of the same path (`iconSource`). A nonempty source
-//   takes precedence over the freedesktop name, so Linux uses the SVG
-//   directly. The AppImage carries Qt Svg's image plugin (ADR 0015).
+// - elsewhere (Linux), the desktop's icon theme when it has the name, and
+//   otherwise an SVG of the same path (`iconSource`). Qt's icon image
+//   prefers an icon-theme file for `icon.name` over `icon.source`, so
+//   setting both gives "themed icon, else ours" with no code of our own
+//   (qquickiconimage.cpp; measured under Breeze, ADR 0018). Only names from
+//   the freedesktop Icon Naming Specification's standard actions are given
+//   there: every compliant theme draws those as monochrome action glyphs,
+//   which the style tints. A glyph without one keeps our SVG everywhere.
+//   The AppImage carries Qt Svg's image plugin (ADR 0015).
 pragma Singleton
 import QtQuick
 
@@ -107,19 +113,23 @@ QtObject {
     })
 
     /// Per glyph key: the macOS, Windows and freedesktop icon names. A
-    /// missing entry, or an empty name, uses the SVG source on Linux.
+    /// missing entry, or an empty name, uses the SVG source on Linux. The
+    /// freedesktop column holds standard action names only: no category
+    /// (preferences-system) or MIME-type (x-office-calendar) icon, which
+    /// themes draw in full colour, and no theme-specific name (open-menu,
+    /// view-more, sidebar-show), which one theme has and the next lacks.
     readonly property var platformNames: ({
         "arrow.clockwise": { mac: "view-refresh", windows: "view-refresh", other: "view-refresh" },
         "chevron.left": { mac: "go-previous", windows: "go-previous", other: "go-previous" },
-        "sliders": { mac: "preferences-system", windows: "\uE713", other: "preferences-system" },
-        "sidebar.left": { mac: "sidebar.left", windows: "\uE8A0", other: "sidebar-show" },
-        "line.3.horizontal": { mac: "line.3.horizontal", windows: "\uE700", other: "open-menu" },
+        "sliders": { mac: "preferences-system", windows: "\uE713", other: "" },
+        "sidebar.left": { mac: "sidebar.left", windows: "\uE8A0", other: "" },
+        "line.3.horizontal": { mac: "line.3.horizontal", windows: "\uE700", other: "" },
         "magnifyingglass": { mac: "system-search", windows: "system-search", other: "system-search" },
         "arrow.up.arrow.down": { mac: "arrow.up.arrow.down", windows: "\uE8CB", other: "view-sort-ascending" },
-        "calendar": { mac: "calendar", windows: "\uE787", other: "x-office-calendar" },
+        "calendar": { mac: "calendar", windows: "\uE787", other: "" },
         "play": { mac: "play.fill", windows: "media-playback-start", other: "media-playback-start" },
         "pause": { mac: "pause.fill", windows: "media-playback-pause", other: "media-playback-pause" },
-        "ellipsis": { mac: "ellipsis", windows: "\uE712", other: "view-more" }
+        "ellipsis": { mac: "ellipsis", windows: "\uE712", other: "" }
     })
 
     /// The platform's own icon name for a glyph key ("" when it has none).
@@ -132,8 +142,9 @@ QtObject {
              : Qt.platform.os === "windows" ? names.windows : names.other
     }
 
-    /// The glyph as an SVG data URL on Linux. A nonempty source prevents
-    /// Qt's icon image from consulting icon.name. Drawn black; the style
+    /// The glyph as an SVG data URL on Linux: the fallback for an icon
+    /// name the desktop's theme lacks, and the icon for a glyph without a
+    /// standard name. Drawn black; the style
     /// tints it like any icon. No intrinsic size, so the provider renders at
     /// size the control asks for (a 16-unit SVG scaled up after rasterising
     /// blurs).

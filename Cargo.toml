@@ -57,6 +57,11 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 chrono-tz = "0.10"
 # Qt Bridges for Rust (public beta). Pinned exactly: the API is still moving.
 qtbridge = "=0.3.0"
+# CXX-Qt's Qt bindings, the same release qtbridge 0.3.0 locks (never a second
+# copy: the CXX alignment check in CI fails on a package resolved twice).
+# rowplay-app calls one binding qtbridge's `QApp` does not expose,
+# `QGuiApplication::setDesktopFileName` (ADR 0018); pin it with qtbridge.
+cxx-qt-lib = { version = "=0.10.0", features = ["qt_gui"] }
 # Platform services (Phase 3). Each backend is target-gated inside its crate, so
 # one declaration covers every target; see docs/decisions/0007-platform-libraries.md.
 # ureq: blocking HTTP over rustls. The `cookies`, `json`, `charset` and proxy
