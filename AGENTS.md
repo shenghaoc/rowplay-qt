@@ -396,7 +396,11 @@ or, for hand-modelled ones, a reviewed `.blend` plus a deterministic export and
 validation script (0016); bake venues rather than
 port `renderer3dEnvironment.ts` (0005), except the rowing venue, whose land
 and vegetation (Blender Phase 3) and structures, furniture and island (Blender
-Phase 4) are authored (0016); Rust core first (0006).
+Phase 4) are authored (0016); Rust core first (0006); Plasma integration
+through Qt and freedesktop only, with Fusion in the portable AppImage and
+no bundled `org.kde.desktop`, KDE Frameworks, or desktop detection in
+product code or tests (0018). Never run host KDE binaries with the app's
+Qt on the loader path, or load host KDE QML modules into the bundled Qt.
 
 ## Parity is the test oracle
 

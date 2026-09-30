@@ -112,6 +112,76 @@ fn gate_profile_is_quick() -> bool {
     }
 }
 
+/// The accent rule (ADR 0018, `Theme.resolveAccent`), stated over Qt's
+/// palette defaults and never over a desktop: an accent that is neither
+/// Fusion's `#308cc6` nor the uninitialised palette's `#000000` is the
+/// platform's and is used; otherwise the highlight is, Qt's documented
+/// default for an unset accent, unless it is Fusion's too; otherwise none
+/// (transparent, and `Theme` falls back to the brand blue).
+fn expected_accent<'a>(accent: &'a str, highlight: &'a str) -> &'a str {
+    const FUSION: &str = "#308cc6";
+    if accent != FUSION && accent != "#000000" {
+        accent
+    } else if highlight != FUSION && !(highlight.len() == 9 && highlight.starts_with("#00")) {
+        highlight
+    } else {
+        "#00000000"
+    }
+}
+
+/// Checks the gate's `gate accent` lines: the fixed cases every platform
+/// runs, and this platform's own palette (whatever it is: the rule, not a
+/// colour, is the invariant).
+fn assert_accent_rule(log: &str) {
+    const CASES: [(&str, &str, &str); 5] = [
+        ("#3d7eff", "#aabbcc", "#3d7eff"),
+        ("#308cc6", "#308cc6", "#00000000"),
+        ("#000000", "#f67400", "#f67400"),
+        ("#000000", "#308cc6", "#00000000"),
+        ("#308cc6", "#f67400", "#f67400"),
+    ];
+    let lines = |tag: &str| -> Vec<Vec<String>> {
+        log.lines()
+            .filter_map(|line| line.split_once(tag))
+            .map(|(_, rest)| {
+                rest.split_whitespace()
+                    .map(str::to_ascii_lowercase)
+                    .collect()
+            })
+            .collect()
+    };
+    let cases = lines("gate accent case:");
+    assert_eq!(
+        cases.len(),
+        CASES.len(),
+        "the gate logged {} accent cases",
+        cases.len()
+    );
+    for (words, (accent, highlight, want)) in cases.iter().zip(CASES) {
+        assert_eq!(
+            words,
+            &[accent, highlight, "->", want],
+            "Theme.resolveAccent({accent}, {highlight})"
+        );
+        assert_eq!(
+            expected_accent(accent, highlight),
+            want,
+            "the test's own rule"
+        );
+    }
+    let system = lines("gate accent system:");
+    let [words] = system.as_slice() else {
+        panic!("the gate logged {} system accent lines", system.len());
+    };
+    let (accent, highlight, resolved) = (&words[0], &words[1], &words[3]);
+    assert_eq!(
+        resolved,
+        expected_accent(accent, highlight),
+        "this platform's palette (accent {accent}, highlight {highlight}) resolved to {resolved}"
+    );
+    println!("accent: palette accent {accent}, highlight {highlight}, resolved {resolved}");
+}
+
 /// `(seconds, text)` for every log line that carries the pattern's stamp.
 fn timed_lines(log: &str) -> Vec<(f64, &str)> {
     log.lines()
@@ -692,6 +762,8 @@ fn shell_walk_produces_no_qml_runtime_errors() {
         combined.contains("gate members:") && combined.contains("resolved"),
         "the member check did not run\noutput:\n{combined}"
     );
+
+    assert_accent_rule(&combined);
 
     // The mock sync must complete and land in the cache, not the demo data.
     assert!(
