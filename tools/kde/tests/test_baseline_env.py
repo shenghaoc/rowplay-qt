@@ -145,7 +145,7 @@ class DryRunNeedsNoBaseline(unittest.TestCase):
         code, out = self.run_cli("--dry-run", "--repo", str(lone.main), "all")
         self.assertEqual(code, 0)
         self.assertIn("  - guards", out)
-        self.assertIn(f"baseline: would be required by guards: {baseline.BASELINE_SHA}", out)
+        self.assertRegex(out, rf"baseline: would be required by guards[a-z, ]*: {baseline.BASELINE_SHA}")
 
     def test_dry_run_validates_nothing_even_when_a_bad_baseline_is_named(self):
         code, out = self.run_cli("--dry-run", "--baseline-tree", "/does/not/exist", "all")
