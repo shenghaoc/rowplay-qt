@@ -75,6 +75,7 @@ class GenericWalkIsFull(unittest.TestCase):
         self.assertEqual(env["ROWPLAY_GATE_PROFILE"], "full")
         self.assertEqual((env["QT_QPA_PLATFORM"], env["LIBGL_ALWAYS_SOFTWARE"], env["ROWPLAY_QT_SMOKE"]), ("xcb", "1", "1"))
         self.assertEqual(env["ROWPLAY_SMOKE_ARTIFACT_DIR"], "/tmp/artifacts")
+        self.assertEqual(env["ROWPLAY_GATE_NO_WINDOW_MANAGER"], "1")     # Xvfb has no window manager
         for name in ("ROWPLAY_EXIT_AFTER_FRAMES", "ROWPLAY_SMOKE_GATE", "ROWPLAY_SYNC_MOCK", "ROWPLAY_FORCE_COLOR_SCHEME", "QT_SCALE_FACTOR",
                      "XDG_CURRENT_DESKTOP"):
             self.assertIsNone(env[name], name)     # None: Runner.in_tree removes it from what it inherits
@@ -106,6 +107,14 @@ class GenericWalkIsFull(unittest.TestCase):
         self.assertEqual((env["ROWPLAY_GATE_PROFILE"], env["QT_QPA_PLATFORM"]), ("quick", "wayland"))
         for name in ("ROWPLAY_EXIT_AFTER_FRAMES", "ROWPLAY_QT_SMOKE", "LIBGL_ALWAYS_SOFTWARE", "QT_FONT_DPI"):
             self.assertNotIn(name, env, name)
+
+    def test_a_native_gate_never_inherits_the_no_window_manager_excuse(self):
+        rec = Recorder()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with mock.patch.dict(os.environ, {"ROWPLAY_GATE_NO_WINDOW_MANAGER": "1"}):
+            gates.run_gate(rec, tmp.name, tmp.name, "n", profile="quick", native=True)
+        self.assertNotIn("ROWPLAY_GATE_NO_WINDOW_MANAGER", rec.calls[0]["env"])
 
 
 class Interruption(unittest.TestCase):

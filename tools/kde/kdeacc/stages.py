@@ -316,6 +316,7 @@ def generic_gate_env(artifact_dir):
         "ROWPLAY_GATE_PROFILE": "full",
         "QT_QPA_PLATFORM": "xcb", "QSG_RHI_BACKEND": "opengl", "LIBGL_ALWAYS_SOFTWARE": "1", "ROWPLAY_QT_SMOKE": "1",
         "ROWPLAY_PHASE_SHOTS": "1", "ROWPLAY_PHASE_CLOSEUPS": "1", "QT_LOGGING_RULES": "qt.qpa.theme=true",
+        "ROWPLAY_GATE_NO_WINDOW_MANAGER": "1",     # Xvfb has none: the keyboard contract's inactive-window skip is expected here
         "ROWPLAY_SMOKE_ARTIFACT_DIR": str(artifact_dir), "ROWPLAY_SMOKE_SCREENSHOT_DIR": str(artifact_dir),
         "LANG": "C.UTF-8",
     })))
