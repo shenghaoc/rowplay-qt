@@ -207,4 +207,6 @@ behaviour mapped to Qt API, and what stays ours.
   - FluentWinUI3 draws both schemes, so decision 1 now selects it on
     Windows.
 - **Linux:** CI under Xvfb (Fusion, light). Dark was checked through Fusion
-  on macOS, because Xvfb has no platform theme to report dark.
+  on macOS, because Xvfb has no platform theme to report dark. Since ADR 0018
+  it is also checked natively on Fedora 44 KDE Plasma (light, dark, a custom
+  accent, 150 % text), by `tools/kde/acceptance.py`.
