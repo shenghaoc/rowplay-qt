@@ -1207,6 +1207,14 @@ ApplicationWindow {
         }
     }
 
+    /// The tick guard (gateTimer): a tick that fires while a step is running does nothing. Called from inside a
+    /// step, it fires one by hand and checks that the walk did not move.
+    function gateCheckTickGuard() {
+        const step = root.gateStep
+        gateTimer.triggered()
+        console.log("gate tick re-entrancy:", root.gateStep === step ? "ok" : "FAILED step " + step + " -> " + root.gateStep)
+    }
+
     // CI runtime-error gate: walk the screens, flip through all six
     // languages (live retranslation), grab per-screen PNGs when
     // ROWPLAY_SMOKE_SCREENSHOT_DIR is set, and exit. Any QML TypeError /
@@ -1406,7 +1414,24 @@ ApplicationWindow {
         interval: 300
         repeat: true
         running: root.gateMode
+        // A tick that arrives while another is still running is dropped. The key contracts send real key events
+        // through QtTest, which process events, and on a slow machine the timer comes due meanwhile: the next step
+        // then ran in the middle of a contract (macOS CI: step 7 switched the language to German while step 6's
+        // Ctrl+F check still expected the Chinese placeholder). The walk's steps are strictly sequential.
+        property bool ticking: false
         onTriggered: {
+            if (ticking) {
+                return
+            }
+            ticking = true
+            try {
+                tick()
+            } finally {
+                ticking = false
+            }
+        }
+        // One step of the walk. The body is the timer's own handler, unchanged.
+        function tick() {
             if (root.gateAwaitingReplay || root.gateAwaitingScene) {
                 root.update()
             }
@@ -1498,7 +1523,10 @@ ApplicationWindow {
                 root.checkGateMembers()
                 root.logGateAccent()
                 break
-            case 2: root.grabScreen("dashboard"); break
+            case 2:
+                root.gateCheckTickGuard()
+                root.grabScreen("dashboard")
+                break
             case 3: root.showSettings(); break
             case 4: root.grabScreen("settings"); break
             case 5: Settings.setLanguageIndex(1); break   // zh
