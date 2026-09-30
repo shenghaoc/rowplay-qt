@@ -1596,6 +1596,8 @@ Checked in native Metal captures and in the tools' output:
     `colorScheme()` but not `contrastPreference()` (master `276324f5`): a
     high-contrast Plasma colour scheme reaches the app as palette colours
     only, and the app keeps its own ramps there.
+    Measured on Fedora 44 Plasma 6.6.4 and again on 6.7.5 (ADR 0018):
+    `NoPreference`, and the portal's `contrast` key is 0.
   - **Probed here:** under `xcb` on Xvfb with no desktop, and under
     `offscreen`, the probe reads accent `#308cc6`, `NoPreference`, colour
     scheme `Unknown` and a 9 pt (12 px) "Sans Serif" system font. The macOS

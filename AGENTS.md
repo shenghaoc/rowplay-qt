@@ -869,3 +869,36 @@ Each rule exists because the failure happened.
   (`macos.sh`'s `otool | grep -F`) is the safe orientation — it fails the
   build on the *presence* of a leak signature, not on the absence of a
   success marker.
+- **A native walk needs a screen that is awake, an active window and a
+  frontmost one.** On Plasma the screen locker engages after five idle minutes
+  (nobody touches the machine during a gate), and a locked session stops frame
+  callbacks to every window: random gates ran out every hold (2026-09-30). A
+  window KWin maps behind another starves the same way. `tools/kde/` holds
+  `org.freedesktop.ScreenSaver.Inhibit`, raises the window with a KWin script and
+  fails a starved or locked run by name. By hand: keep the window frontmost and the
+  screen awake, and read the "holds that ran out their tick bound" line.
+- **The walk has to be run at large text, not only at the default.** At 150 %
+  text a 1200 px window is the medium width class and the sidebar is a modal
+  drawer, so the date-range step (which assumed the sidebar beside the content)
+  failed, and a modal drawer keeps every shortcut behind it quiet until its exit
+  animation ends (still visible 205 ms after Escape). The macOS 150 % matrix
+  never met this because it never ran that step there. `tools/kde/`'s appearance
+  stage runs the full gate at 150 % on Plasma.
+- **`root.forceActiveFocus()` does not take focus back from a Tab-reached list
+  view.** A test that moves focus must restore it and check that it did (the
+  keyboard contract's `leaves keyboard focus where it found it`): the leak drew the
+  selected sidebar row as focused in every later capture, and only the pixel
+  contract noticed. Shortcuts also fire only in an active window, which a display
+  with no window manager (Xvfb) never has: the contract says it was skipped there,
+  and a skip anywhere else is a failure.
+- **Native hardware captures carry delta-1 dithering the Xvfb bound was not
+  measured on** (two same-tree runs: 2D up to 450 px, 3D up to 76 px, never above
+  delta 1). `tools/kde/expected-visual-diff.json` holds a named noise profile for
+  them; the global capture-diff bounds are unchanged.
+- **A comparison baseline is a commit, never a branch name.** The KDE acceptance
+  compared the branch with "the checkout on `main`", which is the acceptance
+  baseline only until the first layer of the stack merges; after that `main`
+  contains the change, every comparison is against itself, and the visual rules'
+  `must_change` fail forty times. `tools/kde/` names `046c2e3`, proves a checkout by
+  its SHA (a detached worktree is the intended one) and records the commit on the
+  rules and beside the captures, so evidence is judged by what it was taken at.

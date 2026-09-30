@@ -1453,3 +1453,60 @@ requests on the round-2 stack's composed top:
       `qml/+windows/qtquickcontrols2.conf` names FluentWinUI3 for Windows
       alone, beside a base file that names no style.
     - No Rust and no packaging change. ADR 0015's decision 1 is amended.
+
+## Plasma integration (ADR 0018)
+
+The Linux desktop's own manners under KDE Plasma, through Qt and freedesktop
+interfaces; the portable AppImage keeps Fusion and gains no KDE dependency. The
+spec is `.kiro/specs/kde-plasma-integration/`. Probes began on Debian 13
+(Plasma 6.3.6), which was abandoned because the machine was unstable. Fedora 44
+KDE Plasma is the native host; the findings were first measured on Plasma 6.6.4
+and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
+6.30.0, kernel 7.2.7 and host Qt 6.11.2 (Wayland, Mesa 26.2.3, Intel UHD 630).
+
+- What landed:
+  - **Identity:** KWin recorded the window as `rowplay-qt`, a desktop entry
+    that does not exist. `rowplay-app` now names `io.github.shenghaoc.rowplay`
+    at start-up (cxx-qt-lib's `setDesktopFileName`, a direct pin to the release
+    qtbridge 0.3.0 already locks; qt-bridges-notes #23). X11's desktop-file
+    properties carry it too; `WM_CLASS` is unchanged.
+  - **Accent:** qtbase's KDE theme leaves `QPalette::Accent` black, and `Theme`
+    took the black for the scrubber's fill and the focus ring. `Theme.resolveAccent`
+    reads an accent that is one of Qt's defaults as unset and uses the highlight.
+    A custom Plasma accent reaches Qt through the highlight only.
+  - **Icons:** a theme file for `icon.name` wins over `icon.source` (ADR 0015 had
+    it backwards). The Linux names are the freedesktop standard actions only,
+    with our SVG as the fallback; a full-colour category icon had turned the
+    Settings button into a solid silhouette.
+  - **Contrast:** Plasma reports none to Qt 6.11.2; documented, not guessed.
+  - **Services and menus:** none needs code (the harness reads it from the source).
+    Not adopted: `org.kde.desktop` in the AppImage, Kirigami, KConfig, KI18n, KIO,
+    a tray icon, MPRIS, Plasma widgets, and host-module injection.
+- What checks it (`tools/kde/acceptance.py`, `tools/kde/README.md`): a repeatable
+  native harness with a self-contained evidence directory; its unit tests run in CI.
+  It compares with an acceptance baseline that is a commit (`046c2e3`, proved by
+  SHA, a detached worktree is fine), not the moving `main`. The run of
+  2026-09-30, from a clean worktree, passed every stage: the debug
+  quick, release quick and full native gates (115.5 s, 70 captures); a spatial
+  visual contract (40 of 70 captures exceed the generic noise bound, every changed
+  pixel inside a recorded region, 0 unexpected); the exact AppImage through a
+  desktop entry on Plasma Wayland; a loud accent, Breeze Dark and 150 % text on
+  the live desktop, restored and verified; generic Xvfb/Fusion with every desktop
+  variable removed; and both AppImages in `ubuntu:24.04` (69,581,304 bytes on
+  post-#144 `main`, 69,597,688 on the branch, 2,319 files each, only the binary
+  differing, by 20,552 bytes; AppImage totals vary by 4,096 bytes between builds
+  of one tree; no KDE stack in either).
+- What running it found: a locked screen starves the gate (the harness inhibits
+  it); large text turns the sidebar into a modal drawer, which the walk's date-range
+  step had never met (it now opens it); shortcuts fire only in an active window,
+  which Xvfb never has (the contract says it was skipped there).
+- The gate's keyboard contract: the walk sends the chords the shell documents as
+  real key events (Ctrl+F, Tab and Shift+Tab through both date fields, F5, Esc,
+  the platform's Preferences chord, Alt+Left, F9, Space, Left, Right, `[`, `]`,
+  and a real Ctrl+Q as its exit), and `qml_runtime_gate.rs` asserts them.
+- Not automated: pinning to the Task Manager (the user's panel), and key presses
+  into the packaged binary (no unprivileged channel on Wayland; AT-SPI focus and
+  actions drive it instead).
+- Local packaging on a Fedora 44 host produces a broken AppImage: linuxdeploy's
+  pinned tools corrupt RELR-packed system libraries. Package comparisons are
+  built in `ubuntu:24.04` (`tools/kde/ubuntu-package.sh`; `linux.sh`'s header).
