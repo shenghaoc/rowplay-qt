@@ -12,6 +12,9 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
+
+use rowplay_core::replay::hand_grip::HandFrame;
 
 pub use super::glb::AssetError;
 
@@ -19,6 +22,18 @@ use super::glb::{Node, chunks, parse_nodes};
 
 /// Component type code of `float32` in glTF.
 const FLOAT32: u64 = 5126;
+
+/// Complete material vocabulary of the authored athlete.
+pub const ATHLETE_MATERIAL_ROLES: [&str; 8] = [
+    "athlete-skin",
+    "athlete-fabric",
+    "athlete-shorts",
+    "athlete-footwear",
+    "athlete-hair",
+    "athlete-trim",
+    "athlete-eye",
+    "athlete-face-detail",
+];
 
 /// A joint's rest transform and its place in the skin hierarchy.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -101,6 +116,32 @@ pub struct V4Athlete {
     pub clips: Vec<Clip>,
     /// The contract's contact offsets: `(bone name, role, local offset)`.
     pub contacts: Vec<(String, String, [f64; 3])>,
+    /// Saved-source measurements for modelled athletes. Absent on V4.
+    #[serde(default)]
+    pub hand_calibration: BTreeMap<String, HandCalibration>,
+    /// PBR parameters from the authored material slots; absent on V4.
+    #[serde(default)]
+    pub material_parameters: BTreeMap<String, MaterialParameters>,
+}
+
+/// Authored parameters shared by generated QML and its runtime assertion.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct MaterialParameters {
+    /// Dielectric/metallic blend, 0..1.
+    pub metalness: f64,
+    /// Microfacet roughness, 0..1.
+    pub roughness: f64,
+}
+
+/// Geometry fitted to one actual hand, separate from replay semantics.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HandCalibration {
+    /// Local palm/channel axes and landmark.
+    #[serde(flatten)]
+    pub frame: HandFrame,
+    /// Actual DIP-to-terminal-cap reach, keyed by distal helper name.
+    pub terminal_lengths: BTreeMap<String, f64>,
 }
 
 /// A sampled local transform.
@@ -115,6 +156,20 @@ pub struct LocalTransform {
 }
 
 impl V4Athlete {
+    /// Calibration for a modelled left (negative) or right hand.
+    #[must_use]
+    pub fn calibration_for_hand(&self, side: f64) -> Option<&HandCalibration> {
+        self.hand_calibration
+            .get(if side < 0.0 { "left" } else { "right" })
+    }
+
+    /// The athlete's own hand basis, or the immutable historical V4 basis.
+    #[must_use]
+    pub fn hand_frame(&self, side: f64) -> HandFrame {
+        self.calibration_for_hand(side)
+            .map_or_else(|| HandFrame::legacy(side), |c| c.frame)
+    }
+
     /// The clip authored for `sport` (`rower`, `skierg`, `bike`).
     #[must_use]
     pub fn clip_for(&self, sport: &str) -> Option<&Clip> {
@@ -182,16 +237,183 @@ pub fn read_v4(bytes: &[u8], contract_json: &str) -> Result<V4Athlete, AssetErro
         .map_err(|error| AssetError::Athlete(format!("contract JSON unreadable: {error}")))?;
     let (json, bin) = chunks(bytes)?;
     let nodes = parse_nodes(&json)?;
+    if contract.get("assetIdentity").and_then(Value::as_str) == Some("rowplay-athlete-v5") {
+        validate_modelled(&json, bin, &contract, &nodes)?;
+    }
     let (joints, node_to_joint) = read_skin(&json, &nodes)?;
     let semantic = cross_check_bones(&contract, &joints)?;
     let clips = read_clips(&json, bin, &contract, &node_to_joint, &nodes)?;
     let contacts = read_contacts(&contract, &joints)?;
+    let hand_calibration = read_hand_calibration(&contract, &joints)?;
+    let material_parameters: BTreeMap<String, MaterialParameters> = contract
+        .get("materialParameters")
+        .map(|value| serde_json::from_value(value.clone()))
+        .transpose()
+        .map_err(|e| athlete_error(format!("material parameters: {e}")))?
+        .unwrap_or_default();
+    if !hand_calibration.is_empty()
+        && (material_parameters.len() != 8
+            || ATHLETE_MATERIAL_ROLES
+                .iter()
+                .any(|role| !material_parameters.contains_key(*role)))
+    {
+        return Err(athlete_error(
+            "modelled athlete material roles are incomplete",
+        ));
+    }
+    if material_parameters.values().any(|p| {
+        !p.metalness.is_finite()
+            || !p.roughness.is_finite()
+            || !(0.0..=1.0).contains(&p.metalness)
+            || !(0.0..=1.0).contains(&p.roughness)
+    }) {
+        return Err(athlete_error("invalid authored material parameters"));
+    }
     Ok(V4Athlete {
         joints,
         semantic,
         clips,
         contacts,
+        hand_calibration,
+        material_parameters,
     })
+}
+
+/// Enforce the authored output's budget and primitive contract during an
+/// ordinary build, without requiring Blender. Full source topology/IBM
+/// validation belongs to the pinned exporter and its repeat-export gate.
+fn validate_modelled(
+    json: &Value,
+    bin: &[u8],
+    contract: &Value,
+    nodes: &[Node],
+) -> Result<(), AssetError> {
+    let fail = |message: &str| athlete_error(format!("modelled athlete: {message}"));
+    for name in ["extensionsUsed", "extensionsRequired", "images", "textures"] {
+        if json
+            .get(name)
+            .is_some_and(|v| v.as_array().is_none_or(|a| !a.is_empty()))
+        {
+            return Err(fail("unexpected extension/image dependency"));
+        }
+    }
+    let meshes = json["meshes"].as_array().ok_or_else(|| fail("no meshes"))?;
+    let skins = json["skins"].as_array().ok_or_else(|| fail("no skins"))?;
+    let materials = json["materials"]
+        .as_array()
+        .ok_or_else(|| fail("no materials"))?;
+    if meshes.len() != 1 || skins.len() != 1 || materials.len() != 8 {
+        return Err(fail("expected one mesh, one skin and eight materials"));
+    }
+    let roles: std::collections::BTreeSet<_> = materials
+        .iter()
+        .filter_map(|m| m["name"].as_str())
+        .collect();
+    if roles != ATHLETE_MATERIAL_ROLES.into_iter().collect() {
+        return Err(fail("material roles differ"));
+    }
+    let primitives = meshes[0]["primitives"]
+        .as_array()
+        .ok_or_else(|| fail("no primitives"))?;
+    let used: std::collections::BTreeSet<_> = primitives
+        .iter()
+        .filter_map(|p| p["material"].as_u64())
+        .collect();
+    if primitives.len() != 8 || used != (0..8).collect() {
+        return Err(fail("one primitive per material role required"));
+    }
+    let mut triangles = 0_u64;
+    for p in primitives {
+        if p.get("mode").and_then(Value::as_u64).unwrap_or(4) != 4 || p.get("targets").is_some() {
+            return Err(fail("only ordinary skinned triangles are supported"));
+        }
+        let index = p["indices"]
+            .as_u64()
+            .ok_or_else(|| fail("missing triangle indices"))? as usize;
+        let count = json["accessors"][index]["count"]
+            .as_u64()
+            .ok_or_else(|| fail("missing index count"))?;
+        if count == 0 || count % 3 != 0 || count > 225_000 {
+            return Err(fail("invalid triangle index count"));
+        }
+        triangles += count / 3;
+        let index = p["attributes"]["WEIGHTS_0"]
+            .as_u64()
+            .ok_or_else(|| fail("missing weights"))? as usize;
+        let (weights, stride) = read_accessor(json, bin, index, "modelled weights")?;
+        if stride != 4
+            || weights.as_chunks::<4>().0.iter().any(|w| {
+                w.iter().any(|v| !v.is_finite() || *v < 0.0)
+                    || (w.iter().sum::<f32>() - 1.0).abs() > 1e-5
+            })
+        {
+            return Err(fail("invalid normalized four-influence weights"));
+        }
+    }
+    if triangles > 75_000 || contract["measurements"]["triangles"].as_u64() != Some(triangles) {
+        return Err(fail("triangle ceiling or measured count differs"));
+    }
+    if contract["bones"]["semanticCount"].as_u64() != Some(19)
+        || contract["bones"]["helperCount"].as_u64() != Some(32)
+    {
+        return Err(fail("semantic/helper count changed"));
+    }
+    super::glb::validate_accessors(json, nodes)?;
+    Ok(())
+}
+
+fn read_hand_calibration(
+    contract: &Value,
+    joints: &[Joint],
+) -> Result<BTreeMap<String, HandCalibration>, AssetError> {
+    let Some(value) = contract.get("handCalibration") else {
+        if contract.get("assetIdentity").and_then(Value::as_str) == Some("rowplay-athlete-v5") {
+            return Err(athlete_error("modelled athlete has no hand calibration"));
+        }
+        return Ok(BTreeMap::new());
+    };
+    let result: BTreeMap<String, HandCalibration> = serde_json::from_value(value.clone())
+        .map_err(|e| athlete_error(format!("hand calibration: {e}")))?;
+    if result.len() != 2 || !result.contains_key("left") || !result.contains_key("right") {
+        return Err(athlete_error("hand calibration must contain both hands"));
+    }
+    for (side, c) in &result {
+        for axis in [
+            c.frame.curl_axis,
+            c.frame.palm_normal,
+            c.frame.long_axis,
+            c.frame.channel_direction,
+        ] {
+            if axis.iter().any(|v| !v.is_finite())
+                || (axis.iter().map(|v| v * v).sum::<f64>() - 1.0).abs() > 1e-5
+            {
+                return Err(athlete_error(format!(
+                    "{side} hand axis is not finite/unit"
+                )));
+            }
+        }
+        if c.frame.palm_contact.iter().any(|v| !v.is_finite()) || !c.frame.seat_flesh.is_finite() {
+            return Err(athlete_error(format!("{side} hand seat is non-finite")));
+        }
+        let prefix = if side == "left" { "v4Left" } else { "v4Right" };
+        let expected: Vec<_> = joints
+            .iter()
+            .filter(|j| j.name.starts_with(prefix) && j.name.ends_with("Distal"))
+            .collect();
+        if expected.len() != 5
+            || c.terminal_lengths.len() != 5
+            || expected.iter().any(|j| {
+                c.terminal_lengths
+                    .get(&j.name)
+                    .is_none_or(|v| !v.is_finite() || *v <= 0.0 || *v > 0.1)
+            })
+        {
+            return Err(athlete_error(format!(
+                "{side} hand terminal geometry is incomplete/invalid"
+            )));
+        }
+    }
+    Ok(result)
 }
 
 fn athlete_error(message: impl Into<String>) -> AssetError {

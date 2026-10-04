@@ -1,0 +1,33 @@
+{
+  "captures": [
+    "row-catch-chase",
+    "row-catch-upper",
+    "row-catch-lower",
+    "row-catch-face",
+    "row-catch-left",
+    "row-catch-right",
+    "ski-release-chase",
+    "ski-release-upper",
+    "ski-release-lower",
+    "ski-release-face",
+    "ski-release-left",
+    "ski-release-right",
+    "bike-quarter-chase",
+    "bike-quarter-upper",
+    "bike-quarter-lower",
+    "bike-quarter-face",
+    "bike-quarter-left",
+    "bike-quarter-right"
+  ],
+  "roles": [
+    "athlete-skin",
+    "athlete-fabric",
+    "athlete-shorts",
+    "athlete-footwear",
+    "athlete-hair",
+    "athlete-trim",
+    "athlete-eye",
+    "athlete-face-detail"
+  ],
+  "productionMaterialStateVerified": true
+}

@@ -13,7 +13,8 @@
 use rowplay_core::models::Sport;
 use rowplay_core::replay::bike_equipment as bike;
 use rowplay_core::replay::hand_grip::{
-    ClosureOptions, DigitJoint, GripClosure, GripSurface, HandDigitChain, solve_hand_grip_closure,
+    ClosureOptions, DigitJoint, GripClosure, GripSurface, HandDigitChain, HandFrame,
+    solve_hand_grip_closure, solve_hand_grip_closure_with_frame,
 };
 use rowplay_core::replay::motion_graph::SKI_POLE_OFF_CYCLE;
 use rowplay_core::replay::rig_pose::SportRigPose;
@@ -370,7 +371,11 @@ pub fn collect_hand_chains(athlete: &V4Athlete, side: f64) -> Option<Vec<HandDig
             return None;
         }
         let segment = sub_vec(joints[2].position, joints[1].position);
-        let tip_length = (length_vec(segment) * 0.92).max(0.012);
+        let tip_length = if let Some(calibration) = athlete.calibration_for_hand(side) {
+            *calibration.terminal_lengths.get(&names[2])?
+        } else {
+            (length_vec(segment) * 0.92).max(0.012)
+        };
         chains.push(HandDigitChain {
             digit,
             joints,
@@ -416,7 +421,36 @@ pub fn solve_grip_table(
     options: &ClosureOptions,
     rest_rotation_of: &dyn Fn(&str) -> Option<[f64; 4]>,
 ) -> GripTable {
-    let solved: GripClosure = solve_hand_grip_closure(chains, options);
+    grip_table(
+        chains,
+        options,
+        rest_rotation_of,
+        &solve_hand_grip_closure(chains, options),
+    )
+}
+
+/// Apply the existing closure solver to the modelled athlete's hand frame.
+#[must_use]
+pub fn solve_grip_table_with_frame(
+    chains: &[HandDigitChain],
+    options: &ClosureOptions,
+    rest_rotation_of: &dyn Fn(&str) -> Option<[f64; 4]>,
+    frame: HandFrame,
+) -> GripTable {
+    grip_table(
+        chains,
+        options,
+        rest_rotation_of,
+        &solve_hand_grip_closure_with_frame(chains, options, frame),
+    )
+}
+
+fn grip_table(
+    chains: &[HandDigitChain],
+    options: &ClosureOptions,
+    rest_rotation_of: &dyn Fn(&str) -> Option<[f64; 4]>,
+    solved: &GripClosure,
+) -> GripTable {
     let by_helper: std::collections::HashMap<
         &str,
         &rowplay_core::replay::hand_grip::DigitStagePose,

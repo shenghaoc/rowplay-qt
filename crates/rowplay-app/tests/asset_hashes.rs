@@ -421,11 +421,15 @@ const AUTHORED: &[&str] = &[
     "authored/dressing.json",
     "authored/overcast.hdr",
     "authored/overcast.ktx",
+    "authored/rowplay-athlete-v5.blend",
+    "authored/rowplay-athlete-v5.glb",
+    "authored/rowplay-athlete-v5.contract.json",
     "authored/rowing-dressing.blend",
     "authored/rowing-dressing.glb",
     "authored/rowing-environment.blend",
     "authored/rowing-environment.glb",
     "authored/rowing-shell.glb",
+    "authored/sources/rowplay-human-base-male-v1.4.1.blend",
     "authored/vegetation.json",
     "authored/water-normal.png",
 ];
@@ -433,8 +437,10 @@ const AUTHORED: &[&str] = &[
 /// The authored pack's plain-Git budget (ADR 0011). Blender Phase 3 raised it
 /// from 4 to 6 MiB for the environment's `.blend` source and its outputs,
 /// and Blender Phase 4 to 8 MiB for the dressing's (`docs/blender-audit.md`,
-/// "Phase 3" and "Phase 4").
-const AUTHORED_PACK_BUDGET: u64 = 8 * 1024 * 1024;
+/// "Phase 3" and "Phase 4"). Phase 5.4 adds the exact CC0 snapshot, the
+/// modelled athlete and its outputs: about 6.2 MB, for a 16 MiB pack bound.
+/// The independent complete-athlete triangle ceiling remains 75,000.
+const AUTHORED_PACK_BUDGET: u64 = 16 * 1024 * 1024;
 
 #[test]
 fn authored_assets_match_manifest_and_budgets() {
@@ -834,12 +840,11 @@ fn the_water_tile_matches_the_scene() {
     assert_eq!((u64::from(width), u64::from(height)), (size, size));
 }
 
-/// ADR 0002: the common assets authored here are MIT, whatever the licence of
-/// the repository or of the scripts that generate them. Every file in the
-/// authored pack needs its own MIT row in ASSET_PROVENANCE.md, and no row may
-/// name a file the pack does not have.
+/// ADR 0002: original common assets are MIT. ADR 0018 permits exactly the
+/// reviewed CC0 base and three CC0 + MIT derivatives. Every file needs its
+/// approved row, and no row may name a file the pack does not have.
 #[test]
-fn every_authored_asset_has_an_mit_provenance_row() {
+fn every_authored_asset_has_its_approved_provenance_row() {
     let provenance = std::fs::read_to_string(assets_dir().join("../../ASSET_PROVENANCE.md"))
         .expect("read ASSET_PROVENANCE.md");
     let mut rows = std::collections::BTreeMap::new();
@@ -861,7 +866,17 @@ fn every_authored_asset_has_an_mit_provenance_row() {
         let licence = rows
             .get(*rel)
             .unwrap_or_else(|| panic!("assets/replay/{rel} has no row in ASSET_PROVENANCE.md"));
-        assert_eq!(licence, "MIT", "assets/replay/{rel} must be MIT (ADR 0002)");
+        let expected = match *rel {
+            "authored/sources/rowplay-human-base-male-v1.4.1.blend" => "CC0-1.0",
+            "authored/rowplay-athlete-v5.blend"
+            | "authored/rowplay-athlete-v5.glb"
+            | "authored/rowplay-athlete-v5.contract.json" => "MIT AND CC0-1.0",
+            _ => "MIT",
+        };
+        assert_eq!(
+            licence, expected,
+            "assets/replay/{rel}: ADR 0002/0018 licence"
+        );
     }
     let listed: Vec<_> = rows
         .keys()

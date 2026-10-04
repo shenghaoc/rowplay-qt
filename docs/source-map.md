@@ -53,6 +53,41 @@ historical inputs after switching. Phase 5.4 is authorized, not complete;
 Phase 5.0's corrected reference and equipment stay fixed, with whole-system
 fit deferred to Phase 6 and water effects to Phase 7.
 
+## Blender Phase 5.4 candidate runtime and reach blocker (2026-09-27)
+
+On the draft rebuild branch, `assets/replay/authored/rowplay-athlete-v5.blend`
+is the sole modelled source. The raw reviewed CC0 snapshot is preserved under
+`authored/sources/`; MANIFEST.json and ASSET_PROVENANCE.md pin source/output
+bytes and distinguish CC0 anatomy from MIT modifications. The governance
+commit is an ancestor of the first asset commit. No generator of the human
+geometry is retained.
+
+`export_athlete.py` consumes the saved source under Blender 5.2.2, validates
+19 semantic and 32 helper joints, normalized four-influence skinning,
+inverse binds, topology, eight material roles and the 75k triangle ceiling,
+and exports 48,632 triangles. The immutable V4 clips are basis-converted
+against actual inverse binds; key times, world rotation deltas, motion graph
+and the 225-float frame survive. New hand frames and terminal lengths come
+from the source contract; legacy calibration remains for V4 parity tests.
+Final flesh/closure calibration is pending.
+
+`build.rs` consumes committed V5 outputs and converts only V5 with Balsam.
+It binds eight material roles statically to Theme colours and saved PBR
+values. V4 GLB/contract and historical evidence remain unchanged audit
+references; neither V4 asset is packaged/converted on this branch. No
+RuntimeLoader, runtime discovery, download, Blender build dependency or
+additional per-frame bridge crossing is introduced. Historical `V4Athlete`
+and schema names remain compatibility identifiers, not asset identity.
+
+The [candidate report](blender-phase5-athlete-rebuild.md) records native
+deformation regressions and a conservative fixed-posture BikeErg reach
+blocker: even arbitrary descendant rotations leave quarter-cycle palm skin
+at least 18.8 mm from the actual hood mesh. The current skin gap is 83.2 mm.
+The candidate is **not accepted**; Layer C and final contact calibration
+have not started. Equipment, the corrected seat/pelvis and replay targets
+remain fixed. Posture or fit changes require a separate owner decision.
+Phase 5 remains open; Phases 6 and 7 remain unstarted.
+
 ## Blender Phase 5.0–5.1 contact audit (2026-09-27)
 
 Started from live `main` `2b13e718f4102add40b461d8d581fd5a87cd2da5`;

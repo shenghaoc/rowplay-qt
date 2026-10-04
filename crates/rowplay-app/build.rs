@@ -234,11 +234,11 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
     )
     .expect("write replay_assets_meta.json");
 
-    // The V4 athlete's skin, rest hierarchy and clips, cross-checked against
-    // the vendored contract, embedded as JSON (~100 KB) so the app evaluates
-    // the clips in Rust without shipping the 4.6 MB GLB (ADR 0008).
-    let athlete_glb = assets.join("rowplay-athlete-v4.glb");
-    let contract = assets.join("rowplay-athlete-v4.contract.json");
+    // The modelled V5 athlete keeps the semantic V4 names/frame contract.
+    // Builds consume committed outputs; Blender is an authoring dependency.
+    // Historical V4 is neither converted nor packaged.
+    let athlete_glb = assets.join("authored/rowplay-athlete-v5.glb");
+    let contract = assets.join("authored/rowplay-athlete-v5.contract.json");
     println!("cargo::rerun-if-changed={}", athlete_glb.display());
     println!("cargo::rerun-if-changed={}", contract.display());
     let athlete_bytes = std::fs::read(&athlete_glb)
@@ -246,7 +246,7 @@ fn build_replay_asset_meta(manifest_dir: &Path, out_dir: &Path) {
     let contract_json = std::fs::read_to_string(&contract)
         .unwrap_or_else(|error| panic!("read {}: {error}", contract.display()));
     let athlete = rowplay_viewmodel::replay::athlete::read_v4(&athlete_bytes, &contract_json)
-        .unwrap_or_else(|error| panic!("vendored V4 athlete pack fails its contract: {error}"));
+        .unwrap_or_else(|error| panic!("authored V5 athlete pack fails its contract: {error}"));
     std::fs::write(
         out_dir.join("replay_athlete_v4.json"),
         serde_json::to_string(&athlete).expect("serialize athlete"),
@@ -330,8 +330,8 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
         ),
         ("rowplay-rigs-v3.glb", "Rowplay_rigs_v3.qml", "rigs", "Rigs"),
         (
-            "rowplay-athlete-v4.glb",
-            "Rowplay_athlete_v4.qml",
+            "authored/rowplay-athlete-v5.glb",
+            "Rowplay_athlete_v5.qml",
             "athlete",
             "Athlete",
         ),
@@ -445,6 +445,9 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
             generated.is_file(),
             "balsam produced no {component} for {source}"
         );
+        if exported == "Athlete" {
+            bind_athlete_materials(&generated);
+        }
         writeln!(qmldir, "{exported} 1.0 {subdir}/{component}").expect("format qmldir");
         qrc_entries.push(format!(
             "        <file alias=\"RowPlay/ReplayAssets/{subdir}/{component}\">replay-balsam/{subdir}/{component}</file>"
@@ -528,6 +531,67 @@ fn build_replay_balsam(manifest_dir: &Path, out_dir: &Path, rcc: &Path) {
     )
     .expect("write rowplay_replay.qrc");
     rcc_binary(rcc, &qrc, &out_dir.join("rowplay_replay.rcc"));
+}
+
+/// Bind the eight authored primitive roles declaratively. PBR values and
+/// albedo stay in the reviewed asset; the scene supplies its palette and
+/// ghost opacity. No additional runtime object discovery is needed.
+fn bind_athlete_materials(path: &Path) {
+    let mut qml = std::fs::read_to_string(path).expect("read generated athlete");
+    let mut properties = String::from("    property bool ghost: false\n");
+    for role in rowplay_viewmodel::replay::athlete::ATHLETE_MATERIAL_ROLES {
+        let suffix = role.strip_prefix("athlete-").expect("athlete role");
+        let property = if suffix == "face-detail" {
+            "faceDetail"
+        } else {
+            suffix
+        };
+        let material = format!("{}_material", role.replace('-', "_"));
+        let marker = format!("    PrincipledMaterial {{\n        id: {material}\n");
+        let start = qml
+            .find(&marker)
+            .unwrap_or_else(|| panic!("missing material {role}"));
+        assert_eq!(qml.matches(&marker).count(), 1, "duplicate material {role}");
+        let end = start + qml[start..].find("    }\n").expect("material block end") + 6;
+        let original = &qml[start..end];
+        assert!(original.contains(&format!("objectName: \"{role}\"")));
+        assert!(
+            !original.contains("Texture"),
+            "athlete has an unapproved map"
+        );
+        let mut block = original
+            .lines()
+            .map(|line| {
+                if line.trim_start().starts_with("baseColor:") {
+                    format!("        baseColor: node.{property}Color")
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        block.push('\n');
+        if matches!(suffix, "shorts" | "trim") {
+            block = block.replace(
+                "alphaMode: PrincipledMaterial.Opaque",
+                "alphaMode: node.ghost ? PrincipledMaterial.Blend : PrincipledMaterial.Opaque",
+            );
+            block = block.replace(
+                "        objectName:",
+                "        opacity: node.ghost ? 0.45 : 1.0\n        objectName:",
+            );
+        }
+        qml.replace_range(start..end, &block);
+        writeln!(properties, "    required property color {property}Color\n    readonly property Material {property}Material: {material}").expect("format material property");
+    }
+    assert_eq!(qml.matches("PrincipledMaterial {").count(), 8);
+    assert_eq!(qml.matches("    id: node\n").count(), 1);
+    qml = qml.replacen("    id: node\n", &format!("    id: node\n{properties}"), 1);
+    std::fs::write(
+        path,
+        format!("// SPDX-License-Identifier: GPL-3.0-or-later\n{qml}"),
+    )
+    .expect("write athlete material bindings");
 }
 
 /// Blender Phase 3: the rowing environment, exported from its reviewed source

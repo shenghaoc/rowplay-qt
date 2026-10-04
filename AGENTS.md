@@ -534,6 +534,9 @@ Concept2 token. Cache failures never silently fall back to demo data.
 - The common assets under `assets/replay/authored/` are MIT (ADR 0002)
   because the owner holds their copyright and their provenance is clean, not
   because a script generated them.
+  - ADR 0018's exact athlete exception preserves its CC0 anatomical base
+    and MIT RowPlay modifications as `MIT AND CC0-1.0`; the unchanged
+    approved source snapshot itself is `CC0-1.0`. No other source is authorized.
   - Each gets an MIT row in `ASSET_PROVENANCE.md`, which the asset tests
     check.
   - Record there every input taken from elsewhere, with its source and

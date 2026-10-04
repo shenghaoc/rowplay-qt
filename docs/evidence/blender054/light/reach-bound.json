@@ -1,0 +1,94 @@
+[
+  {
+    "name": "bike-top-chase",
+    "side": "Left",
+    "shoulder": [
+      -0.20836448669433594,
+      1.4375659227371216,
+      0.03615282913836052
+    ],
+    "conservative_palm_skin_radius_m": 0.6894374321554246,
+    "nearest_actual_hood_m": 0.6914898619967872,
+    "minimum_possible_gap_m": 0.0020524298413625575,
+    "chains_m": {
+      "v4LeftForearm": 0.28814175724983837,
+      "v4LeftHand": 0.5467018485069361,
+      "v4LeftFingers": 0.6240644041096206,
+      "v4LeftIndexProximal": 0.6758210511547933,
+      "v4LeftMiddleProximal": 0.6670136403976865,
+      "v4LeftPinkyProximal": 0.6710047818026661,
+      "v4LeftRingProximal": 0.6647440975605367,
+      "v4LeftThumb": 0.5870425248185849,
+      "v4LeftThumbIntermediate": 0.641575641338067
+    }
+  },
+  {
+    "name": "bike-top-chase",
+    "side": "Right",
+    "shoulder": [
+      0.23177146911621094,
+      1.4292584657669067,
+      0.02730672077414374
+    ],
+    "conservative_palm_skin_radius_m": 0.6893316902986497,
+    "nearest_actual_hood_m": 0.6904261026448694,
+    "minimum_possible_gap_m": 0.0010944123462196531,
+    "chains_m": {
+      "v4RightForearm": 0.2881417870521685,
+      "v4RightHand": 0.5467018485069444,
+      "v4RightFingers": 0.6240644204551249,
+      "v4RightIndexProximal": 0.6758240827464523,
+      "v4RightMiddleProximal": 0.6669439023677945,
+      "v4RightPinkyProximal": 0.6710050959443934,
+      "v4RightRingProximal": 0.664731782209558,
+      "v4RightThumb": 0.587042547157381,
+      "v4RightThumbIntermediate": 0.6415756413250939
+    }
+  },
+  {
+    "name": "bike-quarter-chase",
+    "side": "Left",
+    "shoulder": [
+      -0.22017288208007812,
+      1.4438880681991577,
+      0.016342775980256935
+    ],
+    "conservative_palm_skin_radius_m": 0.6894374321554246,
+    "nearest_actual_hood_m": 0.7082586637506265,
+    "minimum_possible_gap_m": 0.01882123159520188,
+    "chains_m": {
+      "v4LeftForearm": 0.28814175724983837,
+      "v4LeftHand": 0.5467018485069361,
+      "v4LeftFingers": 0.6240644041096206,
+      "v4LeftIndexProximal": 0.6758210511547933,
+      "v4LeftMiddleProximal": 0.6670136403976865,
+      "v4LeftPinkyProximal": 0.6710047818026661,
+      "v4LeftRingProximal": 0.6647440975605367,
+      "v4LeftThumb": 0.5870425248185849,
+      "v4LeftThumbIntermediate": 0.641575641338067
+    }
+  },
+  {
+    "name": "bike-quarter-chase",
+    "side": "Right",
+    "shoulder": [
+      0.22017288208007812,
+      1.4438880681991577,
+      0.016342788679531345
+    ],
+    "conservative_palm_skin_radius_m": 0.6893316902986497,
+    "nearest_actual_hood_m": 0.7082586563843392,
+    "minimum_possible_gap_m": 0.018926966085689445,
+    "chains_m": {
+      "v4RightForearm": 0.2881417870521685,
+      "v4RightHand": 0.5467018485069444,
+      "v4RightFingers": 0.6240644204551249,
+      "v4RightIndexProximal": 0.6758240827464523,
+      "v4RightMiddleProximal": 0.6669439023677945,
+      "v4RightPinkyProximal": 0.6710050959443934,
+      "v4RightRingProximal": 0.664731782209558,
+      "v4RightThumb": 0.587042547157381,
+      "v4RightThumbIntermediate": 0.6415756413250939
+    }
+  }
+]

@@ -16,6 +16,11 @@ triangle target and 75k hard ceiling. Phase 5.4 is authorized, not complete;
 V4 remains the production baseline until the replacement is integrated and
 accepted. The 7.8 m shell
 contract, chase camera and loop remain the baseline too.
+The draft V5 rebuild now runs in Qt but is **blocked at Layer B acceptance**:
+native deformation needs refinement and anatomical palm reach cannot meet
+the fixed BikeErg posture/hood geometry. See the
+[measured blocker and options](blender-phase5-athlete-rebuild.md).
+Layer C has not started; this is not an accepted athlete freeze.
 See `docs/blender-audit.md` and `tools/blender/README.md` for completed work.
 Missing SkiErg/BikeErg venue furniture remains tracked in #121. Do not claim
 macOS verification from Linux captures.
@@ -26,7 +31,7 @@ macOS verification from Linux captures.
 | [2](../.kiro/specs/blender-02-shell-oars/tasks.md) | Shell and oars | Complete |
 | [3](../.kiro/specs/blender-03-environment-water/tasks.md) | Environment and water | Complete |
 | [4](../.kiro/specs/blender-04-course-dressing/tasks.md) | Course dressing and venue furniture | Complete |
-| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0–5.3 complete; Route 3A and 60k/75k budget accepted; 5.4 authorized, open |
+| [5](../.kiro/specs/blender-05-athlete-contact/tasks.md) | Seat/pelvis correction + contact-truth audit + athlete audit/refinement/replacement | 5.0–5.3 complete; 5.4 candidate built, blocked at native acceptance; no final contact acceptance |
 | [6](../.kiro/specs/blender-06-hero-fit/tasks.md) | Hero-fit integration | Planned |
 | [7](../.kiro/specs/blender-07-water-polish/tasks.md) | Wake, foam, spray and final water polish | Planned |
 

@@ -1,0 +1,80 @@
+[
+  {
+    "name": "row-catch-left-mask",
+    "hand_roi": [
+      489,
+      315,
+      915,
+      731
+    ],
+    "native_pixels": 145821,
+    "cpu_pixels": 146412,
+    "iou": 0.995908917058245,
+    "alpha_min": 255
+  },
+  {
+    "name": "row-catch-right-mask",
+    "hand_roi": [
+      281,
+      315,
+      708,
+      731
+    ],
+    "native_pixels": 145602,
+    "cpu_pixels": 146123,
+    "iou": 0.9964208480468643,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-release-left-mask",
+    "hand_roi": [
+      420,
+      0,
+      696,
+      425
+    ],
+    "native_pixels": 77520,
+    "cpu_pixels": 78351,
+    "iou": 0.9883026762252213,
+    "alpha_min": 255
+  },
+  {
+    "name": "ski-release-right-mask",
+    "hand_roi": [
+      507,
+      0,
+      783,
+      426
+    ],
+    "native_pixels": 76795,
+    "cpu_pixels": 77649,
+    "iou": 0.9886432406680143,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-quarter-left-mask",
+    "hand_roi": [
+      458,
+      342,
+      705,
+      751
+    ],
+    "native_pixels": 92359,
+    "cpu_pixels": 92710,
+    "iou": 0.9961709379584088,
+    "alpha_min": 255
+  },
+  {
+    "name": "bike-quarter-right-mask",
+    "hand_roi": [
+      495,
+      342,
+      743,
+      751
+    ],
+    "native_pixels": 96597,
+    "cpu_pixels": 96773,
+    "iou": 0.9981813109028345,
+    "alpha_min": 255
+  }
+]
