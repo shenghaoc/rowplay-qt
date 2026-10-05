@@ -114,7 +114,11 @@ border: the band is as thick as those border pixels, and the few deeper ones sta
 report dozens of missing changes. The `native` stage therefore writes a `provenance.json` (role, commit, clean or not) beside
 every capture directory it takes, and `visual` checks the *baseline captures'* provenance against the rules' `baseline_sha`,
 and the rules' against this run's baseline, before it applies one rule. A mismatch fails once, by name (`baseline mismatch`);
-missing provenance fails as an evidence error saying what to add. Neither needs a Git worktree, so
+missing baseline provenance fails as an evidence error saying what to add. Missing or unreadable branch provenance fails
+as a named evidence check. The branch captures must carry role `branch` and explicitly record `dirty: false`; their full
+recorded commit is saved in the visual check and manifest, including a capture-only run
+without `guards`. It identifies the captured revision, which need not be the current checkout. No rule is applied when
+the branch evidence cannot prove its role and cleanliness. Neither side needs a Git worktree, so
 `acceptance.py visual --baseline-captures DIR --branch-captures DIR` classifies copied evidence on a machine with one
 checkout (`--main-captures` is the old name). `derive_rules.py` takes the commit from the `before` directory's provenance
 (and refuses a dirty tree or a disagreeing `--baseline-sha`); `--stamp-baseline SHA` records it on a set derived earlier without
