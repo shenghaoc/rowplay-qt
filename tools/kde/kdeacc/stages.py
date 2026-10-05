@@ -393,7 +393,8 @@ def _build_package(ctx, label, tree, log_dir):
     dist = Path(tree) / "dist"
     shutil.rmtree(dist, ignore_errors=True)
     log = log_dir / f"{label}-build.log"
-    done = ctx.runner.run([str(TOOLS / "ubuntu-package.sh"), str(tree), str(target), str(log)], tag=f"package-{label}", timeout=3600)
+    done = ctx.runner.run([str(TOOLS / "ubuntu-package.sh"), str(tree), str(target), str(log), str(ctx.qt_dir.resolve())],
+                          tag=f"package-{label}", timeout=3600)
     text = log.read_text(errors="replace") if log.exists() else ""
     images = sorted(dist.glob("*.AppImage"))
     if not done.ok or not images:
@@ -520,6 +521,14 @@ def alive_pids(pids):
     for pid in sorted(pids):
         try:
             os.kill(pid, 0)
+            # A child may have exited before its parent reaps it. A zombie cannot run or be
+            # signalled again, and must not make a successful teardown look like a survivor.
+            try:
+                state = Path(f"/proc/{pid}/stat").read_text().rpartition(") ")[2].split()[0]
+                if state == "Z":
+                    continue
+            except (OSError, IndexError):
+                pass
             out.append(pid)
         except ProcessLookupError:
             pass
@@ -531,7 +540,8 @@ def alive_pids(pids):
 def end_owned_processes(ctx, grace=3.0):
     """End the processes this run launched (ctx.launched_pids), and only those: TERM, then KILL after `grace` seconds.
 
-    Returns the PIDs that had to be ended. Never matches by name: another application built the same way shares
+    Waits after KILL too. Returns the PIDs that needed cleanup; the caller still checks for survivors.
+    Never matches by name: another application built the same way shares
     the generic AppImage wrapper's name."""
     mine = alive_pids(ctx.launched_pids)
     for pid in mine:
@@ -539,14 +549,19 @@ def end_owned_processes(ctx, grace=3.0):
             os.kill(pid, signal.SIGTERM)
         except (ProcessLookupError, PermissionError):
             pass
-    deadline = time.time() + grace
-    while alive_pids(mine) and time.time() < deadline:
-        time.sleep(0.1)
+
+    def wait_for_exit():
+        deadline = time.monotonic() + grace
+        while alive_pids(mine) and time.monotonic() < deadline:
+            time.sleep(0.1)
+
+    wait_for_exit()
     for pid in alive_pids(mine):
         try:
             os.kill(pid, signal.SIGKILL)
         except (ProcessLookupError, PermissionError):
             pass
+    wait_for_exit()  # SIGKILL is asynchronous too: do not report leftovers before it takes effect.
     return mine
 
 
@@ -644,11 +659,10 @@ def stage_identity(ctx):
             time.sleep(3)
             # Only the PIDs KWin reported for the windows this run launched: another AppImage that
             # shares the generic `AppRun.wrapped` name is never touched.
-            left = alive_pids(launched)
-            for pid in left:
-                ctx.runner.run(["kill", str(pid)], env=host_env())
+            left = end_owned_processes(ctx)
+            survivors = alive_pids(launched)
             st.expect("no RowPlay process this run launched remains after the windows close", not left, "none",
-                      f"processes {left} were still running (ended: they are the ones this run launched)")
+                      f"processes {left} were still running (cleanup attempted only for this run's PIDs; still running: {survivors})")
         st.add("Task Manager pin / unpin", Status.MANUAL_OPTIONAL,
                f"not automated: the panel is the user's configuration. Currently pinned: {pinned(app_id)}. Visual confirmation stays an optional manual smoke.",
                {"currently_pinned": pinned(app_id)})
