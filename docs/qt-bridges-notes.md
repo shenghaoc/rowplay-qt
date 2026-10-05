@@ -949,12 +949,15 @@ Checked in native Metal captures and in the tools' output:
   the items from the widest yourself. `RowLayout` has no such property;
   assigning it fails the load ("Cannot assign to non-existent property"),
   which leaves the app blocking with no window (note 16).
-- A Qt Quick Controls icon asks the platform's icon engine (SF Symbols on
-  macOS, Segoe glyphs on Windows) only while its `source` is empty
-  (`QQuickIconImage::updateIcon`, Qt 6.11). A nonempty source wins over
-  `icon.name`: `Glyphs.iconSource` therefore supplies the SVG directly on
-  Linux, while macOS and Windows leave the source empty. The AppImage
-  deploys Qt Svg's image plugin so the Linux command icons render (ADR 0015).
+- A Qt Quick Controls icon first loads an icon-theme file for `icon.name`,
+  even with a nonempty `icon.source`. If the theme has no matching file and
+  the source is empty, it asks the platform icon engine (SF Symbols on
+  macOS, Segoe glyphs on Windows); otherwise it uses the source
+  ([`QQuickIconImage::load`, Qt 6.11.2](https://github.com/qt/qtdeclarative/blob/v6.11.2/src/quickcontrolsimpl/qquickiconimage.cpp)).
+  `Glyphs.iconSource` supplies Linux's SVG fallback when the theme lacks
+  the standard action icon; macOS and Windows keep the source empty for
+  their platform engines. The AppImage deploys Qt Svg's image plugin for
+  those SVGs. ADR 0018 corrects ADR 0015's earlier precedence claim.
 - Popups (Dialog, Drawer, Menu) live in the window's overlay, not under the
   shell's `Item`, so a grab of that item never shows them; grab the popup's
   own item (`contentItem.parent`).
