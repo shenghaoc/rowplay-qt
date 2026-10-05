@@ -26,6 +26,9 @@ tools/kde/acceptance.py all --allow-session-changes \
     --output artifacts/kde/acceptance-$(date +%Y%m%d-%H%M%S)
 ```
 
+`--qt-dir` selects the Qt installation for probes, gates and both package builds. The Ubuntu wrapper
+receives that resolved directory explicitly and mounts it read-only; the baseline and branch use the same Qt.
+
 Run `all` from a **clean** branch worktree with a clean checkout of the **acceptance baseline** beside it
 (`--baseline-tree`, formerly `--main-tree`; default: a worktree already at that commit); `guards` fails a
 dirty tree. The baseline is a *commit*, `046c2e3` (post-#144 `main`, before any Plasma change), not "whatever `main` is today": once the
@@ -83,6 +86,9 @@ Back and sidebar chords (read from the shortcuts, F5/F9/Alt+Left on Linux and Wi
 Space, Left, Right, `[`, `]`, and a real Ctrl+Q ending the walk) through the same key
 path, on the same release code (the release quick gate), and `qml_runtime_gate.rs` asserts every one.
 
+If fewer than three editable, focusable text fields are exposed, that requirement fails and the date checks
+are skipped. The independent Replay, Play and Pause checks still run, without a second generic exception.
+
 ## Restoring the desktop, and interruption
 
 `appearance` and `identity` change the live session, so each is a transaction (`kdeacc/plasma.py`): snapshot,
@@ -107,6 +113,11 @@ the appearance transaction. The transaction restores and verifies the desktop fi
 recorded in the manifest and summary; **no later stage runs** (`checks` in particular); the processes this run launched are ended by PID
 (never by the generic AppImage wrapper's name); the leftovers check and the manifest are written; and the command exits `128 + signal`
 (130, 143, 129), the manifest's `overall` being `INTERRUPTED`.
+
+Identity teardown uses the same owned-PID cleanup: TERM, a bounded grace period, then KILL and a wait for exit.
+Requiring forced cleanup still fails the clean-shutdown check; a zombie awaiting reaping is not a running leftover.
+Zombie state comes from Linux's `/proc`, or `ps` on macOS; neither path reaps another caller's child.
+The fake Ubuntu fixture supplies its own release record and never reads the validation host's distribution file.
 
 **Gate variables.** A run the harness calls a gate owns every variable that changes what the walk does (`gates.GATE_VARS`: profile, smoke and
 exit-after-frames hooks, scale and font, renderer, capture directories, forced scheme and contrast): it sets the value it means or removes the

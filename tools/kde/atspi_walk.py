@@ -79,25 +79,26 @@ def main():
         texts = [n for n in walk(app) if n.getRoleName() == "text" and n.getState().contains(__import__("pyatspi").STATE_EDITABLE)
                  and n.getState().contains(__import__("pyatspi").STATE_FOCUSABLE)]
         step("the search field and both date fields are exposed as editable text", len(texts) >= 3, f"{len(texts)} editable text fields")
-        search, date_from, date_to = texts[0], texts[1], texts[2]
 
         def focus(node):
             node.queryComponent().grabFocus()
             time.sleep(0.5)
 
-        before = count_label(app)
-        focus(date_from)
-        date_from.queryEditableText().setTextContents("2026-05-15")
-        time.sleep(0.3)
-        focus(date_to)   # focus leaves From: editingFinished -> Library.setDateRange -> model reset
-        after = count_label(app)
-        step("leaving From with a date resets the list without aborting", before and after and before != after, f"{before!r} -> {after!r}")
-        focus(search)    # focus leaves To: editingFinished again
-        date_from.queryEditableText().setTextContents("")
-        focus(date_to)
-        focus(search)
-        restored = count_label(app)
-        step("clearing the date and leaving the field restores the list", restored == before, f"{restored!r} (was {before!r})")
+        if len(texts) >= 3:
+            search, date_from, date_to = texts[:3]
+            before = count_label(app)
+            focus(date_from)
+            date_from.queryEditableText().setTextContents("2026-05-15")
+            time.sleep(0.3)
+            focus(date_to)   # focus leaves From: editingFinished -> Library.setDateRange -> model reset
+            after = count_label(app)
+            step("leaving From with a date resets the list without aborting", before and after and before != after, f"{before!r} -> {after!r}")
+            focus(search)    # focus leaves To: editingFinished again
+            date_from.queryEditableText().setTextContents("")
+            focus(date_to)
+            focus(search)
+            restored = count_label(app)
+            step("clearing the date and leaving the field restores the list", restored == before, f"{restored!r} (was {before!r})")
 
         replay = find(app, "button", "Replay")
         step("the workout's Replay button is exposed", replay is not None)
