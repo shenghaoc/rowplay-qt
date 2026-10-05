@@ -312,9 +312,29 @@ def stage_visual(ctx):
         st.failed("the visual rules were not applied", "they describe a change made on the acceptance baseline, and these captures are not "
                   "shown to be its captures: every result would be about the wrong pair")
         return st
-    branch_record = provenance.read(after)
-    if branch_record and branch_record.get("dirty"):
-        st.failed("the branch captures come from a clean tree", "the branch tree had uncommitted changes when the captures were taken")
+    try:
+        branch_record = provenance.read(after)
+    except (provenance.EvidenceError, OSError, UnicodeError) as exc:
+        st.failed("the branch captures carry readable provenance", str(exc))
+        return st
+    if branch_record is None:
+        st.failed("the branch captures carry branch provenance",
+                  f"the branch captures in {after} carry no {provenance.PROVENANCE_FILE}; the native stage writes one naming their commit")
+        return st
+    branch_role = branch_record.get("role") == "branch"
+    st.expect("the branch captures carry branch provenance", branch_role,
+              f"branch captured at {branch_record['commit']}",
+              f"the directory's provenance says role {branch_record.get('role')!r}, not 'branch'",
+              commit=branch_record["commit"], role=branch_record.get("role"))
+    if not branch_role:
+        return st
+    clean = branch_record.get("dirty") is False
+    st.expect("the branch captures come from a clean tree", clean,
+              f"branch captured at {branch_record['commit']}, clean",
+              "the branch tree had uncommitted changes when the captures were taken" if branch_record.get("dirty") is True else
+              "the branch provenance must explicitly record `dirty`: false to prove the tree was clean")
+    if not clean:
+        return st
     results = visual.compare_dirs(before, after, rules, cd, profile=profile)
     (out / "results.json").write_text(json.dumps([r.__dict__ for r in results], indent=1) + "\n")
     (out / "table.md").write_text(visual_table(results))
