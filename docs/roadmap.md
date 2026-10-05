@@ -1486,7 +1486,7 @@ and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
   native harness with a self-contained evidence directory; its unit tests run in CI.
   It compares with an acceptance baseline that is a commit (`046c2e3`, proved by
   SHA, a detached worktree is fine), not the moving `main`. The run of
-  2026-09-30, from a clean worktree, passed every stage: the debug
+  2026-09-30 on the monolith, from a clean worktree, passed every stage: the debug
   quick, release quick and full native gates (115.5 s, 70 captures); a spatial
   visual contract (40 of 70 captures exceed the generic noise bound, every changed
   pixel inside a recorded region, 0 unexpected); the exact AppImage through a
@@ -1496,6 +1496,12 @@ and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
   post-#144 `main`, 69,597,688 on the branch, 2,319 files each, only the binary
   differing, by 20,552 bytes; AppImage totals vary by 4,096 bytes between builds
   of one tree; no KDE stack in either).
+  These native results are reused historical evidence. Later transparent-accent,
+  keyboard/tick gate, environment, process-cleanup, configured-Qt and provenance
+  fixes are covered separately; the native stages and original native capture
+  comparison were not rerun during the 2026-10-05 cloud review fixes. The saved
+  native input pair and contemporaneous run provenance were unavailable there.
+  Generic Xvfb validation is not evidence for the changed native harness.
 - What running it found: a locked screen starves the gate (the harness inhibits
   it); large text turns the sidebar into a modal drawer, which the walk's date-range
   step had never met (it now opens it); shortcuts fire only in an active window,

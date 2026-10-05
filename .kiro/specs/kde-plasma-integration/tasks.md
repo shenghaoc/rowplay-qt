@@ -2,6 +2,15 @@
 
 Ticked in the pull request that delivers them (`kde/plasma-integration`).
 
+Evidence status (2026-10-05): T1, T2, T3.3, T6 and T7 below retain historical
+native measurements from the monolith. They do not attest a native rerun of the
+hardened review stack. The changed probe diagnostics, owned-process teardown,
+AT-SPI field guard, configured Qt packaging path and visual provenance checks
+have deterministic regressions. Their live native/package flows have not been
+rerun here. The historical native capture pair and its original run records are
+required to reclassify it with the stricter provenance checks; they were not
+available on the cloud computer. Xvfb is generic evidence only.
+
 - [x] T1 Baseline on Fedora 44 Plasma Wayland, `main` unchanged (R1).
   - [x] T1.1 Environment recorded: Fedora 44, kernel 6.19.10, Wayland,
     Plasma, KWin 6.6.4, KF 6.25.0, host Qt 6.10.2, Mesa 26.2.3, Intel UHD
@@ -58,7 +67,8 @@ Ticked in the pull request that delivers them (`kde/plasma-integration`).
   services, native gates, the spatial visual contract with derived rules and a
   measured native-hardware noise profile, generic Xvfb/Fusion, the Ubuntu
   24.04 package comparison, the exact AppImage (KWin, AT-SPI), and appearance
-  changes with verified restoration; 134 unit tests, run in CI.
+  changes with verified restoration; unit tests run in CI (the historical count
+  is superseded by the review-fix validation report).
   - [x] T9.1 Session-changing stages are opt-in and transactional (snapshot,
     change, restore exact bytes, verify); SIGINT, SIGTERM and SIGHUP restore
     too, and then the run stops: the restoration evidence is recorded, no later
