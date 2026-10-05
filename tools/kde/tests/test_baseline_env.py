@@ -315,13 +315,13 @@ class IconThemeEvidence(unittest.TestCase):
                 "themeSystemAccentAvailable": True, "fusion": True, "buttonBackground": "ButtonPanel_QMLTYPE_4(0x1)", "contrast": 0,
                 "contrastName": "NoPreference"}
 
-    def run_stage(self, icon):
+    def run_stage(self, icon, chord=None):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
 
         class Runner:
             def run(self, argv, **kw):
-                return shell.Done(argv, 0, "CHORD summary: 18 of 18 correct\n", "", 0.0)
+                return chord or shell.Done(argv, 0, "CHORD summary: 18 of 18 correct\n", "", 0.0)
 
         ctx = stages.Ctx(REPO, None, Path("/x"), Path(tmp.name), Runner(), None)
         ctx.probe = lambda *a, **k: (self.info(icon), shell.Done([], 0, "", "", 0.0))
@@ -347,6 +347,35 @@ class IconThemeEvidence(unittest.TestCase):
     def test_evidence_function(self):
         self.assertEqual(qtprobe.icon_theme_evidence({"iconTheme": "breeze"})[0], True)
         self.assertEqual(qtprobe.icon_theme_evidence({})[0], False)
+
+    def chord_check(self, done):
+        return next(check for check in self.run_stage("breeze", done).checks if "chord parser" in check.name)
+
+    def test_chord_early_exit_preserves_exit_status_and_captured_output(self):
+        check = self.chord_check(shell.Done([], 2, "", "qml: import failed before probe startup\n", 0.0))
+        self.assertEqual(check.status, Status.FAIL)
+        self.assertIn("no summary line", check.detail)
+        self.assertIn("exit 2", check.detail)
+        self.assertIn("import failed before probe startup", check.detail)
+        self.assertEqual(check.data, {"exit_code": 2, "timed_out": False})
+
+    def test_chord_parser_failures_keep_the_existing_diagnostic(self):
+        check = self.chord_check(shell.Done([], 1, "qml: CHORD FAIL Meta+R\nCHORD summary: 17 of 18 correct\n", "", 0.0))
+        self.assertEqual(check.status, Status.FAIL)
+        self.assertEqual(check.detail, "the chord parser is wrong for: CHORD FAIL Meta+R")
+
+    def test_chord_summary_cannot_hide_a_failed_or_timed_out_process(self):
+        for rc, timed_out in ((2, False), (124, True), (0, True)):
+            with self.subTest(rc=rc, timed_out=timed_out):
+                check = self.chord_check(shell.Done([], rc, "CHORD summary: 18 of 18 correct\n", "shutdown error", 0.0, timed_out))
+                self.assertEqual(check.status, Status.FAIL)
+                self.assertIn(f"exit {rc}", check.detail)
+                self.assertIn("shutdown error", check.detail)
+
+    def test_chord_complete_success_remains_a_pass(self):
+        check = self.chord_check(shell.Done([], 0, "CHORD summary: 18 of 18 correct\n", "", 0.0))
+        self.assertEqual(check.status, Status.PASS)
+        self.assertEqual(check.detail, "CHORD summary: 18 of 18 correct")
 
 
 if __name__ == "__main__":

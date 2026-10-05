@@ -107,9 +107,12 @@ def stage_probe(ctx):
                             env=bundled_qt_env(ctx.qt_dir, {"QT_QPA_PLATFORM": "offscreen", "QT_FORCE_STDERR_LOGGING": "1"}),
                             tag="chord-test", timeout=60)
     summary = re.search(r"CHORD summary: (\d+) of (\d+) correct", chords.text)
+    failures = [line.split("qml: ")[-1] for line in chords.text.splitlines() if "CHORD FAIL" in line]
+    detail = ("the chord parser is wrong for: " + "; ".join(failures) if failures
+              else f"{summary.group(0) if summary else 'no summary line'} (exit {chords.rc}, timed_out={chords.timed_out}): {chords.text[-250:]}")
     st.expect("the gate's chord parser reads every platform's shortcut strings (Linux, Windows, macOS glyphs)",
-              bool(summary) and summary.group(1) == summary.group(2), summary.group(0) if summary else "",
-              "the chord parser is wrong for: " + "; ".join(l.split("qml: ")[-1] for l in chords.text.splitlines() if "CHORD FAIL" in l) or "no summary line")
+              chords.ok and not chords.timed_out and bool(summary) and summary.group(1) == summary.group(2),
+              summary.group(0) if summary else "", detail, exit_code=chords.rc, timed_out=chords.timed_out)
     limitation = info["contrast"] == 0
     st.passed("contrast preference", ("Qt reports NoPreference: a platform limitation, high contrast engages only when Qt reports it; "
                                       "nothing is inferred from the palette"
