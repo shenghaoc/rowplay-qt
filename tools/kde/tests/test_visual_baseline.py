@@ -2,10 +2,11 @@
 """The visual rules apply only to captures shown to be taken at the baseline they were derived against."""
 import io
 import json
+import signal
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -15,7 +16,7 @@ sys.dont_write_bytecode = True
 
 import acceptance  # noqa: E402
 import derive_rules  # noqa: E402
-from kdeacc import baseline, provenance, shell, stages  # noqa: E402
+from kdeacc import baseline, provenance, session, shell, stages  # noqa: E402
 from kdeacc.results import Status  # noqa: E402
 from tests.test_baseline_env import Repo  # noqa: E402
 from tests.test_visual import H, W, canvas, paint  # noqa: E402
@@ -23,6 +24,17 @@ from tests.test_visual import H, W, canvas, paint  # noqa: E402
 REPO = HERE.parents[2]
 SHA = baseline.BASELINE_SHA
 OTHER = "1" * 40
+
+
+@contextmanager
+def restore_signal_handlers():
+    """Confine the CLI entry point's signal changes to this in-process call, even when it raises."""
+    saved = {sig: signal.getsignal(sig) for sig in session.INTERRUPT_SIGNALS}
+    try:
+        yield
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
 
 
 def rules_file(directory, sha=SHA):
@@ -49,6 +61,7 @@ class Fixture(unittest.TestCase):
         self.before, self.after = self.dir / "baseline-full", self.dir / "branch-full"
         for d in (self.before, self.after):
             d.mkdir()
+        self.branch_provenance()
         changed = canvas()
         paint(changed, (50, 60, 120, 63), (61, 174, 233))
         ppm(self.before / "phase-row-catch.ppm", canvas())
@@ -60,6 +73,9 @@ class Fixture(unittest.TestCase):
 
     def provenance(self, commit=SHA, dirty=False, role="baseline"):
         (self.before / provenance.PROVENANCE_FILE).write_text(json.dumps({"role": role, "commit": commit, "dirty": dirty}))
+
+    def branch_provenance(self, commit=OTHER, dirty=False, role="branch"):
+        (self.after / provenance.PROVENANCE_FILE).write_text(json.dumps({"role": role, "commit": commit, "dirty": dirty}))
 
     def stage(self, baseline_sha=SHA):
         ctx = stages.Ctx(REPO, None, Path("/x"), self.dir / "out", shell.Runner(), None, baseline_sha=baseline_sha)
@@ -76,6 +92,50 @@ class VisualBaseline(Fixture):
         st = self.stage()
         self.assertEqual(st.status, Status.PASS, [(c.name, c.detail) for c in st.checks if c.status == Status.FAIL])
         self.assertIn("zero unexpected changed pixels", self.names(st, Status.PASS))
+
+    def test_branch_provenance_is_required_readable_clean_and_exactly_the_branch_role(self):
+        self.provenance()
+        path = self.after / provenance.PROVENANCE_FILE
+        invalid = ((None, "the branch captures carry branch provenance", "carry no provenance.json"),
+                   ("{not json", "the branch captures carry readable provenance", "not valid JSON"),
+                   (json.dumps({"role": "branch", "commit": "abc", "dirty": False}),
+                    "the branch captures carry readable provenance", "40-hex"),
+                   (json.dumps({"role": "baseline", "commit": OTHER, "dirty": False}),
+                    "the branch captures carry branch provenance", "'baseline'"),
+                   (json.dumps({"commit": OTHER, "dirty": False}),
+                    "the branch captures carry branch provenance", "None"),
+                   (json.dumps({"role": "branch", "commit": OTHER, "dirty": True}),
+                    "the branch captures come from a clean tree", "uncommitted changes"),
+                   (json.dumps({"role": "branch", "commit": OTHER}),
+                    "the branch captures come from a clean tree", "dirty"),
+                   (json.dumps({"role": "branch", "commit": OTHER, "dirty": 0}),
+                    "the branch captures come from a clean tree", "dirty"))
+        for contents, name, detail in invalid:
+            with self.subTest(contents=contents):
+                if contents is None:
+                    path.unlink()
+                else:
+                    path.write_text(contents)
+                with mock.patch.object(stages.visual, "compare_dirs") as compare:
+                    st = self.stage()
+                self.assertEqual(st.status, Status.FAIL)
+                failed = {c.name: c.detail for c in st.checks if c.status == Status.FAIL}
+                self.assertIn(detail, failed[name])
+                compare.assert_not_called()
+
+    def test_unreadable_branch_provenance_is_a_named_failed_check(self):
+        self.provenance()
+        path = self.after / provenance.PROVENANCE_FILE
+        path.unlink()
+        path.mkdir()   # a directory cannot be read as the provenance file
+        st = self.stage()
+        self.assertIn("the branch captures carry readable provenance", self.names(st, Status.FAIL))
+
+    def test_non_text_branch_provenance_is_a_named_failed_check(self):
+        self.provenance()
+        (self.after / provenance.PROVENANCE_FILE).write_bytes(b"\xff")
+        st = self.stage()
+        self.assertIn("the branch captures carry readable provenance", self.names(st, Status.FAIL))
 
     def test_captures_from_another_commit_fail_once_by_name_and_no_rule_is_applied(self):
         self.provenance(commit=OTHER)
@@ -142,7 +202,7 @@ class CaptureOnlyVisualRun(Fixture):
         def no_worktree(*a, **k):
             raise AssertionError("a capture-only visual run must not look for a baseline worktree")
 
-        with mock.patch.object(baseline, "find_baseline_tree", no_worktree), mock.patch.object(stages.session, "locked_since", lambda r, s: []), \
+        with restore_signal_handlers(), mock.patch.object(baseline, "find_baseline_tree", no_worktree), mock.patch.object(stages.session, "locked_since", lambda r, s: []), \
                 redirect_stdout(io.StringIO()):
             code = acceptance.main(["visual", "--repo", str(REPO), "--baseline-captures", str(self.before), "--branch-captures", str(self.after),
                                     "--output", str(out), *extra])
@@ -155,6 +215,54 @@ class CaptureOnlyVisualRun(Fixture):
         self.assertEqual(by_name["visual"]["status"], "PASS", by_name["visual"]["checks"])
         self.assertNotIn("guards", by_name)
         self.assertEqual(manifest["context"]["baseline_tree"], None)
+        record = next(c for c in by_name["visual"]["checks"] if c["name"] == "the branch captures carry branch provenance")
+        self.assertEqual(record["data"]["commit"], OTHER)
+        self.assertIn(OTHER, record["detail"])
+        self.assertIsNone(manifest["context"]["branch"])   # the evidence commit is not this checkout's branch
+
+    def test_an_explicit_baseline_revision_is_checked_without_resolving_a_worktree(self):
+        self.provenance()
+        for revision, expected in ((SHA, "PASS"), (OTHER, "FAIL"), (SHA[:7], "FAIL"), ("main", "FAIL")):
+            with self.subTest(revision=revision):
+                code, manifest = self.run_cli("--baseline-sha", revision)
+                visual_stage = next(s for s in manifest["stages"] if s["name"] == "visual")
+                self.assertEqual(visual_stage["status"], expected)
+                self.assertEqual(manifest["context"]["baseline_sha_expected"], revision)
+
+    def test_signal_handlers_are_restored_after_success_and_a_failed_run(self):
+        with restore_signal_handlers():
+            def caller_handler(signum, frame):
+                pass
+
+            for sig in session.INTERRUPT_SIGNALS:
+                signal.signal(sig, caller_handler)
+            for valid in (True, False):
+                with self.subTest(valid=valid):
+                    if valid:
+                        self.provenance()
+                    else:
+                        (self.before / provenance.PROVENANCE_FILE).unlink()
+                    code, manifest = self.run_cli()
+                    self.assertEqual(manifest["overall"], "PASS" if valid else "FAIL")
+                    self.assertEqual(code, 0 if valid else 1)
+                    for sig in session.INTERRUPT_SIGNALS:
+                        self.assertIs(signal.getsignal(sig), caller_handler)
+
+    def test_signal_handlers_are_restored_when_the_cli_raises(self):
+        saved = {sig: signal.getsignal(sig) for sig in session.INTERRUPT_SIGNALS}
+        for sig, handler in saved.items():
+            self.addCleanup(signal.signal, sig, handler)
+
+        def raises(*args):
+            for sig in session.INTERRUPT_SIGNALS:
+                signal.signal(sig, signal.SIG_IGN)
+            raise RuntimeError("CLI failed outside its stage handler")
+
+        with mock.patch.object(acceptance, "main", side_effect=raises):
+            with self.assertRaisesRegex(RuntimeError, "CLI failed outside"):
+                self.run_cli()
+        for sig, handler in saved.items():
+            self.assertEqual(signal.getsignal(sig), handler)
 
     def test_without_provenance_it_fails_with_the_evidence_error_not_a_missing_checkout(self):
         code, manifest = self.run_cli()
