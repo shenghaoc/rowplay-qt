@@ -68,8 +68,18 @@ class RulesFile(unittest.TestCase):
                 families["settings icon"] += 1
                 self.assertEqual(top[0], "232629", name)                           # a dark glyph replaced by the surface
                 (x0, y0, x1, y1), = rule["regions"]
-                self.assertLessEqual((x1 - x0, y1 - y0), (20, 20), name)            # one 16 px icon and its margin
+                self.assertLessEqual(x1 - x0, 20, name)                           # one 16 px icon and its margin
+                self.assertLessEqual(y1 - y0, 20, name)
         self.assertEqual(families, {"scrubber": 30, "settings icon": 9, "ring": 1})
+
+    def test_a_narrow_tall_settings_icon_region_is_rejected(self):
+        caps = self.data["sets"]["baseline-vs-branch"]["captures"]
+        name, rule = next((name, rule) for name, rule in caps.items()
+                          if not rule.get("bands") and rule["colours_observed"][0][:2] != ["000000", "3daee9"])
+        x0, y0, x1, y1 = rule["regions"][0]
+        rule["regions"][0] = [x0, y0, x0 + 19, y0 + 700]
+        with self.assertRaisesRegex(AssertionError, name):
+            self.test_the_baseline_vs_branch_set_is_the_three_expected_families_only()
 
 
 if __name__ == "__main__":
