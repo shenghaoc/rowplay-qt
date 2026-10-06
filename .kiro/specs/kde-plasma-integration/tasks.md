@@ -2,14 +2,25 @@
 
 Ticked in the pull request that delivers them (`kde/plasma-integration`).
 
-Evidence status (2026-10-05): T1, T2, T3.3, T6 and T7 below retain historical
+Evidence status (2026-10-06): T1, T2, T3.3, T6 and T7 below retain historical
 native measurements from the monolith. They do not attest a native rerun of the
 hardened review stack. The changed probe diagnostics, owned-process teardown,
 AT-SPI field guard, configured Qt packaging path and visual provenance checks
 have deterministic regressions. Their live native/package flows have not been
 rerun here. The historical native capture pair and its original run records are
 required to reclassify it with the stricter provenance checks; they were not
-available on the cloud computer. Xvfb is generic evidence only.
+available on either the cloud computer or the Mac. Xvfb is generic evidence only.
+
+Rerun on macOS with Qt 6.11.2: workspace fmt and all-target clippy with warnings
+denied; 636 workspace Rust tests (two existing ignored tests), including the full
+offscreen runtime gate; debug and release quick keyboard gates; the real Qt chord
+probe (18/18); acceptance core/native/visual suites (68/110/161), dry-run, shell
+syntax and baseline/dependency/containment guards. The Mac review follow-ups fix
+helper-process detection, canonical temporary paths and hermetic Ubuntu fixtures,
+and recognize zombies without reaping another owner's child. Actual Ubuntu
+container packaging and Plasma session stages were not rerun: Apple container
+could neither share nor copy this Documents workspace. The older Mac Cocoa/Metal
+and packaged-app report is reused historical evidence, not Plasma evidence.
 
 - [x] T1 Baseline on Fedora 44 Plasma Wayland, `main` unchanged (R1).
   - [x] T1.1 Environment recorded: Fedora 44, kernel 6.19.10, Wayland,

@@ -1502,6 +1502,15 @@ and re-measured unchanged after the host moved to Plasma 6.7.5, KDE Frameworks
   comparison were not rerun during the 2026-10-05 cloud review fixes. The saved
   native input pair and contemporaneous run provenance were unavailable there.
   Generic Xvfb validation is not evidence for the changed native harness.
+- Review validation rerun on macOS (2026-10-06, Qt 6.11.2): workspace fmt,
+  all-target clippy with warnings denied, 636 workspace Rust tests (two existing
+  ignored tests), full offscreen runtime and debug/release quick keyboard gates,
+  chord probe 18/18, core/native/visual suites 68/110/161, dry-run, shell syntax
+  and pinned-baseline/dependency/containment guards. The historical Mac native
+  report is reused evidence. Actual Ubuntu packaging and Plasma stages were not
+  rerun; Apple container could neither share nor copy the Documents workspace.
+  The original native PPM pair, manifest and commands.log are still missing, so
+  the stricter native provenance comparison remains unvalidated.
 - What running it found: a locked screen starves the gate (the harness inhibits
   it); large text turns the sidebar into a modal drawer, which the walk's date-range
   step had never met (it now opens it); shortcuts fire only in an active window,

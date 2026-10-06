@@ -187,6 +187,28 @@ What the AppImage's Qt sees under Plasma:
   acceptance harness is a Plasma tool and may name Plasma; the app and its
   tests do not.
 
+## Review validation (2026-10-06)
+
+On macOS with Qt 6.11.2, the hardened stack passed workspace fmt and all-target
+clippy with warnings denied, 636 workspace Rust tests (two existing ignored
+tests), the full offscreen runtime gate, debug and release quick keyboard gates,
+and the real Qt chord probe (18/18). Acceptance suites passed at their owning
+layers: core 68, native 110 and visual 161; dry-run, shell syntax and the pinned
+baseline/dependency/containment guards also passed. The Mac follow-ups make
+helper-process detection and temporary-path assertions portable, detect zombies
+without reaping another owner's child, and keep the Ubuntu wrapper's unit fixture
+independent of the host distribution.
+
+These are rerun Mac and deterministic harness checks. The retained Mac
+Cocoa/Metal and packaged-app report is reused historical evidence. Actual Ubuntu
+packaging and Plasma session stages were not rerun; Apple container could neither
+share nor copy this Documents workspace. The original native/main-full and
+native/branch-full directories (70 PPMs each), manifest and commands.log proving
+the captured commits and clean state remain unavailable. The stricter visual
+provenance comparison is therefore unvalidated against that original pair.
+Earlier claims that historical native measurements validate the changed harness
+are superseded by these evidence limits.
+
 ## Historical native acceptance (monolith, 2026-09-30)
 
 The decisions above are checked by a repeatable harness, `tools/kde/acceptance.py`
