@@ -598,8 +598,15 @@ def stage_identity(ctx):
     if not appimage or not Path(appimage).exists():
         st.add("the branch AppImage", Status.UNAVAILABLE, "run the `package` stage first or pass --appimage")
         return st
-    if kwin.rowplay_windows(ctx.runner) not in ([],):
-        st.failed("no RowPlay window is open before the run", "close RowPlay first (or KWin could not be asked)")
+    open_now = kwin.rowplay_windows(ctx.runner)
+    if open_now != []:
+        # Two different problems, told apart: a RowPlay window the stage did not open (close it: the stage
+        # would otherwise close it with the ones it launches), or KWin that could not be asked at all.
+        st.failed("no RowPlay window is open before the run",
+                  "KWin could not be asked (is this a Plasma Wayland session, and is its scripting interface on the session bus?)"
+                  if open_now is None else
+                  "close RowPlay first; KWin lists " + ", ".join(
+                      f"pid {w['pid']} {w['desktopFileName'] or w['resourceClass']!r}" for w in open_now))
         return st
     app_id = ctx.app_id()
     launched = ctx.launched_pids   # the only processes this stage may ever end: the windows KWin reported
