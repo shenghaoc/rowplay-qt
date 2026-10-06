@@ -9,6 +9,7 @@ task manager groups windows by. Host tools only: run in the clean host environme
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
 import time
@@ -17,8 +18,37 @@ from pathlib import Path
 
 from .shell import host_env
 
-LIST_JS = r"""
-function isRow(w) { return /rowplay/i.test([w.resourceClass, w.resourceName, w.desktopFileName, w.caption].join("|")) && !/konsole|claude/i.test(w.caption); }
+# What a RowPlay window calls itself: the desktop entry ID the app names at start-up (ADR 0018), and the
+# executable names an unpackaged or older build reports in its place. A window is RowPlay's only when one of
+# KWin's own identity properties equals one of these exactly. Never the caption, never a substring: a browser
+# tab titled "...shenghaoc/rowplay-qt" (a person reviewing these very pull requests) is not RowPlay, and the
+# first version of this finder took it for one, which blocked the identity stage and had the raiser activate
+# the tab. Another application whose name merely contains "rowplay" is not RowPlay either.
+ROWPLAY_IDENTITIES = ("io.github.shenghaoc.rowplay", "rowplay-qt", "rowplay-app")
+IDENTITY_PROPERTIES = ("desktopFileName", "resourceClass", "resourceName")
+
+
+def is_rowplay_window(window):
+    """The rule the KWin scripts apply, for a parsed window dict (or any mapping with KWin's property names)."""
+    return any(window.get(prop) in ROWPLAY_IDENTITIES for prop in IDENTITY_PROPERTIES)
+
+
+# The same rule in KWin's JavaScript, defined once and put in front of every script that selects windows.
+_IS_ROWPLAY_JS = r"""
+const ROWPLAY_IDS = @IDS@;
+function isRow(w) {
+    return ROWPLAY_IDS.indexOf(w.desktopFileName) >= 0 || ROWPLAY_IDS.indexOf(w.resourceClass) >= 0 ||
+           ROWPLAY_IDS.indexOf(w.resourceName) >= 0;
+}
+"""
+
+
+def render(js, marker):
+    """A KWin script ready to load: its marker and the identity list filled in."""
+    return js.replace("@MARK@", marker).replace("@IDS@", json.dumps(list(ROWPLAY_IDENTITIES)))
+
+
+LIST_JS = _IS_ROWPLAY_JS + r"""
 for (const w of workspace.windowList()) if (isRow(w)) {
     console.info("@MARK@ caption=" + JSON.stringify(w.caption) + " resourceClass=" + JSON.stringify(w.resourceClass) +
         " resourceName=" + JSON.stringify(w.resourceName) + " desktopFileName=" + JSON.stringify(w.desktopFileName) +
@@ -27,8 +57,8 @@ for (const w of workspace.windowList()) if (isRow(w)) {
 console.info("@MARK@ end");
 """
 
-CLOSE_JS = r"""
-for (const w of workspace.windowList()) if (/rowplay/i.test(w.desktopFileName) && !/konsole|claude/i.test(w.caption)) w.closeWindow();
+CLOSE_JS = _IS_ROWPLAY_JS + r"""
+for (const w of workspace.windowList()) if (isRow(w)) w.closeWindow();
 console.info("@MARK@ end");
 """
 
@@ -64,7 +94,7 @@ def run_script(runner, js, wait=1.5, tag="kwin-script"):
     marker = "ROWPLAY-KWIN-" + uuid.uuid4().hex[:10]
     name = "kdeacc-" + marker
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as handle:
-        handle.write(js.replace("@MARK@", marker))
+        handle.write(render(js, marker))
         path = handle.name
     since = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time() - 1))
     try:
@@ -91,7 +121,7 @@ def rowplay_windows(runner):
     marker, text = run_script(runner, LIST_JS, tag="kwin-list")
     if f"{marker} end" not in text:
         return None
-    return parse_windows(text, marker)
+    return [w for w in parse_windows(text, marker) if is_rowplay_window(w)]  # the script already filtered; the rule is checked twice
 
 
 def close_rowplay_windows(runner):
@@ -114,12 +144,10 @@ def wait_for_windows(runner, count, timeout=45):
 # callbacks and no keyboard focus: every hold in the walk then runs out its bound and every key
 # check fails, whatever the app does. While a native stage runs, this script raises each RowPlay
 # window as it appears, so the walk does not depend on what the desktop's user happens to be doing.
-RAISE_JS = r"""
-function isRow(w) { return /rowplay/i.test([w.resourceClass, w.resourceName, w.desktopFileName, w.caption].join("|")) && !/konsole|claude/i.test(w.caption); }
+RAISE_JS = _IS_ROWPLAY_JS + r"""
 function raise(w) { if (isRow(w) && workspace.activeWindow !== w) { w.minimized = false; workspace.activeWindow = w; } }
 workspace.windowAdded.connect(function (w) {
     raise(w);
-    w.captionChanged.connect(function () { raise(w); });
     w.desktopFileNameChanged.connect(function () { raise(w); });
 });
 for (const w of workspace.windowList()) raise(w);
@@ -132,7 +160,7 @@ def load_persistent(runner, js, tag="kwin-persist"):
     marker = "ROWPLAY-KWIN-" + uuid.uuid4().hex[:10]
     name = "kdeacc-" + marker
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as handle:
-        handle.write(js.replace("@MARK@", marker))
+        handle.write(render(js, marker))
         path = handle.name
     loaded = _qdbus(runner, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadScript", path, name, tag=tag)
     script_id = loaded.out.strip()
