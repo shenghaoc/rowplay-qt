@@ -257,6 +257,36 @@ class Timeouts(unittest.TestCase):
         self.assertEqual([shell.text_of(v) for v in (None, b"a", "b", b"\xff")], ["", "a", "b", "�"])
 
 
+class HostRowPlayHidden:
+    """The runner these tests give `stage_leftovers`: the real one, except that the host's own RowPlay processes are not
+    visible. The stage asks `pgrep` for `rowplay-app` and `rowplay-qt` by name, which on a developer's machine finds an
+    unrelated, running RowPlay and fails a test about helper matching. Every other query, the helper lookup included,
+    reaches the real process table, so the tests still exercise the real matching expression."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    def run(self, argv, **kw):
+        if list(argv)[:3] == ["pgrep", "-l", "-x"] and "rowplay-app" in " ".join(map(str, argv)):
+            return shell.Done([str(a) for a in argv], 1, "", "", 0.0)
+        return self.inner.run(argv, **kw)
+
+
+class HostProcessTable:
+    """A fake process table behind the same seam: the host runs RowPlay, with a pid no real process has."""
+
+    def __init__(self, rowplay=("4242 rowplay-app",)):
+        self.rowplay = rowplay
+        self.queries = []
+
+    def run(self, argv, **kw):
+        argv = [str(a) for a in argv]
+        self.queries.append(argv)
+        if argv[:3] == ["pgrep", "-l", "-x"]:
+            return shell.Done(argv, 0 if self.rowplay else 1, "".join(f"{r}\n" for r in self.rowplay), "", 0.0)
+        return shell.Done(argv, 1, "", "", 0.0)
+
+
 class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
     """The leftovers check once matched any command line that contained `atspi_walk`: a clean run failed whenever a shell,
     editor or grep on the machine merely mentioned it (found when the suite failed once, unexplained, while the invoking
@@ -278,10 +308,11 @@ class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
         for line in self.BYSTANDERS:
             self.assertNotRegex(line, self.PATTERN, line)
 
-    def leftovers(self):
+    def leftovers(self, runner=None):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        ctx = stages.Ctx(REPO, None, Path("/x"), Path(tmp.name), shell.Runner(), None)
+        runner = runner or HostRowPlayHidden(shell.Runner())
+        ctx = stages.Ctx(REPO, None, Path("/x"), Path(tmp.name), runner, None)
         return stages.stage_leftovers(ctx), Path(tmp.name)
 
     def spawn(self, argv):
@@ -294,6 +325,25 @@ class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
         self.spawn(["sh", "-c", "sleep 30 # tools/kde/atspi_walk.py kdeacc-probe /kde/probe/"])
         st, _ = self.leftovers()
         self.assertEqual([c.status for c in st.checks], [Status.PASS], [(c.name, c.detail) for c in st.checks])
+
+    def test_a_running_rowplay_on_the_host_cannot_fail_the_helper_tests(self):
+        """The fixture's isolation: the same host process table that holds a RowPlay fails the stage when the stage
+        reads it directly (what the fixture used to do), and passes through the fixture's runner."""
+        direct, _ = self.leftovers(HostProcessTable())
+        self.assertEqual(direct.status, Status.FAIL)
+        self.assertIn("4242 rowplay-app", direct.checks[-1].detail)
+        isolated, _ = self.leftovers(HostRowPlayHidden(HostProcessTable()))
+        self.assertEqual(isolated.status, Status.PASS, [(c.name, c.detail) for c in isolated.checks])
+
+    def test_the_stage_still_looks_for_rowplay_by_name_and_for_the_helpers(self):
+        """Production semantics, unchanged: a leftover rowplay-app or rowplay-qt fails a real run."""
+        for name in ("rowplay-app", "rowplay-qt"):
+            table = HostProcessTable((f"77 {name}",))
+            st, _ = self.leftovers(table)
+            self.assertEqual(st.status, Status.FAIL, name)
+            self.assertIn(f"77 {name}", st.checks[-1].detail)
+            self.assertIn(["pgrep", "-l", "-x", "rowplay-app|rowplay-qt"], table.queries)
+            self.assertIn(["pgrep", "-fl", stages.HELPER_PROCESS_PATTERN], table.queries)
 
     def test_a_real_walk_process_is_a_leftover(self):
         script = Path(tempfile.mkdtemp()) / "atspi_walk.py"
