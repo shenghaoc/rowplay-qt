@@ -241,7 +241,7 @@ def alive_pids(pids):
 # interpreter or the tool. A pattern that merely occurs somewhere in a command line matches every shell, editor and
 # `grep` that mentions atspi_walk or a probe directory, and fails a clean run. (POSIX ERE, as pgrep -f reads it.)
 HELPER_PROCESS_PATTERN = (r"^([^ ]*/)?qml .*(kdeacc-probe|/kde/probe/)"
-                          r"|^([^ ]*/)?python[0-9.]* ([^ ]*/)?atspi_walk\.py( |$)")
+                          r"|^([^ ]*/)?[Pp]ython[0-9.]* ([^ ]*/)?atspi_walk\.py( |$)")
 
 
 def stage_leftovers(ctx):
@@ -256,8 +256,9 @@ def stage_leftovers(ctx):
                   inhibition_taken=ctx.inhibitor.cookie is not None or ctx.inhibitor.note == "")
     # By executable name and by the PIDs this run launched: never the generic AppImage wrapper name,
     # which another linuxdeploy-built application shares.
-    by_name = ctx.runner.run(["pgrep", "-a", "-x", "rowplay-app|rowplay-qt"], env=host_env(), tag="leftovers").out
-    by_name += ctx.runner.run(["pgrep", "-af", HELPER_PROCESS_PATTERN], env=host_env(), tag="leftovers").out
+    # -l lists names on both procps and BSD; BSD's -a includes ancestors instead.
+    by_name = ctx.runner.run(["pgrep", "-l", "-x", "rowplay-app|rowplay-qt"], env=host_env(), tag="leftovers").out
+    by_name += ctx.runner.run(["pgrep", "-fl", HELPER_PROCESS_PATTERN], env=host_env(), tag="leftovers").out
     mine = [ln for ln in by_name.splitlines() if "pgrep" not in ln and "acceptance.py" not in ln]
     mine += [f"{pid} (launched by this run)" for pid in alive_pids(ctx.launched_pids)]
     st.expect("no helper or RowPlay process remains", not mine, "none", "; ".join(mine[:5]))

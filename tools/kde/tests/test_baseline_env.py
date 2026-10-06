@@ -109,7 +109,7 @@ class BaselineContract(unittest.TestCase):
 
     def test_a_baseline_is_found_by_commit_not_by_branch(self):
         tree = self.repo.worktree("found", self.repo.a, branch="whatever")
-        self.assertEqual(baseline.find_baseline_tree(self.runner, self.repo.main, self.repo.a), tree)
+        self.assertEqual(baseline.find_baseline_tree(self.runner, self.repo.main, self.repo.a), tree.resolve())
         self.assertIsNone(baseline.find_baseline_tree(self.runner, self.repo.main, self.repo.u))
         # the subject itself is never its own baseline
         self.assertIsNone(baseline.find_baseline_tree(self.runner, self.repo.main, self.repo.b))
@@ -266,7 +266,8 @@ class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
     HELPERS = ("/home/u/Qt/6.11.2/gcc_64/bin/qml -I /tmp/kdeacc-probe-x1/mod /r/tools/kde/probe/probe.qml --apptype gui",
                "qml /r/tools/kde/probe/chord-test.qml --apptype gui",
                "/usr/bin/python3 /r/tools/kde/atspi_walk.py --timeout 40",
-               "python3.11 atspi_walk.py")
+               "python3.11 atspi_walk.py",
+               "/Applications/Xcode.app/Contents/Developer/usr/bin/Python /r/tools/kde/atspi_walk.py")
     BYSTANDERS = ("vim tools/kde/atspi_walk.py", "bash -c git diff --stat tools/kde/atspi_walk.py", "grep -rn atspi_walk .",
                   "less /tmp/kdeacc-probe-1/mod/Theme.qml", "python3 -m unittest discover -s tools/kde/tests -t tools/kde",
                   "/usr/bin/python3 -c print('atspi_walk.py')", "tail -f /tmp/atspi_walk.py.log", "qmllint tools/kde/probe/probe.qml")
@@ -298,10 +299,10 @@ class LeftoversMatchOnlyTheHarnessHelpers(unittest.TestCase):
         script = Path(tempfile.mkdtemp()) / "atspi_walk.py"
         self.addCleanup(lambda: __import__("shutil").rmtree(script.parent, ignore_errors=True))
         script.write_text("import time\ntime.sleep(30)\n")
-        self.spawn([sys.executable, str(script)])
+        proc = self.spawn([sys.executable, str(script)])
         st, _ = self.leftovers()
         self.assertEqual(st.status, Status.FAIL)
-        self.assertIn("atspi_walk.py", st.checks[-1].detail)
+        self.assertIn(str(proc.pid), st.checks[-1].detail)
 
 
 class IconThemeEvidence(unittest.TestCase):

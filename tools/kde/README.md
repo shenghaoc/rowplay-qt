@@ -10,6 +10,10 @@ Xvfb job is not Plasma-native evidence. CI runs only what is honest there: the h
 (`python3 -m unittest discover -s tools/kde/tests -t tools/kde`, a step of the Qt-free job), the generic
 Linux gate, the release quick gate and the packaging.
 
+The unit suite also runs on macOS: baseline paths are canonicalised, and helper-process checks use
+the shared BSD/procps `pgrep` flags and recognise macOS's `Python` executable. This validates the
+harness logic; it is not evidence from a live Plasma session.
+
 ## Running it
 
 ```bash
