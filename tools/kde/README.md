@@ -116,6 +116,8 @@ recorded in the manifest and summary; **no later stage runs** (`checks` in parti
 
 Identity teardown uses the same owned-PID cleanup: TERM, a bounded grace period, then KILL and a wait for exit.
 Requiring forced cleanup still fails the clean-shutdown check; a zombie awaiting reaping is not a running leftover.
+Zombie state comes from Linux's `/proc`, or `ps` on macOS; neither path reaps another caller's child.
+The fake Ubuntu fixture supplies its own release record and never reads the validation host's distribution file.
 
 **Gate variables.** A run the harness calls a gate owns every variable that changes what the walk does (`gates.GATE_VARS`: profile, smoke and
 exit-after-frames hooks, scale and font, renderer, capture directories, forced scheme and contrast): it sets the value it means or removes the

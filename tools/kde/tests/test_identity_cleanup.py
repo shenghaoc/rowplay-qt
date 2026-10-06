@@ -91,7 +91,15 @@ class OwnedProcessCleanup(unittest.TestCase):
     def test_exited_child_is_not_a_running_leftover_before_reaping(self):
         process = self.process()
         process.kill()
-        os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+        # Observe exit without reaping on Linux and macOS (whose Python has no waitid).
+        deadline = time.monotonic() + 3
+        state = ""
+        while not state.startswith("Z") and time.monotonic() < deadline:
+            state = subprocess.run(["ps", "-p", str(process.pid), "-o", "stat="],
+                                   capture_output=True, text=True, timeout=1).stdout.strip()
+            if not state.startswith("Z"):
+                time.sleep(0.01)
+        self.assertTrue(state.startswith("Z"), f"the killed child did not become a zombie: {state!r}")
         self.assertEqual(stages.alive_pids({process.pid}), [])
         self.assertEqual(stages.end_owned_processes(SimpleNamespace(launched_pids={process.pid}), grace=0.05), [])
         self.assertEqual(process.wait(timeout=5), -signal.SIGKILL)

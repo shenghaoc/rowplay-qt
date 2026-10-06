@@ -34,7 +34,7 @@ class UbuntuPackageWrapper(unittest.TestCase):
     def setUp(self):
         tmp = tempfile.TemporaryDirectory(prefix="kde package ")
         self.addCleanup(tmp.cleanup)
-        self.root = Path(tmp.name)
+        self.root = Path(tmp.name).resolve()
         self.home = self.root / "home user"
         self.src = self.root / "source tree"
         self.target = self.root / "container target"
@@ -51,6 +51,7 @@ class UbuntuPackageWrapper(unittest.TestCase):
         executable(self.bin / "git", fake_git)
         executable(self.home / ".cargo/bin/git", fake_git)
         executable(self.home / ".cargo/bin/rustc", '#!/bin/sh\necho "rustc fixture"\n')
+        executable(self.home / ".cargo/bin/grep", '#!/bin/sh\n[ "$1" = PRETTY ] && [ "$2" = /etc/os-release ] || exit 2\necho \'PRETTY_NAME="Ubuntu fixture"\'\n')
         executable(self.bin / "apt-get", '#!/bin/sh\nexit 0\n')
         executable(self.bin / "podman", '''#!/usr/bin/python3
 import json, os, subprocess, sys

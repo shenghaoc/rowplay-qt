@@ -525,10 +525,15 @@ def alive_pids(pids):
             # signalled again, and must not make a successful teardown look like a survivor.
             try:
                 state = Path(f"/proc/{pid}/stat").read_text().rpartition(") ")[2].split()[0]
-                if state == "Z":
-                    continue
             except (OSError, IndexError):
-                pass
+                # macOS has no /proc; ps reports the same zombie state without reaping a child.
+                try:
+                    state = subprocess.run(["ps", "-p", str(pid), "-o", "stat="], capture_output=True,
+                                           text=True, timeout=1, env=host_env()).stdout.strip()
+                except (OSError, subprocess.SubprocessError):
+                    state = ""  # cannot establish exit: conservatively keep this PID
+            if state.startswith("Z"):
+                continue
             out.append(pid)
         except ProcessLookupError:
             pass
