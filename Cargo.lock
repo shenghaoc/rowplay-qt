@@ -625,7 +625,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -668,7 +668,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1272,9 +1272,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cd0837cbe1afed17e0b00bcb650063e7a86a9b38d49fb716ae7952af6ea02b8"
+checksum = "72c2b13ec15df4f76dec6fdb6f5c4b5fdc0f91cbc219456be368bbfe1947b044"
 dependencies = [
  "qtbridge-gen",
  "qtbridge-interfaces",
@@ -1284,9 +1284,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge-build-utils"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db92f2bba637c43461af6cd344bc726a5bb9321f4ca99ad1f5c659d7909420ee"
+checksum = "5801d0fd3e756c400aaea93f66e99e6e4b7030c13538ca701e52f45779d9dd21"
 dependencies = [
  "cc",
  "qt-build-utils",
@@ -1294,22 +1294,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge-gen"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dae0668fce881f48cbbebc12d407ce6a97f735511fa23241f8989b16c55f0f04"
-dependencies = [
- "proc-macro2",
- "qtbridge-build-utils",
- "qtbridge-gen-common",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "qtbridge-gen-common"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "743b330ed2053786f5f45551dc4ba04a7a7d9c4e97a32613f639d9dc9970f3e4"
+checksum = "f4a1fccfab4ad36c6e61e9d8e5c15b6369c6dc5292ff190fbaef68614429fe82"
 dependencies = [
  "proc-macro2",
  "qtbridge-build-utils",
@@ -1319,9 +1306,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge-interfaces"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faa99a01ad113bf1092bffbf3da4648b04add0a44a7f22bcf9a657254d4023fc"
+checksum = "7da031180d7e1ea520b5e9d1372a1d95651c21dcbbf881adff32811e457edc56"
 dependencies = [
  "cxx",
  "cxx-build",
@@ -1333,9 +1320,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge-runtime"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c737d1839f84b2b14e77c426677cfedfcb881d5675d2e71f4ebeca31cdd4d9"
+checksum = "f48008749c95457dbdaf6d53dc8efc3c617eb5e0a78d4c4276ecbb9c578c5b13"
 dependencies = [
  "cxx",
  "cxx-build",
@@ -1348,9 +1335,9 @@ dependencies = [
 
 [[package]]
 name = "qtbridge-type-lib"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "111a9621eed3223c26db23b60acab4bcd9c803f68dd49126ad6e70d3e8a63082"
+checksum = "1311d95cf22398ef32c181671f3fca23861efff731459283539b8a1e76b21832"
 dependencies = [
  "cc",
  "cxx",
