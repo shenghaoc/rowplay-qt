@@ -56,7 +56,7 @@ regex = "1.11"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 chrono-tz = "0.10"
 # Qt Bridges for Rust (public beta). Pinned exactly: the API is still moving.
-qtbridge = "=0.3.0"
+qtbridge = "=0.4.0"
 # CXX-Qt's Qt bindings, the same release qtbridge 0.3.0 locks (never a second
 # copy: the CXX alignment check in CI fails on a package resolved twice).
 # rowplay-app calls one binding qtbridge's `QApp` does not expose,
